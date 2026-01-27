@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Conversation = require('../models/Conversation');
+const Chat = require('../models/Chat');
 const Transaction = require('../models/Transaction');
 const Project = require('../models/Project');
 const Job = require('../models/Job');
@@ -49,9 +50,30 @@ const getActiveChats = async (req, res) => {
         const conversations = await Conversation.find()
             .sort({ isFrozen: -1, updatedAt: -1 })
             .limit(50)
-            .populate('participants', 'firstName lastName role');
+            .populate('participants', 'firstName lastName role')
+            .populate('lastMessageId', 'content');
 
-        res.json(conversations);
+        // Format conversations to include sender/receiver info
+        const formatted = conversations.map(conv => {
+            const participants = conv.participants || [];
+            const participant1 = participants[0];
+            const participant2 = participants[1];
+            
+            return {
+                _id: conv._id,
+                isFrozen: conv.isFrozen,
+                lastMessage: conv.lastMessage,
+                content: conv.lastMessageId?.content || conv.lastMessage || 'No messages yet',
+                updatedAt: conv.updatedAt,
+                createdAt: conv.createdAt,
+                participants: participants,
+                // For backward compatibility
+                senderId: participant1,
+                receiverId: participant2
+            };
+        });
+
+        res.json(formatted);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
@@ -80,6 +102,41 @@ const unfreezeChat = async (req, res) => {
         conversation.isFrozen = false;
         await conversation.save();
         res.json(conversation);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+}
+
+const sendAdminMessage = async (req, res) => {
+    try {
+        const { conversationId, receiverId, content } = req.body;
+        const adminId = req.user.id;
+
+        // Find conversation
+        const conversation = await Conversation.findById(conversationId);
+        if (!conversation) {
+            return res.status(404).json({ msg: 'Conversation not found' });
+        }
+
+        // Create admin message (bypass frozen status)
+        const newMsg = new Chat({
+            conversationId: conversation._id,
+            senderId: adminId,
+            receiverId: receiverId,
+            content: `[Engezhaly Admin] ${content}`,
+            messageType: 'text',
+            isAdmin: true // Flag to identify admin messages
+        });
+
+        await newMsg.save();
+
+        // Update conversation metadata
+        conversation.lastMessage = `[Engezhaly Admin] ${content}`;
+        conversation.lastMessageId = newMsg._id;
+        await conversation.save();
+
+        res.json(newMsg);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
@@ -407,5 +464,6 @@ module.exports = {
     getAllOrders,
     updateOrder,
     getAllTransactions,
-    getTopFreelancers
+    getTopFreelancers,
+    sendAdminMessage
 };

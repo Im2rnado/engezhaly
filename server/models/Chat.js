@@ -7,7 +7,8 @@ const ChatSchema = new mongoose.Schema({
     messageType: { type: String, enum: ['text', 'voice', 'file'], default: 'text' },
     content: { type: String, required: true }, // Text content or URL
     isBlurred: { type: Boolean, default: false },
-    isFrozen: { type: Boolean, default: false } // Kept for historical context if needed, but Conversation.isFrozen is master switch
+    isFrozen: { type: Boolean, default: false }, // Kept for historical context if needed, but Conversation.isFrozen is master switch
+    isAdmin: { type: Boolean, default: false } // Flag to identify admin messages
 }, { timestamps: true });
 
 module.exports = mongoose.model('Chat', ChatSchema);

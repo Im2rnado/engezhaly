@@ -343,6 +343,15 @@ export const api = {
             if (!res.ok) throw new Error('Failed to unfreeze chat');
             return res.json();
         },
+        sendAdminMessage: async (data: any) => {
+            const res = await fetch(`${API_URL}/admin/chats/message`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify(data)
+            });
+            if (!res.ok) throw new Error('Failed to send admin message');
+            return res.json();
+        },
         addStrike: async (id: string) => {
             const res = await fetch(`${API_URL}/admin/users/${id}/strike`, {
                 method: 'POST',

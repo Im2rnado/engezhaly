@@ -28,7 +28,7 @@ const getConversations = async (req, res) => {
         const conversations = await Conversation.find({
             participants: userId
         })
-            .populate('participants', 'firstName lastName freelancerProfile.isBusy')
+            .populate('participants', 'firstName lastName freelancerProfile.isBusy freelancerProfile.profilePicture')
             .sort({ updatedAt: -1 });
 
         const formatted = conversations.map(conv => {
@@ -37,6 +37,7 @@ const getConversations = async (req, res) => {
                 id: conv._id, // Use Conversation ID for chat linking
                 partnerId: partner?._id,
                 name: partner ? `${partner.firstName} ${partner.lastName}` : 'Unknown User',
+                profilePicture: partner?.freelancerProfile?.profilePicture || null,
                 lastMessage: conv.lastMessage,
                 isFrozen: conv.isFrozen,
                 online: false // Placeholder for socket status

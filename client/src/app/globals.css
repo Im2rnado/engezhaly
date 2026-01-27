@@ -59,7 +59,7 @@ header .relative {
 }
 
 .bg-white.rounded-3xl>* {
-  overflow: visible !important;
+  overflow: visible;
 }
 
 .bg-white.rounded-3xl .relative {
@@ -78,4 +78,10 @@ header .relative {
 section .grid,
 div .grid {
   overflow: visible !important;
+}
+
+/* Modal scrollable content - override global overflow rules */
+.modal-scrollable-content {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
 }

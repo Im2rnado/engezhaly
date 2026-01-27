@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { api } from '@/lib/api';
-import { Check, X, Ban, User, Flag, MessageSquare, Award, BarChart3, TrendingUp, Search, Loader2, Briefcase, FileText, ShoppingBag, CreditCard, Trash2, Star, Edit, LogOut } from 'lucide-react';
+import { Check, X, Ban, User, Flag, MessageSquare, Award, BarChart3, TrendingUp, Search, Loader2, Briefcase, FileText, ShoppingBag, CreditCard, Trash2, Star, Edit, LogOut, ArrowLeft, Send, Shield } from 'lucide-react';
 import { useModal } from '@/context/ModalContext';
 import EditModal from '@/components/EditModal';
 
@@ -29,6 +29,11 @@ export default function AdminDashboard() {
     const [searchResult, setSearchResult] = useState<any>(null);
     const [loading, setLoading] = useState(false);
     const [editModal, setEditModal] = useState<{ isOpen: boolean; type: 'user' | 'project' | 'job' | null; data: any }>({ isOpen: false, type: null, data: null });
+    
+    // Monitoring states
+    const [selectedChat, setSelectedChat] = useState<any>(null);
+    const [chatMessages, setChatMessages] = useState<any[]>([]);
+    const [adminMessageInput, setAdminMessageInput] = useState('');
 
     // Fetch Functions
     const fetchPending = async () => {
@@ -46,6 +51,54 @@ export default function AdminDashboard() {
             setActiveChats(data);
         } catch (err) {
             console.error('Failed to fetch chats', err);
+        }
+    };
+
+    const fetchChatMessages = async (conversationId: string) => {
+        try {
+            const data = await api.chat.getMessages(conversationId);
+            // Format messages for display
+            const formatted = data.map((m: any) => ({
+                _id: m._id,
+                content: m.content,
+                senderId: m.senderId?._id || m.senderId,
+                isAdmin: m.isAdmin || m.content?.includes('[Engezhaly Admin]'),
+                createdAt: m.createdAt
+            }));
+            setChatMessages(formatted);
+        } catch (err) {
+            console.error('Failed to fetch chat messages', err);
+            showModal({ title: 'Error', message: 'Failed to load messages', type: 'error' });
+        }
+    };
+
+    const handleSelectChat = async (chat: any) => {
+        setSelectedChat(chat);
+        await fetchChatMessages(chat._id);
+    };
+
+    const handleSendAdminMessage = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!adminMessageInput.trim() || !selectedChat) return;
+
+        try {
+            const participants = selectedChat.participants || [];
+            // Send message once - it will be visible to all participants
+            // Use the first participant as receiverId (required field, but message is visible to all)
+            if (participants.length > 0) {
+                await api.admin.sendAdminMessage({
+                    conversationId: selectedChat._id,
+                    receiverId: participants[0]._id,
+                    content: adminMessageInput
+                });
+            }
+            
+            setAdminMessageInput('');
+            await fetchChatMessages(selectedChat._id);
+            await fetchChats(); // Refresh chat list
+        } catch (err: any) {
+            console.error(err);
+            showModal({ title: 'Error', message: err.message || 'Failed to send message', type: 'error' });
         }
     };
 
@@ -310,6 +363,9 @@ export default function AdminDashboard() {
             await api.admin.freezeChat(chatId);
             showModal({ title: 'Success', message: 'Chat Frozen', type: 'success' });
             fetchChats();
+            if (selectedChat && selectedChat._id === chatId) {
+                setSelectedChat({ ...selectedChat, isFrozen: true });
+            }
         } catch (err) {
             console.error(err);
             showModal({ title: 'Error', message: 'Failed to freeze', type: 'error' });
@@ -321,6 +377,9 @@ export default function AdminDashboard() {
             await api.admin.unfreezeChat(chatId);
             showModal({ title: 'Success', message: 'Chat Unfrozen', type: 'success' });
             fetchChats();
+            if (selectedChat && selectedChat._id === chatId) {
+                setSelectedChat({ ...selectedChat, isFrozen: false });
+            }
         } catch (err) {
             console.error(err);
             showModal({ title: 'Error', message: 'Failed to unfreeze', type: 'error' });
@@ -331,21 +390,21 @@ export default function AdminDashboard() {
         <div className="min-h-screen bg-gray-50 flex font-sans text-gray-900">
             {/* Sidebar */}
             <div className="w-72 bg-white border-r border-gray-200 flex flex-col fixed h-full z-10 shadow-sm">
-                <div className="p-8 border-b border-gray-100">
+                <div className="px-8 py-4 border-b border-gray-100">
                     <button
                         onClick={() => router.push('/')}
-                        className="hover:opacity-80 transition-opacity cursor-pointer mb-2"
+                        className="hover:opacity-80 transition-opacity cursor-pointer"
                     >
                         <Image
                             src="/logos/logo-green.png"
                             alt="Engezhaly"
                             width={200}
                             height={55}
-                            className="h-12 w-auto"
+                            className="h-14 -ml-1 w-auto"
                             priority
                         />
                     </button>
-                    <span className="text-xs font-bold text-gray-400 tracking-widest uppercase mt-1 block">Admin Dashboard</span>
+                    <span className="text-xs font-bold text-gray-400 tracking-widest uppercase -mt-2 block">Admin Dashboard</span>
                 </div>
 
                 <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
@@ -404,7 +463,7 @@ export default function AdminDashboard() {
                 <header className="flex justify-between items-center mb-10">
                     <div>
                         <h2 className="text-3xl font-black text-gray-900 capitalize">{activeTab}</h2>
-                        <p className="text-gray-500 mt-1">Manage your platform efficiently.</p>
+                        <p className="text-gray-500 mt-1">Manage the chats.</p>
                     </div>
                 </header>
 
@@ -679,49 +738,194 @@ export default function AdminDashboard() {
 
                 {activeTab === 'monitoring' && (
                     <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                            <h3 className="text-lg font-bold">Active Conversations</h3>
-                            <span className="text-xs font-bold bg-gray-100 px-3 py-1 rounded-full text-gray-500">{activeChats.length} Active</span>
-                        </div>
-                        <div className="p-6 grid gap-4">
-                            {activeChats.map((chat) => (
-                                <div key={chat._id} className={`p-6 rounded-2xl border ${chat.isFrozen ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'} transition-all`}>
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex -space-x-3">
-                                                <div className="w-8 h-8 bg-blue-100 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold text-blue-600">S</div>
-                                                <div className="w-8 h-8 bg-purple-100 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold text-purple-600">R</div>
+                        {!selectedChat ? (
+                            <>
+                                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                                    <h3 className="text-lg font-bold">Active Conversations</h3>
+                                    <span className="text-xs font-bold bg-gray-100 px-3 py-1 rounded-full text-gray-500">{activeChats.length} Active</span>
+                                </div>
+                                <div className="divide-y divide-gray-100">
+                                    {activeChats.map((chat) => {
+                                        const participants = chat.participants || [];
+                                        const participant1 = participants[0];
+                                        const participant2 = participants[1];
+                                        const participant1Initial = participant1?.firstName?.[0]?.toUpperCase() || 'U';
+                                        const participant2Initial = participant2?.firstName?.[0]?.toUpperCase() || 'U';
+                                        const participantNames = participants.length >= 2 
+                                            ? `${participant1?.firstName || 'Unknown'} & ${participant2?.firstName || 'Unknown'}`
+                                            : participants.length === 1 
+                                                ? `${participant1?.firstName || 'Unknown'}`
+                                                : 'Unknown Users';
+                                        
+                                        return (
+                                            <div 
+                                                key={chat._id} 
+                                                onClick={() => handleSelectChat(chat)}
+                                                className="p-4 hover:bg-gray-50 cursor-pointer transition-colors flex items-center justify-between"
+                                            >
+                                                <div className="flex items-center gap-3 flex-1">
+                                                    <div className="flex -space-x-2">
+                                                        {participants.length > 0 && (
+                                                            <div className="w-10 h-10 bg-blue-100 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold text-blue-600">
+                                                                {participant1Initial}
+                                                            </div>
+                                                        )}
+                                                        {participants.length > 1 && (
+                                                            <div className="w-10 h-10 bg-purple-100 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold text-purple-600">
+                                                                {participant2Initial}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <h4 className="font-bold text-sm text-gray-900 truncate">{participantNames}</h4>
+                                                        <p className="text-xs text-gray-500 truncate">
+                                                            {chat.updatedAt ? `Last active ${new Date(chat.updatedAt).toLocaleDateString()}` : 'No activity'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    {chat.isFrozen && (
+                                                        <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1">
+                                                            <Flag className="w-3 h-3" /> Frozen
+                                                        </span>
+                                                    )}
+                                                    {!chat.isFrozen && (
+                                                        <span className="text-xs text-gray-400">Active</span>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <div>
-                                                <h4 className="font-bold text-sm text-gray-900">{chat.senderId?.firstName} & {chat.receiverId?.firstName}</h4>
-                                                <p className="text-xs text-gray-500">Last active recently</p>
-                                            </div>
+                                        );
+                                    })}
+                                    {activeChats.length === 0 && (
+                                        <div className="text-center py-12 text-gray-400">
+                                            <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                                            <p>No active conversations.</p>
                                         </div>
-                                        {chat.isFrozen && <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1"><Flag className="w-3 h-3" /> Frozen</span>}
+                                    )}
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                {/* Chat Detail View */}
+                                <div className="p-6 border-b border-gray-100 flex items-center gap-4">
+                                    <button
+                                        onClick={() => {
+                                            setSelectedChat(null);
+                                            setChatMessages([]);
+                                        }}
+                                        className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+                                    >
+                                        <ArrowLeft className="w-5 h-5" />
+                                    </button>
+                                    <div className="flex items-center gap-3 flex-1">
+                                        <div className="flex -space-x-2">
+                                            {selectedChat.participants?.map((p: any, idx: number) => (
+                                                <div key={idx} className={`w-10 h-10 ${idx === 0 ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'} rounded-full border-2 border-white flex items-center justify-center text-xs font-bold`}>
+                                                    {p?.firstName?.[0]?.toUpperCase() || 'U'}
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-gray-900">
+                                                {selectedChat.participants?.map((p: any) => p?.firstName).filter(Boolean).join(' & ') || 'Unknown Users'}
+                                            </h3>
+                                            {selectedChat.isFrozen && (
+                                                <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1 mt-1">
+                                                    <Flag className="w-3 h-3" /> Frozen
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
-                                    <div className="bg-white p-3 rounded-xl border border-gray-100 text-sm text-gray-600 mb-4 italic">
-                                        &quot;{chat.content || "No recent messages"}&quot;
-                                    </div>
-                                    <div className="flex gap-2 justify-end">
-                                        {!chat.isFrozen ? (
-                                            <button onClick={() => handleFreeze(chat._id)} className="px-4 py-2 bg-red-100 text-red-600 rounded-lg text-sm font-bold hover:bg-red-200 transition-colors flex items-center gap-2">
-                                                <Ban className="w-4 h-4" /> Freeze
+                                    <div className="flex gap-2">
+                                        {selectedChat.isFrozen ? (
+                                            <button
+                                                onClick={async () => {
+                                                    await handleUnfreeze(selectedChat._id);
+                                                    setSelectedChat({ ...selectedChat, isFrozen: false });
+                                                }}
+                                                className="px-4 py-2 bg-green-100 text-green-600 rounded-lg text-sm font-bold hover:bg-green-200 transition-colors flex items-center gap-2"
+                                            >
+                                                <Check className="w-4 h-4" /> Unfreeze
                                             </button>
                                         ) : (
-                                            <button onClick={() => handleUnfreeze(chat._id)} className="px-4 py-2 bg-green-100 text-green-600 rounded-lg text-sm font-bold hover:bg-green-200 transition-colors flex items-center gap-2">
-                                                <Check className="w-4 h-4" /> Unfreeze
+                                            <button
+                                                onClick={async () => {
+                                                    await handleFreeze(selectedChat._id);
+                                                    setSelectedChat({ ...selectedChat, isFrozen: true });
+                                                }}
+                                                className="px-4 py-2 bg-blue-100 text-blue-600 rounded-lg text-sm font-bold hover:bg-blue-200 transition-colors flex items-center gap-2"
+                                            >
+                                                <Ban className="w-4 h-4" /> Freeze
                                             </button>
                                         )}
                                     </div>
                                 </div>
-                            ))}
-                            {activeChats.length === 0 && (
-                                <div className="text-center py-12 text-gray-400">
-                                    <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                                    <p>No active conversations.</p>
+                                
+                                {/* Messages */}
+                                <div className="h-100 overflow-y-auto p-6 space-y-4 bg-gray-50">
+                                    {chatMessages.map((msg: any) => {
+                                        const isAdmin = msg.isAdmin || msg.content?.includes('[Engezhaly Admin]');
+                                        const content = isAdmin ? msg.content.replace('[Engezhaly Admin]', '').trim() : msg.content;
+                                        const senderId = String(msg.senderId?._id || msg.senderId);
+                                        const participant1Id = selectedChat.participants?.[0]?._id ? String(selectedChat.participants[0]._id) : null;
+                                        const participant2Id = selectedChat.participants?.[1]?._id ? String(selectedChat.participants[1]._id) : null;
+                                        const isFromParticipant1 = participant1Id && senderId === participant1Id;
+                                        const isFromParticipant2 = participant2Id && senderId === participant2Id;
+                                        
+                                        return (
+                                            <div key={msg._id} className={`flex ${isAdmin ? 'justify-center' : isFromParticipant1 ? 'justify-start' : 'justify-end'}`}>
+                                                <div className={`max-w-[70%] px-4 py-2 rounded-2xl shadow-sm ${
+                                                    isAdmin 
+                                                        ? 'bg-yellow-100 border-2 border-yellow-300 text-gray-900'
+                                                        : isFromParticipant1
+                                                            ? 'bg-white border border-gray-200 text-gray-900 rounded-bl-sm'
+                                                            : 'bg-[#09BF44] text-white rounded-br-sm'
+                                                }`}>
+                                                    {isAdmin && (
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <Shield className="w-4 h-4 text-yellow-600" />
+                                                            <span className="text-xs font-bold text-yellow-700">Engezhaly Admin</span>
+                                                        </div>
+                                                    )}
+                                                    <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{content}</p>
+                                                    <div className={`flex items-center justify-end mt-1 ${isAdmin ? 'text-yellow-700' : isFromParticipant1 ? 'text-gray-500' : 'text-green-50'}`}>
+                                                        <span className="text-[10px]">
+                                                            {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                    {chatMessages.length === 0 && (
+                                        <div className="text-center py-12 text-gray-400">
+                                            <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                                            <p>No messages yet.</p>
+                                        </div>
+                                    )}
                                 </div>
-                            )}
-                        </div>
+                                
+                                {/* Admin Message Input */}
+                                <div className="p-6 border-t border-gray-200 bg-white">
+                                    <form onSubmit={handleSendAdminMessage} className="flex items-center gap-3">
+                                        <input
+                                            type="text"
+                                            value={adminMessageInput}
+                                            onChange={(e) => setAdminMessageInput(e.target.value)}
+                                            placeholder="Type a message as admin..."
+                                            className="flex-1 px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 text-sm"
+                                        />
+                                        <button
+                                            type="submit"
+                                            className="px-6 py-2 bg-yellow-500 text-white rounded-xl hover:bg-yellow-600 transition-colors font-bold flex items-center gap-2"
+                                        >
+                                            <Send className="w-4 h-4" />
+                                            Send as Admin
+                                        </button>
+                                    </form>
+                                </div>
+                            </>
+                        )}
                     </div>
                 )}
 

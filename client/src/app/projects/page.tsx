@@ -44,6 +44,20 @@ export default function ProjectsPage() {
             });
     }, []);
 
+    // Sync state with URL params when they change
+    useEffect(() => {
+        const category = searchParams.get('category') || '';
+        const subCategory = searchParams.get('subCategory') || '';
+        const search = searchParams.get('search') || '';
+
+        // Batch setState in a microtask to avoid cascading synchronous renders
+        Promise.resolve().then(() => {
+            setSelectedCategory(category);
+            setSelectedSubCategory(subCategory);
+            setSearchQuery(search);
+        });
+    }, [searchParams]);
+
 
     useEffect(() => {
         let filtered = [...projects];

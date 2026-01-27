@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, usePathname } from 'next/navigation';
-import { Briefcase, BarChart3, ShoppingBag, User, Clock, LogOut } from 'lucide-react';
+import { Briefcase, BarChart3, ShoppingBag, User, Clock, LogOut, MessageSquare } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
@@ -42,21 +42,21 @@ export default function FreelancerSidebar({ user, profile, onToggleBusy, onTabCh
 
     return (
         <div className="w-72 bg-white border-r border-gray-200 flex flex-col fixed h-full z-10 shadow-sm">
-            <div className="p-8 border-b border-gray-100">
+            <div className="px-8 py-4 border-b border-gray-100">
                 <button
                     onClick={() => router.push('/')}
-                    className="hover:opacity-80 transition-opacity cursor-pointer mb-2"
+                    className="hover:opacity-80 transition-opacity cursor-pointer"
                 >
                     <Image
                         src="/logos/logo-green.png"
                         alt="Engezhaly"
-                        width={200}
-                        height={55}
-                        className="h-12 w-auto"
+                        width={300}
+                        height={40}
+                        className="h-14 w-auto -ml-1"
                         priority
                     />
                 </button>
-                <span className="text-xs font-bold text-gray-400 tracking-widest uppercase mt-1 block">Freelancer Dashboard</span>
+                <span className="text-xs font-bold text-gray-400 tracking-widest uppercase -mt-2 block">Freelancer Dashboard</span>
             </div>
 
             <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
@@ -94,10 +94,18 @@ export default function FreelancerSidebar({ user, profile, onToggleBusy, onTabCh
                 >
                     <User className="w-5 h-5" /> Profile
                 </button>
+                <button
+                    onClick={() => {
+                        router.push('/chat');
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${pathname === '/chat' || pathname?.includes('/chat') ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
+                >
+                    <MessageSquare className="w-5 h-5" /> Chats
+                </button>
                 <div className="h-px bg-gray-100 my-2"></div>
                 <button
                     onClick={() => router.push('/')}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${isActive('/') && pathname !== '/dashboard/freelancer' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${pathname === '/' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
                 >
                     <Briefcase className="w-5 h-5" /> Browse Jobs
                 </button>

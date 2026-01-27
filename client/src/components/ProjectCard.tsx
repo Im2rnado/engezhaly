@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { Clock, RotateCcw, Check, ArrowRight, Edit, MessageSquare, Phone, ChevronDown } from 'lucide-react';
+import { Clock, RotateCcw, Check, ArrowRight, Edit, MessageSquare, Phone, ChevronDown, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { api } from '@/lib/api';
@@ -22,6 +22,7 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
     const [selectedPackage, setSelectedPackage] = useState(0);
     const [showContactDropdown, setShowContactDropdown] = useState(false);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+    const [isCustomizeLoading, setIsCustomizeLoading] = useState(false);
     const packages = project.packages || [];
     const currentPackage = packages[selectedPackage] || {};
     const sellerId = project.sellerId?._id || project.sellerId;
@@ -30,11 +31,6 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
         const token = localStorage.getItem('token');
         if (!token) {
             setIsAuthModalOpen(true);
-            showModal({
-                title: 'Login Required',
-                message: 'Please log in as a client to continue.',
-                type: 'info'
-            });
             return false;
         }
 
@@ -235,6 +231,68 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                         {pkg.type || ['Basic', 'Standard', 'Premium'][idx]}
                     </button>
                 ))}
+                {/* Customize Tab - Always visible */}
+                <button
+                    onClick={async () => {
+                        if (!checkClientAuth()) {
+                            return;
+                        }
+                        setIsCustomizeLoading(true);
+                        try {
+                            // Get or create conversation first
+                            const conversations = await api.chat.getConversations();
+                            let conversation = conversations.find((c: any) =>
+                                c.participants?.some((p: any) => p._id === sellerId || p === sellerId)
+                            );
+
+                            if (!conversation) {
+                                // Send automated message to create conversation
+                                await api.chat.sendMessage({
+                                    receiverId: sellerId,
+                                    content: `Hi! I'm interested in a custom package for your project: ${project.title}. Let's discuss the details.`,
+                                    messageType: 'text'
+                                });
+                                // Refresh conversations
+                                const updatedConversations = await api.chat.getConversations();
+                                conversation = updatedConversations.find((c: any) =>
+                                    c.participants?.some((p: any) => p._id === sellerId || p === sellerId)
+                                );
+                            } else {
+                                // Send automated message in existing conversation
+                                await api.chat.sendMessage({
+                                    receiverId: sellerId,
+                                    content: `Hi! I'm interested in a custom package for your project: ${project.title}. Let's discuss the details.`,
+                                    messageType: 'text'
+                                });
+                            }
+                            
+                            router.push(`/chat?conversation=${conversation?._id || sellerId}`);
+                        } catch (err: any) {
+                            console.error(err);
+                            setIsCustomizeLoading(false);
+                            showModal({
+                                title: 'Error',
+                                message: err.message || 'Failed to open chat',
+                                type: 'error'
+                            });
+                        }
+                    }}
+                    disabled={isCustomizeLoading}
+                    className={`flex-1 py-4 text-sm font-bold transition-colors flex items-center justify-center gap-2 ${
+                        isCustomizeLoading 
+                            ? 'text-gray-400 cursor-not-allowed' 
+                            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                    }`}
+                >
+                    {isCustomizeLoading ? (
+                        <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Opening chat...
+                        </>
+                    ) : (
+                        'Customize'
+                    )}
+                </button>
             </div>
 
             {/* Package Content */}

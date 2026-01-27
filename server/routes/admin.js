@@ -25,7 +25,8 @@ const {
     getAllOrders,
     updateOrder,
     getAllTransactions,
-    getTopFreelancers
+    getTopFreelancers,
+    sendAdminMessage
 } = require('../controllers/adminController');
 
 router.get('/freelancers/pending', [auth, adminAuth], getPendingFreelancers);
@@ -34,6 +35,7 @@ router.delete('/freelancers/:id/reject', [auth, adminAuth], rejectFreelancer);
 router.get('/chats', [auth, adminAuth], getActiveChats);
 router.put('/chats/:id/freeze', [auth, adminAuth], freezeChat);
 router.put('/chats/:id/unfreeze', [auth, adminAuth], unfreezeChat);
+router.post('/chats/message', [auth, adminAuth], sendAdminMessage);
 router.post('/users/:id/strike', [auth, adminAuth], addStrike);
 router.put('/freelancers/:id/employee-of-month', [auth, adminAuth], toggleEmployeeOfMonth);
 router.get('/insights', [auth, adminAuth], getInsights);

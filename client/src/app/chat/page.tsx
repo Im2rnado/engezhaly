@@ -1,16 +1,20 @@
 "use client";
 
 import { useEffect, useState, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
-import { Send, Phone, Video, Paperclip, MoreVertical, FileText, CheckCircle, XCircle } from 'lucide-react';
+import { Send, Video, Paperclip, MoreVertical, FileText, CheckCircle, XCircle, MessageSquare, Shield } from 'lucide-react';
+import Image from 'next/image';
 import { api } from '@/lib/api';
 import { useModal } from '@/context/ModalContext';
 import CreateOfferModal from '@/components/CreateOfferModal';
+import ClientSidebar from '@/components/ClientSidebar';
+import FreelancerSidebar from '@/components/FreelancerSidebar';
 
 const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
 
 export default function ChatPage() {
+    const router = useRouter();
     const searchParams = useSearchParams();
     const { showModal } = useModal();
     const [socket, setSocket] = useState<any>(null);
@@ -22,6 +26,8 @@ export default function ChatPage() {
     const [showOfferModal, setShowOfferModal] = useState(false);
     const [conversationId, setConversationId] = useState<string | null>(null);
     const [currentUser, setCurrentUser] = useState<any>(null);
+    const [profile, setProfile] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -30,6 +36,42 @@ export default function ChatPage() {
         setTimeout(() => {
             setCurrentUser(storedUser);
         }, 0);
+
+        // Fetch profile based on user role
+        const token = localStorage.getItem('token');
+        if (token && storedUser.role) {
+            if (storedUser.role === 'client') {
+                api.client.getProfile().then((data) => {
+                    setProfile(data);
+                    setTimeout(() => {
+                        setLoading(false);
+                    }, 0);
+                }).catch(() => {
+                    setTimeout(() => {
+                        setLoading(false);
+                    }, 0);
+                });
+            } else if (storedUser.role === 'freelancer') {
+                api.freelancer.getProfile().then((data) => {
+                    setProfile(data);
+                    setTimeout(() => {
+                        setLoading(false);
+                    }, 0);
+                }).catch(() => {
+                    setTimeout(() => {
+                        setLoading(false);
+                    }, 0);
+                });
+            } else {
+                setTimeout(() => {
+                    setLoading(false);
+                }, 0);
+            }
+        } else {
+            setTimeout(() => {
+                setLoading(false);
+            }, 0);
+        }
 
         // Check for conversation ID in URL
         const urlConversationId = searchParams.get('conversation');
@@ -76,16 +118,33 @@ export default function ChatPage() {
     useEffect(() => {
         if (socket) {
             socket.on('message', (msg: any) => {
-                // Only append if it belongs to current chat or we handle global notifications
-                if (activeChat && (msg.senderId === activeChat.id || msg.senderId === 'me')) {
-                    setMessages((prev) => [...prev, msg]);
+                // Only append if it belongs to current chat
+                if (activeChat && conversationId && (msg.conversationId === conversationId || String(msg.conversationId) === String(conversationId))) {
+                    const userId = currentUser?._id || JSON.parse(localStorage.getItem('user') || '{}')._id;
+                    const senderId = msg.senderId?._id || msg.senderId;
+                    const isAdmin = msg.isAdmin || msg.content?.includes('[Engezhaly Admin]');
+                    const formattedMsg = {
+                        _id: msg._id,
+                        text: msg.content,
+                        sender: String(senderId) === String(userId) ? 'me' : 'them',
+                        senderId: senderId,
+                        timestamp: msg.createdAt || new Date(),
+                        messageType: msg.messageType,
+                        isAdmin: isAdmin
+                    };
+                    setMessages((prev) => {
+                        // Check if message already exists to avoid duplicates
+                        const exists = prev.some(m => m._id === formattedMsg._id);
+                        if (exists) return prev;
+                        return [...prev, formattedMsg];
+                    });
                 }
             });
         }
         return () => {
             if (socket) socket.off('message');
-        }
-    }, [socket, activeChat]);
+        };
+    }, [socket, activeChat, conversationId, currentUser]);
 
     // Fetch messages and offers when activeChat changes
     useEffect(() => {
@@ -98,14 +157,19 @@ export default function ChatPage() {
             // Fetch messages
             api.chat.getMessages(convId).then((data: any) => {
                 const userId = currentUser?._id || JSON.parse(localStorage.getItem('user') || '{}')._id;
-                const formatted = data.map((m: any) => ({
-                    _id: m._id,
-                    text: m.content,
-                    sender: m.senderId?._id === userId || m.senderId === userId ? 'me' : 'them',
-                    senderId: m.senderId?._id || m.senderId,
-                    timestamp: m.createdAt,
-                    messageType: m.messageType
-                }));
+                const formatted = data.map((m: any) => {
+                    const senderId = m.senderId?._id || m.senderId;
+                    const isAdmin = m.isAdmin || m.content?.includes('[Engezhaly Admin]');
+                    return {
+                        _id: m._id,
+                        text: m.content,
+                        sender: String(senderId) === String(userId) ? 'me' : 'them',
+                        senderId: senderId,
+                        timestamp: m.createdAt,
+                        messageType: m.messageType,
+                        isAdmin: isAdmin
+                    };
+                });
                 setMessages(formatted);
             }).catch(console.error);
 
@@ -124,32 +188,85 @@ export default function ChatPage() {
         e.preventDefault();
         if (!input.trim() || !activeChat) return;
 
+        // Check if conversation is frozen
+        if (activeChat.isFrozen) {
+            showModal({
+                title: 'Conversation Frozen',
+                message: 'This conversation has been frozen. A support team will review and unfreeze it as soon as possible.',
+                type: 'error'
+            });
+            return;
+        }
+
+        const messageContent = input;
+        setInput(''); // Clear input immediately for better UX
+        
         try {
             const receiverId = activeChat.partnerId || activeChat.id;
+                    const userId = currentUser?._id || JSON.parse(localStorage.getItem('user') || '{}')._id;
+            
+            // Optimistically add the message to show it immediately
+            const optimisticMessage = {
+                _id: `temp-${Date.now()}`,
+                text: messageContent,
+                sender: 'me' as const,
+                senderId: userId,
+                timestamp: new Date(),
+                messageType: 'text'
+            };
+            setMessages((prev) => [...prev, optimisticMessage]);
+            
             await api.chat.sendMessage({
                 receiverId,
-                content: input,
+                content: messageContent,
                 messageType: 'text'
             });
 
-            // Refresh messages
+            // Refresh messages to get the real message from server
             const data = await api.chat.getMessages(activeChat.id);
-            const userId = currentUser?._id || JSON.parse(localStorage.getItem('user') || '{}')._id;
-            const formatted = data.map((m: any) => ({
-                _id: m._id,
-                text: m.content,
-                sender: m.senderId?._id === userId || m.senderId === userId ? 'me' : 'them',
-                senderId: m.senderId?._id || m.senderId,
-                timestamp: m.createdAt,
-                messageType: m.messageType
-            }));
+            const formatted = data.map((m: any) => {
+                const senderId = m.senderId?._id || m.senderId;
+                const isAdmin = m.isAdmin || m.content?.includes('[Engezhaly Admin]');
+                return {
+                    _id: m._id,
+                    text: m.content,
+                    sender: String(senderId) === String(userId) ? 'me' : 'them',
+                    senderId: senderId,
+                    timestamp: m.createdAt,
+                    messageType: m.messageType,
+                    isAdmin: isAdmin
+                };
+            });
             setMessages(formatted);
-            setInput('');
-        } catch (err) {
+            
+            // Refresh conversations to update isFrozen status if it changed
+            api.chat.getConversations().then((data: any) => {
+                if (Array.isArray(data)) {
+                    setChats(data);
+                    const updatedChat = data.find((c: any) => c.id === activeChat.id);
+                    if (updatedChat) {
+                        setActiveChat(updatedChat);
+                    }
+                }
+            }).catch(console.error);
+        } catch (err: any) {
             console.error(err);
+            // Check if error is due to frozen conversation
+            if (err.message?.includes('frozen') || err.message?.includes('Frozen')) {
+                // Refresh conversations to get updated status
+                api.chat.getConversations().then((data: any) => {
+                    if (Array.isArray(data)) {
+                        setChats(data);
+                        const updatedChat = data.find((c: any) => c.id === activeChat.id);
+                        if (updatedChat) {
+                            setActiveChat(updatedChat);
+                        }
+                    }
+                }).catch(console.error);
+            }
             showModal({
                 title: 'Error',
-                message: 'Failed to send message',
+                message: err.message || 'Failed to send message',
                 type: 'error'
             });
         }
@@ -172,14 +289,19 @@ export default function ChatPage() {
 
             const messagesData = await api.chat.getMessages(conversationId);
             const userId = currentUser?._id || JSON.parse(localStorage.getItem('user') || '{}')._id;
-            const formatted = messagesData.map((m: any) => ({
-                _id: m._id,
-                text: m.content,
-                sender: m.senderId?._id === userId || m.senderId === userId ? 'me' : 'them',
-                senderId: m.senderId?._id || m.senderId,
-                timestamp: m.createdAt,
-                messageType: m.messageType
-            }));
+            const formatted = messagesData.map((m: any) => {
+                const senderId = m.senderId?._id || m.senderId;
+                const isAdmin = m.isAdmin || m.content?.includes('[Engezhaly Admin]');
+                return {
+                    _id: m._id,
+                    text: m.content,
+                    sender: String(senderId) === String(userId) ? 'me' : 'them',
+                    senderId: senderId,
+                    timestamp: m.createdAt,
+                    messageType: m.messageType,
+                    isAdmin: isAdmin
+                };
+            });
             setMessages(formatted);
 
             setShowOfferModal(false);
@@ -230,177 +352,463 @@ export default function ChatPage() {
         });
     };
 
-    return (
-        <div className="flex h-screen bg-white">
-            {/* Sidebar List */}
-            <div className="w-1/3 border-r border-gray-100 flex flex-col">
-                <div className="p-6 border-b border-gray-100">
-                    <h2 className="text-2xl font-black text-gray-900">Messages</h2>
-                </div>
-                <div className="flex-1 overflow-y-auto">
-                    {chats.map((chat) => (
-                        <div
-                            key={chat.id}
-                            onClick={() => setActiveChat(chat)}
-                            className={`p-4 hover:bg-gray-50 cursor-pointer flex items-center gap-4 border-b border-gray-50 ${activeChat?.id === chat.id ? 'bg-green-50' : ''}`}
-                        >
-                            <div className="relative">
-                                <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
-                                {chat.online && <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#09BF44] border-2 border-white rounded-full"></div>}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <h4 className="font-bold text-gray-900 truncate">{chat.name}</h4>
-                                <p className="text-gray-500 text-sm truncate">{chat.lastMessage}</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
+    const handleBookConsultation = async () => {
+        if (!activeChat) return;
+
+        // Check if user is a client
+        const token = localStorage.getItem('token');
+        if (!token) {
+            showModal({
+                title: 'Login Required',
+                message: 'Please log in as a client to book a consultation.',
+                type: 'info'
+            });
+            return;
+        }
+
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        if (currentUser.role !== 'client') {
+            showModal({
+                title: 'Client Account Required',
+                message: 'This feature is only available for clients. Please log in with a client account.',
+                type: 'error'
+            });
+            return;
+        }
+
+        try {
+            // Check wallet balance
+            const balance = await api.wallet.getBalance();
+            if (balance.balance < 100) {
+                showModal({
+                    title: 'Insufficient Balance',
+                    message: 'You need at least 100 EGP in your wallet to book a consultation.',
+                    type: 'error'
+                });
+                return;
+            }
+
+            // Create consultation order/payment
+            showModal({
+                title: 'Book Consultation',
+                message: 'This will charge 100 EGP from your wallet. Proceed?',
+                type: 'confirm',
+                onConfirm: async () => {
+                    try {
+                        const receiverId = activeChat.partnerId || activeChat.id;
+                        // Send consultation request message
+                        await api.chat.sendMessage({
+                            receiverId,
+                            content: `[CONSULTATION REQUEST] I would like to book a consultation call. Please confirm availability.`,
+                            messageType: 'text'
+                        });
+
+                        // Deduct 100 EGP from wallet
+                        await api.wallet.topUp(-100); // Negative amount to deduct
+
+                        showModal({
+                            title: 'Success',
+                            message: 'Consultation request sent! The freelancer will confirm availability.',
+                            type: 'success'
+                        });
+
+                        // Refresh messages
+                        if (conversationId) {
+                            const data = await api.chat.getMessages(conversationId);
+                            const userId = currentUser?._id || JSON.parse(localStorage.getItem('user') || '{}')._id;
+                            const formatted = data.map((m: any) => {
+                                const senderId = m.senderId?._id || m.senderId;
+                                const isAdmin = m.isAdmin || m.content?.includes('[Engezhaly Admin]');
+                                return {
+                                    _id: m._id,
+                                    text: m.content,
+                                    sender: String(senderId) === String(userId) ? 'me' : 'them',
+                                    senderId: senderId,
+                                    timestamp: m.createdAt,
+                                    messageType: m.messageType,
+                                    isAdmin: isAdmin
+                                };
+                            });
+                            setMessages(formatted);
+                        }
+                    } catch (err: any) {
+                        console.error(err);
+                        showModal({
+                            title: 'Error',
+                            message: err.message || 'Failed to book consultation',
+                            type: 'error'
+                        });
+                    }
+                }
+            });
+        } catch (err: any) {
+            console.error(err);
+            showModal({
+                title: 'Error',
+                message: err.message || 'Failed to check wallet balance',
+                type: 'error'
+            });
+        }
+    };
+
+    const toggleBusy = async () => {
+        if (currentUser?.role !== 'freelancer' || !profile) return;
+        try {
+            const newStatus = !profile?.freelancerProfile?.isBusy;
+            const updated = await api.freelancer.updateProfile({ isBusy: newStatus });
+            setProfile(updated);
+            showModal({
+                title: 'Success',
+                message: `Status updated to ${newStatus ? 'Busy' : 'Available'}`,
+                type: 'success'
+            });
+        } catch (err: any) {
+            console.error(err);
+            showModal({
+                title: 'Error',
+                message: err.message || 'Failed to update status',
+                type: 'error'
+            });
+        }
+    };
+
+    const getInitials = (name: string) => {
+        const parts = name.split(' ');
+        if (parts.length >= 2) {
+            return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+        }
+        return name[0]?.toUpperCase() || 'U';
+    };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#09BF44]"></div>
             </div>
+        );
+    }
 
-            {/* Chat Area */}
-            <div className="flex-1 flex flex-col">
-                {activeChat ? (
-                    <>
-                        {/* Header */}
-                        <div className="h-20 border-b border-gray-100 flex items-center justify-between px-8 bg-white/80 backdrop-blur-sm">
-                            <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
-                                <div>
-                                    <h3 className="font-bold text-gray-900">{activeChat.name}</h3>
-                                    <span className="text-xs text-[#09BF44] font-bold">{activeChat.online ? 'Online' : 'Offline'}</span>
+    // Redirect to home if not logged in
+    if (!currentUser || !currentUser.role) {
+        router.push('/');
+        return null;
+    }
+
+    return (
+        <div className="min-h-screen bg-gray-50 flex font-sans text-gray-900" style={{ height: '100vh', overflow: 'hidden' }}>
+            {/* Dashboard Sidebar */}
+            {currentUser.role === 'client' ? (
+                <ClientSidebar user={currentUser} profile={profile} />
+            ) : currentUser.role === 'freelancer' ? (
+                <FreelancerSidebar
+                    user={currentUser}
+                    profile={profile}
+                    onToggleBusy={toggleBusy}
+                />
+            ) : null}
+
+            {/* Main Content Area */}
+            <div className="flex-1 ml-72 p-8 overflow-hidden" style={{ height: '100vh' }}>
+                <div className="flex gap-6 h-full">
+                    {/* Conversations Sidebar */}
+                    <div className="w-80 bg-white rounded-3xl border border-gray-200 flex flex-col shadow-sm overflow-hidden flex-shrink-0 h-full">
+                        <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-white to-gray-50 rounded-t-3xl flex-shrink-0">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-[#09BF44]/10 rounded-xl">
+                                    <MessageSquare className="w-6 h-6 text-[#09BF44]" />
                                 </div>
-                            </div>
-                            <div className="flex items-center gap-6 text-gray-400">
-                                <Phone className="w-5 h-5 cursor-pointer hover:text-[#09BF44]" />
-                                <Video className="w-5 h-5 cursor-pointer hover:text-[#09BF44]" />
-                                <MoreVertical className="w-5 h-5 cursor-pointer hover:text-gray-600" />
+                                <h2 className="text-2xl font-black text-gray-900">Messages</h2>
                             </div>
                         </div>
+                        <div className="flex-1 overflow-y-auto min-h-0">
+                            {chats.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center h-full text-gray-400 p-6">
+                                    <MessageSquare className="w-16 h-16 mb-4 opacity-20" />
+                                    <p className="font-bold text-lg">No conversations yet</p>
+                                    <p className="text-sm mt-2">Start a conversation to see it here</p>
+                                </div>
+                            ) : (
+                                chats.map((chat) => {
+                                    const partnerName = chat.name || 'Unknown User';
+                                    const partnerInitials = getInitials(partnerName);
+                                    const isActive = activeChat?.id === chat.id;
 
-                        {/* Messages */}
-                        <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-gray-50/50">
-                            {/* Display offers */}
-                            {offers.map((offer: any) => {
-                                const isMyOffer = offer.senderId?._id === currentUser?._id || offer.senderId === currentUser?._id;
-                                const canAccept = !isMyOffer && offer.status === 'pending';
-
-                                return (
-                                    <div key={offer._id} className={`flex ${isMyOffer ? 'justify-end' : 'justify-start'}`}>
-                                        <div className={`max-w-[70%] p-6 rounded-2xl border-2 ${isMyOffer
-                                            ? 'bg-[#09BF44] text-white border-[#09BF44]'
-                                            : 'bg-white border-[#09BF44]'}`}>
-                                            <div className="flex items-center gap-2 mb-3">
-                                                <FileText className={`w-5 h-5 ${isMyOffer ? 'text-white' : 'text-[#09BF44]'}`} />
-                                                <span className={`font-bold ${isMyOffer ? 'text-white' : 'text-gray-900'}`}>
-                                                    Custom Offer
-                                                </span>
-                                                {offer.status === 'accepted' && (
-                                                    <CheckCircle className={`w-4 h-4 ml-auto ${isMyOffer ? 'text-white' : 'text-green-600'}`} />
-                                                )}
-                                                {offer.status === 'rejected' && (
-                                                    <XCircle className={`w-4 h-4 ml-auto ${isMyOffer ? 'text-white' : 'text-red-600'}`} />
+                                    return (
+                                        <div
+                                            key={chat.id}
+                                            onClick={() => setActiveChat(chat)}
+                                            className={`p-4 cursor-pointer flex items-center gap-4 border-b border-gray-100 transition-all ${isActive
+                                                    ? 'bg-gradient-to-r from-[#09BF44]/10 to-[#09BF44]/5 border-l-4 border-l-[#09BF44]'
+                                                    : 'hover:bg-gray-50'
+                                                }`}
+                                        >
+                                            {/* Profile Picture */}
+                                            <div className="relative shrink-0">
+                                                {/* Gradient Background Blur */}
+                                                <div className="absolute inset-0 flex items-center justify-center -z-10">
+                                                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#09BF44]/30 via-[#09BF44]/15 to-transparent blur-md"></div>
+                                                </div>
+                                                {/* Profile Picture Container */}
+                                                <div className="relative w-14 h-14 rounded-full overflow-hidden border-2 border-white shadow-md z-10 bg-gray-200">
+                                                    {chat.profilePicture ? (
+                                                        <Image
+                                                            src={chat.profilePicture}
+                                                            alt={partnerName}
+                                                            width={56}
+                                                            height={56}
+                                                            className="w-full h-full object-cover rounded-full"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-full rounded-full bg-gradient-to-br from-[#09BF44] to-[#07a63a] flex items-center justify-center text-white font-black text-sm">
+                                                            {partnerInitials}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                {chat.online && (
+                                                    <div className="absolute bottom-0 right-0 w-4 h-4 bg-[#09BF44] border-2 border-white rounded-full shadow-sm"></div>
                                                 )}
                                             </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className="font-bold text-gray-900 truncate text-sm">{partnerName}</h4>
+                                                <p className="text-gray-500 text-xs truncate mt-0.5">{chat.lastMessage || 'No messages yet'}</p>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+                    </div>
 
-                                            <div className={`space-y-2 mb-4 ${isMyOffer ? 'text-white/90' : 'text-gray-700'}`}>
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-sm font-bold">Price:</span>
-                                                    <span className="text-lg font-black">{offer.price} EGP</span>
-                                                </div>
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-sm font-bold">Delivery:</span>
-                                                    <span className="text-sm">{offer.deliveryDays} days</span>
-                                                </div>
-                                                <div className="pt-2 border-t border-white/20">
-                                                    <p className="text-sm font-bold mb-1">What&apos;s Included:</p>
-                                                    <p className="text-sm">{offer.whatsIncluded}</p>
-                                                </div>
-                                                {offer.milestones && offer.milestones.length > 0 && (
-                                                    <div className="pt-2 border-t border-white/20">
-                                                        <p className="text-sm font-bold mb-2">Milestones:</p>
-                                                        {offer.milestones.map((milestone: any, idx: number) => (
-                                                            <div key={idx} className="text-xs mb-1">
-                                                                • {milestone.name}: {milestone.price} EGP
-                                                                {milestone.dueDate && ` (Due: ${new Date(milestone.dueDate).toLocaleDateString()})`}
-                                                            </div>
-                                                        ))}
+                    {/* Chat Area */}
+                    <div className="flex-1 bg-white rounded-3xl border border-gray-200 flex flex-col shadow-sm overflow-hidden h-full relative" style={{ minHeight: 0 }}>
+                        {activeChat ? (
+                            <>
+                                {/* Frozen Overlay */}
+                                {activeChat.isFrozen && (
+                                    <div className="absolute inset-0 bg-white/80 backdrop-blur-md z-50 flex items-center justify-center rounded-3xl">
+                                        <div className="bg-white rounded-3xl p-8 shadow-2xl border-2 border-blue-200 max-w-md mx-4 text-center">
+                                            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                </svg>
+                                            </div>
+                                            <h3 className="text-xl font-black text-gray-900 mb-2">Conversation Frozen</h3>
+                                            <p className="text-gray-600 text-sm leading-relaxed">
+                                                This conversation has been frozen. A support team will review the chat and unfreeze it as soon as possible.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {/* Header */}
+                                <div className="h-20 border-b border-gray-200 flex items-center justify-between px-8 bg-white rounded-t-3xl shadow-sm flex-shrink-0">
+                                    <div className="flex items-center gap-4">
+                                        {/* Profile Picture */}
+                                        <div className="relative">
+                                            {/* Gradient Background Blur */}
+                                            <div className="absolute inset-0 flex items-center justify-center -z-10">
+                                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#09BF44]/30 via-[#09BF44]/15 to-transparent blur-md"></div>
+                                            </div>
+                                            {/* Profile Picture Container */}
+                                            <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-md z-10 bg-gray-200">
+                                                {activeChat.profilePicture ? (
+                                                    <Image
+                                                        src={activeChat.profilePicture}
+                                                        alt={activeChat.name}
+                                                        width={48}
+                                                        height={48}
+                                                        className="w-full h-full object-cover rounded-full"
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full rounded-full bg-gradient-to-br from-[#09BF44] to-[#07a63a] flex items-center justify-center text-white font-black text-sm">
+                                                        {getInitials(activeChat.name)}
                                                     </div>
                                                 )}
                                             </div>
-
-                                            {canAccept && (
-                                                <button
-                                                    onClick={() => handleAcceptOffer(offer._id)}
-                                                    className="w-full bg-white text-[#09BF44] font-bold py-2 rounded-xl hover:bg-gray-50 transition-colors"
-                                                >
-                                                    Accept Offer
-                                                </button>
-                                            )}
-                                            {offer.status === 'accepted' && (
-                                                <div className="text-center text-sm font-bold opacity-75">
-                                                    ✓ Offer Accepted
-                                                </div>
-                                            )}
-                                            {offer.status === 'rejected' && (
-                                                <div className="text-center text-sm font-bold opacity-75">
-                                                    ✗ Offer Rejected
-                                                </div>
+                                            {activeChat.online && (
+                                                <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#09BF44] border-2 border-white rounded-full"></div>
                                             )}
                                         </div>
+                                        <div>
+                                            <h3 className="font-bold text-gray-900 text-lg">{activeChat.name}</h3>
+                                            <span className="text-xs text-[#09BF44] font-bold flex items-center gap-1">
+                                                <div className="w-2 h-2 bg-[#09BF44] rounded-full"></div>
+                                                {activeChat.online ? 'Online' : 'Offline'}
+                                            </span>
+                                        </div>
                                     </div>
-                                );
-                            })}
-
-                            {/* Display messages */}
-                            {messages.map((msg, idx) => (
-                                <div key={msg._id || idx} className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`max-w-[70%] p-4 rounded-2xl ${msg.sender === 'me' ? 'bg-[#09BF44] text-white rounded-tr-none' : 'bg-white border border-gray-100 rounded-tl-none'}`}>
-                                        <p className="text-sm">{msg.text}</p>
-                                        <span className={`text-[10px] mt-1 block ${msg.sender === 'me' ? 'text-green-100' : 'text-gray-400'}`}>
-                                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </span>
+                                    <div className="flex items-center gap-4 text-gray-400">
+                                        <button
+                                            onClick={handleBookConsultation}
+                                            className="p-2 hover:bg-gray-100 rounded-xl transition-colors hover:text-[#09BF44]"
+                                            title="Book Consultation"
+                                        >
+                                            <Video className="w-5 h-5" />
+                                        </button>
+                                        <button className="p-2 hover:bg-gray-100 rounded-xl transition-colors hover:text-gray-600">
+                                            <MoreVertical className="w-5 h-5" />
+                                        </button>
                                     </div>
                                 </div>
-                            ))}
-                            <div ref={messagesEndRef} />
-                        </div>
 
-                        {/* Input */}
-                        <div className="p-6 bg-white border-t border-gray-100 space-y-3">
-                            {/* Create Offer Button */}
-                            <button
-                                onClick={() => setShowOfferModal(true)}
-                                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl font-bold text-gray-700 transition-colors"
-                            >
-                                <FileText className="w-5 h-5 text-[#09BF44]" />
-                                Create Offer
-                            </button>
+                                {/* Messages */}
+                                <div style={{ overflowY: 'auto', overflowX: 'hidden' }} className="flex-1 p-6 space-y-4 bg-gradient-to-b from-gray-50 to-white rounded-b-3xl min-h-0">
+                                    {/* Display offers */}
+                                    {offers.map((offer: any) => {
+                                        const isMyOffer = offer.senderId?._id === currentUser?._id || offer.senderId === currentUser?._id;
+                                        const canAccept = !isMyOffer && offer.status === 'pending';
 
-                            <form onSubmit={sendMessage} className="flex items-center gap-4 bg-gray-50 p-2 rounded-full border border-gray-200 focus-within:border-[#09BF44] focus-within:ring-2 focus-within:ring-green-100 transition-all">
-                                <button type="button" className="p-2 text-gray-400 hover:text-gray-600">
-                                    <Paperclip className="w-5 h-5" />
-                                </button>
-                                <input
-                                    type="text"
-                                    value={input}
-                                    onChange={(e) => setInput(e.target.value)}
-                                    placeholder="Type a message..."
-                                    className="flex-1 bg-transparent border-none outline-none text-gray-700 placeholder-gray-400"
-                                />
-                                <button type="submit" className="p-3 bg-[#09BF44] text-white rounded-full hover:bg-[#07a63a] transition-all transform hover:scale-105 shadow-md shadow-green-200">
-                                    <Send className="w-4 h-4" />
-                                </button>
-                            </form>
-                        </div>
-                    </>
-                ) : (
-                    <div className="flex-1 flex items-center justify-center flex-col text-gray-400">
-                        <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                            <Send className="w-10 h-10 text-gray-300" />
-                        </div>
-                        <p className="font-bold text-lg">Select a conversation to start chatting</p>
+                                        return (
+                                            <div key={offer._id} className={`flex ${isMyOffer ? 'justify-end' : 'justify-start'}`}>
+                                                <div className={`max-w-[75%] p-5 rounded-3xl shadow-sm border-2 ${isMyOffer
+                                                        ? 'bg-[#09BF44] text-white border-[#09BF44]'
+                                                        : 'bg-white border-[#09BF44]/20'
+                                                    }`}>
+                                                    <div className="flex items-center gap-2 mb-3">
+                                                        <FileText className={`w-5 h-5 ${isMyOffer ? 'text-white' : 'text-[#09BF44]'}`} />
+                                                        <span className={`font-bold text-base ${isMyOffer ? 'text-white' : 'text-gray-900'}`}>
+                                                            Custom Offer
+                                                        </span>
+                                                        {offer.status === 'accepted' && (
+                                                            <CheckCircle className={`w-5 h-5 ml-auto ${isMyOffer ? 'text-white' : 'text-green-600'}`} />
+                                                        )}
+                                                        {offer.status === 'rejected' && (
+                                                            <XCircle className={`w-5 h-5 ml-auto ${isMyOffer ? 'text-white' : 'text-red-600'}`} />
+                                                        )}
+                                                    </div>
+
+                                                    <div className={`space-y-3 mb-4 ${isMyOffer ? 'text-white/95' : 'text-gray-700'}`}>
+                                                        <div className="flex items-center justify-between bg-white/10 rounded-xl p-3">
+                                                            <span className="text-sm font-bold">Price:</span>
+                                                            <span className="text-lg font-black">{offer.price} EGP</span>
+                                                        </div>
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-sm font-bold">Delivery:</span>
+                                                            <span className="text-sm font-medium">{offer.deliveryDays} days</span>
+                                                        </div>
+                                                        <div className="pt-3 border-t border-white/20">
+                                                            <p className="text-sm font-bold mb-2">What&apos;s Included:</p>
+                                                            <p className="text-sm leading-relaxed">{offer.whatsIncluded}</p>
+                                                        </div>
+                                                        {offer.milestones && offer.milestones.length > 0 && (
+                                                            <div className="pt-3 border-t border-white/20">
+                                                                <p className="text-sm font-bold mb-2">Milestones:</p>
+                                                                {offer.milestones.map((milestone: any, idx: number) => (
+                                                                    <div key={idx} className="text-xs mb-1.5 flex items-center gap-2">
+                                                                        <div className="w-1.5 h-1.5 rounded-full bg-current opacity-60"></div>
+                                                                        {milestone.name}: {milestone.price} EGP
+                                                                        {milestone.dueDate && ` (Due: ${new Date(milestone.dueDate).toLocaleDateString()})`}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {canAccept && (
+                                                        <button
+                                                            onClick={() => handleAcceptOffer(offer._id)}
+                                                            className="w-full bg-white text-[#09BF44] font-bold py-3 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
+                                                        >
+                                                            Accept Offer
+                                                        </button>
+                                                    )}
+                                                    {offer.status === 'accepted' && (
+                                                        <div className="text-center text-sm font-bold opacity-80 py-2">
+                                                            ✓ Offer Accepted
+                                                        </div>
+                                                    )}
+                                                    {offer.status === 'rejected' && (
+                                                        <div className="text-center text-sm font-bold opacity-80 py-2">
+                                                            ✗ Offer Rejected
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+
+                                    {/* Display messages */}
+                                    {messages.map((msg, idx) => {
+                                        const isAdmin = msg.isAdmin || msg.text?.includes('[Engezhaly Admin]');
+                                        const content = isAdmin ? msg.text.replace('[Engezhaly Admin]', '').trim() : msg.text;
+                                        
+                                        return (
+                                            <div key={msg._id || idx} className={`flex w-full ${isAdmin ? 'justify-center' : msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
+                                                <div className={`max-w-[70%] px-4 py-2 rounded-2xl shadow-sm ${
+                                                    isAdmin
+                                                        ? 'bg-yellow-100 border-2 border-yellow-300 text-gray-900'
+                                                        : msg.sender === 'me'
+                                                            ? 'bg-[#09BF44] text-white rounded-br-sm'
+                                                            : 'bg-white border border-gray-200 text-gray-900 rounded-bl-sm'
+                                                }`}>
+                                                    {isAdmin && (
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <Shield className="w-4 h-4 text-yellow-600" />
+                                                            <span className="text-xs font-bold text-yellow-700">Engezhaly Admin</span>
+                                                        </div>
+                                                    )}
+                                                    <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{content}</p>
+                                                    <div className={`flex items-center justify-end mt-1 ${isAdmin ? 'text-yellow-700' : msg.sender === 'me' ? 'text-green-50' : 'text-gray-500'}`}>
+                                                        <span className="text-[10px]">
+                                                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                    <div ref={messagesEndRef} />
+                                </div>
+
+                                {/* Input */}
+                                <div className={`p-6 bg-white border-t border-gray-200 shadow-lg flex-shrink-0 ${activeChat.isFrozen ? 'opacity-50 pointer-events-none' : ''}`}>
+                                    <div className="flex items-center gap-3">
+                                        {/* Create Offer Button */}
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowOfferModal(true)}
+                                            disabled={activeChat.isFrozen}
+                                            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#09BF44]/10 to-[#09BF44]/5 hover:from-[#09BF44]/20 hover:to-[#09BF44]/10 border border-[#09BF44]/20 rounded-xl font-bold text-[#09BF44] transition-all text-sm whitespace-nowrap flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <FileText className="w-4 h-8" />
+                                            Custom Offer
+                                        </button>
+                                        <form onSubmit={sendMessage} className="flex items-center gap-3 bg-gray-50 p-2 rounded-2xl border-2 border-gray-200 focus-within:border-[#09BF44] focus-within:ring-2 focus-within:ring-[#09BF44]/20 transition-all flex-1 min-w-0">
+                                            <button type="button" disabled={activeChat.isFrozen} className="p-2.5 text-gray-400 hover:text-[#09BF44] hover:bg-white rounded-xl transition-all flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                <Paperclip className="w-5 h-5" />
+                                            </button>
+                                            <input
+                                                type="text"
+                                                value={input}
+                                                onChange={(e) => setInput(e.target.value)}
+                                                placeholder={activeChat.isFrozen ? "Conversation is frozen..." : "Type a message..."}
+                                                disabled={activeChat.isFrozen}
+                                                className="flex-1 bg-transparent border-none outline-none text-gray-700 placeholder-gray-400 text-sm min-w-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            />
+                                            <button type="submit" disabled={activeChat.isFrozen} className="p-3 bg-[#09BF44] text-white rounded-xl hover:bg-[#07a63a] transition-all shadow-md shadow-[#09BF44]/20 hover:shadow-lg hover:shadow-[#09BF44]/30 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                <Send className="w-4 h-4" />
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="flex-1 flex items-center justify-center flex-col text-gray-400 bg-gradient-to-br from-gray-50 to-white">
+                                <div className="relative mb-6">
+                                    {/* Gradient Background Blur */}
+                                    <div className="absolute inset-0 flex items-center justify-center -z-10">
+                                        <div className="w-32 h-32 rounded-full bg-gradient-to-br from-[#09BF44]/20 via-[#09BF44]/10 to-transparent blur-2xl"></div>
+                                    </div>
+                                    <div className="w-24 h-24 bg-gradient-to-br from-[#09BF44]/10 to-[#09BF44]/5 rounded-3xl flex items-center justify-center border-2 border-[#09BF44]/20">
+                                        <MessageSquare className="w-12 h-12 text-[#09BF44] opacity-60" />
+                                    </div>
+                                </div>
+                                <p className="font-black text-xl text-gray-600 mb-2">Select a conversation</p>
+                                <p className="text-sm text-gray-400">Choose a conversation from the sidebar to start chatting</p>
+                            </div>
+                        )}
                     </div>
-                )}
+                </div>
             </div>
 
             {/* Create Offer Modal */}

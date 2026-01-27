@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { Search, User } from "lucide-react";
+import { Search, User, Plus, ChevronDown } from "lucide-react";
 import { MAIN_CATEGORIES, CATEGORIES } from "@/lib/categories";
 import AuthModal from "@/components/AuthModal";
 
@@ -24,6 +24,9 @@ export default function MainHeader({ user, onSearch, searchPlaceholder = "What s
     const [selectedCategory, setSelectedCategory] = useState("");
     const [selectedSubCategory, setSelectedSubCategory] = useState("");
     const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
+    const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+    const [searchType, setSearchType] = useState<'projects' | 'jobs'>('projects');
+    const searchDropdownRef = useRef<HTMLDivElement>(null);
 
     // Sync with URL params
     useEffect(() => {
@@ -36,6 +39,34 @@ export default function MainHeader({ user, onSearch, searchPlaceholder = "What s
         }
     }, [searchParams, pathname, showCategories]);
 
+    // Close search dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (searchDropdownRef.current && !searchDropdownRef.current.contains(event.target as Node)) {
+                setShowSearchDropdown(false);
+            }
+        };
+
+        if (showSearchDropdown) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showSearchDropdown]);
+
+    // Update search type based on current page
+    useEffect(() => {
+        setTimeout(() => {
+            if (pathname === '/jobs') {
+                setSearchType('jobs');
+            } else if (pathname === '/projects') {
+                setSearchType('projects');
+            }
+        }, 0);
+    }, [pathname]);
+
     const getDashboardPath = () => {
         if (!user) return '/';
         if (user.role === 'admin') return '/admin';
@@ -44,11 +75,6 @@ export default function MainHeader({ user, onSearch, searchPlaceholder = "What s
         return '/';
     };
 
-    const handleLogout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        router.push('/');
-    };
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -57,10 +83,24 @@ export default function MainHeader({ user, onSearch, searchPlaceholder = "What s
         } else {
             const params = new URLSearchParams();
             if (searchQuery) params.set('search', searchQuery);
-            if (selectedCategory) params.set('category', selectedCategory);
-            if (selectedSubCategory) params.set('subCategory', selectedSubCategory);
-            router.push(`/projects?${params.toString()}`);
+            if (pathname === '/projects' || searchType === 'projects') {
+                if (selectedCategory) params.set('category', selectedCategory);
+                if (selectedSubCategory) params.set('subCategory', selectedSubCategory);
+                router.push(`/projects?${params.toString()}`);
+            } else if (pathname === '/jobs' || searchType === 'jobs') {
+                router.push(`/jobs?${params.toString()}`);
+            } else {
+                // Homepage - use searchType
+                if (searchType === 'projects') {
+                    if (selectedCategory) params.set('category', selectedCategory);
+                    if (selectedSubCategory) params.set('subCategory', selectedSubCategory);
+                    router.push(`/projects?${params.toString()}`);
+                } else {
+                    router.push(`/jobs?${params.toString()}`);
+                }
+            }
         }
+        setShowSearchDropdown(false);
     };
 
     const handleCategoryClick = (category: string) => {
@@ -116,17 +156,55 @@ export default function MainHeader({ user, onSearch, searchPlaceholder = "What s
                         </div>
 
                         {/* Search Bar */}
-                        <form onSubmit={handleSearch} className="hidden lg:flex items-center bg-white border border-gray-300 rounded-md overflow-hidden w-full max-w-xl transition-shadow focus-within:ring-2 focus-within:ring-[#09BF44] focus-within:border-transparent">
-                            <input
-                                type="text"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder={searchPlaceholder}
-                                className="flex-1 px-4 py-2.5 text-gray-700 placeholder-gray-400 outline-none"
-                            />
-                            <button type="submit" className="bg-black hover:bg-gray-800 text-white px-5 py-2.5 transition-colors">
-                                <Search className="w-5 h-5" />
-                            </button>
+                        <form onSubmit={handleSearch} className="hidden lg:flex items-center relative w-full max-w-md">
+                            {pathname === '/' && (
+                                <div className="relative">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowSearchDropdown(!showSearchDropdown)}
+                                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium z-10 flex items-center gap-1"
+                                    >
+                                        {searchType === 'projects' ? 'Projects' : 'Jobs'}
+                                        <ChevronDown className="w-3 h-3" />
+                                    </button>
+                                    {showSearchDropdown && (
+                                        <div className="absolute top-full left-0 mt-4 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[140px] z-500">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setSearchType('projects');
+                                                    setShowSearchDropdown(false);
+                                                }}
+                                                className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${searchType === 'projects' ? 'bg-[#09BF44]/10 text-[#09BF44]' : 'text-gray-700 hover:bg-gray-50'}`}
+                                            >
+                                                Search Projects
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setSearchType('jobs');
+                                                    setShowSearchDropdown(false);
+                                                }}
+                                                className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors border-t border-gray-100 ${searchType === 'jobs' ? 'bg-[#09BF44]/10 text-[#09BF44]' : 'text-gray-700 hover:bg-gray-50'}`}
+                                            >
+                                                Search Jobs
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            <div className="flex items-center bg-white border border-gray-300 rounded-lg overflow-hidden w-full transition-shadow focus-within:ring-2 focus-within:ring-[#09BF44] focus-within:border-transparent">
+                                <input
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    placeholder={pathname === '/' ? (searchType === 'projects' ? 'Search projects...' : 'Search jobs...') : (pathname === '/jobs' ? 'Search jobs...' : (pathname === '/projects' ? 'Search projects...' : searchPlaceholder))}
+                                    className={`flex-1 px-4 py-2 text-sm text-gray-700 placeholder-gray-400 outline-none ${pathname === '/' ? 'pl-24' : ''}`}
+                                />
+                                <button type="submit" className="bg-black hover:bg-gray-800 text-white px-4 py-2 transition-colors">
+                                    <Search className="w-4 h-4" />
+                                </button>
+                            </div>
                         </form>
                     </div>
 
@@ -147,20 +225,50 @@ export default function MainHeader({ user, onSearch, searchPlaceholder = "What s
                             </button>
                         </nav>
                         {user ? (
-                            <div className="flex items-center gap-4">
-                                <button
-                                    onClick={() => router.push(getDashboardPath())}
-                                    className="flex items-center gap-2 bg-[#09BF44] hover:bg-[#07a63a] text-white text-sm font-bold px-4 py-2 rounded-md transition-all shadow-md hover:shadow-lg"
-                                >
-                                    <User className="w-4 h-4" />
-                                    Profile
-                                </button>
-                                <button
-                                    onClick={handleLogout}
-                                    className="hidden md:block border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-bold px-4 py-2 rounded-md transition-all"
-                                >
-                                    Logout
-                                </button>
+                            <div className="flex items-center gap-3">
+                                {user.role === 'client' ? (
+                                    <>
+                                        <button
+                                            onClick={() => router.push('/dashboard/client/jobs/create')}
+                                            className="flex items-center gap-2 border border-[#09BF44] text-[#09BF44] hover:bg-[#09BF44] hover:text-white text-sm font-bold px-4 py-2 rounded-md transition-all bg-transparent"
+                                        >
+                                            <Plus className="w-4 h-4" />
+                                            Post Job
+                                        </button>
+                                        <button
+                                            onClick={() => router.push(getDashboardPath())}
+                                            className="flex items-center gap-2 bg-[#09BF44] hover:bg-[#07a63a] text-white text-sm font-bold px-4 py-2 rounded-md transition-all shadow-md hover:shadow-lg"
+                                        >
+                                            <User className="w-4 h-4" />
+                                            Profile
+                                        </button>
+                                    </>
+                                ) : user.role === 'freelancer' ? (
+                                    <>
+                                        <button
+                                            onClick={() => router.push('/dashboard/freelancer/projects/create')}
+                                            className="flex items-center gap-2 border border-[#09BF44] text-[#09BF44] hover:bg-[#09BF44] hover:text-white text-sm font-bold px-4 py-2 rounded-md transition-all bg-transparent"
+                                        >
+                                            <Plus className="w-4 h-4" />
+                                            Create Project
+                                        </button>
+                                        <button
+                                            onClick={() => router.push(getDashboardPath())}
+                                            className="flex items-center gap-2 bg-[#09BF44] hover:bg-[#07a63a] text-white text-sm font-bold px-4 py-2 rounded-md transition-all shadow-md hover:shadow-lg"
+                                        >
+                                            <User className="w-4 h-4" />
+                                            Profile
+                                        </button>
+                                    </>
+                                ) : (
+                                    <button
+                                        onClick={() => router.push(getDashboardPath())}
+                                        className="flex items-center gap-2 bg-[#09BF44] hover:bg-[#07a63a] text-white text-sm font-bold px-4 py-2 rounded-md transition-all shadow-md hover:shadow-lg"
+                                    >
+                                        <User className="w-4 h-4" />
+                                        Profile
+                                    </button>
+                                )}
                             </div>
                         ) : (
                             <>
