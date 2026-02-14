@@ -105,7 +105,7 @@ export default function JobDetailPage() {
     return (
         <div className="min-h-screen bg-gray-50 flex font-sans text-gray-900">
             <ClientSidebar user={user} profile={profile} onTabChange={() => { }} activeTab="jobs" />
-            <div className="flex-1 ml-72 p-8 overflow-y-auto">
+            <div className="flex-1 ml-72 p-8 overflow-y-auto h-screen">
                 <button
                     onClick={() => router.push('/dashboard/client')}
                     className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"

@@ -53,30 +53,20 @@ header .relative {
   overflow: visible !important;
 }
 
-/* Fix for ProjectCard dropdown */
-.bg-white.rounded-3xl {
+/* Fix for ProjectCard dropdown - scoped to avoid breaking modals/chat */
+.project-card-container {
   overflow: visible !important;
 }
 
-.bg-white.rounded-3xl>* {
+.project-card-container>* {
   overflow: visible;
 }
 
-.bg-white.rounded-3xl .relative {
+.project-card-container .relative {
   overflow: visible !important;
 }
 
-.bg-white.rounded-3xl .space-y-2 {
-  overflow: visible !important;
-}
-
-/* Ensure grid containers don't clip dropdowns */
-.grid {
-  overflow: visible !important;
-}
-
-section .grid,
-div .grid {
+.project-card-container .space-y-2 {
   overflow: visible !important;
 }
 

@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const http = require('http');
@@ -18,6 +19,9 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json());
 
+// Uploaded files (public)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Database Connection
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/engezhaly';
 mongoose.connect(MONGO_URI)
@@ -33,6 +37,7 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/projects', require('./routes/projects'));
 app.use('/api/chat', require('./routes/chat'));
 app.use('/api/wallet', require('./routes/wallet'));
+app.use('/api/upload', require('./routes/upload'));
 
 app.get('/', (req, res) => {
     res.send('Engezhaly API is running');

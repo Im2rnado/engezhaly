@@ -495,7 +495,7 @@ export default function ChatPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 flex font-sans text-gray-900" style={{ height: '100vh', overflow: 'hidden' }}>
+        <div className="bg-gray-50 flex font-sans text-gray-900" style={{ height: '100vh', overflow: 'hidden' }}>
             {/* Dashboard Sidebar */}
             {currentUser.role === 'client' ? (
                 <ClientSidebar user={currentUser} profile={profile} />

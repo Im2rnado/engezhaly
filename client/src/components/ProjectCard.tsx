@@ -161,7 +161,7 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
     const projectMainImage = project.images && project.images.length > 0 ? project.images[0] : null;
 
     return (
-        <div className="bg-white border border-gray-200 rounded-3xl shadow-sm hover:shadow-lg transition-all relative" style={{ overflow: 'visible' }}>
+        <div className="project-card-container bg-white border border-gray-200 rounded-3xl shadow-sm hover:shadow-lg transition-all relative">
             {/* Countdown Timer Overlay */}
             {hasActiveOrder && (
                 <CountdownTimer deadline={activeOrder.deliveryDate} variant="card" />

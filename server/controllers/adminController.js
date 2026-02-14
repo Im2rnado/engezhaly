@@ -11,7 +11,7 @@ const getPendingFreelancers = async (req, res) => {
         const pending = await User.find({
             role: 'freelancer',
             'freelancerProfile.status': 'pending'
-        }).select('-password');
+        }).select('-password +phoneNumber +dateOfBirth +freelancerProfile.idDocument');
         res.json(pending);
     } catch (err) {
         console.error(err.message);

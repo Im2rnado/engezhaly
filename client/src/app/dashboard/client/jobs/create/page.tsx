@@ -71,7 +71,7 @@ export default function PostJobPage() {
     return (
         <div className="min-h-screen bg-gray-50 flex font-sans text-gray-900">
             <ClientSidebar user={user} profile={profile} onTabChange={() => { }} activeTab="jobs" />
-            <div className="flex-1 ml-72 p-8 overflow-y-auto">
+            <div className="flex-1 ml-72 p-8 overflow-y-auto h-screen">
                 <div className="max-w-3xl mx-auto bg-white rounded-3xl shadow-xl overflow-hidden">
                     <div className="p-8 md:p-12">
                         <h1 className="text-3xl font-black text-gray-900 mb-2">Post a Job</h1>

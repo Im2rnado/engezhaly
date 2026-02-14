@@ -104,7 +104,7 @@ export default function FreelancerSidebar({ user, profile, onToggleBusy, onTabCh
                 </button>
                 <div className="h-px bg-gray-100 my-2"></div>
                 <button
-                    onClick={() => router.push('/')}
+                    onClick={() => router.push('/jobs')}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${pathname === '/' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
                 >
                     <Briefcase className="w-5 h-5" /> Browse Jobs

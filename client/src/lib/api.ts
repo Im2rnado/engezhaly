@@ -52,6 +52,21 @@ export const api = {
             return result;
         }
     },
+    upload: {
+        file: async (file: File): Promise<string> => {
+            const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+            const form = new FormData();
+            form.append('file', file);
+            const res = await fetch(`${API_URL}/upload`, {
+                method: 'POST',
+                headers: token ? { 'x-auth-token': token } : {},
+                body: form,
+            });
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.message || 'Upload failed');
+            return result.url;
+        }
+    },
     freelancer: {
         getTopFreelancers: async () => {
             const res = await fetch(`${API_URL}/freelancer/top`, {

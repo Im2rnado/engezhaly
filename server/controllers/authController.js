@@ -5,7 +5,7 @@ const { sendVerificationEmail } = require('../services/emailService');
 
 const register = async (req, res) => {
     try {
-        const { firstName, lastName, username, email, password, role, phoneNumber, businessType, profilePicture } = req.body;
+        const { firstName, lastName, username, email, password, role, phoneNumber, businessType, profilePicture, dateOfBirth } = req.body;
 
         let user = await User.findOne({ $or: [{ email }, { username }] });
         if (user) {
@@ -33,6 +33,9 @@ const register = async (req, res) => {
             userData.freelancerProfile = { status: 'pending' };
             if (profilePicture) {
                 userData.freelancerProfile.profilePicture = profilePicture;
+            }
+            if (dateOfBirth) {
+                userData.dateOfBirth = new Date(dateOfBirth);
             }
         }
 

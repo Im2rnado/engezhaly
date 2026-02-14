@@ -63,7 +63,7 @@ export default function WalletPage() {
     return (
         <div className="min-h-screen bg-gray-50 flex font-sans text-gray-900">
             <ClientSidebar user={user} profile={profile} onTabChange={() => { }} activeTab="wallet" />
-            <div className="flex-1 ml-72 p-8 overflow-y-auto">
+            <div className="flex-1 ml-72 p-8 overflow-y-auto h-screen">
                 <div className="max-w-4xl mx-auto">
                     <h1 className="text-3xl font-black text-gray-900 mb-8">My Wallet</h1>
 

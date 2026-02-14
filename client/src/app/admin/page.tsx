@@ -30,6 +30,9 @@ export default function AdminDashboard() {
     const [loading, setLoading] = useState(false);
     const [editModal, setEditModal] = useState<{ isOpen: boolean; type: 'user' | 'project' | 'job' | null; data: any }>({ isOpen: false, type: null, data: null });
     
+    // Approvals states
+    const [selectedFreelancer, setSelectedFreelancer] = useState<any>(null);
+
     // Monitoring states
     const [selectedChat, setSelectedChat] = useState<any>(null);
     const [chatMessages, setChatMessages] = useState<any[]>([]);
@@ -584,41 +587,203 @@ export default function AdminDashboard() {
 
                 {activeTab === 'approvals' && (
                     <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-                        <div className="p-6 border-b border-gray-100">
-                            <h3 className="text-lg font-bold">Pending Freelancer Approvals</h3>
-                        </div>
-                        <div className="p-6">
-                            {pendingFreelancers.length > 0 ? (
-                                <div className="grid gap-4">
-                                    {pendingFreelancers.map((f) => (
-                                        <div key={f.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 hover:border-gray-200 transition-all">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center text-xl font-bold text-gray-500">
-                                                    {f.firstName[0]}
+                        {!selectedFreelancer ? (
+                            <>
+                                <div className="p-6 border-b border-gray-100">
+                                    <h3 className="text-lg font-bold">Pending Freelancer Approvals</h3>
+                                </div>
+                                <div className="p-6">
+                                    {pendingFreelancers.length > 0 ? (
+                                        <div className="grid gap-4">
+                                            {pendingFreelancers.map((f) => (
+                                                <div
+                                                    key={f._id}
+                                                    onClick={() => setSelectedFreelancer(f)}
+                                                    className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 hover:border-[#09BF44] hover:shadow-sm transition-all cursor-pointer"
+                                                >
+                                                    <div className="flex items-center gap-4">
+                                                        {f.freelancerProfile?.profilePicture ? (
+                                                            <Image src={f.freelancerProfile.profilePicture} alt="" width={48} height={48} className="w-12 h-12 rounded-full object-cover" />
+                                                        ) : (
+                                                            <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center text-xl font-bold text-gray-500">
+                                                                {f.firstName?.[0]}
+                                                            </div>
+                                                        )}
+                                                        <div>
+                                                            <h4 className="font-bold text-gray-900">{f.firstName} {f.lastName}</h4>
+                                                            <p className="text-sm text-gray-500">{f.freelancerProfile?.category || 'No category'} {f.freelancerProfile?.experienceYears != null ? `• ${f.freelancerProfile.experienceYears} Years Exp.` : ''}</p>
+                                                        </div>
+                                                    </div>
+                                                    <span className="text-xs font-bold text-gray-400">Click to review →</span>
                                                 </div>
-                                                <div>
-                                                    <h4 className="font-bold text-gray-900">{f.firstName} {f.lastName}</h4>
-                                                    <p className="text-sm text-gray-500">{f.freelancerProfile?.category} • {f.freelancerProfile?.experienceYears} Years Exp.</p>
-                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-12 text-gray-400">
+                                            <Check className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                                            <p>All caught up! No pending approvals.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                {/* Freelancer Detail View */}
+                                <div className="p-6 border-b border-gray-100 flex items-center gap-4">
+                                    <button onClick={() => setSelectedFreelancer(null)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                                        <ArrowLeft className="w-5 h-5" />
+                                    </button>
+                                    <h3 className="text-lg font-bold">Review Application</h3>
+                                </div>
+                                <div className="p-8 space-y-8">
+                                    {/* Profile Header */}
+                                    <div className="flex items-center gap-6">
+                                        {selectedFreelancer.freelancerProfile?.profilePicture ? (
+                                            <Image src={selectedFreelancer.freelancerProfile.profilePicture} alt="" width={96} height={96} className="w-24 h-24 rounded-full object-cover border-4 border-gray-100" />
+                                        ) : (
+                                            <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center text-3xl font-bold text-gray-500">
+                                                {selectedFreelancer.firstName?.[0]}
                                             </div>
-                                            <div className="flex gap-2">
-                                                <button onClick={() => handleApprove(f._id)} className="p-2 bg-green-100 text-[#09BF44] rounded-lg hover:bg-green-200 transition-colors">
-                                                    <Check className="w-5 h-5" />
-                                                </button>
-                                                <button onClick={() => handleReject(f._id)} className="p-2 bg-red-100 text-red-500 rounded-lg hover:bg-red-200 transition-colors">
-                                                    <X className="w-5 h-5" />
-                                                </button>
+                                        )}
+                                        <div>
+                                            <h2 className="text-2xl font-black text-gray-900">{selectedFreelancer.firstName} {selectedFreelancer.lastName}</h2>
+                                            <p className="text-gray-500 font-medium">@{selectedFreelancer.username}</p>
+                                            {selectedFreelancer.freelancerProfile?.category && (
+                                                <span className="inline-block mt-2 px-3 py-1 bg-[#09BF44]/10 text-[#09BF44] text-sm font-bold rounded-full">{selectedFreelancer.freelancerProfile.category}</span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Personal Info */}
+                                    <div>
+                                        <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Personal Information</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="bg-gray-50 p-4 rounded-xl">
+                                                <p className="text-xs font-bold text-gray-400 mb-1">Email</p>
+                                                <p className="font-medium text-gray-900">{selectedFreelancer.email}</p>
+                                            </div>
+                                            <div className="bg-gray-50 p-4 rounded-xl">
+                                                <p className="text-xs font-bold text-gray-400 mb-1">Phone</p>
+                                                <p className="font-medium text-gray-900">{selectedFreelancer.phoneNumber || 'Not provided'}</p>
+                                            </div>
+                                            <div className="bg-gray-50 p-4 rounded-xl">
+                                                <p className="text-xs font-bold text-gray-400 mb-1">Date of Birth</p>
+                                                <p className="font-medium text-gray-900">{selectedFreelancer.dateOfBirth ? new Date(selectedFreelancer.dateOfBirth).toLocaleDateString() : 'Not provided'}</p>
+                                            </div>
+                                            <div className="bg-gray-50 p-4 rounded-xl">
+                                                <p className="text-xs font-bold text-gray-400 mb-1">Joined</p>
+                                                <p className="font-medium text-gray-900">{new Date(selectedFreelancer.createdAt).toLocaleDateString()}</p>
                                             </div>
                                         </div>
-                                    ))}
+                                    </div>
+
+                                    {/* Bio */}
+                                    {selectedFreelancer.freelancerProfile?.bio && (
+                                        <div>
+                                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Bio</h4>
+                                            <p className="text-gray-700 bg-gray-50 p-4 rounded-xl leading-relaxed whitespace-pre-wrap">{selectedFreelancer.freelancerProfile.bio}</p>
+                                        </div>
+                                    )}
+
+                                    {/* Professional Info */}
+                                    <div>
+                                        <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Professional Details</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="bg-gray-50 p-4 rounded-xl">
+                                                <p className="text-xs font-bold text-gray-400 mb-1">Experience</p>
+                                                <p className="font-medium text-gray-900">{selectedFreelancer.freelancerProfile?.experienceYears != null ? `${selectedFreelancer.freelancerProfile.experienceYears} years` : 'Not provided'}</p>
+                                            </div>
+                                            <div className="bg-gray-50 p-4 rounded-xl">
+                                                <p className="text-xs font-bold text-gray-400 mb-1">Full-time</p>
+                                                <p className="font-medium text-gray-900">{selectedFreelancer.freelancerProfile?.surveyResponses?.isFullTime ? 'Yes' : 'No'}</p>
+                                            </div>
+                                            <div className="bg-gray-50 p-4 rounded-xl md:col-span-2">
+                                                <p className="text-xs font-bold text-gray-400 mb-1">Speed / Quality Commitment</p>
+                                                <p className="font-medium text-gray-900">{selectedFreelancer.freelancerProfile?.surveyResponses?.speedQualityCommitment || 'Not provided'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Skills */}
+                                    {selectedFreelancer.freelancerProfile?.skills?.length > 0 && (
+                                        <div>
+                                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Skills</h4>
+                                            <div className="flex flex-wrap gap-2">
+                                                {selectedFreelancer.freelancerProfile.skills.map((s: string) => (
+                                                    <span key={s} className="px-3 py-1 bg-[#09BF44] text-white text-sm font-medium rounded-full">{s}</span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Starter Pricing */}
+                                    {selectedFreelancer.freelancerProfile?.starterPricing && (
+                                        <div>
+                                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Starter Pricing</h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                {(['basic', 'standard', 'premium'] as const).map((tier) => {
+                                                    const pkg = selectedFreelancer.freelancerProfile.starterPricing[tier];
+                                                    return pkg ? (
+                                                        <div key={tier} className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                                            <h5 className="font-bold capitalize text-[#09BF44] mb-2">{tier}</h5>
+                                                            <p className="text-gray-900 font-bold text-lg">{pkg.price} EGP</p>
+                                                            <p className="text-gray-500 text-sm">{pkg.days} day delivery</p>
+                                                        </div>
+                                                    ) : null;
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Documents */}
+                                    <div>
+                                        <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Documents</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="bg-gray-50 p-4 rounded-xl">
+                                                <p className="text-xs font-bold text-gray-400 mb-2">Certificate(s)</p>
+                                                {selectedFreelancer.freelancerProfile?.certificates?.length > 0 ? (
+                                                    <div className="space-y-2">
+                                                        {selectedFreelancer.freelancerProfile.certificates.filter(Boolean).map((url: string, i: number) => (
+                                                            <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline font-medium">
+                                                                <FileText className="w-4 h-4" /> Certificate {i + 1}
+                                                            </a>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-sm text-gray-400">None uploaded</p>
+                                                )}
+                                            </div>
+                                            <div className="bg-gray-50 p-4 rounded-xl">
+                                                <p className="text-xs font-bold text-gray-400 mb-2">ID Document</p>
+                                                {selectedFreelancer.freelancerProfile?.idDocument ? (
+                                                    <a href={selectedFreelancer.freelancerProfile.idDocument} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline font-medium">
+                                                        <FileText className="w-4 h-4" /> View Document
+                                                    </a>
+                                                ) : (
+                                                    <p className="text-sm text-gray-400">None uploaded</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Approve / Reject */}
+                                    <div className="flex gap-4 pt-4 border-t border-gray-100">
+                                        <button
+                                            onClick={() => { handleApprove(selectedFreelancer._id); setSelectedFreelancer(null); }}
+                                            className="flex-1 bg-[#09BF44] hover:bg-[#07a63a] text-white font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            <Check className="w-5 h-5" /> Approve Freelancer
+                                        </button>
+                                        <button
+                                            onClick={() => { handleReject(selectedFreelancer._id); setSelectedFreelancer(null); }}
+                                            className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            <X className="w-5 h-5" /> Reject & Delete
+                                        </button>
+                                    </div>
                                 </div>
-                            ) : (
-                                <div className="text-center py-12 text-gray-400">
-                                    <Check className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                                    <p>All caught up! No pending approvals.</p>
-                                </div>
-                            )}
-                        </div>
+                            </>
+                        )}
                     </div>
                 )}
 
@@ -737,14 +902,14 @@ export default function AdminDashboard() {
                 )}
 
                 {activeTab === 'monitoring' && (
-                    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-[calc(100vh-12rem)]">
                         {!selectedChat ? (
                             <>
-                                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                                <div className="p-6 border-b border-gray-100 flex justify-between items-center flex-shrink-0">
                                     <h3 className="text-lg font-bold">Active Conversations</h3>
                                     <span className="text-xs font-bold bg-gray-100 px-3 py-1 rounded-full text-gray-500">{activeChats.length} Active</span>
                                 </div>
-                                <div className="divide-y divide-gray-100">
+                                <div className="divide-y divide-gray-100 flex-1 min-h-0 overflow-y-auto">
                                     {activeChats.map((chat) => {
                                         const participants = chat.participants || [];
                                         const participant1 = participants[0];
@@ -807,7 +972,7 @@ export default function AdminDashboard() {
                         ) : (
                             <>
                                 {/* Chat Detail View */}
-                                <div className="p-6 border-b border-gray-100 flex items-center gap-4">
+                                <div className="p-6 border-b border-gray-100 flex items-center gap-4 flex-shrink-0">
                                     <button
                                         onClick={() => {
                                             setSelectedChat(null);
@@ -862,7 +1027,7 @@ export default function AdminDashboard() {
                                 </div>
                                 
                                 {/* Messages */}
-                                <div className="h-100 overflow-y-auto p-6 space-y-4 bg-gray-50">
+                                <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-4 bg-gray-50">
                                     {chatMessages.map((msg: any) => {
                                         const isAdmin = msg.isAdmin || msg.content?.includes('[Engezhaly Admin]');
                                         const content = isAdmin ? msg.content.replace('[Engezhaly Admin]', '').trim() : msg.content;
@@ -906,7 +1071,7 @@ export default function AdminDashboard() {
                                 </div>
                                 
                                 {/* Admin Message Input */}
-                                <div className="p-6 border-t border-gray-200 bg-white">
+                                <div className="p-6 border-t border-gray-200 bg-white flex-shrink-0">
                                     <form onSubmit={handleSendAdminMessage} className="flex items-center gap-3">
                                         <input
                                             type="text"
