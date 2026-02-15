@@ -43,7 +43,8 @@ app.get('/', (req, res) => {
     res.send('Engezhaly API is running');
 });
 
-// Socket.io
+// Socket.io - make io available to routes (e.g. chatController)
+app.set('io', io);
 require('./sockets/socketHandler')(io);
 
 const PORT = process.env.PORT || 5000;

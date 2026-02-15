@@ -5,10 +5,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { X, ChevronDown, Briefcase } from "lucide-react";
 import { api } from "@/lib/api";
 import MainHeader from "@/components/MainHeader";
+import AuthModal from "@/components/AuthModal";
+import { useModal } from "@/context/ModalContext";
 
 export default function JobsPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { showModal } = useModal();
     const [jobs, setJobs] = useState<any[]>([]);
     const [filteredJobs, setFilteredJobs] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -19,15 +22,22 @@ export default function JobsPage() {
         status: 'open'
     });
     const [user, setUser] = useState<any>(null);
+    const [applyJob, setApplyJob] = useState<any>(null);
+    const [showAuthModal, setShowAuthModal] = useState(false);
+    const [proposal, setProposal] = useState({ price: '', days: '', message: '' });
+    const [applyLoading, setApplyLoading] = useState(false);
 
-    useEffect(() => {
+    const refreshUser = () => {
         const token = localStorage.getItem('token');
         if (token) {
-            const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-            setTimeout(() => {
-                setUser(storedUser);
-            }, 0);
+            setUser(JSON.parse(localStorage.getItem('user') || '{}'));
+        } else {
+            setUser(null);
         }
+    };
+
+    useEffect(() => {
+        refreshUser();
 
         api.jobs.getAll()
             .then(data => {
@@ -92,6 +102,42 @@ export default function JobsPage() {
         setSearchQuery('');
         setFilters({ budget: '', status: 'open' });
         router.push('/jobs');
+    };
+
+    const handleApplyClick = (job: any) => {
+        if (!user) {
+            setApplyJob(job);
+            setShowAuthModal(true);
+            return;
+        }
+        if (user.role === 'client') {
+            showModal({ title: 'Client Account', message: 'Switch to freelancer account to apply for jobs.', type: 'info' });
+            return;
+        }
+        if (user.role === 'freelancer') {
+            setApplyJob(job);
+            setProposal({ price: '', days: '', message: '' });
+        }
+    };
+
+    const handleApplySubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!applyJob) return;
+        setApplyLoading(true);
+        try {
+            await api.jobs.apply(applyJob._id, {
+                price: Number(proposal.price),
+                deliveryDays: Number(proposal.days),
+                message: proposal.message
+            });
+            showModal({ title: 'Success', message: 'Application sent!', type: 'success' });
+            setApplyJob(null);
+            setProposal({ price: '', days: '', message: '' });
+        } catch (err: any) {
+            showModal({ title: 'Error', message: err.message || 'Failed to apply', type: 'error' });
+        } finally {
+            setApplyLoading(false);
+        }
     };
 
     return (
@@ -220,20 +266,26 @@ export default function JobsPage() {
                                                 {job.skills.length > 5 && (
                                                     <span className="text-gray-500 text-xs font-bold">+{job.skills.length - 5} more</span>
                                                 )}
+                                                {job.hasApplied && (
+                                                    <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">Applied</span>
+                                                )}
                                             </div>
                                         )}
                                     </div>
                                 </div>
-                                {user?.role === 'freelancer' && job.status === 'open' && (
-                                    <button
-                                        onClick={() => {
-                                            // Handle job application
-                                            alert('Job application feature coming soon');
-                                        }}
-                                        className="w-full bg-[#09BF44] hover:bg-[#07a63a] text-white px-6 py-3 rounded-xl font-bold transition-colors shadow-md hover:shadow-lg"
-                                    >
-                                        Apply Now
-                                    </button>
+                                {(user?.role === 'freelancer' || !user) && job.status === 'open' && (
+                                    job.hasApplied ? (
+                                        <span className="w-full bg-gray-100 text-gray-500 px-6 py-3 rounded-xl font-bold text-center block">
+                                            Already Applied
+                                        </span>
+                                    ) : (
+                                        <button
+                                            onClick={() => handleApplyClick(job)}
+                                            className="w-full bg-[#09BF44] hover:bg-[#07a63a] text-white px-6 py-3 rounded-xl font-bold transition-colors shadow-md hover:shadow-lg"
+                                        >
+                                            Apply Now
+                                        </button>
+                                    )
                                 )}
                             </div>
                         ))}
@@ -247,6 +299,89 @@ export default function JobsPage() {
                 )}
             </div>
 
+            {/* Auth Modal - when not logged in and trying to apply */}
+            <AuthModal
+                isOpen={showAuthModal}
+                onClose={() => {
+                    setShowAuthModal(false);
+                    refreshUser();
+                    if (!localStorage.getItem('token')) {
+                        setApplyJob(null);
+                    } else {
+                        api.jobs.getAll().then(data => setJobs(data || [])).catch(() => {});
+                    }
+                }}
+                initialStep="login"
+            />
+
+            {/* Apply Modal */}
+            {applyJob && user?.role === 'freelancer' && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-white p-8 rounded-3xl max-w-lg w-full shadow-2xl">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-2xl font-bold text-gray-900">Apply to {applyJob.title}</h2>
+                            <button
+                                onClick={() => { setApplyJob(null); setProposal({ price: '', days: '', message: '' }); }}
+                                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                            >
+                                <X className="w-5 h-5 text-gray-500" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleApplySubmit} className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Your Price (EGP)</label>
+                                    <input
+                                        required
+                                        type="number"
+                                        min="500"
+                                        value={proposal.price}
+                                        onChange={e => setProposal({ ...proposal, price: e.target.value })}
+                                        className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none text-gray-900"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Delivery (Days)</label>
+                                    <input
+                                        required
+                                        type="number"
+                                        min="1"
+                                        value={proposal.days}
+                                        onChange={e => setProposal({ ...proposal, days: e.target.value })}
+                                        className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none text-gray-900"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Cover Letter</label>
+                                <textarea
+                                    required
+                                    value={proposal.message}
+                                    onChange={e => setProposal({ ...proposal, message: e.target.value })}
+                                    className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none h-32 resize-none text-gray-900 placeholder:text-gray-500"
+                                    placeholder="Tell the client why you're the perfect fit..."
+                                />
+                            </div>
+                            <div className="flex gap-4 pt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => { setApplyJob(null); setProposal({ price: '', days: '', message: '' }); }}
+                                    className="flex-1 bg-gray-100 text-gray-700 font-bold p-3 rounded-xl hover:bg-gray-200 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={applyLoading}
+                                    className="flex-1 bg-[#09BF44] text-white font-bold p-3 rounded-xl hover:bg-[#07a63a] transition-colors disabled:opacity-70"
+                                >
+                                    {applyLoading ? 'Sending...' : 'Send Proposal'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </main>
     );
 }

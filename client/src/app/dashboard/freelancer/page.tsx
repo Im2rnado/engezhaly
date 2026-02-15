@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Briefcase, DollarSign, PlusCircle, ShoppingBag, Star, CheckCircle, Loader2, Edit, Award } from 'lucide-react';
+import { Briefcase, DollarSign, PlusCircle, ShoppingBag, Star, CheckCircle, Loader2, Edit, Award, MessageSquare, X } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useModal } from '@/context/ModalContext';
 import ProjectCard from '@/components/ProjectCard';
@@ -20,9 +20,15 @@ export default function FreelancerDashboard() {
     const [profile, setProfile] = useState<any>(null);
     const [projects, setProjects] = useState<any[]>([]);
     const [orders, setOrders] = useState<any[]>([]);
-    const [activeOrders, setActiveOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [profileEditModal, setProfileEditModal] = useState(false);
+    const [workOrder, setWorkOrder] = useState<any>(null);
+    const [submittingWork, setSubmittingWork] = useState(false);
+    const [workSubmission, setWorkSubmission] = useState({
+        message: '',
+        links: '',
+        files: [] as File[]
+    });
 
     const fetchProjects = useCallback(async () => {
         try {
@@ -35,26 +41,12 @@ export default function FreelancerDashboard() {
 
     const fetchOrders = useCallback(async () => {
         try {
-            // Note: This requires admin access. In production, add a dedicated /freelancer/orders endpoint
-            // For now, we'll just show empty state if this fails
-            if (user?._id) {
-                try {
-                    const allOrders = await api.admin.getAllOrders();
-                    const myOrders = allOrders.filter((order: any) =>
-                        order.sellerId?._id === user._id ||
-                        order.sellerId === user._id ||
-                        String(order.sellerId?._id) === String(user._id)
-                    );
-                    setOrders(myOrders);
-                } catch {
-                    // If admin endpoint fails (expected for non-admins), just set empty array
-                    setOrders([]);
-                }
-            }
+            const data = await api.freelancer.getMyOrders();
+            setOrders(data || []);
         } catch {
             setOrders([]);
         }
-    }, [user?._id]);
+    }, []);
 
     // Read tab from URL on mount and when URL changes
     useEffect(() => {
@@ -85,13 +77,14 @@ export default function FreelancerDashboard() {
                 const projectsData = await api.projects.getMyProjects();
                 setProjects(projectsData);
 
-                // Fetch active orders for timers
+                // Fetch freelancer orders
                 try {
-                    const activeOrdersData = await api.projects.getAllActiveOrders();
-                    setActiveOrders(activeOrdersData);
+                    const myOrdersData = await api.freelancer.getMyOrders();
+                    setOrders(myOrdersData || []);
                 } catch {
-                    setActiveOrders([]);
+                    setOrders([]);
                 }
+
             } catch (err) {
                 console.error(err);
                 router.push('/');
@@ -140,6 +133,81 @@ export default function FreelancerDashboard() {
         }
     };
 
+    const openChatWithClientOrder = async (order: any) => {
+        try {
+            const clientId = String(order?.buyerId?._id || order?.buyerId || '');
+            if (!clientId) {
+                showModal({ title: 'Error', message: 'Client not found for this order', type: 'error' });
+                return;
+            }
+
+            const conversations = await api.chat.getConversations();
+            let conversation = (conversations || []).find((c: any) =>
+                String(c.partnerId?._id || c.partnerId) === clientId
+            );
+
+            if (!conversation) {
+                await api.chat.sendMessage({
+                    receiverId: clientId,
+                    content: `Hi! I have an update regarding your order for: ${order.projectId?.title || 'your project'}`,
+                    messageType: 'text'
+                });
+                const updatedConversations = await api.chat.getConversations();
+                conversation = (updatedConversations || []).find((c: any) =>
+                    String(c.partnerId?._id || c.partnerId) === clientId
+                );
+            }
+
+            router.push(`/chat?conversation=${conversation?.id || clientId}`);
+        } catch (err: any) {
+            showModal({ title: 'Error', message: err.message || 'Failed to open chat', type: 'error' });
+        }
+    };
+
+    const openSubmitOrderWork = (order: any) => {
+        setWorkOrder(order);
+        setWorkSubmission({
+            message: order?.workSubmission?.message || '',
+            links: (order?.workSubmission?.links || []).join(', '),
+            files: []
+        });
+    };
+
+    const handleSubmitOrderWork = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!workOrder) return;
+        setSubmittingWork(true);
+        try {
+            const fileUrls: string[] = [];
+            if (workSubmission.files.length > 0) {
+                for (const f of workSubmission.files) {
+                    const url = await api.upload.file(f);
+                    fileUrls.push(url);
+                }
+            }
+
+            const links = workSubmission.links
+                .split(/[\n, ]+/)
+                .map((l) => l.trim())
+                .filter(Boolean);
+
+            await api.freelancer.submitOrderWork(workOrder._id, {
+                message: workSubmission.message,
+                links,
+                files: fileUrls
+            });
+
+            showModal({ title: 'Success', message: 'Work submitted successfully!', type: 'success' });
+            setWorkOrder(null);
+            setWorkSubmission({ message: '', links: '', files: [] });
+            await fetchOrders();
+        } catch (err: any) {
+            showModal({ title: 'Error', message: err.message || 'Failed to submit work', type: 'error' });
+        } finally {
+            setSubmittingWork(false);
+        }
+    };
+
     if (loading || !user || !profile) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -150,10 +218,28 @@ export default function FreelancerDashboard() {
 
     const isPending = profile.freelancerProfile?.status === 'pending';
     const walletBalance = user.walletBalance || 0;
+    const activeOrdersCount = orders.filter((o: any) => o.status === 'active').length;
     const completedOrders = orders.filter(o => o.status === 'completed').length;
     const avgRating = orders.filter(o => o.rating).length > 0
         ? (orders.filter(o => o.rating).reduce((sum: number, o: any) => sum + o.rating, 0) / orders.filter(o => o.rating).length).toFixed(1)
         : 'N/A';
+    const formatTimeLeft = (deadlineInput?: string | Date) => {
+        if (!deadlineInput) return null;
+        const deadline = new Date(deadlineInput);
+        if (Number.isNaN(deadline.getTime())) return null;
+        const diff = deadline.getTime() - Date.now();
+        if (diff <= 0) return 'Overdue';
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        return `${days}d ${hours}h ${minutes}m left`;
+    };
+    const orderCountByProject = orders.reduce((acc: Record<string, number>, order: any) => {
+        const projectId = String(order?.projectId?._id || order?.projectId || '');
+        if (!projectId) return acc;
+        acc[projectId] = (acc[projectId] || 0) + 1;
+        return acc;
+    }, {});
 
     return (
         <div className="min-h-screen bg-gray-50 flex font-sans text-gray-900">
@@ -202,7 +288,7 @@ export default function FreelancerDashboard() {
                                     <div className="p-3 bg-blue-50 rounded-xl text-blue-600"><ShoppingBag className="w-6 h-6" /></div>
                                 </div>
                                 <h3 className="text-gray-500 font-bold text-sm">Active Orders</h3>
-                                <p className="text-3xl font-black text-gray-900 mt-1">{activeOrders}</p>
+                                <p className="text-3xl font-black text-gray-900 mt-1">{activeOrdersCount}</p>
                             </div>
                             <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
                                 <div className="flex items-center justify-between mb-4">
@@ -232,19 +318,17 @@ export default function FreelancerDashboard() {
                             <div className="p-6">
                                 {projects.length > 0 ? (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {projects.slice(0, 6).map((project) => {
-                                            const activeOrder = activeOrders.find((o: any) =>
-                                                o.projectId?._id === project._id || o.projectId === project._id
-                                            );
-                                            return (
+                                        {projects.slice(0, 6).map((project) => (
+                                            <div key={project._id} className="space-y-2">
                                                 <ProjectCard
-                                                    key={project._id}
                                                     project={project}
                                                     onEdit={() => router.push(`/dashboard/freelancer/projects/${project._id}/edit`)}
-                                                    activeOrder={activeOrder}
                                                 />
-                                            );
-                                        })}
+                                                <div className="px-2 text-xs font-bold text-gray-500">
+                                                    Orders received: {orderCountByProject[project._id] || 0}
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 ) : (
                                     <div className="text-center py-12 text-gray-400">
@@ -268,16 +352,33 @@ export default function FreelancerDashboard() {
                                 {orders.length > 0 ? (
                                     <div className="space-y-4">
                                         {orders.slice(0, 5).map((order) => (
-                                            <div key={order._id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                                                <div>
-                                                    <h4 className="font-bold text-gray-900">{order.projectId?.title || 'Project'}</h4>
-                                                    <p className="text-sm text-gray-500">Buyer: {order.buyerId?.firstName} {order.buyerId?.lastName}</p>
+                                            <div key={order._id} className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                                                <div className="flex items-center justify-between">
+                                                    <div>
+                                                        <h4 className="font-bold text-gray-900">{order.projectId?.title || 'Project'}</h4>
+                                                        <p className="text-sm text-gray-500">Buyer: {order.buyerId?.firstName} {order.buyerId?.lastName}</p>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="font-black text-gray-900">{order.amount} EGP</p>
+                                                        <span className={`px-2 py-1 rounded text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                                                            {order.status}
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                                <div className="text-right">
-                                                    <p className="font-black text-gray-900">{order.amount} EGP</p>
-                                                    <span className={`px-2 py-1 rounded text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
-                                                        {order.status}
+                                                <div className="flex flex-wrap gap-3 mt-3 pt-3 border-t border-gray-200">
+                                                    <span className="text-xs text-gray-500 font-bold">
+                                                        Ordered {new Date(order.createdAt).toLocaleDateString()}
                                                     </span>
+                                                    {order.deliveryDate && (
+                                                        <span className="text-xs text-gray-500 font-bold">
+                                                            Delivery {new Date(order.deliveryDate).toLocaleDateString()}
+                                                        </span>
+                                                    )}
+                                                    {order.status === 'active' && order.deliveryDate && (
+                                                        <span className="text-xs font-bold text-[#09BF44]">
+                                                            {formatTimeLeft(order.deliveryDate)}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                         ))}
@@ -309,19 +410,17 @@ export default function FreelancerDashboard() {
                         <div className="p-6">
                             {projects.length > 0 ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {projects.map((project) => {
-                                        const activeOrder = activeOrders.find((o: any) =>
-                                            o.projectId?._id === project._id || o.projectId === project._id
-                                        );
-                                        return (
+                                    {projects.map((project) => (
+                                        <div key={project._id} className="space-y-2">
                                             <ProjectCard
-                                                key={project._id}
                                                 project={project}
                                                 onEdit={() => router.push(`/dashboard/freelancer/projects/${project._id}/edit`)}
-                                                activeOrder={activeOrder}
                                             />
-                                        );
-                                    })}
+                                            <div className="px-2 text-xs font-bold text-gray-500">
+                                                Orders received: {orderCountByProject[project._id] || 0}
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             ) : (
                                 <div className="text-center py-12 text-gray-400">
@@ -343,43 +442,75 @@ export default function FreelancerDashboard() {
                 )}
 
                 {activeTab === 'orders' && (
-                    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-                        <div className="p-6 border-b border-gray-100">
-                            <h3 className="text-lg font-bold">My Orders ({orders.length})</h3>
-                        </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
-                                <thead className="bg-gray-50 text-gray-500 font-bold uppercase">
-                                    <tr>
-                                        <th className="p-4">Project</th><th className="p-4">Buyer</th><th className="p-4">Package</th><th className="p-4">Amount</th><th className="p-4">Status</th><th className="p-4">Date</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {orders.map((order) => (
-                                        <tr key={order._id} className="hover:bg-gray-50">
-                                            <td className="p-4 font-bold truncate max-w-xs">{order.projectId?.title || 'N/A'}</td>
-                                            <td className="p-4">{order.buyerId?.firstName} {order.buyerId?.lastName}</td>
-                                            <td className="p-4"><span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-bold">{order.packageType}</span></td>
-                                            <td className="p-4 font-bold text-gray-900">{order.amount} EGP</td>
-                                            <td className="p-4">
-                                                <span className={`px-2 py-1 rounded text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
-                                                    {order.status}
-                                                </span>
-                                            </td>
-                                            <td className="p-4 text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</td>
-                                        </tr>
-                                    ))}
-                                    {orders.length === 0 && (
-                                        <tr>
-                                            <td colSpan={6} className="p-8 text-center text-gray-400">
-                                                <ShoppingBag className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                                                <p>No orders yet.</p>
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                    <div className="space-y-4">
+                        {orders.length > 0 ? (
+                            orders.map((order) => (
+                                <div key={order._id} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
+                                    <div className="flex items-start justify-between gap-4 mb-4">
+                                        <div className="flex-1">
+                                            <h4 className="text-xl font-bold text-gray-900">{order.projectId?.title || 'Project'}</h4>
+                                            <p className="text-sm text-gray-500 mt-1">
+                                                Buyer: {order.buyerId?.firstName} {order.buyerId?.lastName}
+                                            </p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-xl font-black text-gray-900">{order.amount} EGP</p>
+                                            <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                                                {order.status}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-100">
+                                        <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-bold">
+                                            {order.packageType}
+                                        </span>
+                                        <span className="text-xs text-gray-500 font-bold">
+                                            Ordered {new Date(order.createdAt).toLocaleDateString()}
+                                        </span>
+                                        {order.deliveryDate && (
+                                            <span className="text-xs text-gray-500 font-bold">
+                                                Delivery {new Date(order.deliveryDate).toLocaleDateString()}
+                                            </span>
+                                        )}
+                                        {order.status === 'active' && order.deliveryDate && (
+                                            <span className="text-xs font-bold text-[#09BF44]">
+                                                {formatTimeLeft(order.deliveryDate)}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="mt-4 pt-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
+                                        <div className="text-sm text-gray-600">
+                                            {order?.workSubmission?.updatedAt
+                                                ? `Last submitted: ${new Date(order.workSubmission.updatedAt).toLocaleString()}`
+                                                : 'No work submitted yet'}
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => openChatWithClientOrder(order)}
+                                                className="bg-gray-100 text-gray-700 px-4 py-2 rounded-xl font-bold hover:bg-gray-200 transition-colors flex items-center gap-2"
+                                            >
+                                                <MessageSquare className="w-4 h-4" /> Message Client
+                                            </button>
+                                            <button
+                                                onClick={() => openSubmitOrderWork(order)}
+                                                disabled={order.status !== 'active'}
+                                                className={`px-5 py-2 rounded-xl font-bold transition-colors ${order.status === 'active'
+                                                    ? 'bg-black text-white hover:bg-gray-800'
+                                                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                    }`}
+                                            >
+                                                {order?.workSubmission?.updatedAt ? 'Update Submission' : 'Submit Work'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 text-center text-gray-400">
+                                <ShoppingBag className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                                <p>No orders yet.</p>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -449,6 +580,77 @@ export default function FreelancerDashboard() {
                     </div>
                 )}
             </div>
+
+            {/* Work Submission Modal */}
+            {workOrder && (
+                <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl">
+                        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                            <h3 className="text-lg font-bold text-gray-900">
+                                Submit Work - {workOrder.title || workOrder.projectId?.title || 'Order'}
+                            </h3>
+                            <button
+                                onClick={() => setWorkOrder(null)}
+                                className="text-gray-400 hover:text-gray-600"
+                                disabled={submittingWork}
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleSubmitOrderWork} className="space-y-4 p-6">
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Message / Notes</label>
+                                <textarea
+                                    value={workSubmission.message}
+                                    onChange={(e) => setWorkSubmission((prev) => ({ ...prev, message: e.target.value }))}
+                                    rows={4}
+                                    className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#09BF44]"
+                                    placeholder="Describe what you completed..."
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Links (optional)</label>
+                                <input
+                                    type="text"
+                                    value={workSubmission.links}
+                                    onChange={(e) => setWorkSubmission((prev) => ({ ...prev, links: e.target.value }))}
+                                    className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#09BF44]"
+                                    placeholder="https://drive.google.com/... , https://figma.com/..."
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Files (optional)</label>
+                                <input
+                                    type="file"
+                                    multiple
+                                    onChange={(e) => setWorkSubmission((prev) => ({ ...prev, files: Array.from(e.target.files || []) }))}
+                                    className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm text-gray-900 file:mr-4 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-gray-100 file:text-gray-700 file:font-semibold"
+                                />
+                                {workSubmission.files.length > 0 && (
+                                    <p className="text-xs text-gray-500 mt-2">{workSubmission.files.length} file(s) selected</p>
+                                )}
+                            </div>
+                            <div className="flex justify-end gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setWorkOrder(null)}
+                                    className="px-4 py-2 rounded-xl bg-gray-100 text-gray-700 font-bold hover:bg-gray-200 transition-colors"
+                                    disabled={submittingWork}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={submittingWork}
+                                    className="px-5 py-2 rounded-xl bg-black text-white font-bold hover:bg-gray-800 transition-colors disabled:opacity-60"
+                                >
+                                    {submittingWork ? 'Submitting...' : 'Submit Work'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
 
             {/* Profile Edit Modal */}
             {profileEditModal && (

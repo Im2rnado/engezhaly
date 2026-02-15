@@ -22,32 +22,53 @@ const filterCurseWords = (text) => {
 
 const getConversations = async (req, res) => {
     try {
-        const userId = req.user.id;
+        const userId = req.user.id || req.user._id;
+        const userIdStr = String(userId);
 
         // Find conversations where user is a participant
         const conversations = await Conversation.find({
             participants: userId
         })
             .populate('participants', 'firstName lastName freelancerProfile.isBusy freelancerProfile.profilePicture')
-            .sort({ updatedAt: -1 });
+            .sort({ updatedAt: -1 })
+            .lean();
 
-        const formatted = conversations.map(conv => {
-            const partner = conv.participants.find(p => p._id.toString() !== userId);
+        const formatted = await Promise.all(conversations.map(async (conv) => {
+            let partner = null;
+            if (Array.isArray(conv.participants)) {
+                partner = conv.participants.find(p => {
+                    if (!p) return false;
+                    const pid = p._id ? String(p._id) : (typeof p === 'string' ? p : null);
+                    return pid && pid !== userIdStr;
+                });
+            }
+            const partnerId = partner?._id ? String(partner._id) : (partner?.toString?.() || null);
+            const name = partner && (partner.firstName || partner.lastName)
+                ? `${partner.firstName || ''} ${partner.lastName || ''}`.trim() || 'Unknown User'
+                : 'Unknown User';
+            const unreadCount = await Chat.countDocuments({
+                conversationId: conv._id,
+                receiverId: userId,
+                isRead: { $ne: true }
+            });
+
             return {
-                id: conv._id, // Use Conversation ID for chat linking
-                partnerId: partner?._id,
-                name: partner ? `${partner.firstName} ${partner.lastName}` : 'Unknown User',
+                id: conv._id,
+                partnerId: partnerId || undefined,
+                name,
                 profilePicture: partner?.freelancerProfile?.profilePicture || null,
                 lastMessage: conv.lastMessage,
                 isFrozen: conv.isFrozen,
-                online: false // Placeholder for socket status
+                unreadCount,
+                hasUnread: unreadCount > 0,
+                online: false
             };
-        });
+        }));
 
         res.json(formatted);
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(500).json({ msg: err.message || 'Server Error' });
     }
 };
 
@@ -79,6 +100,20 @@ const getMessages = async (req, res) => {
             return res.json([]);
         }
 
+        await Chat.updateMany(
+            {
+                conversationId: conversation._id,
+                receiverId: userId,
+                isRead: { $ne: true }
+            },
+            {
+                $set: {
+                    isRead: true,
+                    readAt: new Date()
+                }
+            }
+        );
+
         const messages = await Chat.find({ conversationId: conversation._id })
             .sort({ createdAt: 1 })
             .populate('senderId', 'firstName lastName');
@@ -86,14 +121,21 @@ const getMessages = async (req, res) => {
         res.json(messages);
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(500).json({ msg: err.message || 'Server Error' });
     }
 }
 
 const sendMessage = async (req, res) => {
     try {
-        const { receiverId, content, messageType } = req.body;
+        const { content, messageType } = req.body;
+        let receiverId = req.body.receiverId;
+        if (receiverId && typeof receiverId === 'object' && receiverId._id) receiverId = receiverId._id;
+        receiverId = (receiverId && String(receiverId).trim()) || null;
         const senderId = req.user.id;
+
+        if (!receiverId || !/^[0-9a-fA-F]{24}$/.test(receiverId)) {
+            return res.status(400).json({ msg: 'receiverId is required and must be a valid user ID' });
+        }
 
         // 1. Check Global Account Freeze
         const sender = await User.findById(senderId);
@@ -112,6 +154,16 @@ const sendMessage = async (req, res) => {
                 lastMessage: content
             });
             await conversation.save();
+        }
+
+        // Derive receiverId from conversation (use actual participant for reliability)
+        const senderIdStr = String(senderId);
+        const otherParticipant = conversation.participants.find(p => String(p) !== senderIdStr);
+        if (otherParticipant) {
+            receiverId = String(otherParticipant);
+        }
+        if (!receiverId) {
+            return res.status(400).json({ msg: 'Could not determine message recipient' });
         }
 
         // 3. Check Chat Specific Freeze
@@ -155,10 +207,27 @@ const sendMessage = async (req, res) => {
         conversation.lastMessageId = newMsg._id;
         await conversation.save();
 
+        // 8. Emit via socket for real-time delivery
+        const io = req.app.get('io');
+        if (io) {
+            const roomId = `conversation:${conversation._id}`;
+            const payload = {
+                _id: newMsg._id,
+                conversationId: conversation._id,
+                senderId: newMsg.senderId,
+                content: finalContent,
+                messageType: newMsg.messageType || 'text',
+                createdAt: newMsg.createdAt,
+                isAdmin: newMsg.isAdmin || false,
+                isRead: newMsg.isRead || false
+            };
+            io.to(roomId).emit('message', payload);
+        }
+
         res.json(newMsg);
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(500).json({ msg: err.message || 'Server Error' });
     }
 }
 
@@ -202,7 +271,7 @@ const createOffer = async (req, res) => {
         res.json(offer);
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(500).json({ msg: err.message || 'Server Error' });
     }
 };
 
@@ -267,7 +336,7 @@ const acceptOffer = async (req, res) => {
         res.json({ order, offer });
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(500).json({ msg: err.message || 'Server Error' });
     }
 };
 
@@ -290,7 +359,7 @@ const getOffers = async (req, res) => {
         res.json(offers);
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(500).json({ msg: err.message || 'Server Error' });
     }
 };
 

@@ -8,6 +8,7 @@ const {
     getJobById,
     updateJob,
     deleteJob,
+    acceptProposal,
     getMyOrders,
     getActiveOrderForProject,
     getAllActiveOrders
@@ -42,6 +43,11 @@ router.put('/jobs/:id', auth, updateJob);
 // @desc    Delete a job
 // @access  Private (Client only, owner)
 router.delete('/jobs/:id', auth, deleteJob);
+
+// @route   POST api/client/jobs/:id/accept-proposal
+// @desc    Accept a proposal for a job
+// @access  Private (Client only, owner)
+router.post('/jobs/:id/accept-proposal', auth, acceptProposal);
 
 // @route   GET api/client/orders
 // @desc    Get client's orders

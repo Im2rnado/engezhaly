@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Briefcase, Clock, PlusCircle, ShoppingBag, Wallet, Edit, Loader2, X } from 'lucide-react';
+import { Briefcase, Clock, PlusCircle, ShoppingBag, Wallet, Edit, Loader2, X, Eye } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useModal } from '@/context/ModalContext';
 import ClientSidebar from '@/components/ClientSidebar';
@@ -302,142 +302,113 @@ export default function ClientDashboard() {
                 )}
 
                 {activeTab === 'jobs' && (
-                    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                            <h3 className="text-lg font-bold">My Jobs ({jobs.length})</h3>
-                            <button
-                                onClick={() => router.push('/dashboard/client/jobs/create')}
-                                className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 transition-colors"
-                            >
-                                <PlusCircle className="w-4 h-4" /> New Job
-                            </button>
-                        </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
-                                <thead className="bg-gray-50 text-gray-500 font-bold uppercase">
-                                    <tr>
-                                        <th className="p-4">Title</th>
-                                        <th className="p-4">Budget</th>
-                                        <th className="p-4">Proposals</th>
-                                        <th className="p-4">Status</th>
-                                        <th className="p-4">Date</th>
-                                        <th className="p-4">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {jobs.map((job) => (
-                                        <tr key={job._id} className="hover:bg-gray-50">
-                                            <td className="p-4">
-                                                <div>
-                                                    <button
-                                                        onClick={() => router.push(`/dashboard/client/jobs/${job._id}`)}
-                                                        className="font-bold text-gray-900 hover:text-[#09BF44] transition-colors text-left"
-                                                    >
-                                                        {job.title}
-                                                    </button>
-                                                    <p className="text-xs text-gray-500 truncate max-w-xs">{job.description.substring(0, 50)}...</p>
-                                                </div>
-                                            </td>
-                                            <td className="p-4 font-bold text-gray-900">
-                                                {job.budgetRange.min} - {job.budgetRange.max} EGP
-                                            </td>
-                                            <td className="p-4">
-                                                <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">
-                                                    {job.proposals?.length || 0}
-                                                </span>
-                                            </td>
-                                            <td className="p-4">
-                                                <span className={`px-2 py-1 rounded text-xs font-bold ${job.status === 'open' ? 'bg-green-100 text-green-700' : job.status === 'in_progress' ? 'bg-blue-100 text-blue-700' : job.status === 'completed' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'}`}>
-                                                    {job.status}
-                                                </span>
-                                            </td>
-                                            <td className="p-4 text-gray-500">{new Date(job.createdAt).toLocaleDateString()}</td>
-                                            <td className="p-4">
-                                                <div className="flex items-center gap-2">
-                                                    <button
-                                                        onClick={() => setEditJobModal(job)}
-                                                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                                                        title="Edit"
-                                                    >
-                                                        <Edit className="w-4 h-4 text-gray-600" />
-                                                    </button>
-                                                    {job.status === 'open' && (
-                                                        <button
-                                                            onClick={() => handleDeleteJob(job._id)}
-                                                            className="p-2 hover:bg-red-50 rounded-lg transition-colors"
-                                                            title="Delete"
-                                                        >
-                                                            <X className="w-4 h-4 text-red-600" />
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {jobs.length === 0 && (
-                                        <tr>
-                                            <td colSpan={6} className="p-8 text-center text-gray-400">
-                                                <Briefcase className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                                                <h3 className="text-xl font-bold text-gray-900 mb-2">No Jobs Yet</h3>
-                                                <p className="text-gray-500 mb-6">Post your first job to find talented freelancers.</p>
-                                                <button
-                                                    onClick={() => router.push('/dashboard/client/jobs/create')}
-                                                    className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-colors mx-auto"
-                                                >
-                                                    <PlusCircle className="w-5 h-5" /> Post your first Job
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                    <div className="space-y-4">
+                        {jobs.length > 0 ? (
+                            jobs.map((job) => (
+                                <div key={job._id} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
+                                    <div className="flex justify-between items-start gap-4 mb-4">
+                                        <div className="flex-1">
+                                            <button
+                                                onClick={() => router.push(`/dashboard/client/jobs/${job._id}`)}
+                                                className="text-left text-xl font-bold text-gray-900 hover:text-[#09BF44] transition-colors"
+                                            >
+                                                {job.title}
+                                            </button>
+                                            <p className="text-gray-600 mt-2">{job.description.substring(0, 120)}...</p>
+                                        </div>
+                                        <div className="bg-green-50 text-[#09BF44] font-bold px-4 py-2 rounded-xl shrink-0">
+                                            {job.budgetRange.min} - {job.budgetRange.max} EGP
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-3 mb-4">
+                                        <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">
+                                            {job.proposals?.length || 0} proposal(s)
+                                        </span>
+                                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${job.status === 'open' ? 'bg-green-100 text-green-700' : job.status === 'in_progress' ? 'bg-blue-100 text-blue-700' : job.status === 'completed' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'}`}>
+                                            {job.status}
+                                        </span>
+                                        <span className="text-xs text-gray-500 font-bold">
+                                            Posted {new Date(job.createdAt).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-2 pt-4 border-t border-gray-100">
+                                        <button
+                                            onClick={() => setEditJobModal(job)}
+                                            className="bg-gray-100 text-gray-700 font-bold px-4 py-2 rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2"
+                                            title="Edit"
+                                        >
+                                            <Edit className="w-4 h-4" /> Edit
+                                        </button>
+                                        <button
+                                            onClick={() => router.push(`/dashboard/client/jobs/${job._id}`)}
+                                            className="bg-gray-100 text-gray-700 font-bold px-4 py-2 rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2"
+                                            title="View"
+                                        >
+                                            <Eye className="w-4 h-4" /> View
+                                        </button>
+                                        {job.status === 'open' && (
+                                            <button
+                                                onClick={() => handleDeleteJob(job._id)}
+                                                className="bg-red-50 text-red-600 font-bold px-4 py-2 rounded-xl hover:bg-red-100 transition-colors flex items-center gap-2"
+                                                title="Delete"
+                                            >
+                                                <X className="w-4 h-4" /> Delete
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-12 text-center text-gray-400">
+                                <Briefcase className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                                <h3 className="text-xl font-bold text-gray-900 mb-2">No Jobs Yet</h3>
+                                <p className="text-gray-500 mb-6">Post your first job to find talented freelancers.</p>
+                                <button
+                                    onClick={() => router.push('/dashboard/client/jobs/create')}
+                                    className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-colors mx-auto"
+                                >
+                                    <PlusCircle className="w-5 h-5" /> Post your first Job
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
 
                 {activeTab === 'orders' && (
-                    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-                        <div className="p-6 border-b border-gray-100">
-                            <h3 className="text-lg font-bold">My Orders ({orders.length})</h3>
-                        </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
-                                <thead className="bg-gray-50 text-gray-500 font-bold uppercase">
-                                    <tr>
-                                        <th className="p-4">Project</th>
-                                        <th className="p-4">Seller</th>
-                                        <th className="p-4">Package</th>
-                                        <th className="p-4">Amount</th>
-                                        <th className="p-4">Status</th>
-                                        <th className="p-4">Date</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {orders.map((order) => (
-                                        <tr key={order._id} className="hover:bg-gray-50">
-                                            <td className="p-4 font-bold truncate max-w-xs">{order.projectId?.title || 'N/A'}</td>
-                                            <td className="p-4">{order.sellerId?.firstName} {order.sellerId?.lastName}</td>
-                                            <td className="p-4"><span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-bold">{order.packageType}</span></td>
-                                            <td className="p-4 font-bold text-gray-900">{order.amount} EGP</td>
-                                            <td className="p-4">
-                                                <span className={`px-2 py-1 rounded text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
-                                                    {order.status}
-                                                </span>
-                                            </td>
-                                            <td className="p-4 text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</td>
-                                        </tr>
-                                    ))}
-                                    {orders.length === 0 && (
-                                        <tr>
-                                            <td colSpan={6} className="p-8 text-center text-gray-400">
-                                                <ShoppingBag className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                                                <p>No orders yet.</p>
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                    <div className="space-y-4">
+                        {orders.length > 0 ? (
+                            orders.map((order) => (
+                                <div key={order._id} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
+                                    <div className="flex justify-between items-start gap-4 mb-4">
+                                        <div className="flex-1">
+                                            <h4 className="text-xl font-bold text-gray-900">{order.projectId?.title || 'Project'}</h4>
+                                            <p className="text-gray-500 text-sm mt-1">
+                                                Seller: {order.sellerId?.firstName} {order.sellerId?.lastName}
+                                            </p>
+                                        </div>
+                                        <div className="text-right shrink-0">
+                                            <p className="text-xl font-black text-gray-900">{order.amount} EGP</p>
+                                            <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                                                {order.status}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-gray-100">
+                                        <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-bold">
+                                            {order.packageType}
+                                        </span>
+                                        <span className="text-xs text-gray-500 font-bold">
+                                            Ordered {new Date(order.createdAt).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-12 text-center text-gray-400">
+                                <ShoppingBag className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                                <p>No orders yet.</p>
+                            </div>
+                        )}
                     </div>
                 )}
 

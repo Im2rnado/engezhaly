@@ -160,9 +160,72 @@ const getTopFreelancers = async (req, res) => {
     }
 };
 
+const getMyOrders = async (req, res) => {
+    try {
+        const freelancerId = req.user.id;
+        const orders = await Order.find({ sellerId: freelancerId })
+            .populate('projectId', 'title packages')
+            .populate('buyerId', 'firstName lastName email')
+            .sort({ createdAt: -1 });
+
+        res.json(orders);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+const submitOrderWork = async (req, res) => {
+    try {
+        const freelancerId = req.user.id;
+        const { id: orderId } = req.params;
+        const { message = '', links = [], files = [] } = req.body;
+
+        const user = await User.findById(freelancerId);
+        if (!user || user.role !== 'freelancer') {
+            return res.status(403).json({ msg: 'Only freelancers can submit work' });
+        }
+
+        const order = await Order.findById(orderId);
+        if (!order) {
+            return res.status(404).json({ msg: 'Order not found' });
+        }
+
+        if (String(order.sellerId) !== String(freelancerId)) {
+            return res.status(403).json({ msg: 'Not authorized to submit work for this order' });
+        }
+
+        if (order.status !== 'active') {
+            return res.status(400).json({ msg: 'Can only submit work for active orders' });
+        }
+
+        order.workSubmission = {
+            message: String(message || '').trim(),
+            links: Array.isArray(links) ? links.filter(Boolean) : [],
+            files: Array.isArray(files) ? files.filter(Boolean) : [],
+            submittedAt: order.workSubmission?.submittedAt || new Date(),
+            updatedAt: new Date()
+        };
+
+        await order.save();
+
+        const populated = await Order.findById(orderId)
+            .populate('projectId', 'title packages')
+            .populate('buyerId', 'firstName lastName email')
+            .populate('sellerId', 'firstName lastName email');
+
+        return res.json(populated);
+    } catch (err) {
+        console.error(err.message);
+        return res.status(500).json({ msg: err.message || 'Server Error' });
+    }
+};
+
 module.exports = {
     updateProfile,
     getProfile,
     getPublicProfile,
-    getTopFreelancers
+    getTopFreelancers,
+    getMyOrders,
+    submitOrderWork
 };

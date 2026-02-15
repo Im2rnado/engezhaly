@@ -37,8 +37,17 @@ const createJob = async (req, res) => {
 
 const getJobs = async (req, res) => {
     try {
-        // Show open jobs
         const jobs = await Job.find({ status: 'open' }).sort({ createdAt: -1 }).populate('clientId', 'firstName lastName');
+        const userId = req.user?.id;
+        const isFreelancer = req.user?.role === 'freelancer';
+
+        if (userId && isFreelancer) {
+            const enriched = jobs.map((job) => {
+                const hasApplied = job.proposals?.some((p) => p.freelancerId?.toString() === userId);
+                return { ...job.toObject(), hasApplied: !!hasApplied };
+            });
+            return res.json(enriched);
+        }
         res.json(jobs);
     } catch (err) {
         console.error(err.message);
@@ -48,6 +57,9 @@ const getJobs = async (req, res) => {
 
 const applyToJob = async (req, res) => {
     try {
+        if (req.user.role !== 'freelancer') {
+            return res.status(403).json({ msg: 'Only freelancers can apply to jobs' });
+        }
         const { price, deliveryDays, message } = req.body;
         const jobId = req.params.id;
         const freelancerId = req.user.id;
@@ -62,7 +74,7 @@ const applyToJob = async (req, res) => {
         if (job.status !== 'open') return res.status(400).json({ msg: 'Job is not open for applications' });
 
         // Check if already applied
-        if (job.proposals.some(p => p.freelancerId.toString() === freelancerId)) {
+        if (job.proposals.some(p => p.freelancerId && p.freelancerId.toString() === freelancerId)) {
             // #region agent log
             log({ location: 'server/controllers/jobController.js:58', message: 'Duplicate application blocked', data: { jobId, freelancerId }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: '5' });
             // #endregion
@@ -100,8 +112,80 @@ const applyToJob = async (req, res) => {
     }
 }
 
+const getFreelancerJobs = async (req, res) => {
+    try {
+        if (req.user.role !== 'freelancer') {
+            return res.status(403).json({ msg: 'Only freelancers can access this resource' });
+        }
+        const freelancerId = req.user.id;
+
+        const jobs = await Job.find({ 'proposals.freelancerId': freelancerId })
+            .sort({ updatedAt: -1 })
+            .populate('clientId', 'firstName lastName email');
+
+        const formatted = jobs.map((job) => {
+            const myProposal = job.proposals.find(
+                (p) => p.freelancerId && p.freelancerId.toString() === freelancerId
+            );
+            return {
+                ...job.toObject(),
+                myProposal: myProposal || null
+            };
+        });
+
+        res.json(formatted);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Server Error' });
+    }
+};
+
+const submitWork = async (req, res) => {
+    try {
+        if (req.user.role !== 'freelancer') {
+            return res.status(403).json({ msg: 'Only freelancers can submit work' });
+        }
+        const freelancerId = req.user.id;
+        const { id: jobId } = req.params;
+        const { message, links, files } = req.body;
+
+        const job = await Job.findById(jobId);
+        if (!job) return res.status(404).json({ msg: 'Job not found' });
+
+        if (job.status !== 'in_progress') {
+            return res.status(400).json({ msg: 'Work can only be submitted for in-progress jobs' });
+        }
+
+        const proposal = job.proposals.find(
+            (p) => p.freelancerId && p.freelancerId.toString() === freelancerId
+        );
+        if (!proposal) {
+            return res.status(403).json({ msg: 'You did not apply to this job' });
+        }
+        if (proposal.status !== 'accepted') {
+            return res.status(400).json({ msg: 'Only accepted freelancers can submit work' });
+        }
+
+        proposal.workSubmission = {
+            message: typeof message === 'string' ? message.trim() : '',
+            links: Array.isArray(links) ? links.filter(Boolean) : [],
+            files: Array.isArray(files) ? files.filter(Boolean) : [],
+            submittedAt: proposal.workSubmission?.submittedAt || new Date(),
+            updatedAt: new Date()
+        };
+
+        await job.save();
+        res.json({ msg: 'Work submitted successfully', proposal });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Server Error' });
+    }
+};
+
 module.exports = {
     createJob,
     getJobs,
-    applyToJob
+    applyToJob,
+    getFreelancerJobs,
+    submitWork
 };

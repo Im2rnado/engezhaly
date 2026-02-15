@@ -6,14 +6,12 @@ import { api } from '@/lib/api';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import FreelancerSidebar from '@/components/FreelancerSidebar';
 import ProjectCard from '@/components/ProjectCard';
-import CountdownTimer from '@/components/CountdownTimer';
 
 export default function ViewProjectPage() {
     const router = useRouter();
     const params = useParams();
     const projectId = params?.id as string;
     const [project, setProject] = useState<any>(null);
-    const [activeOrder, setActiveOrder] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<any>(null);
     const [profile, setProfile] = useState<any>(null);
@@ -41,15 +39,6 @@ export default function ViewProjectPage() {
                 if (projectId) {
                     const projectData = await api.projects.getById(projectId);
                     setProject(projectData);
-
-                    // Fetch active order for timer
-                    try {
-                        const order = await api.projects.getActiveOrder(projectId);
-                        setActiveOrder(order);
-                    } catch {
-                        // No active order, that's fine
-                        setActiveOrder(null);
-                    }
                 }
             } catch (err) {
                 console.error(err);
@@ -114,15 +103,7 @@ export default function ViewProjectPage() {
                     <ProjectCard
                         project={project}
                         onEdit={() => router.push(`/dashboard/freelancer/projects/${project._id}/edit`)}
-                        activeOrder={activeOrder}
                     />
-
-                    {/* Detailed Timer */}
-                    {activeOrder && (activeOrder.status === 'active' || activeOrder.status === 'pending_payment') && activeOrder.deliveryDate && (
-                        <div className="mt-6">
-                            <CountdownTimer deadline={activeOrder.deliveryDate} variant="detail" />
-                        </div>
-                    )}
 
                 </div>
             </div>

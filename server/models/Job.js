@@ -16,7 +16,14 @@ const JobSchema = new mongoose.Schema({
         price: Number,
         deliveryDays: Number,
         message: String,
-        status: { type: String, enum: ['pending', 'accepted', 'rejected'], default: 'pending' }
+        status: { type: String, enum: ['pending', 'accepted', 'rejected'], default: 'pending' },
+        workSubmission: {
+            message: { type: String, default: '' },
+            links: [String],
+            files: [String],
+            submittedAt: { type: Date, default: null },
+            updatedAt: { type: Date, default: null }
+        }
     }]
 }, { timestamps: true });
 

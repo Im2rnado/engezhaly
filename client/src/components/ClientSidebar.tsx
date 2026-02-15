@@ -18,13 +18,19 @@ export default function ClientSidebar({ user, activeTab }: ClientSidebarProps) {
     const pathname = usePathname();
     const [jobs, setJobs] = useState<any[]>([]);
     const [orders, setOrders] = useState<any[]>([]);
+    const [unreadChats, setUnreadChats] = useState(0);
 
     useEffect(() => {
-        if (user?._id) {
+        const userId = user?._id || user?.id;
+        if (userId) {
             api.client.getMyJobs().then(setJobs).catch(() => { });
             api.client.getMyOrders().then(setOrders).catch(() => { });
+            api.chat.getConversations().then((conversations: any[]) => {
+                const unread = (conversations || []).reduce((sum: number, c: any) => sum + Number(c.unreadCount || 0), 0);
+                setUnreadChats(unread);
+            }).catch(() => setUnreadChats(0));
         }
-    }, [user?._id]);
+    }, [user?._id, user?.id]);
 
     const activeJobs = jobs.filter((j: any) => j.status === 'open' || j.status === 'in_progress').length;
     const activeOrders = orders.filter((o: any) => o.status === 'active').length;
@@ -64,7 +70,7 @@ export default function ClientSidebar({ user, activeTab }: ClientSidebarProps) {
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'jobs' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
                 >
                     <Briefcase className="w-5 h-5" /> My Jobs
-                    {activeJobs > 0 && <span className="ml-auto bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">{activeJobs}</span>}
+                    {activeJobs > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{activeJobs}</span>}
                 </button>
                 <button
                     onClick={() => {
@@ -73,7 +79,7 @@ export default function ClientSidebar({ user, activeTab }: ClientSidebarProps) {
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'orders' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
                 >
                     <ShoppingBag className="w-5 h-5" /> Orders
-                    {activeOrders > 0 && <span className="ml-auto bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">{activeOrders}</span>}
+                    {activeOrders > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{activeOrders}</span>}
                 </button>
                 <button
                     onClick={() => {
@@ -98,6 +104,11 @@ export default function ClientSidebar({ user, activeTab }: ClientSidebarProps) {
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${pathname === '/chat' || pathname?.includes('/chat') ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
                 >
                     <MessageSquare className="w-5 h-5" /> Chats
+                    {unreadChats > 0 && (
+                        <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">
+                            {unreadChats > 99 ? '99+' : unreadChats}
+                        </span>
+                    )}
                 </button>
                 <div className="h-px bg-gray-100 my-2"></div>
                 <button
@@ -107,7 +118,7 @@ export default function ClientSidebar({ user, activeTab }: ClientSidebarProps) {
                     <Plus className="w-5 h-5" /> Post a Job
                 </button>
                 <button
-                    onClick={() => router.push('/')}
+                    onClick={() => router.push('/projects')}
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-gray-500 hover:bg-gray-50 hover:text-gray-900"
                 >
                     <Briefcase className="w-5 h-5" /> Browse Projects

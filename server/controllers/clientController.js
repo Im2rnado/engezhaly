@@ -126,6 +126,54 @@ const deleteJob = async (req, res) => {
     }
 };
 
+const acceptProposal = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const jobId = req.params.id;
+        const { proposalId } = req.body;
+
+        const user = await User.findById(userId);
+        if (!user || user.role !== 'client') {
+            return res.status(403).json({ msg: 'Access denied. Client only.' });
+        }
+
+        const job = await Job.findById(jobId);
+        if (!job) {
+            return res.status(404).json({ msg: 'Job not found' });
+        }
+
+        if (job.clientId.toString() !== userId) {
+            return res.status(403).json({ msg: 'Access denied. You do not own this job.' });
+        }
+
+        if (job.status !== 'open') {
+            return res.status(400).json({ msg: 'Job is not open for accepting proposals.' });
+        }
+
+        const proposal = job.proposals.id(proposalId);
+        if (!proposal) {
+            return res.status(404).json({ msg: 'Proposal not found' });
+        }
+
+        job.proposals.forEach((p) => {
+            p.status = p._id.toString() === proposalId ? 'accepted' : 'rejected';
+        });
+        job.status = 'in_progress';
+        await job.save();
+
+        const populated = await Job.findById(jobId)
+            .populate('clientId', 'firstName lastName email')
+            .populate({
+                path: 'proposals.freelancerId',
+                select: 'firstName lastName email freelancerProfile'
+            });
+        res.json(populated);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+};
+
 const getMyOrders = async (req, res) => {
     try {
         const userId = req.user.id;
@@ -149,19 +197,16 @@ const getJobById = async (req, res) => {
             .populate('clientId', 'firstName lastName email')
             .populate({
                 path: 'proposals.freelancerId',
-                select: 'firstName lastName email freelancerProfile',
-                populate: {
-                    path: 'freelancerProfile',
-                    select: 'bio category experienceYears skills isEmployeeOfMonth status'
-                }
+                select: 'firstName lastName email freelancerProfile'
             });
 
         if (!job) {
             return res.status(404).json({ msg: 'Job not found' });
         }
 
-        // Check ownership
-        if (job.clientId._id.toString() !== userId && job.clientId.toString() !== userId) {
+        // Check ownership (clientId may be populated or plain id)
+        const ownerId = job.clientId?._id?.toString() || job.clientId?.toString();
+        if (ownerId !== userId) {
             return res.status(403).json({ msg: 'Access denied. You do not own this job.' });
         }
 
@@ -233,6 +278,7 @@ module.exports = {
     getJobById,
     updateJob,
     deleteJob,
+    acceptProposal,
     getMyOrders,
     getActiveOrderForProject,
     getAllActiveOrders

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
-const { updateProfile, getProfile, getPublicProfile, getTopFreelancers } = require('../controllers/freelancerController');
+const { updateProfile, getProfile, getPublicProfile, getTopFreelancers, getMyOrders, submitOrderWork } = require('../controllers/freelancerController');
 
 // @route   PUT api/freelancer/profile
 // @desc    Update freelancer profile (onboarding steps)
@@ -22,5 +22,15 @@ router.get('/:id/public', getPublicProfile);
 // @desc    Get top freelancers (public)
 // @access  Public
 router.get('/top', getTopFreelancers);
+
+// @route   GET api/freelancer/orders
+// @desc    Get freelancer orders
+// @access  Private (Freelancer)
+router.get('/orders', auth, getMyOrders);
+
+// @route   POST api/freelancer/orders/:id/submit-work
+// @desc    Submit work for a freelancer project order
+// @access  Private (Freelancer)
+router.post('/orders/:id/submit-work', auth, submitOrderWork);
 
 module.exports = router;

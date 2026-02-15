@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
 import { Send, Video, Paperclip, MoreVertical, FileText, CheckCircle, XCircle, MessageSquare, Shield } from 'lucide-react';
@@ -29,17 +29,23 @@ export default function ChatPage() {
     const [profile, setProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const resolveUserId = useCallback(() => {
+        const storedUser = typeof window !== 'undefined'
+            ? JSON.parse(localStorage.getItem('user') || '{}')
+            : {};
+        return String(currentUser?._id || currentUser?.id || storedUser?._id || storedUser?.id || '');
+    }, [currentUser]);
 
     useEffect(() => {
         // Get current user
         const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const authToken = localStorage.getItem('token');
         setTimeout(() => {
             setCurrentUser(storedUser);
         }, 0);
 
         // Fetch profile based on user role
-        const token = localStorage.getItem('token');
-        if (token && storedUser.role) {
+        if (authToken && storedUser.role) {
             if (storedUser.role === 'client') {
                 api.client.getProfile().then((data) => {
                     setProfile(data);
@@ -82,7 +88,8 @@ export default function ChatPage() {
                     setChats(data);
                     const foundChat = data.find((c: any) => c.id === urlConversationId || c.partnerId === urlConversationId);
                     if (foundChat) {
-                        setActiveChat(foundChat);
+                        setChats(data.map((c: any) => c.id === foundChat.id ? { ...c, unreadCount: 0, hasUnread: false } : c));
+                        setActiveChat({ ...foundChat, unreadCount: 0, hasUnread: false });
                         setConversationId(foundChat.id);
                     }
                 }
@@ -98,9 +105,8 @@ export default function ChatPage() {
 
         // Initialize Socket
         const newSocket = io(SOCKET_URL, {
-            extraHeaders: {
-                'x-auth-token': localStorage.getItem('token') || ''
-            }
+            auth: { token: authToken || '' },
+            extraHeaders: authToken ? { 'x-auth-token': authToken } : {}
         });
         setTimeout(() => {
             setSocket(newSocket);
@@ -120,31 +126,91 @@ export default function ChatPage() {
             socket.on('message', (msg: any) => {
                 // Only append if it belongs to current chat
                 if (activeChat && conversationId && (msg.conversationId === conversationId || String(msg.conversationId) === String(conversationId))) {
-                    const userId = currentUser?._id || JSON.parse(localStorage.getItem('user') || '{}')._id;
+                    const userId = resolveUserId();
                     const senderId = msg.senderId?._id || msg.senderId;
+                    const isMine = String(senderId) === String(userId);
+                    // Skip our own messages - we already have optimistic update and will refetch
+                    if (isMine) return;
                     const isAdmin = msg.isAdmin || msg.content?.includes('[Engezhaly Admin]');
                     const formattedMsg = {
                         _id: msg._id,
                         text: msg.content,
-                        sender: String(senderId) === String(userId) ? 'me' : 'them',
+                        sender: 'them' as const,
                         senderId: senderId,
                         timestamp: msg.createdAt || new Date(),
                         messageType: msg.messageType,
+                        isRead: !!msg.isRead,
                         isAdmin: isAdmin
                     };
                     setMessages((prev) => {
-                        // Check if message already exists to avoid duplicates
                         const exists = prev.some(m => m._id === formattedMsg._id);
                         if (exists) return prev;
                         return [...prev, formattedMsg];
                     });
+                } else {
+                    const userId = resolveUserId();
+                    const senderId = msg.senderId?._id || msg.senderId;
+                    const isMine = String(senderId) === String(userId);
+                    const targetConversationId = String(msg.conversationId);
+                    setChats((prev: any[]) => prev.map((c) => {
+                        if (String(c.id) !== targetConversationId) return c;
+                        const nextUnread = isMine ? Number(c.unreadCount || 0) : Number(c.unreadCount || 0) + 1;
+                        return {
+                            ...c,
+                            lastMessage: msg.content || c.lastMessage,
+                            unreadCount: nextUnread,
+                            hasUnread: nextUnread > 0
+                        };
+                    }));
                 }
             });
         }
         return () => {
             if (socket) socket.off('message');
         };
-    }, [socket, activeChat, conversationId, currentUser]);
+    }, [socket, activeChat, conversationId, currentUser, resolveUserId]);
+
+    // Join/leave socket room when conversation changes
+    useEffect(() => {
+        if (!socket || !conversationId) return;
+        socket.emit('join_chat', conversationId);
+        return () => {
+            socket.emit('leave_chat', conversationId);
+        };
+    }, [socket, conversationId]);
+
+    // Listen for presence (online/offline)
+    const [partnerOnline, setPartnerOnline] = useState(false);
+    useEffect(() => {
+        setPartnerOnline(false);
+    }, [activeChat?.id]);
+    
+    useEffect(() => {
+        if (!socket || !activeChat?.partnerId) return;
+        const handleOnline = (data: { userId: string; conversationId: string }) => {
+            if (String(data.conversationId) === String(conversationId) && String(data.userId) === String(activeChat.partnerId)) {
+                setPartnerOnline(true);
+            }
+        };
+        const handleOffline = (data: { userId: string; conversationId: string }) => {
+            if (String(data.conversationId) === String(conversationId) && String(data.userId) === String(activeChat.partnerId)) {
+                setPartnerOnline(false);
+            }
+        };
+        const handleUsersInRoom = (data: { conversationId: string; userIds: string[] }) => {
+            if (String(data.conversationId) !== String(conversationId)) return;
+            const partnerId = String(activeChat?.partnerId || '');
+            setPartnerOnline(data.userIds.some((id) => String(id) === partnerId));
+        };
+        socket.on('user_online', handleOnline);
+        socket.on('user_offline', handleOffline);
+        socket.on('users_in_room', handleUsersInRoom);
+        return () => {
+            socket.off('user_online', handleOnline);
+            socket.off('user_offline', handleOffline);
+            socket.off('users_in_room', handleUsersInRoom);
+        };
+    }, [socket, conversationId, activeChat?.partnerId]);
 
     // Fetch messages and offers when activeChat changes
     useEffect(() => {
@@ -156,7 +222,7 @@ export default function ChatPage() {
 
             // Fetch messages
             api.chat.getMessages(convId).then((data: any) => {
-                const userId = currentUser?._id || JSON.parse(localStorage.getItem('user') || '{}')._id;
+                const userId = resolveUserId();
                 const formatted = data.map((m: any) => {
                     const senderId = m.senderId?._id || m.senderId;
                     const isAdmin = m.isAdmin || m.content?.includes('[Engezhaly Admin]');
@@ -167,6 +233,7 @@ export default function ChatPage() {
                         senderId: senderId,
                         timestamp: m.createdAt,
                         messageType: m.messageType,
+                        isRead: !!m.isRead,
                         isAdmin: isAdmin
                     };
                 });
@@ -178,7 +245,7 @@ export default function ChatPage() {
                 setOffers(data || []);
             }).catch(console.error);
         }
-    }, [activeChat, currentUser]);
+    }, [activeChat, currentUser, resolveUserId]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -202,8 +269,12 @@ export default function ChatPage() {
         setInput(''); // Clear input immediately for better UX
         
         try {
-            const receiverId = activeChat.partnerId || activeChat.id;
-                    const userId = currentUser?._id || JSON.parse(localStorage.getItem('user') || '{}')._id;
+            const receiverId = activeChat.partnerId?._id ?? activeChat.partnerId;
+            if (!receiverId) {
+                showModal({ title: 'Error', message: 'Cannot send message: no recipient selected.', type: 'error' });
+                return;
+            }
+                    const userId = resolveUserId();
             
             // Optimistically add the message to show it immediately
             const optimisticMessage = {
@@ -212,7 +283,8 @@ export default function ChatPage() {
                 sender: 'me' as const,
                 senderId: userId,
                 timestamp: new Date(),
-                messageType: 'text'
+                messageType: 'text',
+                isRead: false
             };
             setMessages((prev) => [...prev, optimisticMessage]);
             
@@ -234,6 +306,7 @@ export default function ChatPage() {
                     senderId: senderId,
                     timestamp: m.createdAt,
                     messageType: m.messageType,
+                    isRead: !!m.isRead,
                     isAdmin: isAdmin
                 };
             });
@@ -275,8 +348,13 @@ export default function ChatPage() {
     const handleCreateOffer = async (offerData: any) => {
         if (!activeChat || !conversationId) return;
 
+        const receiverId = activeChat.partnerId?._id ?? activeChat.partnerId;
+        if (!receiverId) {
+            showModal({ title: 'Error', message: 'Cannot create offer: no recipient selected.', type: 'error' });
+            return;
+        }
+
         try {
-            const receiverId = activeChat.partnerId || activeChat.id;
             await api.chat.createOffer({
                 conversationId,
                 receiverId,
@@ -288,7 +366,7 @@ export default function ChatPage() {
             setOffers(offersData || []);
 
             const messagesData = await api.chat.getMessages(conversationId);
-            const userId = currentUser?._id || JSON.parse(localStorage.getItem('user') || '{}')._id;
+            const userId = resolveUserId();
             const formatted = messagesData.map((m: any) => {
                 const senderId = m.senderId?._id || m.senderId;
                 const isAdmin = m.isAdmin || m.content?.includes('[Engezhaly Admin]');
@@ -299,6 +377,7 @@ export default function ChatPage() {
                     senderId: senderId,
                     timestamp: m.createdAt,
                     messageType: m.messageType,
+                    isRead: !!m.isRead,
                     isAdmin: isAdmin
                 };
             });
@@ -395,7 +474,11 @@ export default function ChatPage() {
                 type: 'confirm',
                 onConfirm: async () => {
                     try {
-                        const receiverId = activeChat.partnerId || activeChat.id;
+                        const receiverId = activeChat.partnerId?._id ?? activeChat.partnerId;
+                        if (!receiverId) {
+                            showModal({ title: 'Error', message: 'Cannot send consultation request: no recipient selected.', type: 'error' });
+                            return;
+                        }
                         // Send consultation request message
                         await api.chat.sendMessage({
                             receiverId,
@@ -415,7 +498,7 @@ export default function ChatPage() {
                         // Refresh messages
                         if (conversationId) {
                             const data = await api.chat.getMessages(conversationId);
-                            const userId = currentUser?._id || JSON.parse(localStorage.getItem('user') || '{}')._id;
+                            const userId = resolveUserId();
                             const formatted = data.map((m: any) => {
                                 const senderId = m.senderId?._id || m.senderId;
                                 const isAdmin = m.isAdmin || m.content?.includes('[Engezhaly Admin]');
@@ -426,6 +509,7 @@ export default function ChatPage() {
                                     senderId: senderId,
                                     timestamp: m.createdAt,
                                     messageType: m.messageType,
+                                    isRead: !!m.isRead,
                                     isAdmin: isAdmin
                                 };
                             });
@@ -518,6 +602,11 @@ export default function ChatPage() {
                                     <MessageSquare className="w-6 h-6 text-[#09BF44]" />
                                 </div>
                                 <h2 className="text-2xl font-black text-gray-900">Messages</h2>
+                                {chats.reduce((sum, c) => sum + Number(c.unreadCount || 0), 0) > 0 && (
+                                    <span className="ml-auto rounded-full bg-[#09BF44] text-white text-xs font-bold px-2.5 py-1">
+                                        {chats.reduce((sum, c) => sum + Number(c.unreadCount || 0), 0)}
+                                    </span>
+                                )}
                             </div>
                         </div>
                         <div className="flex-1 overflow-y-auto min-h-0">
@@ -532,11 +621,19 @@ export default function ChatPage() {
                                     const partnerName = chat.name || 'Unknown User';
                                     const partnerInitials = getInitials(partnerName);
                                     const isActive = activeChat?.id === chat.id;
+                                    const unreadCount = Number(chat.unreadCount || 0);
+                                    const hasUnread = unreadCount > 0;
 
                                     return (
                                         <div
                                             key={chat.id}
-                                            onClick={() => setActiveChat(chat)}
+                                            onClick={() => {
+                                                const openedChat = { ...chat, unreadCount: 0, hasUnread: false };
+                                                setActiveChat(openedChat);
+                                                setChats((prev: any[]) =>
+                                                    prev.map((c) => c.id === chat.id ? { ...c, unreadCount: 0, hasUnread: false } : c)
+                                                );
+                                            }}
                                             className={`p-4 cursor-pointer flex items-center gap-4 border-b border-gray-100 transition-all ${isActive
                                                     ? 'bg-gradient-to-r from-[#09BF44]/10 to-[#09BF44]/5 border-l-4 border-l-[#09BF44]'
                                                     : 'hover:bg-gray-50'
@@ -564,14 +661,21 @@ export default function ChatPage() {
                                                         </div>
                                                     )}
                                                 </div>
-                                                {chat.online && (
+                                                {(chat.id === activeChat?.id && partnerOnline) && (
                                                     <div className="absolute bottom-0 right-0 w-4 h-4 bg-[#09BF44] border-2 border-white rounded-full shadow-sm"></div>
                                                 )}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <h4 className="font-bold text-gray-900 truncate text-sm">{partnerName}</h4>
-                                                <p className="text-gray-500 text-xs truncate mt-0.5">{chat.lastMessage || 'No messages yet'}</p>
+                                                <p className={`${hasUnread && !isActive ? 'text-gray-800 font-semibold' : 'text-gray-500'} text-xs truncate mt-0.5`}>
+                                                    {chat.lastMessage || 'No messages yet'}
+                                                </p>
                                             </div>
+                                            {hasUnread && !isActive && (
+                                                <div className="shrink-0 min-w-5 h-5 px-1 rounded-full bg-[#09BF44] text-white text-[10px] font-bold flex items-center justify-center">
+                                                    {unreadCount > 99 ? '99+' : unreadCount}
+                                                </div>
+                                            )}
                                         </div>
                                     );
                                 })
@@ -625,15 +729,15 @@ export default function ChatPage() {
                                                     </div>
                                                 )}
                                             </div>
-                                            {activeChat.online && (
+                                            {partnerOnline && (
                                                 <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#09BF44] border-2 border-white rounded-full"></div>
                                             )}
                                         </div>
                                         <div>
                                             <h3 className="font-bold text-gray-900 text-lg">{activeChat.name}</h3>
                                             <span className="text-xs text-[#09BF44] font-bold flex items-center gap-1">
-                                                <div className="w-2 h-2 bg-[#09BF44] rounded-full"></div>
-                                                {activeChat.online ? 'Online' : 'Offline'}
+                                                <div className={`w-2 h-2 rounded-full ${partnerOnline ? 'bg-[#09BF44]' : 'bg-gray-300'}`}></div>
+                                                {partnerOnline ? 'Online' : 'Offline'}
                                             </span>
                                         </div>
                                     </div>
@@ -655,7 +759,9 @@ export default function ChatPage() {
                                 <div style={{ overflowY: 'auto', overflowX: 'hidden' }} className="flex-1 p-6 space-y-4 bg-gradient-to-b from-gray-50 to-white rounded-b-3xl min-h-0">
                                     {/* Display offers */}
                                     {offers.map((offer: any) => {
-                                        const isMyOffer = offer.senderId?._id === currentUser?._id || offer.senderId === currentUser?._id;
+                                        const currentUserId = resolveUserId();
+                                        const isMyOffer =
+                                            String(offer.senderId?._id || offer.senderId) === String(currentUserId);
                                         const canAccept = !isMyOffer && offer.status === 'pending';
 
                                         return (
@@ -752,6 +858,11 @@ export default function ChatPage() {
                                                         <span className="text-[10px]">
                                                             {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                         </span>
+                                                        {!isAdmin && msg.sender === 'me' && (
+                                                            <span className="text-[10px] ml-2 opacity-90">
+                                                                {msg.isRead ? 'Read' : 'Unread'}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>

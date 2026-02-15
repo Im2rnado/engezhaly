@@ -12,7 +12,14 @@ const OrderSchema = new mongoose.Schema({
     deliveryDate: { type: Date },
     completedAt: { type: Date },
     rating: { type: Number, min: 1, max: 5 },
-    review: { type: String }
+    review: { type: String },
+    workSubmission: {
+        message: { type: String, default: '' },
+        links: [String],
+        files: [String],
+        submittedAt: { type: Date, default: null },
+        updatedAt: { type: Date, default: null }
+    }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Order', OrderSchema);

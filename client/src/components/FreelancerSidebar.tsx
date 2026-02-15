@@ -14,26 +14,28 @@ interface FreelancerSidebarProps {
     activeTab?: 'dashboard' | 'projects' | 'orders' | 'profile';
 }
 
-export default function FreelancerSidebar({ user, profile, onToggleBusy, onTabChange, activeTab }: FreelancerSidebarProps) {
+export default function FreelancerSidebar({ user, profile, onToggleBusy, activeTab }: FreelancerSidebarProps) {
     const router = useRouter();
     const pathname = usePathname();
     const [projects, setProjects] = useState<any[]>([]);
     const [orders, setOrders] = useState<any[]>([]);
+    const [myJobsCount, setMyJobsCount] = useState(0);
+    const [unreadChats, setUnreadChats] = useState(0);
 
     useEffect(() => {
-        if (user?._id) {
+        const userId = user?._id || user?.id;
+        if (userId) {
             api.projects.getMyProjects().then(setProjects).catch(() => { });
-            // Try to fetch orders (may fail if not admin)
-            api.admin.getAllOrders().then(allOrders => {
-                const myOrders = allOrders.filter((order: any) =>
-                    order.sellerId?._id === user._id ||
-                    order.sellerId === user._id ||
-                    String(order.sellerId?._id) === String(user._id)
-                );
-                setOrders(myOrders);
-            }).catch(() => setOrders([]));
+            api.jobs.getFreelancerJobs()
+                .then((data: any[]) => setMyJobsCount(Array.isArray(data) ? data.length : 0))
+                .catch(() => setMyJobsCount(0));
+            api.freelancer.getMyOrders().then(setOrders).catch(() => setOrders([]));
+            api.chat.getConversations().then((conversations: any[]) => {
+                const unread = (conversations || []).reduce((sum: number, c: any) => sum + Number(c.unreadCount || 0), 0);
+                setUnreadChats(unread);
+            }).catch(() => setUnreadChats(0));
         }
-    }, [user?._id]);
+    }, [user?._id, user?.id]);
 
     const isActive = (path: string) => pathname === path || pathname?.startsWith(path);
     const isPending = profile?.freelancerProfile?.status === 'pending';
@@ -79,12 +81,21 @@ export default function FreelancerSidebar({ user, profile, onToggleBusy, onTabCh
                 </button>
                 <button
                     onClick={() => {
+                        router.push('/dashboard/freelancer/jobs');
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${isActive('/dashboard/freelancer/jobs') ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
+                >
+                    <Briefcase className="w-5 h-5" /> My Jobs
+                    {myJobsCount > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{myJobsCount}</span>}
+                </button>
+                <button
+                    onClick={() => {
                         router.push('/dashboard/freelancer?tab=orders');
                     }}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'orders' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
                 >
                     <ShoppingBag className="w-5 h-5" /> Orders
-                    {activeOrders > 0 && <span className="ml-auto bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">{activeOrders}</span>}
+                    {activeOrders > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{activeOrders}</span>}
                 </button>
                 <button
                     onClick={() => {
@@ -101,11 +112,16 @@ export default function FreelancerSidebar({ user, profile, onToggleBusy, onTabCh
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${pathname === '/chat' || pathname?.includes('/chat') ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
                 >
                     <MessageSquare className="w-5 h-5" /> Chats
+                    {unreadChats > 0 && (
+                        <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">
+                            {unreadChats > 99 ? '99+' : unreadChats}
+                        </span>
+                    )}
                 </button>
                 <div className="h-px bg-gray-100 my-2"></div>
                 <button
                     onClick={() => router.push('/jobs')}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${pathname === '/' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${isActive('/jobs') ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
                 >
                     <Briefcase className="w-5 h-5" /> Browse Jobs
                 </button>

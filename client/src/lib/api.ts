@@ -98,6 +98,24 @@ export const api = {
             });
             if (!res.ok) throw new Error('Failed to fetch freelancer profile');
             return res.json();
+        },
+        getMyOrders: async () => {
+            const res = await fetch(`${API_URL}/freelancer/orders`, {
+                method: 'GET',
+                headers: getHeaders()
+            });
+            if (!res.ok) throw new Error('Failed to fetch freelancer orders');
+            return res.json();
+        },
+        submitOrderWork: async (id: string, data: any) => {
+            const res = await fetch(`${API_URL}/freelancer/orders/${id}/submit-work`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify(data),
+            });
+            const result = await res.json().catch(() => ({ msg: 'Failed to submit work' }));
+            if (!res.ok) throw new Error(result.msg || 'Failed to submit work');
+            return result;
         }
     },
     client: {
@@ -151,6 +169,18 @@ export const api = {
             if (!res.ok) throw new Error('Failed to delete job');
             return res.json();
         },
+        acceptProposal: async (jobId: string, proposalId: string) => {
+            const res = await fetch(`${API_URL}/client/jobs/${jobId}/accept-proposal`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify({ proposalId }),
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.msg || 'Failed to accept proposal');
+            }
+            return res.json();
+        },
         getMyOrders: async () => {
             const res = await fetch(`${API_URL}/client/orders`, {
                 method: 'GET',
@@ -194,6 +224,24 @@ export const api = {
                 throw new Error(error.msg || 'Failed to apply');
             }
             return res.json();
+        },
+        getFreelancerJobs: async () => {
+            const res = await fetch(`${API_URL}/jobs/freelancer/my-jobs`, {
+                method: 'GET',
+                headers: getHeaders()
+            });
+            if (!res.ok) throw new Error('Failed to fetch freelancer jobs');
+            return res.json();
+        },
+        submitWork: async (id: string, data: any) => {
+            const res = await fetch(`${API_URL}/jobs/${id}/submit-work`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify(data),
+            });
+            const result = await res.json().catch(() => ({ msg: 'Failed to submit work' }));
+            if (!res.ok) throw new Error(result.msg || 'Failed to submit work');
+            return result;
         }
     },
     projects: {
@@ -238,6 +286,16 @@ export const api = {
             });
             if (!res.ok) throw new Error('Failed to update project');
             return res.json();
+        },
+        createOrder: async (projectId: string, packageIndex: number) => {
+            const res = await fetch(`${API_URL}/projects/${projectId}/order`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify({ packageIndex }),
+            });
+            const result = await res.json().catch(() => ({ msg: 'Failed to create order' }));
+            if (!res.ok) throw new Error(result.msg || 'Failed to create order');
+            return result;
         },
         getActiveOrder: async (projectId: string) => {
             try {
@@ -285,7 +343,9 @@ export const api = {
                 headers: getHeaders(),
                 body: JSON.stringify(data),
             });
-            return res.json();
+            const result = await res.json().catch(() => ({ msg: res.statusText || 'Failed to send message' }));
+            if (!res.ok) throw new Error(result.msg || 'Failed to send message');
+            return result;
         },
         createOffer: async (data: any) => {
             const res = await fetch(`${API_URL}/chat/offers`, {

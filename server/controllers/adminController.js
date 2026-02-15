@@ -136,6 +136,22 @@ const sendAdminMessage = async (req, res) => {
         conversation.lastMessageId = newMsg._id;
         await conversation.save();
 
+        // Emit via socket for real-time delivery
+        const io = req.app.get('io');
+        if (io) {
+            const roomId = `conversation:${conversation._id}`;
+            io.to(roomId).emit('message', {
+                _id: newMsg._id,
+                conversationId: conversation._id,
+                senderId: adminId,
+                content: newMsg.content,
+                messageType: 'text',
+                createdAt: newMsg.createdAt,
+                isAdmin: true,
+                isRead: false
+            });
+        }
+
         res.json(newMsg);
     } catch (err) {
         console.error(err.message);

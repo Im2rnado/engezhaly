@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Briefcase, Clock, DollarSign, User, ArrowLeft, Loader2, CheckCircle, XCircle, MessageSquare } from 'lucide-react';
+import { Briefcase, Clock, DollarSign, User, ArrowLeft, Loader2, CheckCircle, XCircle, MessageSquare, Link as LinkIcon, Paperclip } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useModal } from '@/context/ModalContext';
 import ClientSidebar from '@/components/ClientSidebar';
@@ -76,12 +76,18 @@ export default function JobDetailPage() {
             type: 'confirm',
             onConfirm: async () => {
                 try {
-                    // Update job status and proposal status
-                    await api.client.updateJob(jobId, {
-                        status: 'in_progress'
-                    });
+                    const updatedJob = await api.client.acceptProposal(jobId, proposalId);
+                    setJob(updatedJob);
+                    if (updatedJob.status === 'in_progress' && updatedJob.proposals) {
+                        const acceptedProposal = updatedJob.proposals.find((p: any) => p.status === 'accepted');
+                        if (acceptedProposal?.deliveryDays) {
+                            const createdDate = new Date(updatedJob.createdAt);
+                            const deadline = new Date(createdDate);
+                            deadline.setDate(deadline.getDate() + acceptedProposal.deliveryDays);
+                            setJobDeadline(deadline);
+                        }
+                    }
                     showModal({ title: 'Success', message: 'Proposal accepted! Job is now in progress.', type: 'success' });
-                    router.push('/dashboard/client');
                 } catch (err: any) {
                     console.error(err);
                     showModal({
@@ -223,6 +229,72 @@ export default function JobDetailPage() {
                                         </div>
                                     )}
 
+                                    {proposal.workSubmission && (
+                                        <div className="mb-4 p-4 bg-green-50 rounded-xl border border-green-100">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <div className="flex items-center gap-2">
+                                                    <CheckCircle className="w-4 h-4 text-green-600" />
+                                                    <span className="text-sm font-bold text-green-800">Work Submission</span>
+                                                </div>
+                                                {proposal.workSubmission.updatedAt && (
+                                                    <span className="text-xs text-green-700">
+                                                        {new Date(proposal.workSubmission.updatedAt).toLocaleString()}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {proposal.workSubmission.message && (
+                                                <p className="text-sm text-gray-700 mb-3 leading-relaxed">
+                                                    {proposal.workSubmission.message}
+                                                </p>
+                                            )}
+
+                                            {Array.isArray(proposal.workSubmission.links) && proposal.workSubmission.links.length > 0 && (
+                                                <div className="mb-3">
+                                                    <div className="flex items-center gap-2 mb-1.5">
+                                                        <LinkIcon className="w-4 h-4 text-gray-500" />
+                                                        <span className="text-xs font-bold text-gray-700 uppercase">Links</span>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        {proposal.workSubmission.links.map((link: string, linkIdx: number) => (
+                                                            <a
+                                                                key={`${proposal._id || idx}-link-${linkIdx}`}
+                                                                href={link}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="block text-sm text-[#09BF44] hover:underline break-all"
+                                                            >
+                                                                {link}
+                                                            </a>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {Array.isArray(proposal.workSubmission.files) && proposal.workSubmission.files.length > 0 && (
+                                                <div>
+                                                    <div className="flex items-center gap-2 mb-1.5">
+                                                        <Paperclip className="w-4 h-4 text-gray-500" />
+                                                        <span className="text-xs font-bold text-gray-700 uppercase">Files</span>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        {proposal.workSubmission.files.map((fileUrl: string, fileIdx: number) => (
+                                                            <a
+                                                                key={`${proposal._id || idx}-file-${fileIdx}`}
+                                                                href={fileUrl}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="block text-sm text-[#09BF44] hover:underline break-all"
+                                                            >
+                                                                {fileUrl}
+                                                            </a>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
                                     {proposal.freelancerId?.freelancerProfile && (
                                         <div className="mb-4 flex flex-wrap gap-2">
                                             {proposal.freelancerId.freelancerProfile.experienceYears && (
@@ -245,6 +317,12 @@ export default function JobDetailPage() {
                                         >
                                             <User className="w-4 h-4" />
                                             View Profile
+                                        </button>
+                                        <button
+                                            onClick={() => router.push(`/chat/${proposal.freelancerId?._id || proposal.freelancerId}`)}
+                                            className="flex-1 bg-gray-100 text-gray-700 font-bold py-2.5 rounded-xl hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            <MessageSquare className="w-4 h-4" /> Message
                                         </button>
                                         {job.status === 'open' && proposal.status === 'pending' && (
                                             <button

@@ -29,10 +29,10 @@ export default function PostJobPage() {
     const [jobData, setJobData] = useState({
         title: '',
         description: '',
-        skills: '', // comma separated
+        skills: '', // space separated, displayed as tags
         budgetMin: 500,
         budgetMax: 1000,
-        deadline: ''
+        deadline: '' // YYYY-MM-DD date
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -55,7 +55,7 @@ export default function PostJobPage() {
                 ...jobData,
                 budgetMin: Number(jobData.budgetMin),
                 budgetMax: Number(jobData.budgetMax),
-                skills: jobData.skills.split(',').map(s => s.trim())
+                skills: jobData.skills.trim().split(/\s+/).filter(Boolean)
             });
             showModal({ title: 'Success', message: 'Job Posted Successfully!', type: 'success' });
             router.push('/dashboard/client');
@@ -107,16 +107,37 @@ export default function PostJobPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Required Skills (Comma separated)</label>
-                                <input
-                                    type="text"
-                                    name="skills"
-                                    required
-                                    placeholder="e.g. React, Node.js, Design"
-                                    value={jobData.skills}
-                                    onChange={handleChange}
-                                    className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none"
-                                />
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Required Skills (space separated)</label>
+                                {(() => {
+                                    const parts = jobData.skills.split(/\s+/);
+                                    const completedTags = parts.slice(0, -1).filter(Boolean);
+                                    const currentWord = parts.length > 0 ? (parts[parts.length - 1] ?? '') : '';
+                                    const prefix = completedTags.length ? completedTags.join(' ') + ' ' : '';
+                                    return (
+                                        <div className="flex flex-wrap items-center gap-2 w-full p-3 py-2.5 min-h-[52px] bg-gray-50 rounded-xl border-2 border-transparent focus-within:border-[#09BF44] focus-within:bg-white outline-none transition-all font-medium text-gray-900">
+                                            {completedTags.map((tag) => (
+                                                <span key={tag} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-[#09BF44] text-white">
+                                                    {tag}
+                                                </span>
+                                            ))}
+                                            <input
+                                                type="text"
+                                                name="skills"
+                                                required={jobData.skills.trim().split(/\s+/).filter(Boolean).length === 0}
+                                                placeholder={completedTags.length === 0 ? 'e.g. React Node.js Design' : ''}
+                                                value={currentWord}
+                                                onChange={(e) => setJobData({ ...jobData, skills: prefix + e.target.value })}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Backspace' && !currentWord && completedTags.length > 0) {
+                                                        e.preventDefault();
+                                                        setJobData({ ...jobData, skills: completedTags.slice(0, -1).join(' ') });
+                                                    }
+                                                }}
+                                                className="flex-1 min-w-[120px] py-1 bg-transparent border-0 outline-none placeholder:text-gray-400"
+                                            />
+                                        </div>
+                                    );
+                                })()}
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
@@ -148,19 +169,15 @@ export default function PostJobPage() {
 
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-2">Deadline</label>
-                                <select
+                                <input
+                                    type="date"
                                     name="deadline"
                                     required
                                     value={jobData.deadline}
                                     onChange={handleChange}
+                                    min={new Date().toISOString().split('T')[0]}
                                     className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none"
-                                >
-                                    <option value="">Select Deadline</option>
-                                    <option value="Urgent (24h)">Urgent (24h)</option>
-                                    <option value="3 Days">3 Days</option>
-                                    <option value="1 Week">1 Week</option>
-                                    <option value="1 Month">1 Month</option>
-                                </select>
+                                />
                             </div>
 
                             <div className="flex justify-end gap-4 pt-4 border-t border-gray-100">

@@ -238,7 +238,7 @@ export default function FreelancerProfilePage() {
                         <h2 className="text-2xl font-black text-gray-900 mb-6">Services Offered</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {projects.map((project) => (
-                                <ProjectCard key={project._id} project={project} showContactMe={true} />
+                                <ProjectCard key={project._id} project={project} showContactMe={true} sellerIdOverride={freelancerId} />
                             ))}
                         </div>
                     </div>

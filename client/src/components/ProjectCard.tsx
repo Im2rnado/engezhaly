@@ -14,9 +14,10 @@ interface ProjectCardProps {
     onEdit?: () => void;
     showContactMe?: boolean; // Show Contact Me button for public viewing
     activeOrder?: any; // Active order with deliveryDate for timer
+    sellerIdOverride?: string; // When parent knows the seller (e.g. freelancer profile page)
 }
 
-export default function ProjectCard({ project, onEdit, showContactMe = false, activeOrder }: ProjectCardProps) {
+export default function ProjectCard({ project, onEdit, showContactMe = false, activeOrder, sellerIdOverride }: ProjectCardProps) {
     const router = useRouter();
     const { showModal } = useModal();
     const [selectedPackage, setSelectedPackage] = useState(0);
@@ -25,7 +26,29 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
     const [isCustomizeLoading, setIsCustomizeLoading] = useState(false);
     const packages = project.packages || [];
     const currentPackage = packages[selectedPackage] || {};
-    const sellerId = project.sellerId?._id || project.sellerId;
+    const extractSellerId = (value: any): string | null => {
+        if (!value) return null;
+        const id = (typeof value === 'object' && value !== null)
+            ? (value._id ?? value.id ?? value.$oid)
+            : value;
+        return id ? String(id) : null;
+    };
+
+    const sellerData = project.sellerId;
+    const initialSellerId = sellerIdOverride ? String(sellerIdOverride) : extractSellerId(sellerData);
+
+    const resolveSellerId = async (): Promise<string | null> => {
+        if (initialSellerId) return initialSellerId;
+        if (!project?._id) return null;
+
+        try {
+            // Some project lists omit sellerId; fetch full project as fallback.
+            const fullProject = await api.projects.getById(project._id);
+            return extractSellerId(fullProject?.sellerId);
+        } catch {
+            return null;
+        }
+    };
 
     const checkClientAuth = (): boolean => {
         const token = localStorage.getItem('token');
@@ -47,35 +70,36 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
         return true;
     };
 
+    const findConversationWithSeller = (conversations: any[], targetSellerId: string) =>
+        conversations.find((c: any) => String(c.partnerId?._id ?? c.partnerId) === String(targetSellerId));
+
     const handleOpenChat = async () => {
         setShowContactDropdown(false);
 
         if (!checkClientAuth()) {
             return;
         }
+        const sellerId = await resolveSellerId();
+        if (!sellerId) {
+            showModal({ title: 'Error', message: 'Could not identify the freelancer.', type: 'error' });
+            return;
+        }
 
         try {
-            // Create or get conversation with seller
             const conversations = await api.chat.getConversations();
-            let conversation = conversations.find((c: any) =>
-                c.participants?.some((p: any) => p._id === sellerId || p === sellerId)
-            );
+            let conversation = findConversationWithSeller(conversations, sellerId);
 
             if (!conversation) {
-                // Send a message to create conversation
                 await api.chat.sendMessage({
                     receiverId: sellerId,
                     content: `Hi! I'm interested in your project: ${project.title}`,
                     messageType: 'text'
                 });
-                // Refresh conversations
                 const updatedConversations = await api.chat.getConversations();
-                conversation = updatedConversations.find((c: any) =>
-                    c.participants?.some((p: any) => p._id === sellerId || p === sellerId)
-                );
+                conversation = findConversationWithSeller(updatedConversations, sellerId);
             }
 
-            router.push(`/chat?conversation=${conversation?._id || sellerId}`);
+            router.push(`/chat?conversation=${conversation?.id ?? sellerId}`);
         } catch (err: any) {
             console.error(err);
             showModal({
@@ -90,6 +114,11 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
         setShowContactDropdown(false);
 
         if (!checkClientAuth()) {
+            return;
+        }
+        const sellerId = await resolveSellerId();
+        if (!sellerId) {
+            showModal({ title: 'Error', message: 'Could not identify the freelancer.', type: 'error' });
             return;
         }
 
@@ -152,10 +181,10 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
     };
 
     // Check if there's an active order with a deadline
-    const hasActiveOrder = activeOrder && (activeOrder.status === 'active' || activeOrder.status === 'pending_payment') && activeOrder.deliveryDate;
+    const hasActiveOrder = !onEdit && activeOrder && (activeOrder.status === 'active' || activeOrder.status === 'pending_payment') && activeOrder.deliveryDate;
 
     // Get freelancer info
-    const seller = project.sellerId;
+    const seller = sellerData;
     const freelancerName = seller ? `${seller.firstName || ''} ${seller.lastName || ''}`.trim() : 'Freelancer';
     const freelancerProfilePicture = seller?.freelancerProfile?.profilePicture;
     const projectMainImage = project.images && project.images.length > 0 ? project.images[0] : null;
@@ -237,44 +266,37 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                         if (!checkClientAuth()) {
                             return;
                         }
+                        const sellerId = await resolveSellerId();
+                        if (!sellerId) {
+                            showModal({ title: 'Error', message: 'Could not identify the freelancer.', type: 'error' });
+                            return;
+                        }
                         setIsCustomizeLoading(true);
                         try {
-                            // Get or create conversation first
                             const conversations = await api.chat.getConversations();
-                            let conversation = conversations.find((c: any) =>
-                                c.participants?.some((p: any) => p._id === sellerId || p === sellerId)
-                            );
+                            let conversation = findConversationWithSeller(conversations, sellerId);
+
+                            await api.chat.sendMessage({
+                                receiverId: sellerId,
+                                content: `Hi! I'm interested in a custom package for your project: ${project.title}. Let's discuss the details.`,
+                                messageType: 'text'
+                            });
 
                             if (!conversation) {
-                                // Send automated message to create conversation
-                                await api.chat.sendMessage({
-                                    receiverId: sellerId,
-                                    content: `Hi! I'm interested in a custom package for your project: ${project.title}. Let's discuss the details.`,
-                                    messageType: 'text'
-                                });
-                                // Refresh conversations
                                 const updatedConversations = await api.chat.getConversations();
-                                conversation = updatedConversations.find((c: any) =>
-                                    c.participants?.some((p: any) => p._id === sellerId || p === sellerId)
-                                );
-                            } else {
-                                // Send automated message in existing conversation
-                                await api.chat.sendMessage({
-                                    receiverId: sellerId,
-                                    content: `Hi! I'm interested in a custom package for your project: ${project.title}. Let's discuss the details.`,
-                                    messageType: 'text'
-                                });
+                                conversation = findConversationWithSeller(updatedConversations, sellerId);
                             }
-                            
-                            router.push(`/chat?conversation=${conversation?._id || sellerId}`);
+
+                            router.push(`/chat?conversation=${conversation?.id ?? sellerId}`);
                         } catch (err: any) {
                             console.error(err);
-                            setIsCustomizeLoading(false);
                             showModal({
                                 title: 'Error',
                                 message: err.message || 'Failed to open chat',
                                 type: 'error'
                             });
+                        } finally {
+                            setIsCustomizeLoading(false);
                         }
                     }}
                     disabled={isCustomizeLoading}
@@ -312,20 +334,6 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                     </p>
                 )}
 
-                {/* Delivery & Revisions */}
-                <div className="flex items-center gap-6 mb-4 pb-4 border-b border-gray-100">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Clock className="w-4 h-4" />
-                        <span className="font-bold">{currentPackage.days || 0}-day delivery</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <RotateCcw className="w-4 h-4" />
-                        <span className="font-bold">
-                            {currentPackage.revisions === 0 ? 'No' : currentPackage.revisions === 1 ? '1' : currentPackage.revisions || 'Unlimited'} revision{currentPackage.revisions !== 1 ? 's' : ''}
-                        </span>
-                    </div>
-                </div>
-
                 {/* Features */}
                 {currentPackage.features && (
                     <div className="space-y-2 mb-6">
@@ -346,6 +354,20 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                         )}
                     </div>
                 )}
+
+                {/* Delivery & Revisions */}
+                <div className="flex items-center gap-6 mb-4 pb-4 border-b border-gray-100">
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Clock className="w-4 h-4" />
+                        <span className="font-bold">{currentPackage.days || 0}-day delivery</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <RotateCcw className="w-4 h-4" />
+                        <span className="font-bold">
+                            {currentPackage.revisions === 0 ? 'No' : currentPackage.revisions === 1 ? '1' : currentPackage.revisions || 'Unlimited'} revision{currentPackage.revisions !== 1 ? 's' : ''}
+                        </span>
+                    </div>
+                </div>
 
                 {/* Actions */}
                 <div className="space-y-2" style={{ overflow: 'visible' }}>
@@ -374,14 +396,26 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                                         return;
                                     }
 
-                                    // TODO: Handle package purchase/order creation
                                     showModal({
                                         title: 'Continue',
-                                        message: 'This will create an order for this package. Proceed?',
+                                        message: 'This will create an order and charge your wallet. Proceed?',
                                         type: 'confirm',
-                                        onConfirm: () => {
-                                            // Navigate to order/payment page
-                                            router.push(`/projects/${project._id}/order?package=${selectedPackage}`);
+                                        onConfirm: async () => {
+                                            try {
+                                                await api.projects.createOrder(project._id, selectedPackage);
+                                                showModal({
+                                                    title: 'Order Created',
+                                                    message: 'Your order was created successfully.',
+                                                    type: 'success'
+                                                });
+                                                router.push('/dashboard/client?tab=orders');
+                                            } catch (err: any) {
+                                                showModal({
+                                                    title: 'Error',
+                                                    message: err.message || 'Failed to create order',
+                                                    type: 'error'
+                                                });
+                                            }
                                         }
                                     });
                                 }}

@@ -1,5 +1,6 @@
 const Project = require('../models/Project');
 const User = require('../models/User');
+const Order = require('../models/Order');
 
 const createProject = async (req, res) => {
     try {
@@ -34,7 +35,7 @@ const createProject = async (req, res) => {
 
 const getProjects = async (req, res) => {
     try {
-        const projects = await Project.find({ isActive: true }).populate('sellerId', 'firstName lastName freelancerProfile');
+        const projects = await Project.find({ isActive: true }).populate('sellerId', '_id firstName lastName freelancerProfile');
         res.json(projects);
     } catch (err) {
         console.error(err.message);
@@ -102,10 +103,87 @@ const updateProject = async (req, res) => {
     }
 };
 
+const createProjectOrder = async (req, res) => {
+    try {
+        const buyerId = req.user.id;
+        const { id: projectId } = req.params;
+        const { packageIndex } = req.body;
+
+        const buyer = await User.findById(buyerId);
+        if (!buyer || buyer.role !== 'client') {
+            return res.status(403).json({ msg: 'Only clients can order projects' });
+        }
+
+        const project = await Project.findById(projectId);
+        if (!project || !project.isActive) {
+            return res.status(404).json({ msg: 'Project not found' });
+        }
+
+        const pkgIdx = Number(packageIndex);
+        if (Number.isNaN(pkgIdx) || pkgIdx < 0 || pkgIdx >= project.packages.length) {
+            return res.status(400).json({ msg: 'Invalid package selection' });
+        }
+        const selectedPackage = project.packages[pkgIdx];
+        if (!selectedPackage) {
+            return res.status(400).json({ msg: 'Selected package not found' });
+        }
+
+        // Prevent self-ordering
+        if (String(project.sellerId) === String(buyerId)) {
+            return res.status(400).json({ msg: 'You cannot order your own project' });
+        }
+
+        // Prevent duplicate active order for same project + buyer
+        const existing = await Order.findOne({
+            projectId,
+            buyerId,
+            status: 'active'
+        });
+        if (existing) {
+            return res.status(400).json({ msg: 'You already have an active order for this project' });
+        }
+
+        const amount = Number(selectedPackage.price || 0);
+        if (buyer.walletBalance < amount) {
+            return res.status(400).json({ msg: 'Insufficient wallet balance' });
+        }
+
+        const platformFee = amount * 0.2;
+        const deliveryDate = new Date(Date.now() + Number(selectedPackage.days || 0) * 24 * 60 * 60 * 1000);
+
+        const order = new Order({
+            projectId: project._id,
+            buyerId,
+            sellerId: project.sellerId,
+            packageType: selectedPackage.type || 'Basic',
+            amount,
+            platformFee,
+            status: 'active',
+            deliveryDate
+        });
+
+        await order.save();
+
+        buyer.walletBalance -= amount;
+        await buyer.save();
+
+        const populated = await Order.findById(order._id)
+            .populate('projectId', 'title')
+            .populate('buyerId', 'firstName lastName')
+            .populate('sellerId', 'firstName lastName');
+
+        res.json(populated);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Server Error' });
+    }
+};
+
 module.exports = {
     createProject,
     getProjects,
     getFreelancerProjects,
     getProjectById,
-    updateProject
+    updateProject,
+    createProjectOrder
 };
