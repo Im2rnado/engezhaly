@@ -49,25 +49,25 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-white to-[#09BF44] overflow-hidden">
-        <div className="max-w-[90%] mx-auto px-6 py-24 md:py-32 flex flex-col md:flex-row items-center relative z-10">
-          <div className="md:w-1/2 mb-12 md:mb-0">
-            <h1 className="text-5xl md:text-6xl font-bold leading-tight mb-6 text-gray-900">
+        <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6 py-12 md:py-32 flex flex-col md:flex-row items-center relative z-10">
+          <div className="w-full md:w-1/2 mb-10 md:mb-0">
+            <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold leading-tight mb-5 md:mb-6 text-gray-900">
               Find the perfect <span className="text-[#09BF44] italic">freelance</span> services for your business
             </h1>
-            <div className="bg-white rounded-md p-1 flex items-center max-w-lg mb-6 shadow-lg">
-              <div className="pl-4">
+            <div className="bg-white rounded-md p-1 flex flex-col sm:flex-row sm:items-center max-w-lg mb-5 md:mb-6 shadow-lg gap-1">
+              <div className="pl-4 pt-3 sm:pt-0">
                 <Search className="text-gray-400 w-5 h-5" />
               </div>
               <input
                 type="text"
                 placeholder='Try "building mobile app"'
-                className="flex-1 p-3 text-gray-800 outline-none placeholder-gray-400"
+                className="flex-1 px-3 py-2 sm:p-3 text-gray-800 outline-none placeholder-gray-400 text-sm sm:text-base"
               />
-              <button className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-8 py-3 rounded font-bold transition-colors">
+              <button className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-5 sm:px-8 py-2.5 sm:py-3 rounded font-bold transition-colors text-sm sm:text-base">
                 Search
               </button>
             </div>
-            <div className="flex flex-wrap gap-4 text-sm font-medium text-gray-700">
+            <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm font-medium text-gray-700">
               <span className="font-bold">Popular:</span>
               <span className="border border-gray-300 rounded-full px-3 py-0.5 hover:bg-[#09BF44] hover:text-white hover:border-[#09BF44] cursor-pointer transition">Website Design</span>
               <span className="border border-gray-300 rounded-full px-3 py-0.5 hover:bg-[#09BF44] hover:text-white hover:border-[#09BF44] cursor-pointer transition">WordPress</span>
@@ -75,10 +75,10 @@ export default function Home() {
               <span className="border border-gray-300 rounded-full px-3 py-0.5 hover:bg-[#09BF44] hover:text-white hover:border-[#09BF44] cursor-pointer transition">Video Editing</span>
             </div>
           </div>
-          <div className="md:w-1/2 flex justify-center md:justify-end">
+          <div className="w-full md:w-1/2 flex justify-center md:justify-end">
             {/* Placeholder for Hero Image */}
-            <div className="relative w-full max-w-md h-[400px] bg-white/80 backdrop-blur-sm rounded-lg border border-gray-200 shadow-xl flex items-center justify-center">
-              <p className="text-gray-600 font-bold">Hero Image / Freelancer Photo</p>
+            <div className="relative w-full max-w-md h-[260px] sm:h-[320px] md:h-[400px] bg-white/80 backdrop-blur-sm rounded-lg border border-gray-200 shadow-xl flex items-center justify-center">
+              <p className="text-gray-600 font-bold text-sm sm:text-base">Hero Image / Freelancer Photo</p>
               {/* <Image src="/hero-person.png" alt="Freelancer" width={500} height={500} className="object-contain" /> */}
             </div>
           </div>
@@ -87,8 +87,8 @@ export default function Home() {
 
       {/* Popular Services Section */}
       <section className="bg-white py-16">
-        <div className="max-w-[90%] mx-auto px-6">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8">Popular Professional Services</h2>
+        <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6 md:mb-8">Popular Professional Services</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-4">
             {MAIN_CATEGORIES.map((category) => {
               // Map categories to icons
@@ -131,8 +131,8 @@ export default function Home() {
 
       {/* Top Freelancers Section */}
       <section className="bg-gray-50 py-16">
-        <div className="max-w-[90%] mx-auto px-6">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8">Top Freelancers</h2>
+        <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6 md:mb-8">Top Freelancers</h2>
           {loading ? (
             <div className="text-center py-12 text-gray-400">
               <p>Loading...</p>
@@ -210,15 +210,15 @@ export default function Home() {
 
       {/* Projects Section */}
       <section id="projects-section" className="bg-gray-50 py-16">
-        <div className="max-w-[90%] mx-auto px-6">
-          <div className="flex items-center justify-between mb-8">
+        <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 md:mb-8">
             <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">Services you might be interested in</h2>
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Services you might be interested in</h2>
               <p className="text-gray-600">Explore professional services from talented freelancers</p>
             </div>
             <button
               onClick={() => router.push('/projects')}
-              className="flex items-center gap-2 text-[#09BF44] hover:text-[#07a63a] font-bold transition-colors"
+              className="flex items-center gap-2 text-[#09BF44] hover:text-[#07a63a] font-bold transition-colors text-sm md:text-base"
             >
               View More <ArrowRight className="w-4 h-4" />
             </button>
@@ -266,15 +266,15 @@ export default function Home() {
 
       {/* Jobs Section */}
       <section id="jobs-section" className="bg-white py-16">
-        <div className="max-w-[90%] mx-auto px-6">
-          <div className="flex items-center justify-between mb-8">
+        <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 md:mb-8">
             <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">Browse available jobs</h2>
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Browse available jobs</h2>
               <p className="text-gray-600">Find projects that match your skills</p>
             </div>
             <button
               onClick={() => router.push('/jobs')}
-              className="flex items-center gap-2 text-[#09BF44] hover:text-[#07a63a] font-bold transition-colors"
+              className="flex items-center gap-2 text-[#09BF44] hover:text-[#07a63a] font-bold transition-colors text-sm md:text-base"
             >
               View More <ArrowRight className="w-4 h-4" />
             </button>
@@ -379,7 +379,7 @@ export default function Home() {
 
       {/* Value Proposition Section */}
       <section className="bg-[#f1fdf4] py-16 md:py-24">
-        <div className="max-w-[90%] mx-auto px-6 flex flex-col md:flex-row items-center gap-12">
+        <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6 flex flex-col md:flex-row items-center gap-8 md:gap-12">
           <div className="md:w-1/2">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-8">A whole world of freelance talent at your fingertips</h2>
 

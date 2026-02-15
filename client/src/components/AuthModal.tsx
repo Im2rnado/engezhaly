@@ -299,9 +299,9 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl max-h-[90vh] flex flex-col overflow-hidden">
-                <div className="sticky top-0 bg-white z-10 flex justify-end p-4 pb-0 flex-shrink-0 rounded-t-3xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4">
+            <div className="relative w-full max-w-2xl bg-white rounded-2xl md:rounded-3xl shadow-2xl max-h-[92vh] md:max-h-[90vh] flex flex-col overflow-hidden">
+                <div className="sticky top-0 bg-white z-10 flex justify-end p-2 md:p-4 pb-0 shrink-0 rounded-t-2xl md:rounded-t-3xl">
                     <button
                         onClick={onClose}
                         className="p-2 rounded-full hover:bg-gray-100 transition-colors"
@@ -309,48 +309,48 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                         <X className="w-6 h-6 text-gray-500" />
                     </button>
                 </div>
-                <div className="overflow-y-auto flex-1 px-8 pb-8 min-h-0">
+                <div className="overflow-y-auto flex-1 px-4 md:px-8 pb-6 md:pb-8 min-h-0">
 
                     {step === 'role-selection' && (
-                        <div className="text-center py-8">
+                        <div className="text-center py-4 md:py-8">
                             <div className="flex items-center justify-center gap-3">
-                                <h2 className="text-4xl font-black text-gray-900">Join</h2>
+                                <h2 className="text-2xl md:text-4xl font-black text-gray-900">Join</h2>
                                 <Image
                                     src="/logos/logo-green.png"
                                     alt="Engezhaly"
                                     width={240}
                                     height={66}
-                                    className="h-20 w-auto"
+                                    className="h-14 md:h-20 w-auto"
                                     priority
                                 />
                             </div>
-                            <p className="text-xl text-gray-600 mb-12">How do you want to use the platform?</p>
+                            <p className="text-base md:text-xl text-gray-600 mb-6 md:mb-12">How do you want to use the platform?</p>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                                 <button
                                     onClick={() => { setStep('client-auth'); }}
-                                    className="group flex flex-col items-center justify-center p-10 border-2 border-gray-100 rounded-3xl hover:border-[#09BF44] hover:bg-green-50/50 transition-all duration-300"
+                                    className="group flex flex-col items-center justify-center p-6 md:p-10 border-2 border-gray-100 rounded-2xl md:rounded-3xl hover:border-[#09BF44] hover:bg-green-50/50 transition-all duration-300"
                                 >
-                                    <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6 group-hover:bg-[#09BF44] transition-colors">
-                                        <User className="w-12 h-12 text-gray-600 group-hover:text-white" />
+                                    <div className="w-16 h-16 md:w-24 md:h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4 md:mb-6 group-hover:bg-[#09BF44] transition-colors">
+                                        <User className="w-8 h-8 md:w-12 md:h-12 text-gray-600 group-hover:text-white" />
                                     </div>
-                                    <h3 className="text-2xl font-bold text-gray-900">I&apos;m Hiring</h3>
-                                    <p className="text-gray-500 mt-2 font-medium">Find talent & get work done</p>
+                                    <h3 className="text-xl md:text-2xl font-bold text-gray-900">I&apos;m Hiring</h3>
+                                    <p className="text-sm md:text-base text-gray-500 mt-2 font-medium">Find talent & get work done</p>
                                 </button>
 
                                 <button
                                     onClick={() => { setStep('freelancer-step-1'); }}
-                                    className="group flex flex-col items-center justify-center p-10 border-2 border-gray-100 rounded-3xl hover:border-[#09BF44] hover:bg-green-50/50 transition-all duration-300"
+                                    className="group flex flex-col items-center justify-center p-6 md:p-10 border-2 border-gray-100 rounded-2xl md:rounded-3xl hover:border-[#09BF44] hover:bg-green-50/50 transition-all duration-300"
                                 >
-                                    <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6 group-hover:bg-[#09BF44] transition-colors">
-                                        <Briefcase className="w-12 h-12 text-gray-600 group-hover:text-white" />
+                                    <div className="w-16 h-16 md:w-24 md:h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4 md:mb-6 group-hover:bg-[#09BF44] transition-colors">
+                                        <Briefcase className="w-8 h-8 md:w-12 md:h-12 text-gray-600 group-hover:text-white" />
                                     </div>
-                                    <h3 className="text-2xl font-bold text-gray-900">I Want to Freelance</h3>
-                                    <p className="text-gray-500 mt-2 font-medium">Sell your services & earn</p>
+                                    <h3 className="text-xl md:text-2xl font-bold text-gray-900">I Want to Freelance</h3>
+                                    <p className="text-sm md:text-base text-gray-500 mt-2 font-medium">Sell your services & earn</p>
                                 </button>
                             </div>
 
-                            <div className="mt-8">
+                            <div className="mt-6 md:mt-8">
                                 <p className="text-gray-600">
                                     Already have an account?{' '}
                                     <button onClick={() => setStep('login')} className="text-[#09BF44] font-bold hover:underline">
@@ -362,9 +362,9 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                     )}
 
                     {step === 'login' && (
-                        <div className="py-4">
+                        <div className="py-3 md:py-4">
                             <div className="flex items-center justify-center gap-3 mb-8">
-                                <h2 className="text-3xl font-bold text-gray-900">Welcome Back</h2>
+                                <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Welcome Back</h2>
                             </div>
                             <p className="text-center text-gray-600 mb-8">Sign in to your account to continue</p>
 
@@ -376,7 +376,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                         required
                                         value={formData.identifier}
                                         onChange={handleChange}
-                                        className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400"
+                                        className="w-full p-3 md:p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400"
                                     />
                                 </div>
                                 <div className="relative">
@@ -387,7 +387,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                         required
                                         value={formData.password}
                                         onChange={handleChange}
-                                        className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium pr-12 text-gray-900 placeholder:text-gray-400"
+                                        className="w-full p-3 md:p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium pr-12 text-gray-900 placeholder:text-gray-400"
                                     />
                                     <button
                                         type="button"
@@ -415,7 +415,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                     </div>
                                 )}
 
-                                <button disabled={loading} type="submit" className="w-full bg-[#09BF44] hover:bg-[#07a63a] text-white font-bold text-lg p-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg">
+                                <button disabled={loading} type="submit" className="w-full bg-[#09BF44] hover:bg-[#07a63a] text-white font-bold text-base md:text-lg p-3 md:p-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg">
                                     {loading && <Loader2 className="w-5 h-5 animate-spin" />}
                                     {loading ? 'Signing in...' : 'Sign In'}
                                 </button>
@@ -433,18 +433,18 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                     )}
 
                     {step === 'forgot-password' && (
-                        <div className="py-4">
+                        <div className="py-3 md:py-4">
                             <div className="flex justify-center mb-6">
                                 <Image
                                     src="/logos/logo-green.png"
                                     alt="Engezhaly"
                                     width={200}
                                     height={55}
-                                    className="h-20 w-auto"
+                                    className="h-14 md:h-20 w-auto"
                                     priority
                                 />
                             </div>
-                            <h2 className="text-3xl font-bold text-center mb-2">Forgot Password?</h2>
+                            <h2 className="text-2xl md:text-3xl font-bold text-center mb-2">Forgot Password?</h2>
                             <p className="text-center text-gray-600 mb-8">Enter your email address and we&apos;ll send you a link to reset your password.</p>
 
                             <form onSubmit={handleForgotPassword} className="space-y-5">
@@ -454,7 +454,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                     required
                                     value={forgotPasswordEmail}
                                     onChange={(e) => setForgotPasswordEmail(e.target.value)}
-                                    className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400"
+                                    className="w-full p-3 md:p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400"
                                 />
 
                                 {error && (
@@ -464,7 +464,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                     </div>
                                 )}
 
-                                <button disabled={loading} type="submit" className="w-full bg-[#09BF44] hover:bg-[#07a63a] text-white font-bold text-lg p-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg">
+                                <button disabled={loading} type="submit" className="w-full bg-[#09BF44] hover:bg-[#07a63a] text-white font-bold text-base md:text-lg p-3 md:p-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg">
                                     {loading && <Loader2 className="w-5 h-5 animate-spin" />}
                                     {loading ? 'Sending...' : 'Send Reset Link'}
                                 </button>
@@ -479,28 +479,28 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                     )}
 
                     {step === 'client-auth' && (
-                        <div className="py-4">
+                        <div className="py-3 md:py-4">
                             <div className="flex items-center justify-center gap-3">
-                                <h2 className="text-3xl font-bold text-gray-900">Join</h2>
+                                <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Join</h2>
                                 <Image
                                     src="/logos/logo-green.png"
                                     alt="Engezhaly"
                                     width={200}
                                     height={55}
-                                    className="h-20 w-auto"
+                                    className="h-14 md:h-20 w-auto"
                                     priority
                                 />
                             </div>
                             <p className="text-center text-gray-600 mb-8">Create your client account to start posting jobs and hiring freelancers.</p>
 
                             <form onSubmit={handleClientSubmit} className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <input name="firstName" placeholder="First Name" required onChange={handleChange} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
                                     <input name="lastName" placeholder="Last Name" required onChange={handleChange} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
                                 </div>
                                 <input name="username" placeholder="Username" required onChange={handleChange} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
                                 <input name="email" type="email" placeholder="Email Address" required onChange={handleChange} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <input name="password" type="password" placeholder="Password" required onChange={handleChange} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
                                     <select name="businessType" onChange={handleChange} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900">
                                         <option value="personal">Personal Project</option>
@@ -515,7 +515,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                     </div>
                                 )}
 
-                                <button disabled={loading} type="submit" className="w-full bg-[#09BF44] hover:bg-[#07a63a] text-white font-bold text-lg p-4 rounded-xl transition-all flex items-center justify-center gap-2">
+                                <button disabled={loading} type="submit" className="w-full bg-[#09BF44] hover:bg-[#07a63a] text-white font-bold text-base md:text-lg p-3 md:p-4 rounded-xl transition-all flex items-center justify-center gap-2">
                                     {loading && <Loader2 className="w-5 h-5 animate-spin" />}
                                     Create Account
                                 </button>
@@ -533,15 +533,15 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                     )}
 
                     {step === 'freelancer-step-1' && (
-                        <div className="py-4">
+                        <div className="py-3 md:py-4">
                             <div className="flex items-center justify-center gap-3">
-                                <h2 className="text-3xl font-bold text-gray-900">Join</h2>
+                                <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Join</h2>
                                 <Image
                                     src="/logos/logo-green.png"
                                     alt="Engezhaly"
                                     width={200}
                                     height={55}
-                                    className="h-20 w-auto"
+                                    className="h-14 md:h-20 w-auto"
                                     priority
                                 />
                             </div>
@@ -554,17 +554,17 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                 <span>/</span>
                                 <span>4</span>
                             </div>
-                            <h3 className="text-2xl font-bold text-center mb-2">Personal Information</h3>
+                            <h3 className="text-xl md:text-2xl font-bold text-center mb-2">Personal Information</h3>
                             <p className="text-center text-gray-600 mb-8">Let&apos;s get your profile started.</p>
 
                             <form onSubmit={handleFreelancerStep1Submit} className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <input name="firstName" placeholder="First Name" required onChange={handleChange} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
                                     <input name="lastName" placeholder="Last Name" required onChange={handleChange} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
                                 </div>
                                 <input name="username" placeholder="Username" required onChange={handleChange} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
                                 <input name="email" type="email" placeholder="Email Address" required onChange={handleChange} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-bold text-gray-700 mb-1">Date of Birth</label>
                                         <input name="dob" type="date" required onChange={handleChange} value={formData.dob} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
@@ -621,7 +621,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                     </div>
                                 )}
 
-                                <button disabled={loading} type="submit" className="w-full bg-[#09BF44] hover:bg-[#07a63a] text-white font-bold text-lg p-4 rounded-xl transition-all flex items-center justify-center gap-2">
+                                <button disabled={loading} type="submit" className="w-full bg-[#09BF44] hover:bg-[#07a63a] text-white font-bold text-base md:text-lg p-3 md:p-4 rounded-xl transition-all flex items-center justify-center gap-2">
                                     {loading && <Loader2 className="w-5 h-5 animate-spin" />}
                                     Next: Professional Info
                                     <ChevronRight className="w-5 h-5" />
@@ -641,7 +641,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
 
                     {/* FREELANCER STEP 2: Professional Info */}
                     {step === 'freelancer-step-2' && (
-                        <div className="py-4">
+                        <div className="py-3 md:py-4">
                             {/* Progress Bar */}
                             <div className="bg-gray-100 h-2 w-full rounded-full mb-6">
                                 <div className="bg-[#09BF44] h-full rounded-full transition-all duration-500" style={{ width: '50%' }} />
@@ -651,7 +651,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                 <span>/</span>
                                 <span>4</span>
                             </div>
-                            <h3 className="text-2xl font-bold text-center mb-2">Professional Info</h3>
+                            <h3 className="text-xl md:text-2xl font-bold text-center mb-2">Professional Info</h3>
                             <p className="text-center text-gray-600 mb-8">Tell us about your skills and experience.</p>
 
                             {error && <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center gap-2 text-sm mb-4"><div className="w-2 h-2 bg-red-500 rounded-full"></div>{error}</div>}
@@ -771,7 +771,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                     </div>
                                 </div>
 
-                                <button type="submit" className="w-full bg-[#09BF44] hover:bg-[#07a63a] text-white font-bold text-lg p-4 rounded-xl transition-all flex items-center justify-center gap-2">
+                                <button type="submit" className="w-full bg-[#09BF44] hover:bg-[#07a63a] text-white font-bold text-base md:text-lg p-3 md:p-4 rounded-xl transition-all flex items-center justify-center gap-2">
                                     Next: Survey & Pricing <ChevronRight className="w-5 h-5" />
                                 </button>
                             </form>
@@ -780,7 +780,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
 
                     {/* FREELANCER STEP 3: Survey & Pricing */}
                     {step === 'freelancer-step-3' && (
-                        <div className="py-4">
+                        <div className="py-3 md:py-4">
                             {/* Progress Bar */}
                             <div className="bg-gray-100 h-2 w-full rounded-full mb-6">
                                 <div className="bg-[#09BF44] h-full rounded-full transition-all duration-500" style={{ width: '75%' }} />
@@ -790,7 +790,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                 <span>/</span>
                                 <span>4</span>
                             </div>
-                            <h3 className="text-2xl font-bold text-center mb-2">Survey & Pricing</h3>
+                            <h3 className="text-xl md:text-2xl font-bold text-center mb-2">Survey & Pricing</h3>
                             <p className="text-center text-gray-600 mb-8">Set your commitment and base rates.</p>
 
                             {error && <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center gap-2 text-sm mb-4"><div className="w-2 h-2 bg-red-500 rounded-full"></div>{error}</div>}
@@ -799,7 +799,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                 {/* Survey */}
                                 <div className="space-y-4">
                                     <h4 className="text-lg font-bold text-gray-900">Availability & Commitment</h4>
-                                    <div className="flex items-center gap-4">
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                                         <span className="font-medium text-gray-700">Are you working Full-time?</span>
                                         <div className="flex gap-2">
                                             <button type="button" onClick={() => setSurvey({ ...survey, isFullTime: true })} className={`px-4 py-2 rounded-lg font-bold border-2 transition-all ${survey.isFullTime ? 'bg-green-100 border-[#09BF44] text-[#09BF44]' : 'bg-gray-50 border-transparent hover:border-gray-200'}`}>Yes</button>
@@ -839,7 +839,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                     </div>
                                 </div>
 
-                                <div className="flex gap-4">
+                                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                                     <button onClick={() => setStep('freelancer-step-2')} className="flex-1 bg-gray-100 text-gray-600 font-bold p-4 rounded-xl hover:bg-gray-200 transition-all">Back</button>
                                     <button onClick={handleFinalSubmit} disabled={loading} className="flex-1 bg-[#09BF44] text-white font-bold p-4 rounded-xl hover:bg-[#07a63a] transition-all flex items-center justify-center gap-2">
                                         {loading && <Loader2 className="w-5 h-5 animate-spin" />}

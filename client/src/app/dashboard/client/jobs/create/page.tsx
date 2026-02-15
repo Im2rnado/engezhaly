@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
-import { Loader2 } from 'lucide-react';
+import { Loader2, PanelLeft } from 'lucide-react';
 import { useModal } from '@/context/ModalContext';
 import ClientSidebar from '@/components/ClientSidebar';
+import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 
 export default function PostJobPage() {
     const { showModal } = useModal();
@@ -14,6 +15,7 @@ export default function PostJobPage() {
     const [error, setError] = useState('');
     const [user, setUser] = useState<any>(null);
     const [profile, setProfile] = useState<any>(null);
+    const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -70,11 +72,35 @@ export default function PostJobPage() {
 
     return (
         <div className="min-h-screen bg-gray-50 flex font-sans text-gray-900">
-            <ClientSidebar user={user} profile={profile} onTabChange={() => { }} activeTab="jobs" />
-            <div className="flex-1 ml-72 p-8 overflow-y-auto h-screen">
+            <ClientSidebar
+                user={user}
+                profile={profile}
+                onTabChange={() => { }}
+                activeTab="jobs"
+                mobileOpen={mobileSidebarOpen}
+                onCloseMobile={() => setMobileSidebarOpen(false)}
+            />
+            {mobileSidebarOpen && (
+                <button
+                    aria-label="Close sidebar overlay"
+                    onClick={() => setMobileSidebarOpen(false)}
+                    className="fixed inset-0 bg-black/40 z-30 md:hidden"
+                />
+            )}
+            <div className="flex-1 md:ml-72 px-4 sm:px-6 md:p-8 pt-3 md:pt-8 pb-8 overflow-y-auto min-h-screen">
+                <DashboardMobileTopStrip />
                 <div className="max-w-3xl mx-auto bg-white rounded-3xl shadow-xl overflow-hidden">
-                    <div className="p-8 md:p-12">
-                        <h1 className="text-3xl font-black text-gray-900 mb-2">Post a Job</h1>
+                    <div className="p-5 md:p-12">
+                        <div className="flex items-center gap-3 mb-2">
+                            <button
+                                onClick={() => setMobileSidebarOpen(true)}
+                                className="md:hidden p-2 rounded-lg border border-gray-200 bg-white text-gray-700"
+                                aria-label="Open sidebar"
+                            >
+                                <PanelLeft className="w-5 h-5" />
+                            </button>
+                            <h1 className="text-2xl md:text-3xl font-black text-gray-900">Post a Job</h1>
+                        </div>
                         <p className="text-gray-500 mb-8">Tell us what you need done.</p>
 
                         {error && <div className="bg-red-50 text-red-500 p-4 rounded-xl mb-6">{error}</div>}
@@ -140,7 +166,7 @@ export default function PostJobPage() {
                                 })()}
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-2">Min Budget (EGP)</label>
                                     <input
@@ -180,18 +206,18 @@ export default function PostJobPage() {
                                 />
                             </div>
 
-                            <div className="flex justify-end gap-4 pt-4 border-t border-gray-100">
+                            <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4 pt-4 border-t border-gray-100">
                                 <button
                                     type="button"
                                     onClick={() => router.back()}
-                                    className="bg-gray-100 text-gray-600 font-bold px-8 py-3 rounded-xl hover:bg-gray-200 transition-colors"
+                                    className="w-full sm:w-auto bg-gray-100 text-gray-600 font-bold px-8 py-3 rounded-xl hover:bg-gray-200 transition-colors"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="bg-[#09BF44] text-white font-bold px-8 py-3 rounded-xl hover:bg-[#07a63a] transition-colors flex items-center gap-2"
+                                    className="w-full sm:w-auto bg-[#09BF44] text-white font-bold px-8 py-3 rounded-xl hover:bg-[#07a63a] transition-colors flex items-center justify-center gap-2"
                                 >
                                     {loading && <Loader2 className="w-5 h-5 animate-spin" />}
                                     Post Job

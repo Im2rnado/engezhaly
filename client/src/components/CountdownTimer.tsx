@@ -75,7 +75,7 @@ export default function CountdownTimer({ deadline, variant = 'card', className =
 
     // Detailed version for detail pages
     return (
-        <div className={`bg-white border-2 ${timeLeft.isOverdue ? 'border-red-500' : 'border-[#09BF44]'} rounded-2xl p-6 ${className}`}>
+        <div className={`bg-white border-2 ${timeLeft.isOverdue ? 'border-red-500' : 'border-[#09BF44]'} rounded-2xl p-4 md:p-6 ${className}`}>
             <div className="flex items-center gap-3 mb-4">
                 <div className={`p-3 rounded-xl ${timeLeft.isOverdue ? 'bg-red-50 text-red-600' : 'bg-green-50 text-[#09BF44]'}`}>
                     <Clock className="w-6 h-6" />
@@ -93,21 +93,21 @@ export default function CountdownTimer({ deadline, variant = 'card', className =
                     <p className="text-sm text-gray-500 mt-1">Please contact the freelancer/client</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                     <div className="text-center">
-                        <div className="text-3xl font-black text-gray-900">{timeLeft.days}</div>
+                        <div className="text-2xl md:text-3xl font-black text-gray-900">{timeLeft.days}</div>
                         <div className="text-xs font-bold text-gray-500 uppercase mt-1">Days</div>
                     </div>
                     <div className="text-center">
-                        <div className="text-3xl font-black text-gray-900">{timeLeft.hours}</div>
+                        <div className="text-2xl md:text-3xl font-black text-gray-900">{timeLeft.hours}</div>
                         <div className="text-xs font-bold text-gray-500 uppercase mt-1">Hours</div>
                     </div>
                     <div className="text-center">
-                        <div className="text-3xl font-black text-gray-900">{timeLeft.minutes}</div>
+                        <div className="text-2xl md:text-3xl font-black text-gray-900">{timeLeft.minutes}</div>
                         <div className="text-xs font-bold text-gray-500 uppercase mt-1">Minutes</div>
                     </div>
                     <div className="text-center">
-                        <div className="text-3xl font-black text-gray-900">{timeLeft.seconds}</div>
+                        <div className="text-2xl md:text-3xl font-black text-gray-900">{timeLeft.seconds}</div>
                         <div className="text-xs font-bold text-gray-500 uppercase mt-1">Seconds</div>
                     </div>
                 </div>

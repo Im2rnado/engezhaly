@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Briefcase, Clock, DollarSign, User, ArrowLeft, Loader2, CheckCircle, XCircle, MessageSquare, Link as LinkIcon, Paperclip } from 'lucide-react';
+import { Briefcase, Clock, User, ArrowLeft, Loader2, CheckCircle, XCircle, MessageSquare, Link as LinkIcon, Paperclip, PanelLeft } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useModal } from '@/context/ModalContext';
 import ClientSidebar from '@/components/ClientSidebar';
 import CountdownTimer from '@/components/CountdownTimer';
+import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 
 export default function JobDetailPage() {
     const { showModal } = useModal();
@@ -19,6 +20,7 @@ export default function JobDetailPage() {
     const [job, setJob] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [jobDeadline, setJobDeadline] = useState<Date | null>(null);
+    const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -110,8 +112,32 @@ export default function JobDetailPage() {
 
     return (
         <div className="min-h-screen bg-gray-50 flex font-sans text-gray-900">
-            <ClientSidebar user={user} profile={profile} onTabChange={() => { }} activeTab="jobs" />
-            <div className="flex-1 ml-72 p-8 overflow-y-auto h-screen">
+            <ClientSidebar
+                user={user}
+                profile={profile}
+                onTabChange={() => { }}
+                activeTab="jobs"
+                mobileOpen={mobileSidebarOpen}
+                onCloseMobile={() => setMobileSidebarOpen(false)}
+            />
+            {mobileSidebarOpen && (
+                <button
+                    aria-label="Close sidebar overlay"
+                    onClick={() => setMobileSidebarOpen(false)}
+                    className="fixed inset-0 bg-black/40 z-30 md:hidden"
+                />
+            )}
+            <div className="flex-1 md:ml-72 px-4 sm:px-6 md:p-8 overflow-y-auto min-h-screen">
+                <DashboardMobileTopStrip />
+                <div className="flex items-center gap-3 mb-4 pt-4 md:pt-0">
+                    <button
+                        onClick={() => setMobileSidebarOpen(true)}
+                        className="md:hidden p-2 rounded-lg border border-gray-200 bg-white text-gray-700"
+                        aria-label="Open sidebar"
+                    >
+                        <PanelLeft className="w-5 h-5" />
+                    </button>
+                </div>
                 <button
                     onClick={() => router.push('/dashboard/client')}
                     className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
@@ -128,10 +154,10 @@ export default function JobDetailPage() {
                 )}
 
                 {/* Job Details */}
-                <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 mb-6">
+                <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-5 md:p-8 mb-6">
                     <div className="flex items-start justify-between mb-6">
                         <div>
-                            <h1 className="text-3xl font-black text-gray-900 mb-2">{job.title}</h1>
+                            <h1 className="text-2xl md:text-3xl font-black text-gray-900 mb-2">{job.title}</h1>
                             <div className="flex items-center gap-4 text-sm text-gray-500">
                                 <span className="flex items-center gap-1">
                                     <Clock className="w-4 h-4" />
@@ -150,7 +176,7 @@ export default function JobDetailPage() {
                             <p className="text-gray-700 leading-relaxed">{job.description}</p>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <h3 className="text-sm font-bold text-gray-500 mb-2">Budget Range</h3>
                                 <p className="text-lg font-black text-gray-900">
@@ -191,9 +217,9 @@ export default function JobDetailPage() {
                     <div className="p-6 space-y-4">
                         {job.proposals && job.proposals.length > 0 ? (
                             job.proposals.map((proposal: any, idx: number) => (
-                                <div key={idx} className="border border-gray-200 rounded-2xl p-6 hover:shadow-md transition-shadow">
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className="flex items-center gap-4">
+                                <div key={idx} className="border border-gray-200 rounded-2xl p-4 md:p-6 hover:shadow-md transition-shadow">
+                                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+                                        <div className="flex items-center gap-3 md:gap-4">
                                             <div className="w-12 h-12 bg-[#09BF44] rounded-full flex items-center justify-center text-white font-black text-lg">
                                                 {proposal.freelancerId?.firstName?.[0]?.toUpperCase() || 'F'}
                                             </div>
@@ -209,8 +235,8 @@ export default function JobDetailPage() {
                                                 )}
                                             </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="text-2xl font-black text-[#09BF44] mb-1">
+                                        <div className="sm:text-right">
+                                            <p className="text-xl md:text-2xl font-black text-[#09BF44] mb-1">
                                                 {proposal.price} EGP
                                             </p>
                                             <p className="text-sm text-gray-500">
@@ -310,7 +336,7 @@ export default function JobDetailPage() {
                                         </div>
                                     )}
 
-                                    <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
+                                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 pt-4 border-t border-gray-100">
                                         <button
                                             onClick={() => router.push(`/freelancer/${proposal.freelancerId?._id || proposal.freelancerId}`)}
                                             className="flex-1 bg-gray-100 text-gray-700 font-bold py-2.5 rounded-xl hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"

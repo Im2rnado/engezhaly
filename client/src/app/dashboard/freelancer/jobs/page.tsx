@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useModal } from '@/context/ModalContext';
-import { Loader2, MessageSquare, X } from 'lucide-react';
+import { Loader2, MessageSquare, PanelLeft, X } from 'lucide-react';
 import FreelancerSidebar from '@/components/FreelancerSidebar';
 import CountdownTimer from '@/components/CountdownTimer';
+import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 
 export default function MyJobsPage() {
     const { showModal } = useModal();
@@ -18,6 +19,7 @@ export default function MyJobsPage() {
     const [profile, setProfile] = useState<any>(null);
     const [workJob, setWorkJob] = useState<any>(null);
     const [submittingWork, setSubmittingWork] = useState(false);
+    const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
     const [workSubmission, setWorkSubmission] = useState({
         message: '',
         links: '',
@@ -150,12 +152,35 @@ export default function MyJobsPage() {
 
     return (
         <div className="min-h-screen bg-gray-50 flex font-sans text-gray-900">
-            <FreelancerSidebar user={user} profile={profile} onToggleBusy={toggleBusy} />
+            <FreelancerSidebar
+                user={user}
+                profile={profile}
+                onToggleBusy={toggleBusy}
+                mobileOpen={mobileSidebarOpen}
+                onCloseMobile={() => setMobileSidebarOpen(false)}
+            />
+            {mobileSidebarOpen && (
+                <button
+                    aria-label="Close sidebar overlay"
+                    onClick={() => setMobileSidebarOpen(false)}
+                    className="fixed inset-0 bg-black/40 z-30 md:hidden"
+                />
+            )}
 
-            <div className="flex-1 ml-72 p-8 overflow-y-auto h-screen">
-                <header className="mb-10">
-                    <h1 className="text-3xl font-black text-gray-900 mb-2">My Jobs</h1>
-                    <p className="text-gray-500">My applications and active jobs.</p>
+            <div className="flex-1 md:ml-72 px-4 sm:px-6 md:p-8 pt-3 md:pt-8 pb-8 overflow-y-auto min-h-screen">
+                <DashboardMobileTopStrip />
+                <header className="mb-7 md:mb-10">
+                    <div className="flex items-center gap-3 mb-2">
+                        <button
+                            onClick={() => setMobileSidebarOpen(true)}
+                            className="md:hidden p-2 rounded-lg border border-gray-200 bg-white text-gray-700"
+                            aria-label="Open sidebar"
+                        >
+                            <PanelLeft className="w-5 h-5" />
+                        </button>
+                        <h1 className="text-2xl md:text-3xl font-black text-gray-900">My Jobs</h1>
+                    </div>
+                    <p className="text-sm md:text-base text-gray-500">My applications and active jobs.</p>
                 </header>
 
                 <section className="mb-10">

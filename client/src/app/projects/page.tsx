@@ -146,52 +146,57 @@ export default function ProjectsPage() {
                 showCategories={true}
             />
 
-            <div className="max-w-[90%] mx-auto px-6 py-8">
+            <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6 py-6 md:py-8">
                 {/* Page Title */}
-                <h1 className="text-3xl font-bold text-gray-900 mb-6">Browse Projects</h1>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-5 md:mb-6">Browse Projects</h1>
                 {/* Filters Bar */}
                 <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
-                    {/* Other Filters */}
-                    <div className="flex items-center gap-4 flex-wrap">
-                        <div className="relative">
-                            <select
-                                value={filters.budget}
-                                onChange={(e) => setFilters({ ...filters, budget: e.target.value })}
-                                className="pl-3 pr-8 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 font-bold text-sm outline-none focus:border-[#09BF44] appearance-none w-full"
-                            >
-                                <option value="">Budget</option>
-                                <option value="500-1000" className="text-gray-900">500 - 1,000 EGP</option>
-                                <option value="1000-2500" className="text-gray-900">1,000 - 2,500 EGP</option>
-                                <option value="2500-5000" className="text-gray-900">2,500 - 5,000 EGP</option>
-                                <option value="5000-10000" className="text-gray-900">5,000 - 10,000 EGP</option>
-                                <option value="10000-999999" className="text-gray-900">10,000+ EGP</option>
-                            </select>
-                            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                    <div className="space-y-3 lg:space-y-0 lg:flex lg:items-end lg:gap-4">
+                        <div className="w-full lg:w-auto">
+                            <label className="block text-xs font-bold text-gray-500 mb-1">Budget</label>
+                            <div className="relative w-full sm:w-auto">
+                                <select
+                                    value={filters.budget}
+                                    onChange={(e) => setFilters({ ...filters, budget: e.target.value })}
+                                    className="pl-3 pr-8 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 font-bold text-sm outline-none focus:border-[#09BF44] appearance-none w-full sm:min-w-[170px]"
+                                >
+                                    <option value="">Budget</option>
+                                    <option value="500-1000" className="text-gray-900">500 - 1,000 EGP</option>
+                                    <option value="1000-2500" className="text-gray-900">1,000 - 2,500 EGP</option>
+                                    <option value="2500-5000" className="text-gray-900">2,500 - 5,000 EGP</option>
+                                    <option value="5000-10000" className="text-gray-900">5,000 - 10,000 EGP</option>
+                                    <option value="10000-999999" className="text-gray-900">10,000+ EGP</option>
+                                </select>
+                                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                            </div>
                         </div>
 
-                        <div className="relative">
-                            <select
-                                value={filters.deliveryTime}
-                                onChange={(e) => setFilters({ ...filters, deliveryTime: e.target.value })}
-                                className="pl-3 pr-8 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 font-bold text-sm outline-none focus:border-[#09BF44] appearance-none w-full"
-                            >
-                                <option value="">Delivery Time</option>
-                                <option value="1" className="text-gray-900">1 day</option>
-                                <option value="3" className="text-gray-900">3 days</option>
-                                <option value="7" className="text-gray-900">7 days</option>
-                                <option value="14" className="text-gray-900">14 days</option>
-                                <option value="30" className="text-gray-900">30+ days</option>
-                            </select>
-                            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                        <div className="w-full lg:w-auto">
+                            <label className="block text-xs font-bold text-gray-500 mb-1">Delivery Time</label>
+                            <div className="relative w-full sm:w-auto">
+                                <select
+                                    value={filters.deliveryTime}
+                                    onChange={(e) => setFilters({ ...filters, deliveryTime: e.target.value })}
+                                    className="pl-3 pr-8 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 font-bold text-sm outline-none focus:border-[#09BF44] appearance-none w-full sm:min-w-[170px]"
+                                >
+                                    <option value="">Delivery Time</option>
+                                    <option value="1" className="text-gray-900">1 day</option>
+                                    <option value="3" className="text-gray-900">3 days</option>
+                                    <option value="7" className="text-gray-900">7 days</option>
+                                    <option value="14" className="text-gray-900">14 days</option>
+                                    <option value="30" className="text-gray-900">30+ days</option>
+                                </select>
+                                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                            </div>
                         </div>
 
-                        <div className="ml-auto flex items-center gap-2">
-                            <span className="text-sm font-bold text-gray-600">Sort by:</span>
-                            <div className="relative">
+                        <div className="w-full lg:w-auto lg:ml-auto">
+                            <label className="block text-xs font-bold text-gray-500 mb-1">Sorting</label>
+                            <div className="relative flex-1 lg:flex-none">
                                 <select
                                     value={sortBy}
                                     onChange={(e) => setSortBy(e.target.value)}
-                                    className="pl-3 pr-8 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 font-bold text-sm outline-none focus:border-[#09BF44] appearance-none"
+                                    className="w-full lg:w-auto pl-3 pr-8 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 font-bold text-sm outline-none focus:border-[#09BF44] appearance-none lg:min-w-[180px]"
                                 >
                                     <option value="best-selling" className="text-gray-900">Best Selling</option>
                                     <option value="newest" className="text-gray-900">Newest Arrivals</option>
@@ -201,11 +206,10 @@ export default function ProjectsPage() {
                                 <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
                             </div>
                         </div>
-
                         {(selectedCategory || selectedSubCategory || filters.budget || filters.deliveryTime || searchQuery) && (
                             <button
                                 onClick={clearFilters}
-                                className="flex items-center gap-1 px-3 py-2 text-sm font-bold text-gray-600 hover:text-gray-900"
+                                className="w-full lg:w-auto flex items-center justify-center gap-1 px-3 py-2.5 text-sm font-bold text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg"
                             >
                                 <X className="w-4 h-4" /> Clear
                             </button>

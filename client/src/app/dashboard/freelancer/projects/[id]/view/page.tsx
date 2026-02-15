@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { api } from '@/lib/api';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft, PanelLeft } from 'lucide-react';
 import FreelancerSidebar from '@/components/FreelancerSidebar';
 import ProjectCard from '@/components/ProjectCard';
+import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 
 export default function ViewProjectPage() {
     const router = useRouter();
@@ -16,6 +17,7 @@ export default function ViewProjectPage() {
     const [user, setUser] = useState<any>(null);
     const [profile, setProfile] = useState<any>(null);
     const [profileLoading, setProfileLoading] = useState(true);
+    const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -89,10 +91,34 @@ export default function ViewProjectPage() {
 
     return (
         <div className="min-h-screen bg-gray-50 flex font-sans text-gray-900">
-            <FreelancerSidebar user={user} profile={profile} onToggleBusy={toggleBusy} activeTab="projects" />
+            <FreelancerSidebar
+                user={user}
+                profile={profile}
+                onToggleBusy={toggleBusy}
+                activeTab="projects"
+                mobileOpen={mobileSidebarOpen}
+                onCloseMobile={() => setMobileSidebarOpen(false)}
+            />
+            {mobileSidebarOpen && (
+                <button
+                    aria-label="Close sidebar overlay"
+                    onClick={() => setMobileSidebarOpen(false)}
+                    className="fixed inset-0 bg-black/40 z-30 md:hidden"
+                />
+            )}
 
-            <div className="flex-1 ml-72 p-8 overflow-y-auto h-screen">
+            <div className="flex-1 md:ml-72 px-4 sm:px-6 md:p-8 overflow-y-auto min-h-screen">
                 <div className="max-w-4xl mx-auto">
+                    <DashboardMobileTopStrip />
+                    <div className="flex items-center gap-3 mb-4 pt-4 md:pt-0">
+                        <button
+                            onClick={() => setMobileSidebarOpen(true)}
+                            className="md:hidden p-2 rounded-lg border border-gray-200 bg-white text-gray-700"
+                            aria-label="Open sidebar"
+                        >
+                            <PanelLeft className="w-5 h-5" />
+                        </button>
+                    </div>
                     <button
                         onClick={() => router.push('/dashboard/freelancer?tab=projects')}
                         className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 font-bold transition-colors"

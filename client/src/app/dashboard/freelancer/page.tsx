@@ -2,13 +2,14 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Briefcase, DollarSign, PlusCircle, ShoppingBag, Star, CheckCircle, Loader2, Edit, Award, MessageSquare, X } from 'lucide-react';
+import { Briefcase, DollarSign, PlusCircle, ShoppingBag, Star, CheckCircle, Loader2, Edit, Award, MessageSquare, X, PanelLeft } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useModal } from '@/context/ModalContext';
 import ProjectCard from '@/components/ProjectCard';
 import { MAIN_CATEGORIES } from '@/lib/categories';
 import ProfileEditModal from '@/components/ProfileEditModal';
 import FreelancerSidebar from '@/components/FreelancerSidebar';
+import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 
 export default function FreelancerDashboard() {
     const { showModal } = useModal();
@@ -24,6 +25,7 @@ export default function FreelancerDashboard() {
     const [profileEditModal, setProfileEditModal] = useState(false);
     const [workOrder, setWorkOrder] = useState<any>(null);
     const [submittingWork, setSubmittingWork] = useState(false);
+    const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
     const [workSubmission, setWorkSubmission] = useState({
         message: '',
         links: '',
@@ -253,19 +255,38 @@ export default function FreelancerDashboard() {
                     router.push(`/dashboard/freelancer?tab=${tab}`);
                 }}
                 activeTab={activeTab}
+                mobileOpen={mobileSidebarOpen}
+                onCloseMobile={() => setMobileSidebarOpen(false)}
             />
+            {mobileSidebarOpen && (
+                <button
+                    aria-label="Close sidebar overlay"
+                    onClick={() => setMobileSidebarOpen(false)}
+                    className="fixed inset-0 bg-black/40 z-30 md:hidden"
+                />
+            )}
 
             {/* Main Content */}
-            <div className="flex-1 ml-72 p-8 overflow-y-auto h-screen">
-                <header className="flex justify-between items-center mb-10">
+            <div className="flex-1 md:ml-72 px-4 sm:px-6 md:p-8 pt-3 md:pt-8 pb-8 overflow-y-auto min-h-screen">
+                <DashboardMobileTopStrip />
+                <header className="flex flex-wrap justify-between items-center gap-3 mb-7 md:mb-10">
                     <div>
-                        <h2 className="text-3xl font-black text-gray-900 capitalize">{activeTab}</h2>
-                        <p className="text-gray-500 mt-1">Welcome back, {user.firstName}!</p>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => setMobileSidebarOpen(true)}
+                                className="md:hidden p-2 rounded-lg border border-gray-200 bg-white text-gray-700"
+                                aria-label="Open sidebar"
+                            >
+                                <PanelLeft className="w-5 h-5" />
+                            </button>
+                            <h2 className="text-2xl md:text-3xl font-black text-gray-900 capitalize">{activeTab}</h2>
+                        </div>
+                        <p className="text-sm md:text-base text-gray-500 mt-1">Welcome back, {user.firstName}!</p>
                     </div>
                     {!isPending && (
                         <button
                             onClick={() => router.push('/dashboard/freelancer/projects/create')}
-                            className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-colors shadow-lg shadow-green-200"
+                            className="w-full sm:w-auto bg-[#09BF44] hover:bg-[#07a63a] text-white px-5 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors shadow-lg shadow-green-200"
                         >
                             <PlusCircle className="w-5 h-5" /> Create New Project
                         </button>
@@ -275,34 +296,34 @@ export default function FreelancerDashboard() {
                 {activeTab === 'dashboard' && (
                     <div className="space-y-8">
                         {/* Stats Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="p-3 bg-green-50 rounded-xl text-[#09BF44]"><DollarSign className="w-6 h-6" /></div>
+                        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                            <div className="bg-white p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-sm border border-gray-100">
+                                <div className="flex items-center justify-between mb-2 md:mb-4">
+                                    <div className="p-2 md:p-3 bg-green-50 rounded-xl text-[#09BF44]"><DollarSign className="w-5 h-5 md:w-6 md:h-6" /></div>
                                 </div>
-                                <h3 className="text-gray-500 font-bold text-sm">Wallet Balance</h3>
-                                <p className="text-3xl font-black text-gray-900 mt-1">{walletBalance} EGP</p>
+                                <h3 className="text-gray-500 font-bold text-xs md:text-sm">Wallet Balance</h3>
+                                <p className="text-xl md:text-3xl font-black text-gray-900 mt-1">{walletBalance} EGP</p>
                             </div>
-                            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="p-3 bg-blue-50 rounded-xl text-blue-600"><ShoppingBag className="w-6 h-6" /></div>
+                            <div className="bg-white p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-sm border border-gray-100">
+                                <div className="flex items-center justify-between mb-2 md:mb-4">
+                                    <div className="p-2 md:p-3 bg-blue-50 rounded-xl text-blue-600"><ShoppingBag className="w-5 h-5 md:w-6 md:h-6" /></div>
                                 </div>
-                                <h3 className="text-gray-500 font-bold text-sm">Active Orders</h3>
-                                <p className="text-3xl font-black text-gray-900 mt-1">{activeOrdersCount}</p>
+                                <h3 className="text-gray-500 font-bold text-xs md:text-sm">Active Orders</h3>
+                                <p className="text-xl md:text-3xl font-black text-gray-900 mt-1">{activeOrdersCount}</p>
                             </div>
-                            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="p-3 bg-purple-50 rounded-xl text-purple-600"><CheckCircle className="w-6 h-6" /></div>
+                            <div className="bg-white p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-sm border border-gray-100">
+                                <div className="flex items-center justify-between mb-2 md:mb-4">
+                                    <div className="p-2 md:p-3 bg-purple-50 rounded-xl text-purple-600"><CheckCircle className="w-5 h-5 md:w-6 md:h-6" /></div>
                                 </div>
-                                <h3 className="text-gray-500 font-bold text-sm">Completed</h3>
-                                <p className="text-3xl font-black text-gray-900 mt-1">{completedOrders}</p>
+                                <h3 className="text-gray-500 font-bold text-xs md:text-sm">Completed</h3>
+                                <p className="text-xl md:text-3xl font-black text-gray-900 mt-1">{completedOrders}</p>
                             </div>
-                            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="p-3 bg-yellow-50 rounded-xl text-yellow-600"><Star className="w-6 h-6" /></div>
+                            <div className="bg-white p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-sm border border-gray-100">
+                                <div className="flex items-center justify-between mb-2 md:mb-4">
+                                    <div className="p-2 md:p-3 bg-yellow-50 rounded-xl text-yellow-600"><Star className="w-5 h-5 md:w-6 md:h-6" /></div>
                                 </div>
-                                <h3 className="text-gray-500 font-bold text-sm">Average Rating</h3>
-                                <p className="text-3xl font-black text-gray-900 mt-1">{avgRating}</p>
+                                <h3 className="text-gray-500 font-bold text-xs md:text-sm">Average Rating</h3>
+                                <p className="text-xl md:text-3xl font-black text-gray-900 mt-1">{avgRating}</p>
                             </div>
                         </div>
 
@@ -521,7 +542,7 @@ export default function FreelancerDashboard() {
                                 <h3 className="text-lg font-bold">Profile Information</h3>
                                 <button
                                     onClick={() => setProfileEditModal(true)}
-                                    className="bg-black text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-gray-800 transition-colors"
+                                    className="bg-black text-white text-sm px-3 py-1.5 rounded-xl font-bold flex items-center gap-2 hover:bg-gray-800 transition-colors"
                                 >
                                     <Edit className="w-4 h-4" /> Edit Profile
                                 </button>

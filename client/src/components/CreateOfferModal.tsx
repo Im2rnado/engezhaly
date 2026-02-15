@@ -80,7 +80,7 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl" style={{ height: '90vh', display: 'flex', flexDirection: 'column' }}>
+            <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl" style={{ height: '90vh', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
                 {/* Header - Fixed */}
                 <div className="flex-shrink-0 bg-white rounded-t-3xl border-b border-gray-200 p-6 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -232,7 +232,7 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                                             placeholder="Milestone name (e.g., Design Phase)"
                                                             className="w-full px-4 py-2.5 bg-white border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:border-[#09BF44] focus:ring-2 focus:ring-[#09BF44]/20 outline-none transition-all"
                                                         />
-                                                        <div className="grid grid-cols-2 gap-3">
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                             <input
                                                                 type="number"
                                                                 value={milestone.price}

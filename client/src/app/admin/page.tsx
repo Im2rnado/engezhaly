@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { api } from '@/lib/api';
-import { Check, X, Ban, User, Flag, MessageSquare, Award, BarChart3, TrendingUp, Search, Loader2, Briefcase, FileText, ShoppingBag, CreditCard, Trash2, Star, Edit, LogOut, ArrowLeft, Send, Shield } from 'lucide-react';
+import { Check, X, Ban, User, Flag, MessageSquare, Award, BarChart3, TrendingUp, Search, Loader2, Briefcase, FileText, ShoppingBag, CreditCard, Trash2, Star, Edit, LogOut, ArrowLeft, Send, Shield, PanelLeft } from 'lucide-react';
 import { useModal } from '@/context/ModalContext';
 import EditModal from '@/components/EditModal';
+import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 
 export default function AdminDashboard() {
     const { showModal } = useModal();
@@ -37,6 +38,7 @@ export default function AdminDashboard() {
     const [selectedChat, setSelectedChat] = useState<any>(null);
     const [chatMessages, setChatMessages] = useState<any[]>([]);
     const [adminMessageInput, setAdminMessageInput] = useState('');
+    const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
     // Fetch Functions
     const fetchPending = async () => {
@@ -392,21 +394,30 @@ export default function AdminDashboard() {
     return (
         <div className="min-h-screen bg-gray-50 flex font-sans text-gray-900">
             {/* Sidebar */}
-            <div className="w-72 bg-white border-r border-gray-200 flex flex-col fixed h-full z-10 shadow-sm">
+            <div className={`w-72 bg-white border-r border-gray-200 flex flex-col fixed h-full z-40 shadow-sm transition-transform duration-300 ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
                 <div className="px-8 py-4 border-b border-gray-100">
-                    <button
-                        onClick={() => router.push('/')}
-                        className="hover:opacity-80 transition-opacity cursor-pointer"
-                    >
-                        <Image
-                            src="/logos/logo-green.png"
-                            alt="Engezhaly"
-                            width={200}
-                            height={55}
-                            className="h-14 -ml-1 w-auto"
-                            priority
-                        />
-                    </button>
+                    <div className="flex items-start justify-between">
+                        <button
+                            onClick={() => router.push('/')}
+                            className="hover:opacity-80 transition-opacity cursor-pointer"
+                        >
+                            <Image
+                                src="/logos/logo-green.png"
+                                alt="Engezhaly"
+                                width={200}
+                                height={55}
+                                className="h-14 -ml-1 w-auto"
+                                priority
+                            />
+                        </button>
+                        <button
+                            onClick={() => setMobileSidebarOpen(false)}
+                            className="md:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100"
+                            aria-label="Close sidebar"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
                     <span className="text-xs font-bold text-gray-400 tracking-widest uppercase -mt-2 block">Admin Dashboard</span>
                 </div>
 
@@ -460,13 +471,30 @@ export default function AdminDashboard() {
                     </button>
                 </div>
             </div>
+            {mobileSidebarOpen && (
+                <button
+                    aria-label="Close sidebar overlay"
+                    onClick={() => setMobileSidebarOpen(false)}
+                    className="fixed inset-0 bg-black/40 z-30 md:hidden"
+                />
+            )}
 
             {/* Main Content */}
-            <div className="flex-1 ml-72 p-8 overflow-y-auto h-screen">
-                <header className="flex justify-between items-center mb-10">
+            <div className="flex-1 md:ml-72 px-4 sm:px-6 md:p-8 pt-3 md:pt-8 pb-8 overflow-y-auto min-h-screen">
+                <DashboardMobileTopStrip />
+                <header className="flex flex-wrap justify-between items-center gap-3 mb-7 md:mb-10">
                     <div>
-                        <h2 className="text-3xl font-black text-gray-900 capitalize">{activeTab}</h2>
-                        <p className="text-gray-500 mt-1">Manage the chats.</p>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => setMobileSidebarOpen(true)}
+                                className="md:hidden p-2 rounded-lg border border-gray-200 bg-white text-gray-700"
+                                aria-label="Open sidebar"
+                            >
+                                <PanelLeft className="w-5 h-5" />
+                            </button>
+                            <h2 className="text-2xl md:text-3xl font-black text-gray-900 capitalize">{activeTab}</h2>
+                        </div>
+                        <p className="text-sm md:text-base text-gray-500 mt-1">Manage platform operations.</p>
                     </div>
                 </header>
 

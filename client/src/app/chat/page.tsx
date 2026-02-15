@@ -3,13 +3,14 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
-import { Send, Video, Paperclip, MoreVertical, FileText, CheckCircle, XCircle, MessageSquare, Shield } from 'lucide-react';
+import { Send, Video, Paperclip, MoreVertical, FileText, CheckCircle, XCircle, MessageSquare, Shield, PanelLeft, ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
 import { useModal } from '@/context/ModalContext';
 import CreateOfferModal from '@/components/CreateOfferModal';
 import ClientSidebar from '@/components/ClientSidebar';
 import FreelancerSidebar from '@/components/FreelancerSidebar';
+import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 
 const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
 
@@ -28,6 +29,8 @@ export default function ChatPage() {
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [profile, setProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+    const [partnerOnline, setPartnerOnline] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const resolveUserId = useCallback(() => {
         const storedUser = typeof window !== 'undefined'
@@ -89,6 +92,7 @@ export default function ChatPage() {
                     const foundChat = data.find((c: any) => c.id === urlConversationId || c.partnerId === urlConversationId);
                     if (foundChat) {
                         setChats(data.map((c: any) => c.id === foundChat.id ? { ...c, unreadCount: 0, hasUnread: false } : c));
+                        setPartnerOnline(false);
                         setActiveChat({ ...foundChat, unreadCount: 0, hasUnread: false });
                         setConversationId(foundChat.id);
                     }
@@ -180,11 +184,7 @@ export default function ChatPage() {
     }, [socket, conversationId]);
 
     // Listen for presence (online/offline)
-    const [partnerOnline, setPartnerOnline] = useState(false);
-    useEffect(() => {
-        setPartnerOnline(false);
-    }, [activeChat?.id]);
-    
+
     useEffect(() => {
         if (!socket || !activeChat?.partnerId) return;
         const handleOnline = (data: { userId: string; conversationId: string }) => {
@@ -579,29 +579,51 @@ export default function ChatPage() {
     }
 
     return (
-        <div className="bg-gray-50 flex font-sans text-gray-900" style={{ height: '100vh', overflow: 'hidden' }}>
+        <div className="bg-gray-50 flex font-sans text-gray-900 h-[100dvh] md:h-screen overflow-hidden">
             {/* Dashboard Sidebar */}
             {currentUser.role === 'client' ? (
-                <ClientSidebar user={currentUser} profile={profile} />
+                <ClientSidebar
+                    user={currentUser}
+                    profile={profile}
+                    mobileOpen={mobileSidebarOpen}
+                    onCloseMobile={() => setMobileSidebarOpen(false)}
+                />
             ) : currentUser.role === 'freelancer' ? (
                 <FreelancerSidebar
                     user={currentUser}
                     profile={profile}
                     onToggleBusy={toggleBusy}
+                    mobileOpen={mobileSidebarOpen}
+                    onCloseMobile={() => setMobileSidebarOpen(false)}
                 />
             ) : null}
+            {mobileSidebarOpen && (
+                <button
+                    aria-label="Close sidebar overlay"
+                    onClick={() => setMobileSidebarOpen(false)}
+                    className="fixed inset-0 bg-black/40 z-30 md:hidden"
+                />
+            )}
 
             {/* Main Content Area */}
-            <div className="flex-1 ml-72 p-8 overflow-hidden" style={{ height: '100vh' }}>
-                <div className="flex gap-6 h-full">
+            <div className="flex-1 md:ml-72 p-3 md:p-8 pt-3 md:pt-8 overflow-hidden h-[100dvh] md:h-screen flex flex-col">
+                <DashboardMobileTopStrip />
+                <div className="flex gap-3 md:gap-6 flex-1 min-h-0 overflow-hidden">
                     {/* Conversations Sidebar */}
-                    <div className="w-80 bg-white rounded-3xl border border-gray-200 flex flex-col shadow-sm overflow-hidden flex-shrink-0 h-full">
-                        <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-white to-gray-50 rounded-t-3xl flex-shrink-0">
+                    <div className={`${activeChat ? 'hidden md:flex' : 'flex'} w-full md:w-80 bg-white rounded-2xl md:rounded-3xl border border-gray-200 flex-col shadow-sm overflow-hidden flex-shrink-0 h-full`}>
+                        <div className="p-4 md:p-6 border-b border-gray-200 bg-gradient-to-r from-white to-gray-50 rounded-t-2xl md:rounded-t-3xl flex-shrink-0">
                             <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => setMobileSidebarOpen(true)}
+                                    className="md:hidden p-2 rounded-lg border border-gray-200 bg-white text-gray-700"
+                                    aria-label="Open dashboard menu"
+                                >
+                                    <PanelLeft className="w-4 h-4" />
+                                </button>
                                 <div className="p-2 bg-[#09BF44]/10 rounded-xl">
                                     <MessageSquare className="w-6 h-6 text-[#09BF44]" />
                                 </div>
-                                <h2 className="text-2xl font-black text-gray-900">Messages</h2>
+                                <h2 className="text-xl md:text-2xl font-black text-gray-900">Messages</h2>
                                 {chats.reduce((sum, c) => sum + Number(c.unreadCount || 0), 0) > 0 && (
                                     <span className="ml-auto rounded-full bg-[#09BF44] text-white text-xs font-bold px-2.5 py-1">
                                         {chats.reduce((sum, c) => sum + Number(c.unreadCount || 0), 0)}
@@ -629,6 +651,7 @@ export default function ChatPage() {
                                             key={chat.id}
                                             onClick={() => {
                                                 const openedChat = { ...chat, unreadCount: 0, hasUnread: false };
+                                                setPartnerOnline(false);
                                                 setActiveChat(openedChat);
                                                 setChats((prev: any[]) =>
                                                     prev.map((c) => c.id === chat.id ? { ...c, unreadCount: 0, hasUnread: false } : c)
@@ -684,7 +707,7 @@ export default function ChatPage() {
                     </div>
 
                     {/* Chat Area */}
-                    <div className="flex-1 bg-white rounded-3xl border border-gray-200 flex flex-col shadow-sm overflow-hidden h-full relative" style={{ minHeight: 0 }}>
+                    <div className={`${activeChat ? 'flex' : 'hidden md:flex'} flex-1 bg-white rounded-2xl md:rounded-3xl border border-gray-200 flex-col shadow-sm overflow-hidden h-full relative`} style={{ minHeight: 0 }}>
                         {activeChat ? (
                             <>
                                 {/* Frozen Overlay */}
@@ -705,8 +728,18 @@ export default function ChatPage() {
                                 )}
                                 
                                 {/* Header */}
-                                <div className="h-20 border-b border-gray-200 flex items-center justify-between px-8 bg-white rounded-t-3xl shadow-sm flex-shrink-0">
-                                    <div className="flex items-center gap-4">
+                                <div className="h-16 md:h-20 border-b border-gray-200 flex items-center justify-between px-3 md:px-8 bg-white rounded-t-2xl md:rounded-t-3xl shadow-sm flex-shrink-0">
+                                    <div className="flex items-center gap-3 md:gap-4 min-w-0">
+                                        <button
+                                            onClick={() => {
+                                                setPartnerOnline(false);
+                                                setActiveChat(null);
+                                            }}
+                                            className="md:hidden p-2 rounded-lg border border-gray-200 text-gray-600"
+                                            aria-label="Back to conversations"
+                                        >
+                                            <ArrowLeft className="w-4 h-4" />
+                                        </button>
                                         {/* Profile Picture */}
                                         <div className="relative">
                                             {/* Gradient Background Blur */}
@@ -733,15 +766,15 @@ export default function ChatPage() {
                                                 <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#09BF44] border-2 border-white rounded-full"></div>
                                             )}
                                         </div>
-                                        <div>
-                                            <h3 className="font-bold text-gray-900 text-lg">{activeChat.name}</h3>
+                                        <div className="min-w-0">
+                                            <h3 className="font-bold text-gray-900 text-base md:text-lg truncate">{activeChat.name}</h3>
                                             <span className="text-xs text-[#09BF44] font-bold flex items-center gap-1">
                                                 <div className={`w-2 h-2 rounded-full ${partnerOnline ? 'bg-[#09BF44]' : 'bg-gray-300'}`}></div>
                                                 {partnerOnline ? 'Online' : 'Offline'}
                                             </span>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-4 text-gray-400">
+                                    <div className="flex items-center gap-2 md:gap-4 text-gray-400">
                                         <button
                                             onClick={handleBookConsultation}
                                             className="p-2 hover:bg-gray-100 rounded-xl transition-colors hover:text-[#09BF44]"
@@ -756,7 +789,7 @@ export default function ChatPage() {
                                 </div>
 
                                 {/* Messages */}
-                                <div style={{ overflowY: 'auto', overflowX: 'hidden' }} className="flex-1 p-6 space-y-4 bg-gradient-to-b from-gray-50 to-white rounded-b-3xl min-h-0">
+                                <div style={{ overflowY: 'auto', overflowX: 'hidden' }} className="flex-1 p-3 md:p-6 space-y-4 bg-gradient-to-b from-gray-50 to-white rounded-b-2xl md:rounded-b-3xl min-h-0">
                                     {/* Display offers */}
                                     {offers.map((offer: any) => {
                                         const currentUserId = resolveUserId();
@@ -766,7 +799,7 @@ export default function ChatPage() {
 
                                         return (
                                             <div key={offer._id} className={`flex ${isMyOffer ? 'justify-end' : 'justify-start'}`}>
-                                                <div className={`max-w-[75%] p-5 rounded-3xl shadow-sm border-2 ${isMyOffer
+                                                <div className={`max-w-[88%] md:max-w-[75%] p-4 md:p-5 rounded-2xl md:rounded-3xl shadow-sm border-2 ${isMyOffer
                                                         ? 'bg-[#09BF44] text-white border-[#09BF44]'
                                                         : 'bg-white border-[#09BF44]/20'
                                                     }`}>
@@ -840,7 +873,7 @@ export default function ChatPage() {
                                         
                                         return (
                                             <div key={msg._id || idx} className={`flex w-full ${isAdmin ? 'justify-center' : msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
-                                                <div className={`max-w-[70%] px-4 py-2 rounded-2xl shadow-sm ${
+                                                <div className={`max-w-[88%] md:max-w-[70%] px-4 py-2 rounded-2xl shadow-sm ${
                                                     isAdmin
                                                         ? 'bg-yellow-100 border-2 border-yellow-300 text-gray-900'
                                                         : msg.sender === 'me'
@@ -872,19 +905,19 @@ export default function ChatPage() {
                                 </div>
 
                                 {/* Input */}
-                                <div className={`p-6 bg-white border-t border-gray-200 shadow-lg flex-shrink-0 ${activeChat.isFrozen ? 'opacity-50 pointer-events-none' : ''}`}>
-                                    <div className="flex items-center gap-3">
+                                <div className={`p-3 md:p-6 bg-white border-t border-gray-200 shadow-lg flex-shrink-0 ${activeChat.isFrozen ? 'opacity-50 pointer-events-none' : ''}`}>
+                                    <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 md:gap-3">
                                         {/* Create Offer Button */}
                                         <button
                                             type="button"
                                             onClick={() => setShowOfferModal(true)}
                                             disabled={activeChat.isFrozen}
-                                            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#09BF44]/10 to-[#09BF44]/5 hover:from-[#09BF44]/20 hover:to-[#09BF44]/10 border border-[#09BF44]/20 rounded-xl font-bold text-[#09BF44] transition-all text-sm whitespace-nowrap flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="flex items-center justify-center gap-2 px-3 md:px-4 py-2.5 bg-gradient-to-r from-[#09BF44]/10 to-[#09BF44]/5 hover:from-[#09BF44]/20 hover:to-[#09BF44]/10 border border-[#09BF44]/20 rounded-xl font-bold text-[#09BF44] transition-all text-sm whitespace-nowrap flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             <FileText className="w-4 h-8" />
                                             Custom Offer
                                         </button>
-                                        <form onSubmit={sendMessage} className="flex items-center gap-3 bg-gray-50 p-2 rounded-2xl border-2 border-gray-200 focus-within:border-[#09BF44] focus-within:ring-2 focus-within:ring-[#09BF44]/20 transition-all flex-1 min-w-0">
+                                        <form onSubmit={sendMessage} className="flex items-center gap-2 md:gap-3 bg-gray-50 p-2 rounded-2xl border-2 border-gray-200 focus-within:border-[#09BF44] focus-within:ring-2 focus-within:ring-[#09BF44]/20 transition-all flex-1 min-w-0">
                                             <button type="button" disabled={activeChat.isFrozen} className="p-2.5 text-gray-400 hover:text-[#09BF44] hover:bg-white rounded-xl transition-all flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed">
                                                 <Paperclip className="w-5 h-5" />
                                             </button>

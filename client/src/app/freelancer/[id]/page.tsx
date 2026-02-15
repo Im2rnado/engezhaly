@@ -100,8 +100,8 @@ export default function FreelancerProfilePage() {
         <main className="min-h-screen bg-white text-gray-900 font-sans">
             {/* Header - Same as home page */}
             <header className="border-b border-gray-200 sticky top-0 bg-white/95 backdrop-blur-sm z-50 transition-all duration-300">
-                <div className="max-w-[90%] mx-auto px-6 h-20 flex items-center justify-between">
-                    <div className="flex items-center gap-12 flex-1">
+                <div className="max-w-[95%] md:max-w-[90%] mx-auto px-3 sm:px-4 md:px-6 h-16 md:h-20 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-4 md:gap-12 flex-1 min-w-0">
                         <div
                             onClick={() => router.push('/')}
                             className="cursor-pointer hover:opacity-80 transition-opacity"
@@ -111,7 +111,7 @@ export default function FreelancerProfilePage() {
                                 alt="Engezhaly"
                                 width={240}
                                 height={66}
-                                className="h-12 w-auto"
+                                className="h-10 md:h-12 w-auto"
                                 priority
                             />
                         </div>
@@ -126,8 +126,8 @@ export default function FreelancerProfilePage() {
                             </button>
                         </div>
                     </div>
-                    <div className="flex items-center gap-6">
-                        <nav className="hidden md:flex gap-6 text-sm font-semibold text-gray-600">
+                    <div className="flex items-center gap-3 md:gap-6 shrink-0">
+                        <nav className="hidden lg:flex gap-6 text-sm font-semibold text-gray-600">
                             <button
                                 onClick={() => router.push('/projects')}
                                 className="hover:text-[#09BF44] transition-colors"
@@ -142,31 +142,31 @@ export default function FreelancerProfilePage() {
                             </button>
                         </nav>
                         {user ? (
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2 md:gap-4">
                                 <button
                                     onClick={() => router.push(getDashboardPath())}
-                                    className="text-sm font-bold text-gray-600 hover:text-[#09BF44] transition-colors"
+                                    className="text-xs md:text-sm font-bold text-gray-600 hover:text-[#09BF44] transition-colors"
                                 >
                                     Profile
                                 </button>
                                 <button
                                     onClick={handleLogout}
-                                    className="bg-black text-white px-6 py-2.5 rounded-full font-bold hover:bg-gray-800 transition-colors"
+                                    className="bg-black text-white px-3 md:px-6 py-2 rounded-full text-xs md:text-sm font-bold hover:bg-gray-800 transition-colors"
                                 >
                                     Logout
                                 </button>
                             </div>
                         ) : (
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2 md:gap-4">
                                 <button
                                     onClick={() => openAuthModal('login')}
-                                    className="text-sm font-bold text-gray-600 hover:text-[#09BF44] transition-colors"
+                                    className="text-xs md:text-sm font-bold text-gray-600 hover:text-[#09BF44] transition-colors"
                                 >
                                     Sign In
                                 </button>
                                 <button
                                     onClick={() => openAuthModal('role-selection')}
-                                    className="bg-black text-white px-6 py-2.5 rounded-full font-bold hover:bg-gray-800 transition-colors"
+                                    className="bg-black text-white px-3 md:px-6 py-2 rounded-full text-xs md:text-sm font-bold hover:bg-gray-800 transition-colors"
                                 >
                                     Join
                                 </button>
@@ -177,15 +177,15 @@ export default function FreelancerProfilePage() {
             </header>
 
             {/* Profile Section */}
-            <div className="max-w-[90%] mx-auto px-6 py-12">
-                <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 mb-8">
-                    <div className="flex items-start gap-6">
-                        <div className="w-24 h-24 bg-[#09BF44] rounded-full flex items-center justify-center text-white font-black text-3xl">
+            <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6 py-8 md:py-12">
+                <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-5 md:p-8 mb-8">
+                    <div className="flex flex-col sm:flex-row items-start gap-4 md:gap-6">
+                        <div className="w-20 h-20 md:w-24 md:h-24 bg-[#09BF44] rounded-full flex items-center justify-center text-white font-black text-2xl md:text-3xl">
                             {freelancer.firstName?.[0]?.toUpperCase() || 'F'}
                         </div>
                         <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                                <h1 className="text-3xl font-black text-gray-900">
+                            <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-2">
+                                <h1 className="text-2xl md:text-3xl font-black text-gray-900">
                                     {freelancer.firstName} {freelancer.lastName}
                                 </h1>
                                 {profile?.isEmployeeOfMonth && (
@@ -201,7 +201,7 @@ export default function FreelancerProfilePage() {
                             {profile?.bio && (
                                 <p className="text-gray-700 leading-relaxed mb-4">{profile.bio}</p>
                             )}
-                            <div className="flex flex-wrap gap-4 text-sm">
+                            <div className="flex flex-wrap gap-3 md:gap-4 text-sm">
                                 {profile?.experienceYears && (
                                     <div className="flex items-center gap-2">
                                         <Clock className="w-4 h-4 text-gray-400" />
@@ -235,7 +235,7 @@ export default function FreelancerProfilePage() {
                 {/* Projects Section */}
                 {projects.length > 0 && (
                     <div>
-                        <h2 className="text-2xl font-black text-gray-900 mb-6">Services Offered</h2>
+                        <h2 className="text-xl md:text-2xl font-black text-gray-900 mb-5 md:mb-6">Services Offered</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {projects.map((project) => (
                                 <ProjectCard key={project._id} project={project} showContactMe={true} sellerIdOverride={freelancerId} />

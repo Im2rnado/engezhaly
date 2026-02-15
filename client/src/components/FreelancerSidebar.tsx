@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, usePathname } from 'next/navigation';
-import { Briefcase, BarChart3, ShoppingBag, User, Clock, LogOut, MessageSquare } from 'lucide-react';
+import { Briefcase, BarChart3, ShoppingBag, User, Clock, LogOut, MessageSquare, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
@@ -12,9 +12,11 @@ interface FreelancerSidebarProps {
     onToggleBusy?: () => void;
     onTabChange?: (tab: 'dashboard' | 'projects' | 'orders' | 'profile') => void;
     activeTab?: 'dashboard' | 'projects' | 'orders' | 'profile';
+    mobileOpen?: boolean;
+    onCloseMobile?: () => void;
 }
 
-export default function FreelancerSidebar({ user, profile, onToggleBusy, activeTab }: FreelancerSidebarProps) {
+export default function FreelancerSidebar({ user, profile, onToggleBusy, activeTab, mobileOpen = false, onCloseMobile }: FreelancerSidebarProps) {
     const router = useRouter();
     const pathname = usePathname();
     const [projects, setProjects] = useState<any[]>([]);
@@ -43,21 +45,33 @@ export default function FreelancerSidebar({ user, profile, onToggleBusy, activeT
     const activeOrders = orders.filter((o: any) => o.status === 'active').length;
 
     return (
-        <div className="w-72 bg-white border-r border-gray-200 flex flex-col fixed h-full z-10 shadow-sm">
+        <div className={`w-72 bg-white border-r border-gray-200 flex flex-col fixed h-full z-40 shadow-sm transition-transform duration-300 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
             <div className="px-8 py-4 border-b border-gray-100">
-                <button
-                    onClick={() => router.push('/')}
-                    className="hover:opacity-80 transition-opacity cursor-pointer"
-                >
-                    <Image
-                        src="/logos/logo-green.png"
-                        alt="Engezhaly"
-                        width={300}
-                        height={40}
-                        className="h-14 w-auto -ml-1"
-                        priority
-                    />
-                </button>
+                <div className="flex items-start justify-between">
+                    <button
+                        onClick={() => {
+                            router.push('/');
+                            onCloseMobile?.();
+                        }}
+                        className="hover:opacity-80 transition-opacity cursor-pointer"
+                    >
+                        <Image
+                            src="/logos/logo-green.png"
+                            alt="Engezhaly"
+                            width={300}
+                            height={40}
+                            className="h-14 w-auto -ml-1"
+                            priority
+                        />
+                    </button>
+                    <button
+                        onClick={onCloseMobile}
+                        className="md:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100"
+                        aria-label="Close sidebar"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
                 <span className="text-xs font-bold text-gray-400 tracking-widest uppercase -mt-2 block">Freelancer Dashboard</span>
             </div>
 

@@ -53,7 +53,7 @@ export default function ClientProfileEditModal({ isOpen, onClose, profile, onSav
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-2">First Name</label>
                             <input

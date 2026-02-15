@@ -51,9 +51,9 @@ export default function GlobalNotifications() {
     if (toasts.length === 0) return null;
 
     return (
-        <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
+        <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 z-50 flex flex-col gap-2 pointer-events-none">
             {toasts.map(toast => (
-                <div key={toast.id} className="bg-white border-l-4 border-[#09BF44] shadow-lg p-4 rounded-r-lg w-80 animate-in slide-in-from-right duration-300 pointer-events-auto flex items-start gap-3">
+                <div key={toast.id} className="bg-white border-l-4 border-[#09BF44] shadow-lg p-4 rounded-r-lg w-full md:w-80 animate-in slide-in-from-right duration-300 pointer-events-auto flex items-start gap-3">
                     <div className="flex-1">
                         <h4 className="font-bold text-gray-900 text-sm">{toast.title}</h4>
                         <p className="text-gray-600 text-xs">{toast.message}</p>

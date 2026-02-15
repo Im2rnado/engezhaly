@@ -190,14 +190,14 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
     const projectMainImage = project.images && project.images.length > 0 ? project.images[0] : null;
 
     return (
-        <div className="project-card-container bg-white border border-gray-200 rounded-3xl shadow-sm hover:shadow-lg transition-all relative">
+        <div className="project-card-container bg-white border border-gray-200 rounded-2xl md:rounded-3xl shadow-sm hover:shadow-lg transition-all relative">
             {/* Countdown Timer Overlay */}
             {hasActiveOrder && (
                 <CountdownTimer deadline={activeOrder.deliveryDate} variant="card" />
             )}
 
             {/* Freelancer Profile Section */}
-            <div className="relative h-24 overflow-hidden rounded-t-3xl">
+            <div className="relative h-20 md:h-24 overflow-hidden rounded-t-2xl md:rounded-t-3xl">
                 {/* Background: Project Image or Gradient */}
                 {projectMainImage ? (
                     <div className="absolute inset-0 rounded-t-3xl overflow-hidden">
@@ -214,7 +214,7 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                 )}
 
                 {/* Freelancer Info */}
-                <div className="relative h-full flex items-center gap-4 px-6">
+                <div className="relative h-full flex items-center gap-3 md:gap-4 px-4 md:px-6">
                     {/* Profile Picture */}
                     <div className="relative">
                         {/* Gradient Background Blur */}
@@ -222,7 +222,7 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#09BF44]/30 via-[#09BF44]/15 to-transparent blur-md"></div>
                         </div>
                         {/* Profile Picture Container */}
-                        <div className="relative w-16 h-16 rounded-full overflow-hidden border-4 border-white shadow-lg z-10 bg-gray-200">
+                        <div className="relative w-12 h-12 md:w-16 md:h-16 rounded-full overflow-hidden border-4 border-white shadow-lg z-10 bg-gray-200">
                             {freelancerProfilePicture ? (
                                 <Image
                                     src={freelancerProfilePicture}
@@ -241,7 +241,7 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
 
                     {/* Name */}
                     <div>
-                        <h4 className="font-bold text-gray-900 text-lg">{freelancerName}</h4>
+                        <h4 className="font-bold text-gray-900 text-sm md:text-lg line-clamp-1">{freelancerName}</h4>
                     </div>
                 </div>
             </div>
@@ -252,7 +252,7 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                     <button
                         key={idx}
                         onClick={() => setSelectedPackage(idx)}
-                        className={`flex-1 py-4 text-sm font-bold transition-colors ${selectedPackage === idx
+                        className={`flex-1 py-3 md:py-4 text-xs md:text-sm font-bold transition-colors ${selectedPackage === idx
                             ? 'text-gray-900 border-b-2 border-gray-900 bg-gray-50'
                             : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                             }`}
@@ -300,7 +300,7 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                         }
                     }}
                     disabled={isCustomizeLoading}
-                    className={`flex-1 py-4 text-sm font-bold transition-colors flex items-center justify-center gap-2 ${
+                    className={`flex-1 py-3 md:py-4 text-xs md:text-sm font-bold transition-colors flex items-center justify-center gap-2 ${
                         isCustomizeLoading 
                             ? 'text-gray-400 cursor-not-allowed' 
                             : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
@@ -318,11 +318,11 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
             </div>
 
             {/* Package Content */}
-            <div className="p-6" style={{ overflow: 'visible' }}>
+            <div className="p-4 md:p-6" style={{ overflow: 'visible' }}>
                 {/* Title and Price in same row */}
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xl font-bold text-gray-900">{project.title}</h3>
-                    <div className="text-lg font-bold text-gray-900">
+                <div className="flex items-start justify-between gap-2 mb-4">
+                    <h3 className="text-base md:text-xl font-bold text-gray-900 leading-tight break-words">{project.title}</h3>
+                    <div className="text-sm md:text-lg font-bold text-gray-900 shrink-0">
                         {currentPackage.price || 0} EGP
                     </div>
                 </div>
@@ -356,7 +356,7 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                 )}
 
                 {/* Delivery & Revisions */}
-                <div className="flex items-center gap-6 mb-4 pb-4 border-b border-gray-100">
+                <div className="flex flex-wrap items-center gap-3 md:gap-6 mb-4 pb-4 border-b border-gray-100">
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                         <Clock className="w-4 h-4" />
                         <span className="font-bold">{currentPackage.days || 0}-day delivery</span>
@@ -424,7 +424,7 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                                 Continue
                             </button>
                             {showContactMe && (
-                                <div className="relative z-[20]" style={{ overflow: 'visible' }}>
+                                <div className="relative z-20" style={{ overflow: 'visible' }}>
                                     <button
                                         onClick={() => setShowContactDropdown(!showContactDropdown)}
                                         className="w-full bg-white border-2 border-gray-300 hover:border-[#09BF44] text-gray-700 font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"

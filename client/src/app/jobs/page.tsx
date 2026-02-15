@@ -149,49 +149,53 @@ export default function JobsPage() {
                 showCategories={true}
             />
 
-            <div className="max-w-[90%] mx-auto px-6 py-8">
+            <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6 py-6 md:py-8">
                 {/* Page Title */}
-                <h1 className="text-3xl font-bold text-gray-900 mb-6">Browse Jobs</h1>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-5 md:mb-6">Browse Jobs</h1>
                 {/* Filters Bar */}
                 <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
-                    <div className="flex items-center gap-4 flex-wrap">
-                        <div className="relative">
-                            <select
-                                value={filters.status}
-                                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                                className="pl-3 pr-8 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 font-bold text-sm outline-none focus:border-[#09BF44] appearance-none w-full"
-                            >
-                                <option value="open" className="text-gray-900">Open Jobs</option>
-                                <option value="in_progress" className="text-gray-900">In Progress</option>
-                                <option value="completed" className="text-gray-900">Completed</option>
-                                <option value="" className="text-gray-900">All Status</option>
-                            </select>
-                            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                    <div className="space-y-3 lg:space-y-0 lg:flex lg:items-end lg:gap-4">
+                        <div className="w-full lg:w-auto">
+                            <label className="block text-xs font-bold text-gray-500 mb-1">Status</label>
+                            <div className="relative w-full sm:w-auto">
+                                <select
+                                    value={filters.status}
+                                    onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                                    className="pl-3 pr-8 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 font-bold text-sm outline-none focus:border-[#09BF44] appearance-none w-full sm:min-w-[170px]"
+                                >
+                                    <option value="open" className="text-gray-900">Open Jobs</option>
+                                    <option value="in_progress" className="text-gray-900">In Progress</option>
+                                    <option value="completed" className="text-gray-900">Completed</option>
+                                    <option value="" className="text-gray-900">All Status</option>
+                                </select>
+                                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                            </div>
                         </div>
-
-                        <div className="relative">
-                            <select
-                                value={filters.budget}
-                                onChange={(e) => setFilters({ ...filters, budget: e.target.value })}
-                                className="pl-3 pr-8 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 font-bold text-sm outline-none focus:border-[#09BF44] appearance-none w-full"
-                            >
-                                <option value="">Budget Range</option>
-                                <option value="500-1000" className="text-gray-900">500 - 1,000 EGP</option>
-                                <option value="1000-2500" className="text-gray-900">1,000 - 2,500 EGP</option>
-                                <option value="2500-5000" className="text-gray-900">2,500 - 5,000 EGP</option>
-                                <option value="5000-10000" className="text-gray-900">5,000 - 10,000 EGP</option>
-                                <option value="10000-999999" className="text-gray-900">10,000+ EGP</option>
-                            </select>
-                            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                        <div className="w-full lg:w-auto">
+                            <label className="block text-xs font-bold text-gray-500 mb-1">Budget</label>
+                            <div className="relative w-full sm:w-auto">
+                                <select
+                                    value={filters.budget}
+                                    onChange={(e) => setFilters({ ...filters, budget: e.target.value })}
+                                    className="pl-3 pr-8 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 font-bold text-sm outline-none focus:border-[#09BF44] appearance-none w-full sm:min-w-[170px]"
+                                >
+                                    <option value="">Budget Range</option>
+                                    <option value="500-1000" className="text-gray-900">500 - 1,000 EGP</option>
+                                    <option value="1000-2500" className="text-gray-900">1,000 - 2,500 EGP</option>
+                                    <option value="2500-5000" className="text-gray-900">2,500 - 5,000 EGP</option>
+                                    <option value="5000-10000" className="text-gray-900">5,000 - 10,000 EGP</option>
+                                    <option value="10000-999999" className="text-gray-900">10,000+ EGP</option>
+                                </select>
+                                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                            </div>
                         </div>
-
-                        <div className="ml-auto flex items-center gap-2">
-                            <span className="text-sm font-bold text-gray-600">Sort by:</span>
-                            <div className="relative">
+                        <div className="w-full lg:w-auto lg:ml-auto">
+                            <label className="block text-xs font-bold text-gray-500 mb-1">Sorting</label>
+                            <div className="relative flex-1 lg:flex-none">
                                 <select
                                     value={sortBy}
                                     onChange={(e) => setSortBy(e.target.value)}
-                                    className="pl-3 pr-8 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 font-bold text-sm outline-none focus:border-[#09BF44] appearance-none"
+                                    className="w-full lg:w-auto pl-3 pr-8 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 font-bold text-sm outline-none focus:border-[#09BF44] appearance-none lg:min-w-[180px]"
                                 >
                                     <option value="newest" className="text-gray-900">Newest First</option>
                                     <option value="budget-low" className="text-gray-900">Budget: Low to High</option>
@@ -200,11 +204,10 @@ export default function JobsPage() {
                                 <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
                             </div>
                         </div>
-
                         {(filters.budget || searchQuery) && (
                             <button
                                 onClick={clearFilters}
-                                className="flex items-center gap-1 px-3 py-2 text-sm font-bold text-gray-600 hover:text-gray-900"
+                                className="w-full lg:w-auto flex items-center justify-center gap-1 px-3 py-2.5 text-sm font-bold text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg"
                             >
                                 <X className="w-4 h-4" /> Clear
                             </button>
@@ -224,16 +227,16 @@ export default function JobsPage() {
                         <p className="text-gray-400">Loading...</p>
                     </div>
                 ) : filteredJobs.length > 0 ? (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
                         {filteredJobs.map((job) => (
                             <div
                                 key={job._id}
-                                className="bg-white border-2 border-gray-100 rounded-2xl p-6 hover:border-[#09BF44] hover:shadow-xl transition-all"
+                                className="bg-white border-2 border-gray-100 rounded-2xl p-4 md:p-6 hover:border-[#09BF44] hover:shadow-xl transition-all"
                             >
-                                <div className="flex items-start justify-between mb-4">
+                                <div className="flex items-start justify-between gap-3 mb-4">
                                     <div className="flex-1">
                                         <div className="flex items-center gap-3 mb-3">
-                                            <h3 className="text-xl font-bold text-gray-900">{job.title}</h3>
+                                            <h3 className="text-lg md:text-xl font-bold text-gray-900">{job.title}</h3>
                                             {job.status === 'open' && (
                                                 <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold">
                                                     Open

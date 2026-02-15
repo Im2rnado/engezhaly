@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
-import { Loader2, Upload } from 'lucide-react';
+import { Loader2, Upload, PanelLeft } from 'lucide-react';
 import { useModal } from '@/context/ModalContext';
 import FreelancerSidebar from '@/components/FreelancerSidebar';
 import { CATEGORIES, MAIN_CATEGORIES } from '@/lib/categories';
+import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 
 export default function CreateProjectPage() {
     const { showModal } = useModal();
@@ -16,6 +17,7 @@ export default function CreateProjectPage() {
     const [user, setUser] = useState<any>(null);
     const [profile, setProfile] = useState<any>(null);
     const [profileLoading, setProfileLoading] = useState(true);
+    const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
     const [projectData, setProjectData] = useState({
         title: '',
@@ -114,17 +116,41 @@ export default function CreateProjectPage() {
 
     return (
         <div className="min-h-screen bg-gray-50 flex font-sans text-gray-900">
-            <FreelancerSidebar user={user} profile={profile} onToggleBusy={toggleBusy} activeTab="projects" />
+            <FreelancerSidebar
+                user={user}
+                profile={profile}
+                onToggleBusy={toggleBusy}
+                activeTab="projects"
+                mobileOpen={mobileSidebarOpen}
+                onCloseMobile={() => setMobileSidebarOpen(false)}
+            />
+            {mobileSidebarOpen && (
+                <button
+                    aria-label="Close sidebar overlay"
+                    onClick={() => setMobileSidebarOpen(false)}
+                    className="fixed inset-0 bg-black/40 z-30 md:hidden"
+                />
+            )}
 
-            <div className="flex-1 ml-72 p-8 overflow-y-auto h-screen">
+            <div className="flex-1 md:ml-72 px-4 sm:px-6 md:p-8 pt-3 md:pt-8 pb-8 overflow-y-auto min-h-screen">
+                <DashboardMobileTopStrip />
                 <div className="max-w-4xl mx-auto">
-                    <header className="mb-10">
-                        <h1 className="text-3xl font-black text-gray-900 mb-2">Create New Project</h1>
+                    <header className="mb-6 md:mb-10 pt-4 md:pt-0">
+                        <div className="flex items-center gap-3 mb-2">
+                            <button
+                                onClick={() => setMobileSidebarOpen(true)}
+                                className="md:hidden p-2 rounded-lg border border-gray-200 bg-white text-gray-700"
+                                aria-label="Open sidebar"
+                            >
+                                <PanelLeft className="w-5 h-5" />
+                            </button>
+                            <h1 className="text-2xl md:text-3xl font-black text-gray-900">Create New Project</h1>
+                        </div>
                         <p className="text-gray-500">Set up your service and start selling.</p>
                     </header>
 
                     <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-                        <div className="p-8 md:p-12">
+                        <div className="p-5 md:p-12">
                             {error && <div className="bg-red-50 text-red-500 p-4 rounded-xl mb-6">{error}</div>}
 
                             <form onSubmit={handleSubmit} className="space-y-8">

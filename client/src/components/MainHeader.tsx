@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { Search, User, Plus, ChevronDown } from "lucide-react";
+import { Search, User, Plus, ChevronDown, Menu, X } from "lucide-react";
 import { MAIN_CATEGORIES, CATEGORIES } from "@/lib/categories";
 import AuthModal from "@/components/AuthModal";
 
@@ -26,6 +26,8 @@ export default function MainHeader({ user, onSearch, searchPlaceholder = "What s
     const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
     const [showSearchDropdown, setShowSearchDropdown] = useState(false);
     const [searchType, setSearchType] = useState<'projects' | 'jobs'>('projects');
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [mobileSelectedCategory, setMobileSelectedCategory] = useState('');
     const searchDropdownRef = useRef<HTMLDivElement>(null);
 
     // Sync with URL params
@@ -137,9 +139,64 @@ export default function MainHeader({ user, onSearch, searchPlaceholder = "What s
     return (
         <>
             <header className="border-b border-gray-200 sticky top-0 bg-white/95 backdrop-blur-sm z-50 transition-all duration-300 shadow-sm" style={{ overflow: 'visible' }}>
+                {/* Mobile Header */}
+                <div className="md:hidden max-w-[95%] mx-auto px-3 py-2.5">
+                    <div className="grid grid-cols-3 items-center gap-2">
+                        <div className="flex justify-start">
+                            <button
+                                onClick={() => setMobileMenuOpen((prev) => !prev)}
+                                className="p-2 rounded-lg border border-gray-200 text-gray-700"
+                                aria-label="Toggle mobile menu"
+                            >
+                                {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                            </button>
+                        </div>
+                        <button
+                            onClick={() => router.push('/')}
+                            className="justify-self-center hover:opacity-80 transition-opacity"
+                            aria-label="Go to home"
+                        >
+                            <Image src="/logos/logo-green.png" alt="Engezhaly" width={170} height={42} className="w-28 h-auto" priority />
+                        </button>
+                        <div className="flex justify-end">
+                            {user ? (
+                                <button
+                                    onClick={() => router.push(getDashboardPath())}
+                                    className="text-xs font-bold bg-[#09BF44] text-white px-3 py-2 rounded-md"
+                                >
+                                    Dashboard
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={() => openAuthModal('role-selection')}
+                                    className="text-xs font-bold bg-[#09BF44] text-white px-3 py-2 rounded-md"
+                                >
+                                    Join
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                    <div className="mt-2">
+                        <form onSubmit={handleSearch} className="flex items-center relative w-full">
+                            <div className="flex items-center bg-white border border-gray-300 rounded-lg overflow-hidden w-full transition-shadow focus-within:ring-2 focus-within:ring-[#09BF44] focus-within:border-transparent">
+                                <input
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    placeholder={pathname === '/jobs' ? 'Search jobs...' : 'Search projects...'}
+                                    className="flex-1 px-3 py-2.5 text-sm text-gray-700 placeholder-gray-400 outline-none"
+                                />
+                                <button type="submit" className="bg-black hover:bg-gray-800 text-white px-3 py-2.5 transition-colors">
+                                    <Search className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
                 {/* Main Header */}
-                <div className="max-w-[90%] mx-auto px-6 h-20 flex items-center justify-between" style={{ overflow: 'visible' }}>
-                    <div className="flex items-center gap-12 flex-1">
+                <div className="hidden md:flex max-w-[95%] md:max-w-[90%] mx-auto px-3 sm:px-4 md:px-6 h-14 sm:h-16 md:h-20 items-center justify-between gap-3" style={{ overflow: 'visible' }}>
+                    <div className="flex items-center gap-4 md:gap-12 flex-1 min-w-0">
                         {/* Logo */}
                         <div
                             onClick={() => router.push('/')}
@@ -150,7 +207,7 @@ export default function MainHeader({ user, onSearch, searchPlaceholder = "What s
                                 alt="Engezhaly"
                                 width={260}
                                 height={66}
-                                className="h-20 w-auto"
+                                className="h-9 sm:h-10 md:h-20 w-auto"
                                 priority
                             />
                         </div>
@@ -209,7 +266,7 @@ export default function MainHeader({ user, onSearch, searchPlaceholder = "What s
                     </div>
 
                     {/* Navigation & Auth */}
-                    <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-3 md:gap-6 shrink-0">
                         <nav className="hidden md:flex gap-6 text-sm font-semibold text-gray-600">
                             <button
                                 onClick={() => router.push('/projects')}
@@ -240,7 +297,7 @@ export default function MainHeader({ user, onSearch, searchPlaceholder = "What s
                                             className="flex items-center gap-2 bg-[#09BF44] hover:bg-[#07a63a] text-white text-sm font-bold px-4 py-2 rounded-md transition-all shadow-md hover:shadow-lg"
                                         >
                                             <User className="w-4 h-4" />
-                                            Profile
+                                            Dashboard
                                         </button>
                                     </>
                                 ) : user.role === 'freelancer' ? (
@@ -257,7 +314,7 @@ export default function MainHeader({ user, onSearch, searchPlaceholder = "What s
                                             className="flex items-center gap-2 bg-[#09BF44] hover:bg-[#07a63a] text-white text-sm font-bold px-4 py-2 rounded-md transition-all shadow-md hover:shadow-lg"
                                         >
                                             <User className="w-4 h-4" />
-                                            Profile
+                                            Dashboard
                                         </button>
                                     </>
                                 ) : (
@@ -266,7 +323,7 @@ export default function MainHeader({ user, onSearch, searchPlaceholder = "What s
                                         className="flex items-center gap-2 bg-[#09BF44] hover:bg-[#07a63a] text-white text-sm font-bold px-4 py-2 rounded-md transition-all shadow-md hover:shadow-lg"
                                     >
                                         <User className="w-4 h-4" />
-                                        Profile
+                                        Dashboard
                                     </button>
                                 )}
                             </div>
@@ -280,7 +337,7 @@ export default function MainHeader({ user, onSearch, searchPlaceholder = "What s
                                 </button>
                                 <button
                                     onClick={() => openAuthModal('role-selection')}
-                                    className="bg-[#09BF44] hover:bg-[#07a63a] text-white text-sm font-bold px-6 py-2 rounded-md transition-all shadow-md hover:shadow-lg"
+                                    className="hidden md:block bg-[#09BF44] hover:bg-[#07a63a] text-white text-sm font-bold px-6 py-2 rounded-md transition-all shadow-md hover:shadow-lg"
                                 >
                                     Join
                                 </button>
@@ -288,11 +345,70 @@ export default function MainHeader({ user, onSearch, searchPlaceholder = "What s
                         )}
                     </div>
                 </div>
+                {mobileMenuOpen && (
+                    <div className="md:hidden border-t border-gray-100 bg-white">
+                        <div className="max-w-[95%] mx-auto px-3 py-3 space-y-2">
+                            <button onClick={() => { router.push('/projects'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50">Explore Projects</button>
+                            <button onClick={() => { router.push('/jobs'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50">Browse Jobs</button>
+                            {user?.role === 'client' && (
+                                <button onClick={() => { router.push('/dashboard/client/jobs/create'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50">Post Job</button>
+                            )}
+                            {user?.role === 'freelancer' && (
+                                <button onClick={() => { router.push('/dashboard/freelancer/projects/create'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50">Create Project</button>
+                            )}
+                            <div className="pt-2 border-t border-gray-100">
+                                <p className="text-xs font-bold text-gray-500 mb-2 px-1">Categories</p>
+                                <select
+                                    value={mobileSelectedCategory}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        setMobileSelectedCategory(value);
+                                        if (value) {
+                                            setSelectedCategory(value);
+                                            setSelectedSubCategory('');
+                                            router.push(`/projects?category=${encodeURIComponent(value)}`);
+                                        }
+                                    }}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700"
+                                >
+                                    <option value="">Select category</option>
+                                    {MAIN_CATEGORIES.map((category) => (
+                                        <option key={category} value={category}>{category}</option>
+                                    ))}
+                                </select>
+                                {mobileSelectedCategory && (
+                                    <div className="mt-2 max-h-44 overflow-y-auto space-y-1">
+                                        {CATEGORIES[mobileSelectedCategory as keyof typeof CATEGORIES]?.map((subCategory) => (
+                                            <button
+                                                key={subCategory}
+                                                onClick={() => {
+                                                    setSelectedCategory(mobileSelectedCategory);
+                                                    setSelectedSubCategory(subCategory);
+                                                    setMobileMenuOpen(false);
+                                                    router.push(`/projects?category=${encodeURIComponent(mobileSelectedCategory)}&subCategory=${encodeURIComponent(subCategory)}`);
+                                                }}
+                                                className="w-full text-left px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50"
+                                            >
+                                                {subCategory}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            {!user && (
+                                <div className="flex gap-2 pt-1">
+                                    <button onClick={() => { openAuthModal('login'); setMobileMenuOpen(false); }} className="flex-1 border border-[#09BF44] text-[#09BF44] text-sm font-bold px-3 py-2 rounded-md">Sign In</button>
+                                    <button onClick={() => { openAuthModal('role-selection'); setMobileMenuOpen(false); }} className="flex-1 bg-[#09BF44] text-white text-sm font-bold px-3 py-2 rounded-md">Join</button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 {/* Category Navigation Bar - Sleek Design */}
                 {showCategories && (
-                    <div className="border-t border-gray-100 bg-gradient-to-r from-gray-50 to-white relative" style={{ overflow: 'visible' }}>
-                        <div className="max-w-[90%] mx-auto px-6" style={{ overflow: 'visible' }}>
+                    <div className="hidden md:block border-t border-gray-100 bg-gradient-to-r from-gray-50 to-white relative" style={{ overflow: 'visible' }}>
+                        <div className="max-w-[95%] md:max-w-[90%] mx-auto px-3 sm:px-4 md:px-6" style={{ overflow: 'visible' }}>
                             <div className="flex items-center gap-1 overflow-x-auto py-3 hide-scrollbar relative" style={{ overflowY: 'visible' }}>
                                 <button
                                     onClick={() => {
