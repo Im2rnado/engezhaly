@@ -10,8 +10,8 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:3000",
-        methods: ["GET", "POST"]
+        origin: ["https://engezhaly.com", "https://www.engezhaly.com", "http://localhost:3000"],
+        methods: ["GET", "POST", "PUT", "DELETE", "PATCH"]
     }
 });
 
@@ -25,7 +25,16 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Database Connection
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/engezhaly';
 mongoose.connect(MONGO_URI)
-    .then(() => console.log('MongoDB connected'))
+    .then(async () => {
+        console.log('MongoDB connected');
+        // Grandfather existing users: set emailVerified for users created before verification was required
+        const User = require('./models/User');
+        const r = await User.updateMany(
+            { $or: [{ emailVerified: { $exists: false } }, { emailVerified: null }] },
+            { $set: { emailVerified: true } }
+        );
+        if (r.modifiedCount > 0) console.log(`[Migration] Set emailVerified for ${r.modifiedCount} existing users`);
+    })
     .catch(err => console.error('MongoDB connection error:', err));
 
 // Routes

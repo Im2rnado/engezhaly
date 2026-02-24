@@ -1,5 +1,8 @@
 const User = require('../models/User');
 const Conversation = require('../models/Conversation');
+const EmailLog = require('../models/EmailLog');
+const { sendAndLog } = require('../services/mailgunService');
+const { freelancerApproved: freelancerApprovedTemplate, disputeResolved: disputeResolvedTemplate } = require('../templates/emailTemplates');
 const Chat = require('../models/Chat');
 const Transaction = require('../models/Transaction');
 const Project = require('../models/Project');
@@ -26,6 +29,13 @@ const approveFreelancer = async (req, res) => {
 
         user.freelancerProfile.status = 'approved';
         await user.save();
+
+        // Send approval email
+        if (user.email) {
+            const { subject, html } = freelancerApprovedTemplate();
+            sendAndLog(user.email, subject, html, 'freelancer_approved', { userId: user._id }).catch(err => console.error('[Admin] Approval email failed:', err.message));
+        }
+
         res.json(user);
     } catch (err) {
         console.error(err.message);
@@ -360,8 +370,36 @@ const getAllOrders = async (req, res) => {
 
 const updateOrder = async (req, res) => {
     try {
-        const { status } = req.body;
-        const order = await Order.findByIdAndUpdate(req.params.id, { status }, { new: true });
+        const { status, disputeOutcome } = req.body;
+        const orderId = req.params.id;
+        const existingOrder = await Order.findById(orderId)
+            .populate('projectId', 'title')
+            .populate('buyerId', 'email firstName lastName')
+            .populate('sellerId', 'email firstName lastName');
+
+        if (!existingOrder) return res.status(404).json({ msg: 'Order not found' });
+
+        const wasDisputed = existingOrder.status === 'disputed';
+        const order = await Order.findByIdAndUpdate(orderId, { status }, { new: true })
+            .populate('projectId', 'title')
+            .populate('buyerId', 'email firstName lastName')
+            .populate('sellerId', 'email firstName lastName');
+
+        // If resolving a dispute, send email to both parties
+        if (wasDisputed && (status === 'completed' || status === 'refunded' || status === 'active')) {
+            const title = order.projectId?.title || order.offerId ? 'Custom Offer' : 'Order';
+            const outcome = disputeOutcome || `The dispute has been resolved. Status: ${status}.`;
+            const buyerEmail = order.buyerId?.email;
+            const sellerEmail = order.sellerId?.email;
+            const { subject, html } = disputeResolvedTemplate(title, outcome, orderId);
+            if (buyerEmail) {
+                sendAndLog(buyerEmail, subject, html, 'dispute_resolved', { orderId, userId: order.buyerId._id }).catch(err => console.error('[Admin] Dispute email failed:', err.message));
+            }
+            if (sellerEmail) {
+                sendAndLog(sellerEmail, subject, html, 'dispute_resolved', { orderId, userId: order.sellerId._id }).catch(err => console.error('[Admin] Dispute email failed:', err.message));
+            }
+        }
+
         res.json(order);
     } catch (err) {
         console.error(err.message);
@@ -457,6 +495,19 @@ const getTopFreelancers = async (req, res) => {
     }
 };
 
+const getEmailLogs = async (req, res) => {
+    try {
+        const logs = await EmailLog.find()
+            .sort({ sentAt: -1 })
+            .limit(200)
+            .lean();
+        res.json(logs);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
 module.exports = {
     getPendingFreelancers,
     approveFreelancer,
@@ -481,5 +532,6 @@ module.exports = {
     updateOrder,
     getAllTransactions,
     getTopFreelancers,
-    sendAdminMessage
+    sendAdminMessage,
+    getEmailLogs
 };

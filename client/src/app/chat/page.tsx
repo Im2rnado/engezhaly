@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
-import { Send, Video, Paperclip, MoreVertical, FileText, CheckCircle, XCircle, MessageSquare, Shield, PanelLeft, ArrowLeft } from 'lucide-react';
+import { Send, Video, Paperclip, MoreVertical, FileText, CheckCircle, XCircle, MessageSquare, Shield, PanelLeft, ArrowLeft, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
 import { useModal } from '@/context/ModalContext';
@@ -31,6 +31,11 @@ export default function ChatPage() {
     const [loading, setLoading] = useState(true);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
     const [partnerOnline, setPartnerOnline] = useState(false);
+    const [consultationStatus, setConsultationStatus] = useState<{ hasUnusedPayment: boolean; lastMeetingLink?: string | null } | null>(null);
+    const [showMeetingModal, setShowMeetingModal] = useState(false);
+    const [meetingDate, setMeetingDate] = useState('');
+    const [meetingTime, setMeetingTime] = useState('');
+    const [settingMeeting, setSettingMeeting] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const resolveUserId = useCallback(() => {
         const storedUser = typeof window !== 'undefined'
@@ -136,6 +141,7 @@ export default function ChatPage() {
                     // Skip our own messages - we already have optimistic update and will refetch
                     if (isMine) return;
                     const isAdmin = msg.isAdmin || msg.content?.includes('[Engezhaly Admin]');
+                    const isMeeting = msg.messageType === 'meeting' || msg.content?.includes('[Engezhaly Meeting]');
                     const formattedMsg = {
                         _id: msg._id,
                         text: msg.content,
@@ -144,7 +150,8 @@ export default function ChatPage() {
                         timestamp: msg.createdAt || new Date(),
                         messageType: msg.messageType,
                         isRead: !!msg.isRead,
-                        isAdmin: isAdmin
+                        isAdmin: isAdmin,
+                        isMeeting: isMeeting
                     };
                     setMessages((prev) => {
                         const exists = prev.some(m => m._id === formattedMsg._id);
@@ -226,6 +233,7 @@ export default function ChatPage() {
                 const formatted = data.map((m: any) => {
                     const senderId = m.senderId?._id || m.senderId;
                     const isAdmin = m.isAdmin || m.content?.includes('[Engezhaly Admin]');
+                    const isMeeting = m.messageType === 'meeting' || m.content?.includes('[Engezhaly Meeting]');
                     return {
                         _id: m._id,
                         text: m.content,
@@ -234,16 +242,24 @@ export default function ChatPage() {
                         timestamp: m.createdAt,
                         messageType: m.messageType,
                         isRead: !!m.isRead,
-                        isAdmin: isAdmin
+                        isAdmin: isAdmin,
+                        isMeeting: isMeeting
                     };
                 });
                 setMessages(formatted);
             }).catch(console.error);
 
+            // Fetch consultation status
+            api.chat.getConsultationStatus(convId).then((data: any) => {
+                setConsultationStatus(data);
+            }).catch(() => setConsultationStatus(null));
+
             // Fetch offers
             api.chat.getOffers(convId).then((data: any) => {
                 setOffers(data || []);
             }).catch(console.error);
+        } else {
+            setConsultationStatus(null);
         }
     }, [activeChat, currentUser, resolveUserId]);
 
@@ -299,6 +315,7 @@ export default function ChatPage() {
             const formatted = data.map((m: any) => {
                 const senderId = m.senderId?._id || m.senderId;
                 const isAdmin = m.isAdmin || m.content?.includes('[Engezhaly Admin]');
+                const isMeeting = m.messageType === 'meeting' || m.content?.includes('[Engezhaly Meeting]');
                 return {
                     _id: m._id,
                     text: m.content,
@@ -307,7 +324,8 @@ export default function ChatPage() {
                     timestamp: m.createdAt,
                     messageType: m.messageType,
                     isRead: !!m.isRead,
-                    isAdmin: isAdmin
+                    isAdmin: isAdmin,
+                    isMeeting: isMeeting
                 };
             });
             setMessages(formatted);
@@ -432,31 +450,36 @@ export default function ChatPage() {
     };
 
     const handleBookConsultation = async () => {
-        if (!activeChat) return;
+        if (!activeChat || !conversationId) return;
 
-        // Check if user is a client
         const token = localStorage.getItem('token');
         if (!token) {
-            showModal({
-                title: 'Login Required',
-                message: 'Please log in as a client to book a consultation.',
-                type: 'info'
-            });
+            showModal({ title: 'Login Required', message: 'Please log in to use this feature.', type: 'info' });
             return;
         }
 
-        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-        if (currentUser.role !== 'client') {
-            showModal({
-                title: 'Client Account Required',
-                message: 'This feature is only available for clients. Please log in with a client account.',
-                type: 'error'
-            });
-            return;
-        }
+        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const isClient = storedUser.role === 'client';
 
         try {
-            // Check wallet balance
+            // If we have unused payment, show date/time modal
+            if (consultationStatus?.hasUnusedPayment) {
+                setMeetingDate('');
+                setMeetingTime('');
+                setShowMeetingModal(true);
+                return;
+            }
+
+            // No unused payment - client must pay first
+            if (!isClient) {
+                showModal({
+                    title: 'Consultation Payment Required',
+                    message: 'Ask the client to pay 100 EGP for a video consultation. Once paid, either party can schedule the meeting.',
+                    type: 'info'
+                });
+                return;
+            }
+
             const balance = await api.wallet.getBalance();
             if (balance.balance < 100) {
                 showModal({
@@ -467,41 +490,30 @@ export default function ChatPage() {
                 return;
             }
 
-            // Create consultation order/payment
             showModal({
-                title: 'Book Consultation',
-                message: 'This will charge 100 EGP from your wallet. Proceed?',
+                title: 'Pay for Video Consultation',
+                message: 'This will deduct 100 EGP from your wallet. After payment, you can schedule a meeting date and time. Proceed?',
                 type: 'confirm',
                 onConfirm: async () => {
                     try {
+                        await api.wallet.payConsultation(conversationId);
                         const receiverId = activeChat.partnerId?._id ?? activeChat.partnerId;
-                        if (!receiverId) {
-                            showModal({ title: 'Error', message: 'Cannot send consultation request: no recipient selected.', type: 'error' });
-                            return;
+                        if (receiverId) {
+                            await api.chat.sendMessage({
+                                receiverId,
+                                content: '[Engezhaly Meeting] A video consultation has been paid for (100 EGP). You can now schedule the meeting by clicking the video call button.',
+                                messageType: 'text'
+                            });
                         }
-                        // Send consultation request message
-                        await api.chat.sendMessage({
-                            receiverId,
-                            content: `[CONSULTATION REQUEST] I would like to book a consultation call. Please confirm availability.`,
-                            messageType: 'text'
-                        });
-
-                        // Deduct 100 EGP from wallet
-                        await api.wallet.topUp(-100); // Negative amount to deduct
-
-                        showModal({
-                            title: 'Success',
-                            message: 'Consultation request sent! The freelancer will confirm availability.',
-                            type: 'success'
-                        });
-
-                        // Refresh messages
+                        setConsultationStatus({ hasUnusedPayment: true });
+                        showModal({ title: 'Success', message: 'Payment successful! Click the video call button again to schedule your meeting.', type: 'success' });
                         if (conversationId) {
                             const data = await api.chat.getMessages(conversationId);
                             const userId = resolveUserId();
                             const formatted = data.map((m: any) => {
                                 const senderId = m.senderId?._id || m.senderId;
                                 const isAdmin = m.isAdmin || m.content?.includes('[Engezhaly Admin]');
+                                const isMeeting = m.messageType === 'meeting' || m.content?.includes('[Engezhaly Meeting]');
                                 return {
                                     _id: m._id,
                                     text: m.content,
@@ -510,28 +522,59 @@ export default function ChatPage() {
                                     timestamp: m.createdAt,
                                     messageType: m.messageType,
                                     isRead: !!m.isRead,
-                                    isAdmin: isAdmin
+                                    isAdmin: isAdmin,
+                                    isMeeting: isMeeting
                                 };
                             });
                             setMessages(formatted);
                         }
                     } catch (err: any) {
-                        console.error(err);
-                        showModal({
-                            title: 'Error',
-                            message: err.message || 'Failed to book consultation',
-                            type: 'error'
-                        });
+                        showModal({ title: 'Error', message: err.message || 'Payment failed', type: 'error' });
                     }
                 }
             });
         } catch (err: any) {
-            console.error(err);
-            showModal({
-                title: 'Error',
-                message: err.message || 'Failed to check wallet balance',
-                type: 'error'
+            showModal({ title: 'Error', message: err.message || 'Failed to check status', type: 'error' });
+        }
+    };
+
+    const handleSetMeeting = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!conversationId || !meetingDate || !meetingTime || settingMeeting) return;
+
+        setSettingMeeting(true);
+        try {
+            await api.chat.createConsultationMeeting({
+                conversationId,
+                meetingDate,
+                meetingTime
             });
+            setShowMeetingModal(false);
+            setConsultationStatus({ hasUnusedPayment: false });
+            showModal({ title: 'Success', message: 'Meeting scheduled! The link has been sent in the chat.', type: 'success' });
+            const data = await api.chat.getMessages(conversationId);
+            const userId = resolveUserId();
+            const formatted = data.map((m: any) => {
+                const senderId = m.senderId?._id || m.senderId;
+                const isAdmin = m.isAdmin || m.content?.includes('[Engezhaly Admin]');
+                const isMeeting = m.messageType === 'meeting' || m.content?.includes('[Engezhaly Meeting]');
+                return {
+                    _id: m._id,
+                    text: m.content,
+                    sender: String(senderId) === String(userId) ? 'me' : 'them',
+                    senderId: senderId,
+                    timestamp: m.createdAt,
+                    messageType: m.messageType,
+                    isRead: !!m.isRead,
+                    isAdmin: isAdmin,
+                    isMeeting: isMeeting
+                };
+            });
+            setMessages(formatted);
+        } catch (err: any) {
+            showModal({ title: 'Error', message: (err as Error).message || 'Failed to create meeting', type: 'error' });
+        } finally {
+            setSettingMeeting(false);
         }
     };
 
@@ -869,16 +912,24 @@ export default function ChatPage() {
                                     {/* Display messages */}
                                     {messages.map((msg, idx) => {
                                         const isAdmin = msg.isAdmin || msg.text?.includes('[Engezhaly Admin]');
-                                        const content = isAdmin ? msg.text.replace('[Engezhaly Admin]', '').trim() : msg.text;
+                                        const isMeeting = msg.isMeeting || msg.messageType === 'meeting' || msg.text?.includes('[Engezhaly Meeting]');
+                                        const isCentered = isAdmin || isMeeting;
+                                        let content = msg.text || '';
+                                        if (isAdmin) content = content.replace('[Engezhaly Admin]', '').trim();
+                                        if (isMeeting) content = content.replace('[Engezhaly Meeting]', '').trim();
+                                        const linkMatch = content.match(/Join here: (https?:\/\/[^\s]+)/);
+                                        const meetingLink = linkMatch ? linkMatch[1] : null;
                                         
                                         return (
-                                            <div key={msg._id || idx} className={`flex w-full ${isAdmin ? 'justify-center' : msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
+                                            <div key={msg._id || idx} className={`flex w-full ${isCentered ? 'justify-center' : msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
                                                 <div className={`max-w-[88%] md:max-w-[70%] px-4 py-2 rounded-2xl shadow-sm ${
                                                     isAdmin
                                                         ? 'bg-yellow-100 border-2 border-yellow-300 text-gray-900'
-                                                        : msg.sender === 'me'
-                                                            ? 'bg-[#09BF44] text-white rounded-br-sm'
-                                                            : 'bg-white border border-gray-200 text-gray-900 rounded-bl-sm'
+                                                        : isMeeting
+                                                            ? 'bg-green-50 border-2 border-[#09BF44]/40 text-gray-900'
+                                                            : msg.sender === 'me'
+                                                                ? 'bg-[#09BF44] text-white rounded-br-sm'
+                                                                : 'bg-white border border-gray-200 text-gray-900 rounded-bl-sm'
                                                 }`}>
                                                     {isAdmin && (
                                                         <div className="flex items-center gap-2 mb-1">
@@ -886,12 +937,28 @@ export default function ChatPage() {
                                                             <span className="text-xs font-bold text-yellow-700">Engezhaly Admin</span>
                                                         </div>
                                                     )}
+                                                    {isMeeting && (
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <Video className="w-4 h-4 text-[#09BF44]" />
+                                                            <span className="text-xs font-bold text-[#09BF44]">Video Meeting</span>
+                                                        </div>
+                                                    )}
                                                     <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{content}</p>
-                                                    <div className={`flex items-center justify-end mt-1 ${isAdmin ? 'text-yellow-700' : msg.sender === 'me' ? 'text-green-50' : 'text-gray-500'}`}>
+                                                    {meetingLink && (
+                                                        <a
+                                                            href={meetingLink}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="inline-flex items-center gap-2 mt-2 px-3 py-2 bg-[#09BF44] text-white rounded-xl font-bold text-sm hover:bg-[#07a63a] transition-colors"
+                                                        >
+                                                            <Video className="w-4 h-4" /> Join Meeting
+                                                        </a>
+                                                    )}
+                                                    <div className={`flex items-center justify-end mt-1 ${isAdmin ? 'text-yellow-700' : isMeeting ? 'text-[#09BF44]/80' : msg.sender === 'me' ? 'text-green-50' : 'text-gray-500'}`}>
                                                         <span className="text-[10px]">
                                                             {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                         </span>
-                                                        {!isAdmin && msg.sender === 'me' && (
+                                                        {!isCentered && msg.sender === 'me' && (
                                                             <span className="text-[10px] ml-2 opacity-90">
                                                                 {msg.isRead ? 'Read' : 'Unread'}
                                                             </span>
@@ -954,6 +1021,59 @@ export default function ChatPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Schedule Meeting Modal */}
+            {showMeetingModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+                    <div className="bg-white rounded-3xl shadow-xl max-w-md w-full p-6">
+                        <div className="flex items-center gap-2 mb-4">
+                            <Video className="w-6 h-6 text-[#09BF44]" />
+                            <h3 className="text-xl font-black text-gray-900">Schedule Video Meeting</h3>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-4">Choose a date and time for your video call. The meeting link will be sent in the chat.</p>
+                        <form onSubmit={handleSetMeeting} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Date</label>
+                                <input
+                                    type="date"
+                                    value={meetingDate}
+                                    onChange={(e) => setMeetingDate(e.target.value)}
+                                    min={new Date().toISOString().split('T')[0]}
+                                    required
+                                    className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-[#09BF44] focus:ring-2 focus:ring-[#09BF44]/20 outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Time</label>
+                                <input
+                                    type="time"
+                                    value={meetingTime}
+                                    onChange={(e) => setMeetingTime(e.target.value)}
+                                    required
+                                    className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-[#09BF44] focus:ring-2 focus:ring-[#09BF44]/20 outline-none"
+                                />
+                            </div>
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowMeetingModal(false)}
+                                    className="flex-1 py-3 rounded-xl font-bold border-2 border-gray-200 text-gray-600 hover:bg-gray-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={settingMeeting}
+                                    className="flex-1 py-3 rounded-xl font-bold bg-[#09BF44] text-white hover:bg-[#07a63a] disabled:opacity-70 flex items-center justify-center gap-2"
+                                >
+                                    {settingMeeting ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+                                    Set Meeting
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
 
             {/* Create Offer Modal */}
             {showOfferModal && activeChat && (

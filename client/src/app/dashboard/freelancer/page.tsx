@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Briefcase, DollarSign, PlusCircle, ShoppingBag, Star, CheckCircle, Loader2, Edit, Award, MessageSquare, X, PanelLeft } from 'lucide-react';
+import { Briefcase, DollarSign, PlusCircle, ShoppingBag, Star, CheckCircle, Loader2, Edit, Award, MessageSquare, X, PanelLeft, Flag } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useModal } from '@/context/ModalContext';
 import ProjectCard from '@/components/ProjectCard';
@@ -476,7 +476,7 @@ export default function FreelancerDashboard() {
                                         </div>
                                         <div className="text-right">
                                             <p className="text-xl font-black text-gray-900">{order.amount} EGP</p>
-                                            <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                                            <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'disputed' ? 'bg-amber-100 text-amber-700' : order.status === 'refunded' ? 'bg-gray-100 text-gray-700' : order.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
                                                 {order.status}
                                             </span>
                                         </div>
@@ -505,7 +505,7 @@ export default function FreelancerDashboard() {
                                                 ? `Last submitted: ${new Date(order.workSubmission.updatedAt).toLocaleString()}`
                                                 : 'No work submitted yet'}
                                         </div>
-                                        <div className="flex gap-2">
+                                        <div className="flex gap-2 flex-wrap">
                                             <button
                                                 onClick={() => openChatWithClientOrder(order)}
                                                 className="bg-gray-100 text-gray-700 px-4 py-2 rounded-xl font-bold hover:bg-gray-200 transition-colors flex items-center gap-2"
@@ -522,6 +522,23 @@ export default function FreelancerDashboard() {
                                             >
                                                 {order?.workSubmission?.updatedAt ? 'Update Submission' : 'Submit Work'}
                                             </button>
+                                            {order.status === 'active' && (
+                                                <button
+                                                    onClick={async () => {
+                                                        if (!confirm('Raise a dispute? Our team will review and resolve it.')) return;
+                                                        try {
+                                                            await api.freelancer.raiseDispute(order._id);
+                                                            showModal({ title: 'Dispute Raised', message: 'Our team will review and resolve it shortly.', type: 'success' });
+                                                            fetchOrders();
+                                                        } catch (e: any) {
+                                                            showModal({ title: 'Error', message: e.message || 'Failed to raise dispute', type: 'error' });
+                                                        }
+                                                    }}
+                                                    className="text-amber-600 hover:text-amber-700 px-4 py-2 rounded-xl font-bold hover:bg-amber-50 transition-colors flex items-center gap-2"
+                                                >
+                                                    <Flag className="w-4 h-4" /> Raise Dispute
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

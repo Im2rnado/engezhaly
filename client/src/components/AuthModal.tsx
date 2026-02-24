@@ -183,9 +183,9 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             onClose();
             showModal({
                 title: 'Account Created',
-                message: 'Your client account has been created successfully. Redirecting to dashboard...',
+                message: 'Please check your email to verify your account. You must verify before accessing the dashboard.',
                 type: 'success',
-                onConfirm: () => router.push('/dashboard/client')
+                onConfirm: () => router.push('/')
             });
         } catch (err: any) {
             setError(err.message);
@@ -726,10 +726,11 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
 
                                 <div className="grid grid-cols-1 gap-4">
                                     <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-2">Certificate (optional) – upload image or PDF</label>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">Certificates – upload image or PDF</label>
                                         <input
                                             type="file"
                                             accept="image/*,.pdf"
+                                            required
                                             onChange={async (e) => {
                                                 const file = e.target.files?.[0];
                                                 if (!file) return;
@@ -857,8 +858,11 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                 <CheckCircle className="w-12 h-12 text-[#09BF44]" />
                             </div>
                             <h2 className="text-3xl font-black text-gray-900 mb-4">Profile Under Review!</h2>
-                            <p className="text-lg text-gray-600 mb-8 max-w-lg mx-auto">
+                            <p className="text-lg text-gray-600 mb-4 max-w-lg mx-auto">
                                 Our team is reviewing your application. You will be notified once your profile is approved and you can start creating Projects.
+                            </p>
+                            <p className="text-sm text-gray-500 mb-8 max-w-lg mx-auto">
+                                Please check your email to verify your account. You must verify before accessing the dashboard.
                             </p>
                             <button
                                 onClick={() => { onClose(); router.push('/dashboard/freelancer'); }}

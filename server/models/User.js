@@ -5,10 +5,11 @@ const UserSchema = new mongoose.Schema({
     lastName: { type: String, required: true },
     username: { type: String, required: true, unique: true },
     email: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
+    password: { type: String, required: true, select: false },
     phoneNumber: { type: String, select: false }, // Hidden by default
     dateOfBirth: { type: Date, select: false }, // Optional, for freelancers
     role: { type: String, enum: ['client', 'freelancer', 'admin'], default: 'client' },
+    emailVerified: { type: Boolean, default: false },
     businessType: { type: String, enum: ['personal', 'company'] }, // For Clients
     walletBalance: { type: Number, default: 0 },
     strikes: { type: Number, default: 0, max: 3 },

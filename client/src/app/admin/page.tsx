@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { api } from '@/lib/api';
-import { Check, X, Ban, User, Flag, MessageSquare, Award, BarChart3, TrendingUp, Search, Loader2, Briefcase, FileText, ShoppingBag, CreditCard, Trash2, Star, Edit, LogOut, ArrowLeft, Send, Shield, PanelLeft } from 'lucide-react';
+import { Check, X, Ban, User, Flag, MessageSquare, Award, BarChart3, TrendingUp, Search, Loader2, Briefcase, FileText, ShoppingBag, CreditCard, Trash2, Star, Edit, LogOut, ArrowLeft, Send, Shield, PanelLeft, Mail, Video } from 'lucide-react';
 import { useModal } from '@/context/ModalContext';
 import EditModal from '@/components/EditModal';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
@@ -12,7 +12,7 @@ import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 export default function AdminDashboard() {
     const { showModal } = useModal();
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'approvals' | 'users' | 'projects' | 'jobs' | 'orders' | 'finance' | 'monitoring' | 'strikes' | 'rewards'>('dashboard');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'approvals' | 'users' | 'projects' | 'jobs' | 'orders' | 'finance' | 'chats' | 'strikes' | 'rewards' | 'emails'>('dashboard');
 
     // Data States
     const [pendingFreelancers, setPendingFreelancers] = useState<any[]>([]);
@@ -24,6 +24,7 @@ export default function AdminDashboard() {
     const [orders, setOrders] = useState<any[]>([]);
     const [transactions, setTransactions] = useState<any[]>([]);
     const [topFreelancers, setTopFreelancers] = useState<any>(null);
+    const [emailLogs, setEmailLogs] = useState<any[]>([]);
 
     // Search & UI States
     const [searchQuery, setSearchQuery] = useState('');
@@ -34,11 +35,17 @@ export default function AdminDashboard() {
     // Approvals states
     const [selectedFreelancer, setSelectedFreelancer] = useState<any>(null);
 
-    // Monitoring states
+    // Chats states
     const [selectedChat, setSelectedChat] = useState<any>(null);
     const [chatMessages, setChatMessages] = useState<any[]>([]);
     const [adminMessageInput, setAdminMessageInput] = useState('');
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+    // Dispute resolution
+    const [disputeModal, setDisputeModal] = useState<{ isOpen: boolean; order: any | null }>({ isOpen: false, order: null });
+    const [disputeOutcome, setDisputeOutcome] = useState('');
+    const [disputeStatus, setDisputeStatus] = useState<'completed' | 'refunded'>('completed');
+    const [resolvingDispute, setResolvingDispute] = useState(false);
 
     // Fetch Functions
     const fetchPending = async () => {
@@ -68,6 +75,8 @@ export default function AdminDashboard() {
                 content: m.content,
                 senderId: m.senderId?._id || m.senderId,
                 isAdmin: m.isAdmin || m.content?.includes('[Engezhaly Admin]'),
+                isMeeting: m.messageType === 'meeting' || m.content?.includes('[Engezhaly Meeting]'),
+                messageType: m.messageType,
                 createdAt: m.createdAt
             }));
             setChatMessages(formatted);
@@ -170,6 +179,15 @@ export default function AdminDashboard() {
         }
     };
 
+    const fetchEmailLogs = async () => {
+        try {
+            const data = await api.admin.getEmailLogs();
+            setEmailLogs(data);
+        } catch (err) {
+            console.error('Failed to fetch email logs', err);
+        }
+    };
+
     useEffect(() => {
         fetchPending();
         fetchInsights();
@@ -182,8 +200,9 @@ export default function AdminDashboard() {
         if (activeTab === 'jobs') fetchJobs();
         if (activeTab === 'orders') fetchOrders();
         if (activeTab === 'finance') fetchTransactions();
-        if (activeTab === 'monitoring') fetchChats();
+        if (activeTab === 'chats') fetchChats();
         if (activeTab === 'rewards') fetchTopFreelancers();
+        if (activeTab === 'emails') fetchEmailLogs();
     }, [activeTab]);
 
     // Action Handlers
@@ -445,14 +464,17 @@ export default function AdminDashboard() {
                         <Check className="w-5 h-5" /> Approvals
                         {pendingFreelancers.length > 0 && <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{pendingFreelancers.length}</span>}
                     </button>
-                    <button onClick={() => setActiveTab('monitoring')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'monitoring' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
-                        <MessageSquare className="w-5 h-5" /> Monitoring
+                    <button onClick={() => setActiveTab('chats')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'chats' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
+                        <MessageSquare className="w-5 h-5" /> Chats
                     </button>
                     <button onClick={() => setActiveTab('strikes')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'strikes' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <Ban className="w-5 h-5" /> Strikes
                     </button>
                     <button onClick={() => setActiveTab('rewards')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'rewards' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <Award className="w-5 h-5" /> Rewards
+                    </button>
+                    <button onClick={() => setActiveTab('emails')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'emails' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
+                        <Mail className="w-5 h-5" /> Email Logs
                     </button>
                 </nav>
 
@@ -550,7 +572,7 @@ export default function AdminDashboard() {
                                         {activeTab === 'users' && <><th className="p-4">Name</th><th className="p-4">Email</th><th className="p-4">Role</th><th className="p-4">Actions</th></>}
                                         {activeTab === 'projects' && <><th className="p-4">Title</th><th className="p-4">Seller</th><th className="p-4">Price Range</th><th className="p-4">Actions</th></>}
                                         {activeTab === 'jobs' && <><th className="p-4">Title</th><th className="p-4">Client</th><th className="p-4">Budget</th><th className="p-4">Actions</th></>}
-                                        {activeTab === 'orders' && <><th className="p-4">ID</th><th className="p-4">Project</th><th className="p-4">Buyer</th><th className="p-4">Seller</th><th className="p-4">Amount</th><th className="p-4">Status</th></>}
+                                        {activeTab === 'orders' && <><th className="p-4">ID</th><th className="p-4">Project</th><th className="p-4">Buyer</th><th className="p-4">Seller</th><th className="p-4">Amount</th><th className="p-4">Status</th><th className="p-4">Actions</th></>}
                                         {activeTab === 'finance' && <><th className="p-4">Type</th><th className="p-4">User</th><th className="p-4">Amount</th><th className="p-4">Status</th><th className="p-4">Date</th></>}
                                     </tr>
                                 </thead>
@@ -559,7 +581,7 @@ export default function AdminDashboard() {
                                         <tr key={user._id} className="hover:bg-gray-50">
                                             <td className="p-4 font-bold">{user.firstName} {user.lastName}</td>
                                             <td className="p-4 text-gray-600">{user.email}</td>
-                                            <td className="p-4"><span className={`px-2 py-1 rounded text-xs font-bold ${user.role === 'admin' ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-600'}`}>{user.role}</span></td>
+                                            <td className="p-4"><span className={`px-2 py-1 rounded text-xs font-bold uppercase ${user.role === 'admin' ? 'bg-purple-100 text-purple-600' : user.role === 'freelancer' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>{user.role === 'freelancer' && user.freelancerProfile?.category ? `${user.role} - ${user.freelancerProfile.category}` : user.role}</span></td>
                                             <td className="p-4 flex gap-2">
                                                 <button onClick={() => handleEditUser(user)} className="text-blue-500 hover:bg-blue-50 p-2 rounded"><Edit className="w-4 h-4" /></button>
                                                 <button onClick={() => handleDeleteUser(user._id)} className="text-red-500 hover:bg-red-50 p-2 rounded"><Trash2 className="w-4 h-4" /></button>
@@ -595,7 +617,17 @@ export default function AdminDashboard() {
                                             <td className="p-4">{order.buyerId?.firstName}</td>
                                             <td className="p-4">{order.sellerId?.firstName}</td>
                                             <td className="p-4 font-bold text-gray-900">{order.amount} EGP</td>
-                                            <td className="p-4"><span className={`px-2 py-1 rounded text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>{order.status}</span></td>
+                                            <td className="p-4"><span className={`px-2 py-1 rounded text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'disputed' ? 'bg-amber-100 text-amber-700' : order.status === 'refunded' ? 'bg-gray-100 text-gray-700' : 'bg-blue-100 text-blue-700'}`}>{order.status}</span></td>
+                                            <td className="p-4">
+                                                {order.status === 'disputed' && (
+                                                    <button
+                                                        onClick={() => setDisputeModal({ isOpen: true, order })}
+                                                        className="text-[#09BF44] hover:bg-green-50 px-3 py-1.5 rounded font-bold text-sm flex items-center gap-1"
+                                                    >
+                                                        <Shield className="w-4 h-4" /> Resolve
+                                                    </button>
+                                                )}
+                                            </td>
                                         </tr>
                                     ))}
                                     {activeTab === 'finance' && transactions.map(tx => (
@@ -607,6 +639,47 @@ export default function AdminDashboard() {
                                             <td className="p-4 text-gray-500">{new Date(tx.createdAt).toLocaleDateString()}</td>
                                         </tr>
                                     ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'emails' && (
+                    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-gray-50 text-gray-500 font-bold uppercase">
+                                    <tr>
+                                        <th className="p-4">Recipient</th>
+                                        <th className="p-4">Subject</th>
+                                        <th className="p-4">Template</th>
+                                        <th className="p-4">Status</th>
+                                        <th className="p-4">Sent At</th>
+                                        <th className="p-4">Error</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {emailLogs.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={6} className="p-8 text-center text-gray-500">No email logs yet.</td>
+                                        </tr>
+                                    ) : (
+                                        emailLogs.map((log: any) => (
+                                            <tr key={log._id} className="hover:bg-gray-50">
+                                                <td className="p-4 text-gray-900">{log.recipient}</td>
+                                                <td className="p-4 truncate max-w-xs">{log.subject}</td>
+                                                <td className="p-4"><span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">{log.templateType}</span></td>
+                                                <td className="p-4">
+                                                    <span className={`px-2 py-1 rounded text-xs font-bold ${log.status === 'sent' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                        {log.status}
+                                                    </span>
+                                                </td>
+                                                <td className="p-4 text-gray-500">{log.sentAt ? new Date(log.sentAt).toLocaleString() : '-'}</td>
+                                                <td className="p-4 text-red-600 text-xs max-w-xs truncate" title={log.error}>{log.error || '-'}</td>
+                                            </tr>
+                                        ))
+                                    )}
                                 </tbody>
                             </table>
                         </div>
@@ -639,10 +712,13 @@ export default function AdminDashboard() {
                                                         )}
                                                         <div>
                                                             <h4 className="font-bold text-gray-900">{f.firstName} {f.lastName}</h4>
-                                                            <p className="text-sm text-gray-500">{f.freelancerProfile?.category || 'No category'} {f.freelancerProfile?.experienceYears != null ? `• ${f.freelancerProfile.experienceYears} Years Exp.` : ''}</p>
+                                                            <p className="text-sm text-gray-500">{f.freelancerProfile?.experienceYears != null ? `${f.freelancerProfile.experienceYears} Years Exp.` : ''}</p>
                                                         </div>
                                                     </div>
-                                                    <span className="text-xs font-bold text-gray-400">Click to review →</span>
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="px-3 py-1 bg-[#09BF44]/10 text-[#09BF44] text-xs font-bold rounded-full uppercase">{(f.freelancerProfile?.category || 'No category')}</span>
+                                                        <span className="text-xs font-bold text-gray-400">Click to review →</span>
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
@@ -677,7 +753,7 @@ export default function AdminDashboard() {
                                             <h2 className="text-2xl font-black text-gray-900">{selectedFreelancer.firstName} {selectedFreelancer.lastName}</h2>
                                             <p className="text-gray-500 font-medium">@{selectedFreelancer.username}</p>
                                             {selectedFreelancer.freelancerProfile?.category && (
-                                                <span className="inline-block mt-2 px-3 py-1 bg-[#09BF44]/10 text-[#09BF44] text-sm font-bold rounded-full">{selectedFreelancer.freelancerProfile.category}</span>
+                                                <span className="inline-block mt-2 px-3 py-1 bg-[#09BF44]/10 text-[#09BF44] text-sm font-bold rounded-full uppercase">{selectedFreelancer.freelancerProfile.category}</span>
                                             )}
                                         </div>
                                     </div>
@@ -929,7 +1005,7 @@ export default function AdminDashboard() {
                     </div>
                 )}
 
-                {activeTab === 'monitoring' && (
+                {activeTab === 'chats' && (
                     <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-[calc(100vh-12rem)]">
                         {!selectedChat ? (
                             <>
@@ -1058,21 +1134,28 @@ export default function AdminDashboard() {
                                 <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-4 bg-gray-50">
                                     {chatMessages.map((msg: any) => {
                                         const isAdmin = msg.isAdmin || msg.content?.includes('[Engezhaly Admin]');
-                                        const content = isAdmin ? msg.content.replace('[Engezhaly Admin]', '').trim() : msg.content;
+                                        const isMeeting = msg.isMeeting || msg.messageType === 'meeting' || msg.content?.includes('[Engezhaly Meeting]');
+                                        const isCentered = isAdmin || isMeeting;
+                                        let content = msg.content || '';
+                                        if (isAdmin) content = content.replace('[Engezhaly Admin]', '').trim();
+                                        if (isMeeting) content = content.replace('[Engezhaly Meeting]', '').trim();
+                                        const linkMatch = content.match(/Join here: (https?:\/\/[^\s]+)/);
+                                        const meetingLink = linkMatch ? linkMatch[1] : null;
                                         const senderId = String(msg.senderId?._id || msg.senderId);
                                         const participant1Id = selectedChat.participants?.[0]?._id ? String(selectedChat.participants[0]._id) : null;
                                         const participant2Id = selectedChat.participants?.[1]?._id ? String(selectedChat.participants[1]._id) : null;
                                         const isFromParticipant1 = participant1Id && senderId === participant1Id;
-                                        const isFromParticipant2 = participant2Id && senderId === participant2Id;
                                         
                                         return (
-                                            <div key={msg._id} className={`flex ${isAdmin ? 'justify-center' : isFromParticipant1 ? 'justify-start' : 'justify-end'}`}>
+                                            <div key={msg._id} className={`flex ${isCentered ? 'justify-center' : isFromParticipant1 ? 'justify-start' : 'justify-end'}`}>
                                                 <div className={`max-w-[70%] px-4 py-2 rounded-2xl shadow-sm ${
                                                     isAdmin 
                                                         ? 'bg-yellow-100 border-2 border-yellow-300 text-gray-900'
-                                                        : isFromParticipant1
-                                                            ? 'bg-white border border-gray-200 text-gray-900 rounded-bl-sm'
-                                                            : 'bg-[#09BF44] text-white rounded-br-sm'
+                                                        : isMeeting
+                                                            ? 'bg-green-50 border-2 border-[#09BF44]/40 text-gray-900'
+                                                            : isFromParticipant1
+                                                                ? 'bg-white border border-gray-200 text-gray-900 rounded-bl-sm'
+                                                                : 'bg-[#09BF44] text-white rounded-br-sm'
                                                 }`}>
                                                     {isAdmin && (
                                                         <div className="flex items-center gap-2 mb-1">
@@ -1080,8 +1163,24 @@ export default function AdminDashboard() {
                                                             <span className="text-xs font-bold text-yellow-700">Engezhaly Admin</span>
                                                         </div>
                                                     )}
+                                                    {isMeeting && (
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <Video className="w-4 h-4 text-[#09BF44]" />
+                                                            <span className="text-xs font-bold text-[#09BF44]">Video Meeting</span>
+                                                        </div>
+                                                    )}
                                                     <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{content}</p>
-                                                    <div className={`flex items-center justify-end mt-1 ${isAdmin ? 'text-yellow-700' : isFromParticipant1 ? 'text-gray-500' : 'text-green-50'}`}>
+                                                    {meetingLink && (
+                                                        <a
+                                                            href={meetingLink}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="inline-flex items-center gap-2 mt-2 px-3 py-2 bg-[#09BF44] text-white rounded-xl font-bold text-sm hover:bg-[#07a63a] transition-colors"
+                                                        >
+                                                            <Video className="w-4 h-4" /> Join Meeting
+                                                        </a>
+                                                    )}
+                                                    <div className={`flex items-center justify-end mt-1 ${isAdmin ? 'text-yellow-700' : isMeeting ? 'text-[#09BF44]/80' : isFromParticipant1 ? 'text-gray-500' : 'text-green-50'}`}>
                                                         <span className="text-[10px]">
                                                             {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                         </span>
@@ -1222,6 +1321,83 @@ export default function AdminDashboard() {
                         { name: 'status', label: 'Status', type: 'select', options: ['open', 'in_progress', 'completed', 'closed'], defaultValue: editModal.data?.status || 'open' }
                     ]}
                 />
+            )}
+
+            {/* Dispute Resolution Modal */}
+            {disputeModal.isOpen && disputeModal.order && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-3xl shadow-xl max-w-md w-full p-6">
+                        <h3 className="text-lg font-bold mb-4">Resolve Dispute</h3>
+                        <p className="text-gray-600 text-sm mb-4">
+                            Order: <strong>{disputeModal.order.projectId?.title || 'Custom Offer'}</strong> ({disputeModal.order.amount} EGP)
+                        </p>
+                        {disputeModal.order.disputeReason && (
+                            <p className="text-amber-700 bg-amber-50 p-3 rounded-xl text-sm mb-4">
+                                <strong>Reason:</strong> {disputeModal.order.disputeReason}
+                            </p>
+                        )}
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Outcome</label>
+                                <select
+                                    value={disputeStatus}
+                                    onChange={(e) => setDisputeStatus(e.target.value as 'completed' | 'refunded')}
+                                    className="w-full border border-gray-200 rounded-xl px-4 py-2"
+                                >
+                                    <option value="completed">Release to Freelancer</option>
+                                    <option value="refunded">Refund Client</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Outcome Message (sent to both parties)</label>
+                                <textarea
+                                    value={disputeOutcome}
+                                    onChange={(e) => setDisputeOutcome(e.target.value)}
+                                    placeholder="e.g. After review, we have released funds to the freelancer."
+                                    className="w-full border border-gray-200 rounded-xl px-4 py-2 min-h-[80px]"
+                                    rows={3}
+                                />
+                            </div>
+                        </div>
+                        <div className="flex gap-3 mt-6">
+                            <button
+                                onClick={() => {
+                                    setDisputeModal({ isOpen: false, order: null });
+                                    setDisputeOutcome('');
+                                    setDisputeStatus('completed');
+                                }}
+                                className="flex-1 py-2 rounded-xl font-bold border border-gray-200 hover:bg-gray-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    setResolvingDispute(true);
+                                    try {
+                                        await api.admin.updateOrder(disputeModal.order._id, {
+                                            status: disputeStatus,
+                                            disputeOutcome: disputeOutcome.trim() || undefined
+                                        });
+                                        showModal({ title: 'Dispute Resolved', message: 'Both parties have been notified.', type: 'success' });
+                                        setDisputeModal({ isOpen: false, order: null });
+                                        setDisputeOutcome('');
+                                        setDisputeStatus('completed');
+                                        fetchOrders();
+                                    } catch (e: any) {
+                                        showModal({ title: 'Error', message: e.message || 'Failed to resolve dispute', type: 'error' });
+                                    } finally {
+                                        setResolvingDispute(false);
+                                    }
+                                }}
+                                disabled={resolvingDispute}
+                                className="flex-1 py-2 rounded-xl font-bold bg-[#09BF44] text-white hover:bg-[#08a83a] disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                                {resolvingDispute ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                                Resolve
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

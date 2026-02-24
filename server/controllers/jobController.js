@@ -1,6 +1,8 @@
 const Job = require('../models/Job');
 const User = require('../models/User');
-const { sendJobApplicationEmail } = require('../services/emailService');
+const { sendAndLog } = require('../services/mailgunService');
+const { jobApplication: jobApplicationTemplate } = require('../templates/emailTemplates');
+const { emitToUser, isUserOnline } = require('../services/notificationService');
 const fs = require('fs');
 
 const log = (data) => {
@@ -92,13 +94,28 @@ const applyToJob = async (req, res) => {
         job.proposals.push(newProposal);
         await job.save();
 
-        // Get Freelancer Name for Email
-        const freelancer = await User.findById(freelancerId);
-        const freelancerName = `${freelancer.firstName} ${freelancer.lastName}`;
+        // Get Freelancer info for Email
+        const freelancer = await User.findById(freelancerId).select('firstName lastName freelancerProfile.bio');
+        const freelancerName = freelancer ? `${freelancer.firstName} ${freelancer.lastName}` : 'A freelancer';
+        const freelancerBio = freelancer?.freelancerProfile?.bio || '';
 
-        // Send Email Notification to Client
-        if (job.clientId && job.clientId.email) {
-            sendJobApplicationEmail(job.clientId.email, job.title, freelancerName);
+        // Notify client: if online -> push; if offline -> email
+        const clientId = job.clientId?._id || job.clientId;
+        const clientEmail = job.clientId?.email;
+        const jobLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard/client/jobs/${jobId}`;
+
+        if (clientId && req.app) {
+            if (isUserOnline(req.app, clientId)) {
+                emitToUser(req.app, clientId, {
+                    title: `New application for: ${job.title}`,
+                    message: `${freelancerName} has applied to your job.`,
+                    link: jobLink,
+                    type: 'job_application'
+                });
+            } else if (clientEmail) {
+                const { subject, html } = jobApplicationTemplate(job.title, freelancerName, freelancerBio, jobId);
+                sendAndLog(clientEmail, subject, html, 'job_application', { jobId, freelancerId }).catch(err => console.error('[Job] Email failed:', err.message));
+            }
         }
 
         // #region agent log

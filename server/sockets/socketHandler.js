@@ -1,7 +1,5 @@
 const jwt = require('jsonwebtoken');
-
-// Map: roomId -> Set of userIds currently viewing
-const usersInRoom = new Map();
+const { usersInRoom } = require('../services/presence');
 
 function getRoomId(conversationId) {
     return `conversation:${String(conversationId)}`;
@@ -19,6 +17,11 @@ module.exports = (io) => {
             }
         } catch (e) {
             // No auth - allow connection but no userId
+        }
+
+        // Join user-specific room for global notifications
+        if (userId) {
+            socket.join(`user:${userId}`);
         }
 
         socket.on('join_chat', (conversationId) => {
@@ -69,6 +72,7 @@ module.exports = (io) => {
 
         socket.on('disconnect', () => {
             if (userId) {
+                socket.leave(`user:${userId}`);
                 usersInRoom.forEach((set, roomId) => {
                     if (set.has(userId)) {
                         set.delete(userId);

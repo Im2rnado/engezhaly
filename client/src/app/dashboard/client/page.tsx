@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Briefcase, Clock, PlusCircle, ShoppingBag, Wallet, Edit, Loader2, X, Eye, PanelLeft } from 'lucide-react';
+import { Briefcase, Clock, PlusCircle, ShoppingBag, Wallet, Edit, Loader2, X, Eye, PanelLeft, Flag } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useModal } from '@/context/ModalContext';
 import ClientSidebar from '@/components/ClientSidebar';
@@ -414,7 +414,7 @@ export default function ClientDashboard() {
                                         </div>
                                         <div className="text-right shrink-0">
                                             <p className="text-xl font-black text-gray-900">{order.amount} EGP</p>
-                                            <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                                            <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'disputed' ? 'bg-amber-100 text-amber-700' : order.status === 'refunded' ? 'bg-gray-100 text-gray-700' : order.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
                                                 {order.status}
                                             </span>
                                         </div>
@@ -426,6 +426,23 @@ export default function ClientDashboard() {
                                         <span className="text-xs text-gray-500 font-bold">
                                             Ordered {new Date(order.createdAt).toLocaleDateString()}
                                         </span>
+                                        {order.status === 'active' && (
+                                            <button
+                                                onClick={async () => {
+                                                    if (!confirm('Raise a dispute? Our team will review and resolve it.')) return;
+                                                    try {
+                                                        await api.client.raiseDispute(order._id);
+                                                        showModal({ title: 'Dispute Raised', message: 'Our team will review and resolve it shortly.', type: 'success' });
+                                                        fetchOrders();
+                                                    } catch (e: any) {
+                                                        showModal({ title: 'Error', message: e.message || 'Failed to raise dispute', type: 'error' });
+                                                    }
+                                                }}
+                                                className="text-amber-600 hover:text-amber-700 text-xs font-bold flex items-center gap-1"
+                                            >
+                                                <Flag className="w-3.5 h-3.5" /> Raise Dispute
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             ))

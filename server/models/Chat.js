@@ -4,7 +4,7 @@ const ChatSchema = new mongoose.Schema({
     conversationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Conversation', required: true },
     senderId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     receiverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    messageType: { type: String, enum: ['text', 'voice', 'file'], default: 'text' },
+    messageType: { type: String, enum: ['text', 'voice', 'file', 'meeting'], default: 'text' },
     content: { type: String, required: true }, // Text content or URL
     isRead: { type: Boolean, default: false },
     readAt: { type: Date, default: null },

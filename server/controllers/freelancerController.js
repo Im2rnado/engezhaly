@@ -160,6 +160,32 @@ const getTopFreelancers = async (req, res) => {
     }
 };
 
+const raiseDispute = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const orderId = req.params.id;
+        const { reason } = req.body;
+
+        const order = await Order.findById(orderId);
+        if (!order) return res.status(404).json({ msg: 'Order not found' });
+        if (order.sellerId.toString() !== userId) {
+            return res.status(403).json({ msg: 'Only the seller can raise a dispute on this order' });
+        }
+        if (order.status !== 'active') {
+            return res.status(400).json({ msg: 'Can only dispute active orders' });
+        }
+
+        order.status = 'disputed';
+        if (reason) order.disputeReason = reason;
+        await order.save();
+
+        res.json({ msg: 'Dispute raised. Our team will review and resolve it shortly.', order });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+};
+
 const getMyOrders = async (req, res) => {
     try {
         const freelancerId = req.user.id;
@@ -227,5 +253,6 @@ module.exports = {
     getPublicProfile,
     getTopFreelancers,
     getMyOrders,
-    submitOrderWork
+    submitOrderWork,
+    raiseDispute
 };

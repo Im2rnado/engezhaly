@@ -1,6 +1,10 @@
 const Project = require('../models/Project');
 const User = require('../models/User');
 const Order = require('../models/Order');
+const Transaction = require('../models/Transaction');
+const { sendAndLog } = require('../services/mailgunService');
+const { offerPurchased: offerPurchasedTemplate, paymentReceiptFreelancer, paymentReceiptClient } = require('../templates/emailTemplates');
+const { emitToUser, isUserOnline } = require('../services/notificationService');
 
 const createProject = async (req, res) => {
     try {
@@ -167,10 +171,48 @@ const createProjectOrder = async (req, res) => {
         buyer.walletBalance -= amount;
         await buyer.save();
 
+        // Create Transaction records
+        await Transaction.create([
+            { userId: buyerId, type: 'payment', amount: -amount, description: `Order: ${project.title}`, orderId: order._id, relatedUserId: project.sellerId },
+            { userId: project.sellerId, type: 'payment', amount: amount - platformFee, description: `Order: ${project.title}`, orderId: order._id, relatedUserId: buyerId }
+        ]);
+
         const populated = await Order.findById(order._id)
             .populate('projectId', 'title')
-            .populate('buyerId', 'firstName lastName')
-            .populate('sellerId', 'firstName lastName');
+            .populate('buyerId', 'firstName lastName email')
+            .populate('sellerId', 'firstName lastName email');
+
+        // Notify freelancer (seller): if online -> push; if offline -> email
+        const seller = populated.sellerId;
+        const sellerId = seller?._id || project.sellerId;
+        const clientName = populated.buyerId ? `${populated.buyerId.firstName} ${populated.buyerId.lastName}` : 'A client';
+        const offerTitle = populated.projectId?.title || 'Project';
+        const orderLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard/freelancer?tab=orders`;
+
+        if (sellerId && req.app) {
+            if (isUserOnline(req.app, sellerId)) {
+                emitToUser(req.app, sellerId, {
+                    title: 'Your offer has been purchased!',
+                    message: `${clientName} purchased: ${offerTitle} (${amount} EGP)`,
+                    link: orderLink,
+                    type: 'order'
+                });
+            } else if (seller?.email) {
+                const { subject, html } = offerPurchasedTemplate(clientName, offerTitle, amount, order._id);
+                sendAndLog(seller.email, subject, html, 'offer_purchased', { orderId: order._id, buyerId, sellerId }).catch(err => console.error('[Project] Email failed:', err.message));
+            }
+        }
+
+        // Send payment receipt emails to both
+        const buyerUser = populated.buyerId;
+        if (buyerUser?.email) {
+            const { subject, html } = paymentReceiptClient(amount, populated.projectId?.title || 'Project', order._id.toString(), new Date().toLocaleDateString());
+            sendAndLog(buyerUser.email, subject, html, 'payment_receipt_client', { orderId: order._id }).catch(err => console.error('[Project] Receipt email failed:', err.message));
+        }
+        if (seller?.email) {
+            const { subject, html } = paymentReceiptFreelancer(amount, amount - platformFee, platformFee, populated.projectId?.title, order._id.toString(), new Date().toLocaleDateString());
+            sendAndLog(seller.email, subject, html, 'payment_receipt_freelancer', { orderId: order._id }).catch(err => console.error('[Project] Receipt email failed:', err.message));
+        }
 
         res.json(populated);
     } catch (err) {

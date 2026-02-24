@@ -1,7 +1,10 @@
+const crypto = require('crypto');
 const User = require('../models/User');
+const VerificationToken = require('../models/VerificationToken');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { sendVerificationEmail } = require('../services/emailService');
+const { sendAndLog } = require('../services/mailgunService');
+const { verification: verificationTemplate, passwordReset: passwordResetTemplate } = require('../templates/emailTemplates');
 
 const register = async (req, res) => {
     try {
@@ -22,7 +25,8 @@ const register = async (req, res) => {
             email,
             password: hashedPassword,
             role,
-            phoneNumber
+            phoneNumber,
+            emailVerified: false
         };
 
         if (role === 'client') {
@@ -42,20 +46,29 @@ const register = async (req, res) => {
         user = new User(userData);
         await user.save();
 
-        // Send Verification Email (Async)
-        sendVerificationEmail(email, 'dummy-verification-token');
+        // Generate verification token (24h expiry)
+        const token = crypto.randomBytes(32).toString('hex');
+        await VerificationToken.create({
+            userId: user._id,
+            token,
+            type: 'email_verification',
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
+        });
 
-        // Create Token
+        // Send verification email (async, don't block response)
+        const { subject, html } = verificationTemplate(token);
+        sendAndLog(email, subject, html, 'verification', { userId: user._id }).catch(err => console.error('[Auth] Verification email failed:', err.message));
+
+        // Create JWT
         const payload = { user: { id: user.id, role: user.role } };
-
         jwt.sign(
             payload,
             process.env.JWT_SECRET || 'secret',
             { expiresIn: '1d' },
-            (err, token) => {
+            (err, authToken) => {
                 if (err) throw err;
                 res.json({
-                    token,
+                    token: authToken,
                     user: {
                         id: user.id,
                         firstName,
@@ -63,23 +76,26 @@ const register = async (req, res) => {
                         email,
                         role,
                         username,
+                        emailVerified: false,
                         freelancerProfile: user.freelancerProfile
                     }
                 });
             }
         );
-
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(500).json({ msg: 'Server Error' });
     }
 };
 
 const login = async (req, res) => {
     try {
-        const { identifier, password } = req.body; // identifier can be email, username, or phone
+        const { identifier, password } = req.body;
 
-        // Check if user exists
+        if (!identifier || !password || typeof password !== 'string') {
+            return res.status(400).json({ message: 'Invalid Credentials' });
+        }
+
         let user = await User.findOne({
             $or: [
                 { email: identifier },
@@ -92,20 +108,23 @@ const login = async (req, res) => {
             return res.status(400).json({ message: 'Invalid Credentials' });
         }
 
-        // Check password
+        if (!user.password) {
+            return res.status(400).json({ message: 'Invalid Credentials' });
+        }
+
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(400).json({ message: 'Invalid Credentials' });
         }
 
-        // Create Token
-        const payload = {
-            user: {
-                id: user.id,
-                role: user.role
-            }
-        };
+        if (!user.emailVerified && user.role !== 'admin') {
+            return res.status(403).json({
+                message: 'Please verify your email before logging in. Check your inbox for the verification link.',
+                code: 'EMAIL_NOT_VERIFIED'
+            });
+        }
 
+        const payload = { user: { id: user.id, role: user.role } };
         jwt.sign(
             payload,
             process.env.JWT_SECRET || 'secret',
@@ -121,54 +140,109 @@ const login = async (req, res) => {
                         email: user.email,
                         role: user.role,
                         username: user.username,
+                        emailVerified: user.emailVerified,
                         freelancerProfile: user.freelancerProfile
                     }
                 });
             }
         );
-
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(500).json({ msg: 'Server Error' });
+    }
+};
+
+const verifyEmail = async (req, res) => {
+    try {
+        const { token } = req.query;
+        if (!token) {
+            return res.status(400).json({ msg: 'Verification token is required' });
+        }
+
+        const vt = await VerificationToken.findOne({ token, type: 'email_verification' });
+        if (!vt) {
+            return res.status(400).json({ msg: 'Invalid or expired verification link' });
+        }
+        if (vt.expiresAt < new Date()) {
+            await VerificationToken.deleteOne({ _id: vt._id });
+            return res.status(400).json({ msg: 'Verification link has expired' });
+        }
+
+        await User.findByIdAndUpdate(vt.userId, { emailVerified: true });
+        await VerificationToken.deleteOne({ _id: vt._id });
+
+        res.json({ msg: 'Email verified successfully' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Server Error' });
     }
 };
 
 const forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
-
         if (!email) {
             return res.status(400).json({ message: 'Email is required' });
         }
 
         const user = await User.findOne({ email });
         if (!user) {
-            // Don't reveal if user exists for security
             return res.json({ message: 'If an account exists with this email, a password reset link has been sent.' });
         }
 
-        // In a real app, you would:
-        // 1. Generate a reset token
-        // 2. Save it to the user model with expiration
-        // 3. Send email with reset link
-        // For now, we'll just return a success message
+        const token = crypto.randomBytes(32).toString('hex');
+        await VerificationToken.create({
+            userId: user._id,
+            token,
+            type: 'password_reset',
+            expiresAt: new Date(Date.now() + 60 * 60 * 1000) // 1 hour
+        });
 
-        // TODO: Implement actual password reset email sending
-        // const resetToken = crypto.randomBytes(32).toString('hex');
-        // user.resetPasswordToken = resetToken;
-        // user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
-        // await user.save();
-        // await sendPasswordResetEmail(email, resetToken);
+        const { subject, html } = passwordResetTemplate(token);
+        sendAndLog(email, subject, html, 'password_reset', { userId: user._id }).catch(err => console.error('[Auth] Password reset email failed:', err.message));
 
         res.json({ message: 'If an account exists with this email, a password reset link has been sent.' });
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(500).json({ msg: 'Server Error' });
+    }
+};
+
+const resetPassword = async (req, res) => {
+    try {
+        const { token, newPassword } = req.body;
+        if (!token || !newPassword) {
+            return res.status(400).json({ msg: 'Token and new password are required' });
+        }
+        if (newPassword.length < 6) {
+            return res.status(400).json({ msg: 'Password must be at least 6 characters' });
+        }
+
+        const vt = await VerificationToken.findOne({ token, type: 'password_reset' });
+        if (!vt) {
+            return res.status(400).json({ msg: 'Invalid or expired reset link' });
+        }
+        if (vt.expiresAt < new Date()) {
+            await VerificationToken.deleteOne({ _id: vt._id });
+            return res.status(400).json({ msg: 'Reset link has expired' });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+        await User.findByIdAndUpdate(vt.userId, { password: hashedPassword });
+        await VerificationToken.deleteOne({ _id: vt._id });
+
+        res.json({ msg: 'Password reset successfully' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Server Error' });
     }
 };
 
 module.exports = {
     register,
     login,
-    forgotPassword
+    verifyEmail,
+    forgotPassword,
+    resetPassword
 };

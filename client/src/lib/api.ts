@@ -50,6 +50,22 @@ export const api = {
             const result = await res.json();
             if (!res.ok) throw new Error(result.message || 'Failed to send reset email');
             return result;
+        },
+        verify: async (token: string) => {
+            const res = await fetch(`${API_URL}/auth/verify?token=${encodeURIComponent(token)}`);
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.msg || 'Verification failed');
+            return result;
+        },
+        resetPassword: async (token: string, newPassword: string) => {
+            const res = await fetch(`${API_URL}/auth/reset-password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token, newPassword }),
+            });
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.msg || 'Password reset failed');
+            return result;
         }
     },
     upload: {
@@ -89,7 +105,13 @@ export const api = {
                 method: 'GET',
                 headers: getHeaders()
             });
-            if (!res.ok) throw new Error('Failed to fetch profile');
+            if (!res.ok) {
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                }
+                throw new Error('Failed to fetch profile');
+            }
             return res.json();
         },
         getPublicProfile: async (id: string) => {
@@ -116,6 +138,16 @@ export const api = {
             const result = await res.json().catch(() => ({ msg: 'Failed to submit work' }));
             if (!res.ok) throw new Error(result.msg || 'Failed to submit work');
             return result;
+        },
+        raiseDispute: async (orderId: string, reason?: string) => {
+            const res = await fetch(`${API_URL}/freelancer/orders/${orderId}/dispute`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify({ reason: reason || '' }),
+            });
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.msg || 'Failed to raise dispute');
+            return result;
         }
     },
     client: {
@@ -124,7 +156,13 @@ export const api = {
                 method: 'GET',
                 headers: getHeaders()
             });
-            if (!res.ok) throw new Error('Failed to fetch profile');
+            if (!res.ok) {
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                }
+                throw new Error('Failed to fetch profile');
+            }
             return res.json();
         },
         updateProfile: async (data: any) => {
@@ -188,6 +226,16 @@ export const api = {
             });
             if (!res.ok) throw new Error('Failed to fetch orders');
             return res.json();
+        },
+        raiseDispute: async (orderId: string, reason?: string) => {
+            const res = await fetch(`${API_URL}/client/orders/${orderId}/dispute`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify({ reason: reason || '' }),
+            });
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.msg || 'Failed to raise dispute');
+            return result;
         }
     },
     jobs: {
@@ -371,6 +419,24 @@ export const api = {
             });
             if (!res.ok) throw new Error('Failed to fetch offers');
             return res.json();
+        },
+        getConsultationStatus: async (conversationId: string) => {
+            const res = await fetch(`${API_URL}/chat/consultation-status/${conversationId}`, {
+                method: 'GET',
+                headers: getHeaders()
+            });
+            if (!res.ok) throw new Error('Failed to fetch consultation status');
+            return res.json();
+        },
+        createConsultationMeeting: async (data: { conversationId: string; meetingDate: string; meetingTime: string }) => {
+            const res = await fetch(`${API_URL}/chat/consultation-meeting`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify(data)
+            });
+            const result = await res.json().catch(() => ({ msg: 'Failed to create meeting' }));
+            if (!res.ok) throw new Error(result.msg || 'Failed to create meeting');
+            return result;
         }
     },
     admin: {
@@ -556,6 +622,14 @@ export const api = {
                 headers: getHeaders()
             });
             return res.json();
+        },
+        getEmailLogs: async () => {
+            const res = await fetch(`${API_URL}/admin/email-logs`, {
+                method: 'GET',
+                headers: getHeaders()
+            });
+            if (!res.ok) throw new Error('Failed to fetch email logs');
+            return res.json();
         }
     },
     wallet: {
@@ -567,6 +641,16 @@ export const api = {
             });
             if (!res.ok) throw new Error('Top up failed');
             return res.json();
+        },
+        payConsultation: async (conversationId: string) => {
+            const res = await fetch(`${API_URL}/wallet/consultation-pay`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify({ conversationId })
+            });
+            const result = await res.json().catch(() => ({ msg: 'Payment failed' }));
+            if (!res.ok) throw new Error(result.msg || 'Payment failed');
+            return result;
         },
         getBalance: async () => {
             const res = await fetch(`${API_URL}/wallet/balance`, {
