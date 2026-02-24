@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { Suspense, useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
 import { Send, Video, Paperclip, MoreVertical, FileText, CheckCircle, XCircle, MessageSquare, Shield, PanelLeft, ArrowLeft, Loader2 } from 'lucide-react';
@@ -14,7 +14,7 @@ import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 
 const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
 
-export default function ChatPage() {
+function ChatPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { showModal } = useModal();
@@ -1083,5 +1083,17 @@ export default function ChatPage() {
                 />
             )}
         </div>
+    );
+}
+
+export default function ChatPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <Loader2 className="w-8 h-8 animate-spin text-[#09BF44]" />
+            </div>
+        }>
+            <ChatPageContent />
+        </Suspense>
     );
 }
