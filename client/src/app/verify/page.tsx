@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { api } from '@/lib/api';
 import Link from 'next/link';
 
-export default function VerifyPage() {
+function VerifyPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const token = searchParams.get('token');
@@ -65,5 +65,17 @@ export default function VerifyPage() {
                 )}
             </div>
         </main>
+    );
+}
+
+export default function VerifyPage() {
+    return (
+        <Suspense fallback={
+            <main className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+                <Loader2 className="w-12 h-12 animate-spin text-[#09BF44]" />
+            </main>
+        }>
+            <VerifyPageContent />
+        </Suspense>
     );
 }

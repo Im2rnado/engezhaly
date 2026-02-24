@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { X, ChevronDown } from "lucide-react";
 import { api } from "@/lib/api";
 import ProjectCard from "@/components/ProjectCard";
 import MainHeader from "@/components/MainHeader";
 
-export default function ProjectsPage() {
+function ProjectsPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [projects, setProjects] = useState<any[]>([]);
@@ -243,5 +243,17 @@ export default function ProjectsPage() {
             </div>
 
         </main>
+    );
+}
+
+export default function ProjectsPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <div className="w-8 h-8 border-2 border-[#09BF44] border-t-transparent rounded-full animate-spin" />
+            </div>
+        }>
+            <ProjectsPageContent />
+        </Suspense>
     );
 }

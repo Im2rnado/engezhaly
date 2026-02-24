@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -8,7 +8,7 @@ import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useModal } from '@/context/ModalContext';
 
-export default function ResetPasswordPage() {
+function ResetPasswordPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { showModal } = useModal();
@@ -122,5 +122,17 @@ export default function ResetPasswordPage() {
                 </p>
             </div>
         </main>
+    );
+}
+
+export default function ResetPasswordPage() {
+    return (
+        <Suspense fallback={
+            <main className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+                <Loader2 className="w-12 h-12 animate-spin text-[#09BF44]" />
+            </main>
+        }>
+            <ResetPasswordPageContent />
+        </Suspense>
     );
 }

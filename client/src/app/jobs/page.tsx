@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { X, ChevronDown, Briefcase } from "lucide-react";
 import { api } from "@/lib/api";
@@ -8,7 +8,7 @@ import MainHeader from "@/components/MainHeader";
 import AuthModal from "@/components/AuthModal";
 import { useModal } from "@/context/ModalContext";
 
-export default function JobsPage() {
+function JobsPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { showModal } = useModal();
@@ -386,5 +386,17 @@ export default function JobsPage() {
                 </div>
             )}
         </main>
+    );
+}
+
+export default function JobsPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <div className="w-8 h-8 border-2 border-[#09BF44] border-t-transparent rounded-full animate-spin" />
+            </div>
+        }>
+            <JobsPageContent />
+        </Suspense>
     );
 }
