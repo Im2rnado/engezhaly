@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from 'react';
+import { Suspense, useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Briefcase, DollarSign, PlusCircle, ShoppingBag, Star, CheckCircle, Loader2, Edit, Award, MessageSquare, X, PanelLeft, Flag } from 'lucide-react';
 import { api } from '@/lib/api';
@@ -11,7 +11,7 @@ import ProfileEditModal from '@/components/ProfileEditModal';
 import FreelancerSidebar from '@/components/FreelancerSidebar';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 
-export default function FreelancerDashboard() {
+function FreelancerDashboardContent() {
     const { showModal } = useModal();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -701,5 +701,17 @@ export default function FreelancerDashboard() {
                 />
             )}
         </div>
+    );
+}
+
+export default function FreelancerDashboard() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <Loader2 className="w-8 h-8 animate-spin text-[#09BF44]" />
+            </div>
+        }>
+            <FreelancerDashboardContent />
+        </Suspense>
     );
 }
