@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from 'react';
+import { Suspense, useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Briefcase, Clock, PlusCircle, ShoppingBag, Wallet, Edit, Loader2, X, Eye, PanelLeft, Flag } from 'lucide-react';
 import { api } from '@/lib/api';
@@ -10,7 +10,7 @@ import ClientProfileEditModal from '@/components/ClientProfileEditModal';
 import EditModal from '@/components/EditModal';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 
-export default function ClientDashboard() {
+function ClientDashboardContent() {
     const { showModal } = useModal();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -553,5 +553,17 @@ export default function ClientDashboard() {
                 />
             )}
         </div>
+    );
+}
+
+export default function ClientDashboard() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <Loader2 className="w-8 h-8 animate-spin text-[#09BF44]" />
+            </div>
+        }>
+            <ClientDashboardContent />
+        </Suspense>
     );
 }
