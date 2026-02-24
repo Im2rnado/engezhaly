@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { Suspense, useState, useEffect, useRef } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Search, User, Plus, ChevronDown, Menu, X } from "lucide-react";
@@ -14,7 +14,7 @@ interface MainHeaderProps {
     showCategories?: boolean;
 }
 
-export default function MainHeader({ user, onSearch, searchPlaceholder = "What service are you looking for?", showCategories = true }: MainHeaderProps) {
+function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service are you looking for?", showCategories = true }: MainHeaderProps) {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
@@ -481,5 +481,19 @@ export default function MainHeader({ user, onSearch, searchPlaceholder = "What s
                 initialStep={authStep}
             />
         </>
+    );
+}
+
+export default function MainHeader(props: MainHeaderProps) {
+    return (
+        <Suspense fallback={
+            <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
+                <div className="max-w-7xl mx-auto px-4 h-16 flex items-center">
+                    <div className="h-8 w-32 bg-gray-200 rounded animate-pulse" />
+                </div>
+            </header>
+        }>
+            <MainHeaderContent {...props} />
+        </Suspense>
     );
 }
