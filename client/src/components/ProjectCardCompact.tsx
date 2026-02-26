@@ -39,7 +39,7 @@ export default function ProjectCardCompact({ project }: ProjectCardCompactProps)
                 <div className="absolute inset-0 bg-black/10" />
             </div>
 
-            <div className="p-4 md:p-5">
+            <div className="p-4 md:p-5 pb-2 md:pb-3">
                 {/* Profile pic (left) + Title (right) */}
                 <div className="flex items-start gap-3 mb-3">
                     <div className="relative w-12 h-12 md:w-14 md:h-14 rounded-full overflow-hidden border-2 border-white shadow-md shrink-0 bg-gray-200">
@@ -92,7 +92,7 @@ export default function ProjectCardCompact({ project }: ProjectCardCompactProps)
                         <span className="text-sm font-bold text-gray-700">New</span>
                     </div>
                     <div className="text-right">
-                        <p className="text-xs text-gray-500">From</p>
+                        <p className="text-xs text-gray-500">Starts From</p>
                         <p className="text-lg font-black text-[#09BF44]">{lowestPrice} EGP</p>
                     </div>
                 </div>

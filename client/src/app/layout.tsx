@@ -4,6 +4,7 @@ import "./globals.css";
 import GlobalNotifications from "@/components/GlobalNotifications";
 import LandingFooterWrapper from "@/components/LandingFooterWrapper";
 import { ModalProvider } from "@/context/ModalContext";
+import PasswordGate from "@/components/PasswordGate";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,9 +33,11 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased text-[#333333] bg-white`}>
         <ModalProvider>
-          {children}
-          <LandingFooterWrapper />
-          <GlobalNotifications />
+          <PasswordGate>
+            {children}
+            <LandingFooterWrapper />
+            <GlobalNotifications />
+          </PasswordGate>
         </ModalProvider>
       </body>
     </html>
