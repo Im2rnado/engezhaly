@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { X, ChevronDown, Briefcase } from "lucide-react";
+import { X, ChevronDown, Briefcase, Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
 import MainHeader from "@/components/MainHeader";
 import AuthModal from "@/components/AuthModal";
@@ -223,8 +223,22 @@ function JobsPageContent() {
                 </div>
 
                 {loading ? (
-                    <div className="text-center py-12">
-                        <p className="text-gray-400">Loading...</p>
+                    <div className="flex flex-col items-center justify-center py-16">
+                        <Loader2 className="w-10 h-10 animate-spin text-[#09BF44] mb-4" />
+                        <p className="text-gray-600 font-bold mb-6">Finding jobs...</p>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+                            {[1, 2, 3, 4].map((i) => (
+                                <div key={i} className="bg-white rounded-2xl border border-gray-100 p-6 animate-pulse">
+                                    <div className="h-6 bg-gray-200 rounded w-2/3 mb-3" />
+                                    <div className="h-4 bg-gray-200 rounded w-full mb-2" />
+                                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-4" />
+                                    <div className="flex gap-2">
+                                        <div className="h-6 bg-gray-200 rounded w-24" />
+                                        <div className="h-6 bg-gray-200 rounded w-20" />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 ) : filteredJobs.length > 0 ? (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">

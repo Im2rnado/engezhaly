@@ -21,9 +21,6 @@ export const api = {
             return result;
         },
         login: async (data: any) => {
-            // #region agent log
-            fetch('http://127.0.0.1:7243/ingest/af39f742-c19f-4f52-bc15-a738b0e1aa96', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'client/src/lib/api.ts:24', message: 'Login attempt', data: { identifier: data.identifier }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: '1' }) }).catch(() => { });
-            // #endregion
             const res = await fetch(`${API_URL}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -31,11 +28,6 @@ export const api = {
             });
 
             const result = await res.json();
-
-            // #region agent log
-            fetch('http://127.0.0.1:7243/ingest/af39f742-c19f-4f52-bc15-a738b0e1aa96', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'client/src/lib/api.ts:31', message: 'Login response', data: { status: res.status, success: res.ok }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: '1' }) }).catch(() => { });
-            // #endregion
-
             if (!res.ok) {
                 throw new Error(result.message || 'Login failed');
             }
@@ -248,9 +240,6 @@ export const api = {
             return res.json();
         },
         getAll: async () => {
-            // #region agent log
-            fetch('http://127.0.0.1:7243/ingest/af39f742-c19f-4f52-bc15-a738b0e1aa96', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'client/src/lib/api.ts:63', message: 'Fetching all jobs', data: {}, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: '1' }) }).catch(() => { });
-            // #endregion
             const res = await fetch(`${API_URL}/jobs`, {
                 method: 'GET',
                 headers: getHeaders()
@@ -259,9 +248,6 @@ export const api = {
             return res.json();
         },
         apply: async (id: string, data: any) => {
-            // #region agent log
-            fetch('http://127.0.0.1:7243/ingest/af39f742-c19f-4f52-bc15-a738b0e1aa96', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'client/src/lib/api.ts:74', message: 'Applying to job', data: { jobId: id, ...data }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: '5' }) }).catch(() => { });
-            // #endregion
             const res = await fetch(`${API_URL}/jobs/${id}/apply`, {
                 method: 'POST',
                 headers: getHeaders(),
@@ -514,13 +500,16 @@ export const api = {
                 method: 'GET',
                 headers: getHeaders()
             });
-            if (!res.ok) throw new Error('Failed to fetch insights');
+            if (!res.ok) {
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                }
+                throw new Error('Failed to fetch insights');
+            }
             return res.json();
         },
         searchUser: async (query: string) => {
-            // #region agent log
-            fetch('http://127.0.0.1:7243/ingest/af39f742-c19f-4f52-bc15-a738b0e1aa96', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'client/src/lib/api.ts:208', message: 'Searching user', data: { query }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: '4' }) }).catch(() => { });
-            // #endregion
             const res = await fetch(`${API_URL}/admin/users/search?query=${encodeURIComponent(query)}`, {
                 method: 'GET',
                 headers: getHeaders()

@@ -9,6 +9,7 @@ import ClientSidebar from '@/components/ClientSidebar';
 import ClientProfileEditModal from '@/components/ClientProfileEditModal';
 import EditModal from '@/components/EditModal';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
+import CountdownTimer from '@/components/CountdownTimer';
 
 function ClientDashboardContent() {
     const { showModal } = useModal();
@@ -306,6 +307,11 @@ function ClientDashboardContent() {
                                                 <div>
                                                     <h4 className="font-bold text-gray-900">{order.projectId?.title || 'Project'}</h4>
                                                     <p className="text-sm text-gray-500">Seller: {order.sellerId?.firstName} {order.sellerId?.lastName}</p>
+                                                    {order.status === 'active' && order.deliveryDate && (
+                                                        <div className="mt-2">
+                                                            <CountdownTimer deadline={order.deliveryDate} variant="inline" />
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div className="text-right">
                                                     <p className="font-black text-gray-900">{order.amount} EGP</p>
@@ -411,6 +417,11 @@ function ClientDashboardContent() {
                                             <p className="text-gray-500 text-sm mt-1">
                                                 Seller: {order.sellerId?.firstName} {order.sellerId?.lastName}
                                             </p>
+                                            {order.status === 'active' && order.deliveryDate && (
+                                                <div className="mt-2">
+                                                    <CountdownTimer deadline={order.deliveryDate} variant="inline" />
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="text-right shrink-0">
                                             <p className="text-xl font-black text-gray-900">{order.amount} EGP</p>

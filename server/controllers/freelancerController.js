@@ -8,6 +8,8 @@ const updateProfile = async (req, res) => {
             category,
             experienceYears,
             certificates, // Array of URLs
+            isStudent,
+            universityId,
             skills,
             surveyResponses,
             starterPricing,
@@ -36,6 +38,8 @@ const updateProfile = async (req, res) => {
             user.freelancerProfile.experienceYears = expNum;
         }
         if (certificates) user.freelancerProfile.certificates = certificates;
+        if (isStudent !== undefined) user.freelancerProfile.isStudent = isStudent;
+        if (universityId !== undefined) user.freelancerProfile.universityId = universityId;
         if (skills !== undefined) {
             user.freelancerProfile.skills = Array.isArray(skills) ? skills : [];
         }

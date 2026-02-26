@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { X, ChevronDown } from "lucide-react";
+import { X, ChevronDown, Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
 import ProjectCard from "@/components/ProjectCard";
 import MainHeader from "@/components/MainHeader";
@@ -62,11 +62,14 @@ function ProjectsPageContent() {
     useEffect(() => {
         let filtered = [...projects];
 
-        // Search filter
+        // Search filter (title, description, category, subCategory)
         if (searchQuery) {
+            const q = searchQuery.toLowerCase();
             filtered = filtered.filter(project =>
-                project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                project.description?.toLowerCase().includes(searchQuery.toLowerCase())
+                project.title?.toLowerCase().includes(q) ||
+                project.description?.toLowerCase().includes(q) ||
+                project.category?.toLowerCase().includes(q) ||
+                project.subCategory?.toLowerCase().includes(q)
             );
         }
 
@@ -225,8 +228,18 @@ function ProjectsPageContent() {
                 </div>
 
                 {loading ? (
-                    <div className="text-center py-12">
-                        <p className="text-gray-400">Loading...</p>
+                    <div className="flex flex-col items-center justify-center py-16">
+                        <Loader2 className="w-10 h-10 animate-spin text-[#09BF44] mb-4" />
+                        <p className="text-gray-600 font-bold mb-6">Exploring projects...</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+                            {[1, 2, 3, 4, 5, 6].map((i) => (
+                                <div key={i} className="bg-white rounded-2xl border border-gray-100 p-6 animate-pulse">
+                                    <div className="h-24 bg-gray-200 rounded-t-2xl mb-4" />
+                                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
+                                    <div className="h-4 bg-gray-200 rounded w-1/2" />
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 ) : filteredProjects.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

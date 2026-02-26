@@ -34,6 +34,8 @@ const UserSchema = new mongoose.Schema({
             ]
         },
         experienceYears: { type: Number },
+        isStudent: { type: Boolean, default: false },
+        universityId: { type: String }, // URL to uploaded University ID (for students)
         certificates: [String], // URLs to uploaded files
         skills: [String],
         surveyResponses: {

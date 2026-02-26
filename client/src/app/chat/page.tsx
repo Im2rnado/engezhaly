@@ -151,7 +151,8 @@ function ChatPageContent() {
                         messageType: msg.messageType,
                         isRead: !!msg.isRead,
                         isAdmin: isAdmin,
-                        isMeeting: isMeeting
+                        isMeeting: isMeeting,
+                        isBlurred: !!msg.isBlurred
                     };
                     setMessages((prev) => {
                         const exists = prev.some(m => m._id === formattedMsg._id);
@@ -243,7 +244,8 @@ function ChatPageContent() {
                         messageType: m.messageType,
                         isRead: !!m.isRead,
                         isAdmin: isAdmin,
-                        isMeeting: isMeeting
+                        isMeeting: isMeeting,
+                        isBlurred: !!m.isBlurred
                     };
                 });
                 setMessages(formatted);
@@ -325,7 +327,8 @@ function ChatPageContent() {
                     messageType: m.messageType,
                     isRead: !!m.isRead,
                     isAdmin: isAdmin,
-                    isMeeting: isMeeting
+                    isMeeting: isMeeting,
+                    isBlurred: !!m.isBlurred
                 };
             });
             setMessages(formatted);
@@ -396,7 +399,8 @@ function ChatPageContent() {
                     timestamp: m.createdAt,
                     messageType: m.messageType,
                     isRead: !!m.isRead,
-                    isAdmin: isAdmin
+                    isAdmin: isAdmin,
+                    isBlurred: !!m.isBlurred
                 };
             });
             setMessages(formatted);
@@ -417,14 +421,18 @@ function ChatPageContent() {
         }
     };
 
-    const handleAcceptOffer = async (offerId: string) => {
+    const handleAcceptOffer = async (offer: { _id: string; price: number }) => {
+        const total = Number(offer.price || 0);
+        const platformFee = 20;
+        const freelancerReceives = total - platformFee;
+
         showModal({
             title: 'Accept Offer',
-            message: 'This will process payment and create an order. Continue?',
+            message: `Total: ${total} EGP. Platform fee (20 EGP): ${platformFee} EGP. Freelancer receives: ${freelancerReceives} EGP. Proceed?`,
             type: 'confirm',
             onConfirm: async () => {
                 try {
-                    const result = await api.chat.acceptOffer(offerId);
+                    const result = await api.chat.acceptOffer(offer._id);
 
                     // Refresh offers
                     if (conversationId) {
@@ -523,7 +531,8 @@ function ChatPageContent() {
                                     messageType: m.messageType,
                                     isRead: !!m.isRead,
                                     isAdmin: isAdmin,
-                                    isMeeting: isMeeting
+                                    isMeeting: isMeeting,
+                                    isBlurred: !!m.isBlurred
                                 };
                             });
                             setMessages(formatted);
@@ -567,7 +576,8 @@ function ChatPageContent() {
                     messageType: m.messageType,
                     isRead: !!m.isRead,
                     isAdmin: isAdmin,
-                    isMeeting: isMeeting
+                    isMeeting: isMeeting,
+                    isBlurred: !!m.isBlurred
                 };
             });
             setMessages(formatted);
@@ -888,7 +898,7 @@ function ChatPageContent() {
 
                                                     {canAccept && (
                                                         <button
-                                                            onClick={() => handleAcceptOffer(offer._id)}
+                                                            onClick={() => handleAcceptOffer(offer)}
                                                             className="w-full bg-white text-[#09BF44] font-bold py-3 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
                                                         >
                                                             Accept Offer
@@ -942,7 +952,7 @@ function ChatPageContent() {
                                                             <span className="text-xs font-bold text-[#09BF44]">Video Meeting</span>
                                                         </div>
                                                     )}
-                                                    <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{content}</p>
+                                                    <p className={`text-sm leading-relaxed whitespace-pre-wrap break-words ${msg.isBlurred ? 'blur-sm select-none' : ''}`}>{content}</p>
                                                     {meetingLink && (
                                                         <a
                                                             href={meetingLink}

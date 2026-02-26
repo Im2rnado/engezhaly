@@ -11,8 +11,21 @@ const { offerPurchased: offerPurchasedTemplate, offlineChat: offlineChatTemplate
 const { isUserInConversation } = require('../services/presence');
 const { emitToUser, isUserOnline } = require('../services/notificationService');
 
-// Helper for curse words (extended list for demo)
-const BAD_WORDS = ['badword1', 'badword2', 'idiot', 'stupid', 'scam', 'hate'];
+// Helper for curse words - common abusive/profane terms
+const BAD_WORDS = [
+    // English bad words
+    'idiot', 'stupid', 'hate', 'dumb', 'moron', 'loser', 'scammer',
+    'dumbass', 'asshole', 'bastard', 'bitch', 'damn', 'hell', 'crap',
+    'shit', 'fuck', 'fucking', 'fck', 'fcking', 'wtf', 'stfu', 'kys', 'kill yourself',
+    'die', 'go die', 'sucker', 'suck', 'screw you', 'screw off', 'get lost',
+    'shut up', 'shut the fuck up', 'piece of shit', 'piece of crap', 'dumb fuck',
+    // Arabic/Egyptian bad words
+    'a7a', 'yabn el kalb', 'khawal', 'homar', 'sharmoot', '3ars',
+    'zbala', 'metnak', 'gazma', 'a7eh', 'zeb', 'zeby', 'zobry',
+    'kos omak', 'kos om', 'kos okhtak', 'kosomak', 'kosak', 'kosek', 'kos okht',
+    'yabn el metnaka', 'metnaka', 'sharmoota', 'sharameet', 'manyak',
+    'كسمك', 'كسمك', 'كس امك', 'امك فين', 'زفت', 'شرموط', 'خول'
+];
 
 const filterCurseWords = (text) => {
     let filteredText = text;
@@ -226,7 +239,8 @@ const sendMessage = async (req, res) => {
                 messageType: newMsg.messageType || 'text',
                 createdAt: newMsg.createdAt,
                 isAdmin: newMsg.isAdmin || false,
-                isRead: newMsg.isRead || false
+                isRead: newMsg.isRead || false,
+                isBlurred: isBlurred || false
             };
             io.to(roomId).emit('message', payload);
         }
@@ -336,7 +350,7 @@ const acceptOffer = async (req, res) => {
             packageType: 'Custom',
             offerId: offer._id, // Link to the offer
             amount: offer.price,
-            platformFee: offer.price * 0.2, // 20% platform fee
+            platformFee: 20, // Fixed 20 EGP platform fee
             status: 'active',
             deliveryDate: new Date(Date.now() + offer.deliveryDays * 24 * 60 * 60 * 1000)
         });
@@ -347,7 +361,7 @@ const acceptOffer = async (req, res) => {
         await buyer.save();
 
         // Create Transaction records
-        const platformFee = offer.price * 0.2;
+        const platformFee = 20;
         const netAmount = offer.price - platformFee;
         await Transaction.create([
             { userId: userId, type: 'payment', amount: -offer.price, description: 'Custom Offer', orderId: order._id, relatedUserId: offer.senderId },

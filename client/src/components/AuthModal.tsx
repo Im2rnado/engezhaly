@@ -52,7 +52,9 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
         experienceYears: '',
         skills: '', // space-separated, displayed as tags
         bio: '',
+        isStudent: false,
         certificateUrls: [] as string[], // from file uploads
+        universityIdUrl: '' as string, // for students
         idDocumentUrl: '' as string // from file upload
     });
 
@@ -85,7 +87,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             setForgotPasswordEmail('');
             setShowPassword(false);
             setProfilePicture(null);
-            setProfessionalInfo({ category: '', experienceYears: '', skills: '', bio: '', certificateUrls: [], idDocumentUrl: '' });
+            setProfessionalInfo({ category: '', experienceYears: '', skills: '', bio: '', isStudent: false, certificateUrls: [], universityIdUrl: '', idDocumentUrl: '' });
             setSurvey({ isFullTime: false, speedQualityCommitment: 'Yes' });
             setPricing({ basic: { price: 500, days: 3 }, standard: { price: 1000, days: 5 }, premium: { price: 2000, days: 7 } });
         }
@@ -236,6 +238,14 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
     const handleStep2Submit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!professionalInfo.bio) { setError('Please describe yourself'); return; }
+        if (professionalInfo.isStudent && !professionalInfo.universityIdUrl) {
+            setError('Please upload your University ID');
+            return;
+        }
+        if (!professionalInfo.isStudent && professionalInfo.certificateUrls.length === 0) {
+            setError('Please upload at least one certificate');
+            return;
+        }
         setError('');
         setStep('freelancer-step-3');
     };
@@ -254,7 +264,9 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             await api.freelancer.updateProfile({
                 category: professionalInfo.category,
                 experienceYears: Number(professionalInfo.experienceYears),
-                certificates: professionalInfo.certificateUrls,
+                isStudent: professionalInfo.isStudent,
+                certificates: professionalInfo.isStudent ? [] : professionalInfo.certificateUrls,
+                universityId: professionalInfo.isStudent ? professionalInfo.universityIdUrl || undefined : undefined,
                 skills: professionalInfo.skills.trim().split(/\s+/).filter(Boolean),
                 bio: professionalInfo.bio,
                 idDocument: professionalInfo.idDocumentUrl || undefined,
@@ -301,28 +313,28 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4">
             <div className="relative w-full max-w-2xl bg-white rounded-2xl md:rounded-3xl shadow-2xl max-h-[92vh] md:max-h-[90vh] flex flex-col overflow-hidden">
-                <div className="sticky top-0 bg-white z-10 flex justify-end p-2 md:p-4 pb-0 shrink-0 rounded-t-2xl md:rounded-t-3xl">
-                    <button
-                        onClick={onClose}
-                        className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-                    >
-                        <X className="w-6 h-6 text-gray-500" />
-                    </button>
-                </div>
-                <div className="overflow-y-auto flex-1 px-4 md:px-8 pb-6 md:pb-8 min-h-0">
+                <div className="overflow-y-auto flex-1 px-4 md:px-8 pb-6 md:pb-8 min-h-0 pt-2">
 
                     {step === 'role-selection' && (
-                        <div className="text-center py-4 md:py-8">
-                            <div className="flex items-center justify-center gap-3">
-                                <h2 className="text-2xl md:text-4xl font-black text-gray-900">Join</h2>
-                                <Image
-                                    src="/logos/logo-green.png"
-                                    alt="Engezhaly"
-                                    width={240}
-                                    height={66}
-                                    className="h-14 md:h-20 w-auto"
-                                    priority
-                                />
+                        <div className="text-center py-2 md:py-4">
+                            <div className="flex items-center justify-between gap-3 mb-4">
+                                <div className="flex-1" />
+                                <div className="flex items-center justify-center gap-3">
+                                    <h2 className="text-2xl md:text-4xl font-black text-gray-900">Join</h2>
+                                    <Image
+                                        src="/logos/logo-green.png"
+                                        alt="Engezhaly"
+                                        width={240}
+                                        height={66}
+                                        className="h-14 md:h-20 w-auto"
+                                        priority
+                                    />
+                                </div>
+                                <div className="flex-1 flex justify-end">
+                                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors -m-2">
+                                        <X className="w-5 h-5 text-gray-500" />
+                                    </button>
+                                </div>
                             </div>
                             <p className="text-base md:text-xl text-gray-600 mb-6 md:mb-12">How do you want to use the platform?</p>
 
@@ -363,8 +375,14 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
 
                     {step === 'login' && (
                         <div className="py-3 md:py-4">
-                            <div className="flex items-center justify-center gap-3 mb-8">
+                            <div className="flex items-center justify-between gap-3 mb-6">
+                                <div className="flex-1" />
                                 <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Welcome Back</h2>
+                                <div className="flex-1 flex justify-end">
+                                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors -m-2">
+                                        <X className="w-5 h-5 text-gray-500" />
+                                    </button>
+                                </div>
                             </div>
                             <p className="text-center text-gray-600 mb-8">Sign in to your account to continue</p>
 
@@ -434,15 +452,21 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
 
                     {step === 'forgot-password' && (
                         <div className="py-3 md:py-4">
-                            <div className="flex justify-center mb-6">
+                            <div className="flex items-center justify-between gap-3 mb-4">
+                                <div className="flex-1" />
                                 <Image
                                     src="/logos/logo-green.png"
                                     alt="Engezhaly"
                                     width={200}
                                     height={55}
-                                    className="h-14 md:h-20 w-auto"
+                                    className="h-12 md:h-16 w-auto"
                                     priority
                                 />
+                                <div className="flex-1 flex justify-end">
+                                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors -m-2">
+                                        <X className="w-5 h-5 text-gray-500" />
+                                    </button>
+                                </div>
                             </div>
                             <h2 className="text-2xl md:text-3xl font-bold text-center mb-2">Forgot Password?</h2>
                             <p className="text-center text-gray-600 mb-8">Enter your email address and we&apos;ll send you a link to reset your password.</p>
@@ -480,16 +504,24 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
 
                     {step === 'client-auth' && (
                         <div className="py-3 md:py-4">
-                            <div className="flex items-center justify-center gap-3">
-                                <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Join</h2>
-                                <Image
-                                    src="/logos/logo-green.png"
-                                    alt="Engezhaly"
-                                    width={200}
-                                    height={55}
-                                    className="h-14 md:h-20 w-auto"
-                                    priority
-                                />
+                            <div className="flex items-center justify-between gap-3 mb-4">
+                                <div className="flex-1" />
+                                <div className="flex items-center gap-3">
+                                    <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Join</h2>
+                                    <Image
+                                        src="/logos/logo-green.png"
+                                        alt="Engezhaly"
+                                        width={200}
+                                        height={55}
+                                        className="h-14 md:h-20 w-auto"
+                                        priority
+                                    />
+                                </div>
+                                <div className="flex-1 flex justify-end">
+                                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors -m-2">
+                                        <X className="w-5 h-5 text-gray-500" />
+                                    </button>
+                                </div>
                             </div>
                             <p className="text-center text-gray-600 mb-8">Create your client account to start posting jobs and hiring freelancers.</p>
 
@@ -534,16 +566,24 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
 
                     {step === 'freelancer-step-1' && (
                         <div className="py-3 md:py-4">
-                            <div className="flex items-center justify-center gap-3">
-                                <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Join</h2>
-                                <Image
-                                    src="/logos/logo-green.png"
-                                    alt="Engezhaly"
-                                    width={200}
-                                    height={55}
-                                    className="h-14 md:h-20 w-auto"
-                                    priority
-                                />
+                            <div className="flex items-center justify-between gap-3 mb-4">
+                                <div className="flex-1" />
+                                <div className="flex items-center gap-3">
+                                    <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Join</h2>
+                                    <Image
+                                        src="/logos/logo-green.png"
+                                        alt="Engezhaly"
+                                        width={200}
+                                        height={55}
+                                        className="h-14 md:h-20 w-auto"
+                                        priority
+                                    />
+                                </div>
+                                <div className="flex-1 flex justify-end">
+                                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors -m-2">
+                                        <X className="w-5 h-5 text-gray-500" />
+                                    </button>
+                                </div>
                             </div>
                             {/* Progress Bar */}
                             <div className="bg-gray-100 h-2 w-full rounded-full mb-6">
@@ -642,6 +682,12 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                     {/* FREELANCER STEP 2: Professional Info */}
                     {step === 'freelancer-step-2' && (
                         <div className="py-3 md:py-4">
+                            <div className="flex items-center justify-between gap-3 mb-4">
+                                <Image src="/logos/logo-green.png" alt="Engezhaly" width={120} height={33} className="h-8 w-auto" priority />
+                                <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors shrink-0 -m-2 ml-auto">
+                                    <X className="w-5 h-5 text-gray-500" />
+                                </button>
+                            </div>
                             {/* Progress Bar */}
                             <div className="bg-gray-100 h-2 w-full rounded-full mb-6">
                                 <div className="bg-[#09BF44] h-full rounded-full transition-all duration-500" style={{ width: '50%' }} />
@@ -724,31 +770,76 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                     })()}
                                 </div>
 
-                                <div className="grid grid-cols-1 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-2">Certificates – upload image or PDF</label>
-                                        <input
-                                            type="file"
-                                            accept="image/*,.pdf"
-                                            required
-                                            onChange={async (e) => {
-                                                const file = e.target.files?.[0];
-                                                if (!file) return;
-                                                setError('');
-                                                try {
-                                                    const url = await api.upload.file(file);
-                                                    setProfessionalInfo((prev) => ({ ...prev, certificateUrls: [...prev.certificateUrls, url] }));
-                                                } catch (err: any) {
-                                                    setError(err.message || 'Upload failed');
-                                                }
-                                                e.target.value = '';
-                                            }}
-                                            className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none transition-all text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-[#09BF44] file:text-white file:font-bold file:cursor-pointer"
-                                        />
-                                        {professionalInfo.certificateUrls.length > 0 && (
-                                            <p className="mt-1 text-xs text-gray-500">{professionalInfo.certificateUrls.length} file(s) uploaded</p>
-                                        )}
+                                <div className="flex items-center gap-3">
+                                    <span className="font-medium text-gray-700">Are you a student?</span>
+                                    <div className="flex gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setProfessionalInfo((prev) => ({ ...prev, isStudent: true, certificateUrls: [] }))}
+                                            className={`px-4 py-2 rounded-lg font-bold border-2 transition-all ${professionalInfo.isStudent ? 'bg-green-100 border-[#09BF44] text-[#09BF44]' : 'bg-gray-50 border-transparent hover:border-gray-200'}`}
+                                        >
+                                            Yes
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setProfessionalInfo((prev) => ({ ...prev, isStudent: false, universityIdUrl: '' }))}
+                                            className={`px-4 py-2 rounded-lg font-bold border-2 transition-all ${!professionalInfo.isStudent ? 'bg-green-100 border-[#09BF44] text-[#09BF44]' : 'bg-gray-50 border-transparent hover:border-gray-200'}`}
+                                        >
+                                            No
+                                        </button>
                                     </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-4">
+                                    {professionalInfo.isStudent ? (
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Upload University ID – image or PDF</label>
+                                            <input
+                                                type="file"
+                                                accept="image/*,.pdf"
+                                                required
+                                                onChange={async (e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (!file) return;
+                                                    setError('');
+                                                    try {
+                                                        const url = await api.upload.file(file);
+                                                        setProfessionalInfo((prev) => ({ ...prev, universityIdUrl: url }));
+                                                    } catch (err: any) {
+                                                        setError(err.message || 'Upload failed');
+                                                    }
+                                                    e.target.value = '';
+                                                }}
+                                                className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none transition-all text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-[#09BF44] file:text-white file:font-bold file:cursor-pointer"
+                                            />
+                                            {professionalInfo.universityIdUrl && <p className="mt-1 text-xs text-gray-500">University ID uploaded</p>}
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Certificates – upload image or PDF</label>
+                                            <input
+                                                type="file"
+                                                accept="image/*,.pdf"
+                                                required
+                                                onChange={async (e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (!file) return;
+                                                    setError('');
+                                                    try {
+                                                        const url = await api.upload.file(file);
+                                                        setProfessionalInfo((prev) => ({ ...prev, certificateUrls: [...prev.certificateUrls, url] }));
+                                                    } catch (err: any) {
+                                                        setError(err.message || 'Upload failed');
+                                                    }
+                                                    e.target.value = '';
+                                                }}
+                                                className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none transition-all text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-[#09BF44] file:text-white file:font-bold file:cursor-pointer"
+                                            />
+                                            {professionalInfo.certificateUrls.length > 0 && (
+                                                <p className="mt-1 text-xs text-gray-500">{professionalInfo.certificateUrls.length} file(s) uploaded</p>
+                                            )}
+                                        </div>
+                                    )}
                                     <div>
                                         <label className="block text-sm font-bold text-gray-700 mb-2">ID Document (only admins see this) – upload image or PDF</label>
                                         <input
@@ -782,6 +873,12 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                     {/* FREELANCER STEP 3: Survey & Pricing */}
                     {step === 'freelancer-step-3' && (
                         <div className="py-3 md:py-4">
+                            <div className="flex items-center justify-between gap-3 mb-4">
+                                <Image src="/logos/logo-green.png" alt="Engezhaly" width={120} height={33} className="h-8 w-auto" priority />
+                                <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors shrink-0 -m-2 ml-auto">
+                                    <X className="w-5 h-5 text-gray-500" />
+                                </button>
+                            </div>
                             {/* Progress Bar */}
                             <div className="bg-gray-100 h-2 w-full rounded-full mb-6">
                                 <div className="bg-[#09BF44] h-full rounded-full transition-all duration-500" style={{ width: '75%' }} />
@@ -854,6 +951,11 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                     {/* FREELANCER STEP 4: Under Review */}
                     {step === 'freelancer-step-4' && (
                         <div className="text-center py-12">
+                            <div className="flex justify-end mb-4">
+                                <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors -m-2">
+                                    <X className="w-5 h-5 text-gray-500" />
+                                </button>
+                            </div>
                             <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                                 <CheckCircle className="w-12 h-12 text-[#09BF44]" />
                             </div>

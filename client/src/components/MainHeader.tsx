@@ -1,11 +1,17 @@
 "use client";
 
-import { Suspense, useState, useEffect, useRef } from "react";
+import { Suspense, useState, useEffect, useRef, useMemo } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Search, User, Plus, ChevronDown, Menu, X } from "lucide-react";
 import { MAIN_CATEGORIES, CATEGORIES } from "@/lib/categories";
 import AuthModal from "@/components/AuthModal";
+
+// Flatten categories and subcategories for search suggestions
+const SEARCH_SUGGESTIONS = [
+    ...MAIN_CATEGORIES,
+    ...Object.values(CATEGORIES).flat()
+];
 
 interface MainHeaderProps {
     user?: any;
@@ -25,10 +31,20 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
     const [selectedSubCategory, setSelectedSubCategory] = useState("");
     const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
     const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+    const [showAutofill, setShowAutofill] = useState(false);
     const [searchType, setSearchType] = useState<'projects' | 'jobs'>('projects');
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [mobileSelectedCategory, setMobileSelectedCategory] = useState('');
     const searchDropdownRef = useRef<HTMLDivElement>(null);
+    const searchInputRef = useRef<HTMLInputElement>(null);
+
+    const filteredSuggestions = useMemo(() => {
+        const q = searchQuery.trim().toLowerCase();
+        if (!q) return SEARCH_SUGGESTIONS.slice(0, 10);
+        return SEARCH_SUGGESTIONS
+            .filter((s) => s.toLowerCase().includes(q))
+            .slice(0, 10);
+    }, [searchQuery]);
 
     // Sync with URL params
     useEffect(() => {
@@ -41,22 +57,23 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
         }
     }, [searchParams, pathname, showCategories]);
 
-    // Close search dropdown when clicking outside
+    // Close search dropdown and autofill when clicking outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (searchDropdownRef.current && !searchDropdownRef.current.contains(event.target as Node)) {
                 setShowSearchDropdown(false);
+                setShowAutofill(false);
             }
         };
 
-        if (showSearchDropdown) {
+        if (showSearchDropdown || showAutofill) {
             document.addEventListener('mousedown', handleClickOutside);
         }
 
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
-    }, [showSearchDropdown]);
+    }, [showSearchDropdown, showAutofill]);
 
     // Update search type based on current page
     useEffect(() => {
@@ -78,13 +95,12 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
     };
 
 
-    const handleSearch = (e: React.FormEvent) => {
-        e.preventDefault();
+    const performSearch = (query: string) => {
         if (onSearch) {
-            onSearch(searchQuery);
+            onSearch(query);
         } else {
             const params = new URLSearchParams();
-            if (searchQuery) params.set('search', searchQuery);
+            if (query) params.set('search', query);
             if (pathname === '/projects' || searchType === 'projects') {
                 if (selectedCategory) params.set('category', selectedCategory);
                 if (selectedSubCategory) params.set('subCategory', selectedSubCategory);
@@ -92,7 +108,6 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
             } else if (pathname === '/jobs' || searchType === 'jobs') {
                 router.push(`/jobs?${params.toString()}`);
             } else {
-                // Homepage - use searchType
                 if (searchType === 'projects') {
                     if (selectedCategory) params.set('category', selectedCategory);
                     if (selectedSubCategory) params.set('subCategory', selectedSubCategory);
@@ -103,6 +118,12 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
             }
         }
         setShowSearchDropdown(false);
+        setShowAutofill(false);
+    };
+
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        performSearch(searchQuery);
     };
 
     const handleCategoryClick = (category: string) => {
@@ -178,17 +199,39 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                     </div>
                     <div className="mt-2">
                         <form onSubmit={handleSearch} className="flex items-center relative w-full">
-                            <div className="flex items-center bg-white border border-gray-300 rounded-lg overflow-hidden w-full transition-shadow focus-within:ring-2 focus-within:ring-[#09BF44] focus-within:border-transparent">
+                            <div className="flex items-center bg-white border border-gray-300 rounded-lg overflow-hidden w-full transition-shadow focus-within:ring-2 focus-within:ring-[#09BF44] focus-within:border-transparent relative">
                                 <input
                                     type="text"
                                     value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    onChange={(e) => {
+                                        setSearchQuery(e.target.value);
+                                        setShowAutofill(true);
+                                    }}
+                                    onFocus={() => setShowAutofill(true)}
                                     placeholder={pathname === '/jobs' ? 'Search jobs...' : 'Search projects...'}
-                                    className="flex-1 px-3 py-2.5 text-sm text-gray-700 placeholder-gray-400 outline-none"
+                                    className="flex-1 px-3 py-2.5 text-sm text-gray-700 placeholder-gray-400 outline-none rounded-l-lg"
                                 />
-                                <button type="submit" className="bg-black hover:bg-gray-800 text-white px-3 py-2.5 transition-colors">
+                                <button type="submit" className="bg-black hover:bg-gray-800 text-white px-3 py-2.5 transition-colors rounded-r-lg">
                                     <Search className="w-4 h-4" />
                                 </button>
+                                {showAutofill && filteredSuggestions.length > 0 && (
+                                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto z-[100]">
+                                        {filteredSuggestions.map((suggestion) => (
+                                            <button
+                                                key={suggestion}
+                                                type="button"
+                                                onClick={() => {
+                                                    setSearchQuery(suggestion);
+                                                    setShowAutofill(false);
+                                                    performSearch(suggestion);
+                                                }}
+                                                className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-[#09BF44]/10 hover:text-[#09BF44] transition-colors first:rounded-t-lg last:rounded-b-lg"
+                                            >
+                                                {suggestion}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </form>
                     </div>
@@ -213,7 +256,8 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                         </div>
 
                         {/* Search Bar */}
-                        <form onSubmit={handleSearch} className="hidden lg:flex items-center relative w-full max-w-md">
+                        <div ref={searchDropdownRef} className="hidden lg:flex items-center relative w-full max-w-md">
+                        <form onSubmit={handleSearch} className="flex items-center relative w-full">
                             {pathname === '/' && (
                                 <div className="relative">
                                     <button
@@ -250,19 +294,43 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                                     )}
                                 </div>
                             )}
-                            <div className="flex items-center bg-white border border-gray-300 rounded-lg overflow-hidden w-full transition-shadow focus-within:ring-2 focus-within:ring-[#09BF44] focus-within:border-transparent">
+                            <div className="flex items-center bg-white border border-gray-300 rounded-lg overflow-hidden w-full transition-shadow focus-within:ring-2 focus-within:ring-[#09BF44] focus-within:border-transparent relative">
                                 <input
+                                    ref={searchInputRef}
                                     type="text"
                                     value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    onChange={(e) => {
+                                        setSearchQuery(e.target.value);
+                                        setShowAutofill(true);
+                                    }}
+                                    onFocus={() => setShowAutofill(true)}
                                     placeholder={pathname === '/' ? (searchType === 'projects' ? 'Search projects...' : 'Search jobs...') : (pathname === '/jobs' ? 'Search jobs...' : (pathname === '/projects' ? 'Search projects...' : searchPlaceholder))}
-                                    className={`flex-1 px-4 py-2 text-sm text-gray-700 placeholder-gray-400 outline-none ${pathname === '/' ? 'pl-24' : ''}`}
+                                    className={`flex-1 px-4 py-2 text-sm text-gray-700 placeholder-gray-400 outline-none rounded-l-lg ${pathname === '/' ? 'pl-24' : ''}`}
                                 />
-                                <button type="submit" className="bg-black hover:bg-gray-800 text-white px-4 py-2 transition-colors">
+                                <button type="submit" className="bg-black hover:bg-gray-800 text-white px-4 py-2 transition-colors rounded-r-lg">
                                     <Search className="w-4 h-4" />
                                 </button>
+                                {showAutofill && filteredSuggestions.length > 0 && (
+                                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto z-[100]">
+                                        {filteredSuggestions.map((suggestion) => (
+                                            <button
+                                                key={suggestion}
+                                                type="button"
+                                                onClick={() => {
+                                                    setSearchQuery(suggestion);
+                                                    setShowAutofill(false);
+                                                    performSearch(suggestion);
+                                                }}
+                                                className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-[#09BF44]/10 hover:text-[#09BF44] transition-colors first:rounded-t-lg last:rounded-b-lg"
+                                            >
+                                                {suggestion}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </form>
+                        </div>
                     </div>
 
                     {/* Navigation & Auth */}

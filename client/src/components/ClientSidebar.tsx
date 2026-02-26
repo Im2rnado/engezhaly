@@ -83,7 +83,7 @@ export default function ClientSidebar({ user, activeTab, mobileOpen = false, onC
                     }}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'jobs' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
                 >
-                    <Briefcase className="w-5 h-5" /> My Jobs
+                    <Briefcase className="w-5 h-5" /> Jobs Posted
                     {activeJobs > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{activeJobs}</span>}
                 </button>
                 <button
@@ -92,7 +92,7 @@ export default function ClientSidebar({ user, activeTab, mobileOpen = false, onC
                     }}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'orders' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
                 >
-                    <ShoppingBag className="w-5 h-5" /> Orders
+                    <ShoppingBag className="w-5 h-5" /> Projects Ordered
                     {activeOrders > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{activeOrders}</span>}
                 </button>
                 <button

@@ -10,6 +10,7 @@ import { MAIN_CATEGORIES } from '@/lib/categories';
 import ProfileEditModal from '@/components/ProfileEditModal';
 import FreelancerSidebar from '@/components/FreelancerSidebar';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
+import CountdownTimer from '@/components/CountdownTimer';
 
 function FreelancerDashboardContent() {
     const { showModal } = useModal();
@@ -225,17 +226,6 @@ function FreelancerDashboardContent() {
     const avgRating = orders.filter(o => o.rating).length > 0
         ? (orders.filter(o => o.rating).reduce((sum: number, o: any) => sum + o.rating, 0) / orders.filter(o => o.rating).length).toFixed(1)
         : 'N/A';
-    const formatTimeLeft = (deadlineInput?: string | Date) => {
-        if (!deadlineInput) return null;
-        const deadline = new Date(deadlineInput);
-        if (Number.isNaN(deadline.getTime())) return null;
-        const diff = deadline.getTime() - Date.now();
-        if (diff <= 0) return 'Overdue';
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        return `${days}d ${hours}h ${minutes}m left`;
-    };
     const orderCountByProject = orders.reduce((acc: Record<string, number>, order: any) => {
         const projectId = String(order?.projectId?._id || order?.projectId || '');
         if (!projectId) return acc;
@@ -396,9 +386,7 @@ function FreelancerDashboardContent() {
                                                         </span>
                                                     )}
                                                     {order.status === 'active' && order.deliveryDate && (
-                                                        <span className="text-xs font-bold text-[#09BF44]">
-                                                            {formatTimeLeft(order.deliveryDate)}
-                                                        </span>
+                                                        <CountdownTimer deadline={order.deliveryDate} variant="inline" />
                                                     )}
                                                 </div>
                                             </div>
@@ -494,9 +482,7 @@ function FreelancerDashboardContent() {
                                             </span>
                                         )}
                                         {order.status === 'active' && order.deliveryDate && (
-                                            <span className="text-xs font-bold text-[#09BF44]">
-                                                {formatTimeLeft(order.deliveryDate)}
-                                            </span>
+                                            <CountdownTimer deadline={order.deliveryDate} variant="inline" />
                                         )}
                                     </div>
                                     <div className="mt-4 pt-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">

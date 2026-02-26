@@ -45,19 +45,35 @@ export default function WalletPage() {
 
     const handleTopUp = async (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
-        try {
-            await api.wallet.topUp({ amount: Number(amount) });
+        const amt = Number(amount);
+        if (amt < 50) return;
 
-            showModal({ title: 'Success', message: 'Top Up Successful!', type: 'success' });
-            setAmount('');
-            fetchData();
-        } catch (err) {
-            console.error(err);
-            showModal({ title: 'Error', message: 'Top Up Failed', type: 'error' });
-        } finally {
-            setLoading(false);
+        const fee = 20;
+        const netCredit = amt - fee;
+        if (netCredit <= 0) {
+            showModal({ title: 'Invalid Amount', message: 'Amount must be greater than 20 EGP to cover the platform fee.', type: 'error' });
+            return;
         }
+
+        showModal({
+            title: 'Confirm Top-Up',
+            message: `You will add ${amt} EGP. A 20 EGP platform fee applies. Net credit: ${netCredit} EGP. Confirm?`,
+            type: 'confirm',
+            onConfirm: async () => {
+                setLoading(true);
+                try {
+                    await api.wallet.topUp({ amount: amt });
+                    showModal({ title: 'Success', message: 'Top Up Successful!', type: 'success' });
+                    setAmount('');
+                    fetchData();
+                } catch (err) {
+                    console.error(err);
+                    showModal({ title: 'Error', message: 'Top Up Failed', type: 'error' });
+                } finally {
+                    setLoading(false);
+                }
+            }
+        });
     };
 
     if (!user) return <div className="min-h-screen bg-gray-50 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44]" /></div>;

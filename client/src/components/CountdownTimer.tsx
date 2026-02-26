@@ -5,7 +5,7 @@ import { Clock } from 'lucide-react';
 
 interface CountdownTimerProps {
     deadline: Date | string;
-    variant?: 'card' | 'detail';
+    variant?: 'card' | 'detail' | 'inline';
     className?: string;
 }
 
@@ -70,6 +70,17 @@ export default function CountdownTimer({ deadline, variant = 'card', className =
                     </span>
                 )}
             </div>
+        );
+    }
+
+    if (variant === 'inline') {
+        return (
+            <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${timeLeft.isOverdue ? 'text-red-600' : 'text-[#09BF44]'} ${className}`}>
+                <Clock className="w-3.5 h-3.5" />
+                {timeLeft.isOverdue ? 'Overdue' : (
+                    <>{timeLeft.days > 0 ? `${timeLeft.days}d ` : ''}{timeLeft.hours}h {timeLeft.minutes}m</>
+                )}
+            </span>
         );
     }
 

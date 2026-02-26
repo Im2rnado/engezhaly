@@ -152,7 +152,7 @@ const createProjectOrder = async (req, res) => {
             return res.status(400).json({ msg: 'Insufficient wallet balance' });
         }
 
-        const platformFee = amount * 0.2;
+        const platformFee = 20; // Fixed 20 EGP platform fee
         const deliveryDate = new Date(Date.now() + Number(selectedPackage.days || 0) * 24 * 60 * 60 * 1000);
 
         const order = new Order({

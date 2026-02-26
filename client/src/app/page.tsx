@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { ChevronLeft, ChevronRight, ArrowRight, Code, Palette, TrendingUp, Video, Sparkles, PenTool, Mic, Search, Briefcase, ShieldCheck, Zap, Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowRight, Code, Palette, TrendingUp, Video, Sparkles, PenTool, Mic, Search, Briefcase, ShieldCheck, Zap, Star, Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
-import ProjectCard from "@/components/ProjectCard";
+import ProjectCardCompact from "@/components/ProjectCardCompact";
 import { MAIN_CATEGORIES } from "@/lib/categories";
 import MainHeader from "@/components/MainHeader";
 
@@ -18,6 +18,8 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [projectStartIndex, setProjectStartIndex] = useState(0);
   const [jobStartIndex, setJobStartIndex] = useState(0);
+  const [heroSearchQuery, setHeroSearchQuery] = useState("");
+  const [heroSearchType, setHeroSearchType] = useState<"projects" | "jobs">("projects");
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -54,19 +56,45 @@ export default function Home() {
             <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold leading-tight mb-5 md:mb-6 text-gray-900">
               Find the perfect <span className="text-[#09BF44] italic">freelance</span> services for your business
             </h1>
-            <div className="bg-white rounded-md p-1 flex flex-col sm:flex-row sm:items-center max-w-lg mb-5 md:mb-6 shadow-lg gap-1">
-              <div className="pl-4 pt-3 sm:pt-0">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const params = new URLSearchParams();
+                if (heroSearchQuery.trim()) params.set("search", heroSearchQuery.trim());
+                router.push(heroSearchType === "projects" ? `/projects?${params.toString()}` : `/jobs?${params.toString()}`);
+              }}
+              className="bg-white rounded-md p-1 flex flex-col sm:flex-row sm:items-center max-w-lg mb-5 md:mb-6 shadow-lg gap-1"
+            >
+              <div className="pl-4 pt-3 sm:pt-0 flex items-center rounded-l-md">
                 <Search className="text-gray-400 w-5 h-5" />
               </div>
               <input
                 type="text"
                 placeholder='Try "building mobile app"'
-                className="flex-1 px-3 py-2 sm:p-3 text-gray-800 outline-none placeholder-gray-400 text-sm sm:text-base"
+                value={heroSearchQuery}
+                onChange={(e) => setHeroSearchQuery(e.target.value)}
+                className="flex-1 px-3 py-2 sm:p-3 text-gray-800 outline-none placeholder-gray-400 text-sm sm:text-base rounded-md"
               />
-              <button className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-5 sm:px-8 py-2.5 sm:py-3 rounded font-bold transition-colors text-sm sm:text-base">
+              <div className="flex gap-1 p-1">
+                <button
+                  type="button"
+                  onClick={() => setHeroSearchType("projects")}
+                  className={`px-2 py-2 rounded-md text-xs font-bold ${heroSearchType === "projects" ? "bg-[#09BF44] text-white" : "bg-gray-100 text-gray-600"}`}
+                >
+                  Projects
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHeroSearchType("jobs")}
+                  className={`px-2 py-2 rounded-md text-xs font-bold ${heroSearchType === "jobs" ? "bg-[#09BF44] text-white" : "bg-gray-100 text-gray-600"}`}
+                >
+                  Jobs
+                </button>
+              </div>
+              <button type="submit" className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-5 sm:px-4 py-2.5 sm:py-3 rounded-md font-bold transition-colors text-sm sm:text-base">
                 Search
               </button>
-            </div>
+            </form>
             <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm font-medium text-gray-700">
               <span className="font-bold">Popular:</span>
               <span className="border border-gray-300 rounded-full px-3 py-0.5 hover:bg-[#09BF44] hover:text-white hover:border-[#09BF44] cursor-pointer transition">Website Design</span>
@@ -225,14 +253,29 @@ export default function Home() {
           </div>
 
           {loading ? (
-            <div className="text-center py-12 text-gray-400">
-              <p>Loading...</p>
+            <div className="flex flex-col items-center justify-center py-16">
+              <Loader2 className="w-10 h-10 animate-spin text-[#09BF44] mb-4" />
+              <p className="text-gray-600 font-bold">Exploring projects...</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8 w-full max-w-5xl">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="bg-white rounded-2xl border border-gray-100 p-6 animate-pulse">
+                    <div className="h-24 bg-gray-200 rounded-t-2xl mb-4" />
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
+                    <div className="h-4 bg-gray-200 rounded w-1/2 mb-4" />
+                    <div className="flex gap-2">
+                      <div className="h-8 bg-gray-200 rounded w-16" />
+                      <div className="h-8 bg-gray-200 rounded w-16" />
+                      <div className="h-8 bg-gray-200 rounded w-16" />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : projects.length > 0 ? (
             <div className="relative">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" style={{ overflow: 'visible' }}>
                 {projects.slice(projectStartIndex, projectStartIndex + 6).map((project) => (
-                  <ProjectCard key={project._id} project={project} showContactMe={true} />
+                  <ProjectCardCompact key={project._id} project={project} />
                 ))}
               </div>
               {projects.length > 6 && (
@@ -281,8 +324,22 @@ export default function Home() {
           </div>
 
           {loading ? (
-            <div className="text-center py-12 text-gray-400">
-              <p>Loading...</p>
+            <div className="flex flex-col items-center justify-center py-16">
+              <Loader2 className="w-10 h-10 animate-spin text-[#09BF44] mb-4" />
+              <p className="text-gray-600 font-bold">Finding jobs...</p>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8 w-full max-w-4xl">
+                {[1, 2].map((i) => (
+                  <div key={i} className="bg-white rounded-2xl border border-gray-100 p-6 animate-pulse">
+                    <div className="h-6 bg-gray-200 rounded w-2/3 mb-3" />
+                    <div className="h-4 bg-gray-200 rounded w-full mb-2" />
+                    <div className="h-4 bg-gray-200 rounded w-4/5 mb-4" />
+                    <div className="flex gap-2">
+                      <div className="h-6 bg-gray-200 rounded w-24" />
+                      <div className="h-6 bg-gray-200 rounded w-20" />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : jobs.length > 0 ? (
             <div className="relative">

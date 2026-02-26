@@ -396,9 +396,13 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                                         return;
                                     }
 
+                                    const total = Number(currentPackage.price || 0);
+                                    const platformFee = 20;
+                                    const freelancerReceives = total - platformFee;
+
                                     showModal({
-                                        title: 'Continue',
-                                        message: 'This will create an order and charge your wallet. Proceed?',
+                                        title: 'Confirm Order',
+                                        message: `Total: ${total} EGP. Platform fee (20 EGP): ${platformFee} EGP. Freelancer receives: ${freelancerReceives} EGP. Proceed?`,
                                         type: 'confirm',
                                         onConfirm: async () => {
                                             try {
