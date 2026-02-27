@@ -1,12 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const authVerified = require('../middleware/authVerified');
+const auth = require('../middleware/auth');
 const { updateProfile, getProfile, getPublicProfile, getTopFreelancers, getMyOrders, submitOrderWork, raiseDispute } = require('../controllers/freelancerController');
 
 // @route   PUT api/freelancer/profile
-// @desc    Update freelancer profile (onboarding steps)
+// @desc    Update freelancer profile (onboarding steps) - auth only, no email verification required
 // @access  Private (Freelancer only)
-router.put('/profile', authVerified, updateProfile);
+router.put('/profile', auth, updateProfile);
 
 // @route   GET api/freelancer/profile
 // @desc    Get current freelancer profile

@@ -3,7 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { uploadFile } = require('../controllers/uploadController');
-const authVerified = require('../middleware/authVerified');
+const auth = require('../middleware/auth');
 
 const UPLOAD_DIR = path.join(__dirname, '..', 'uploads');
 if (!fs.existsSync(UPLOAD_DIR)) {
@@ -30,5 +30,5 @@ const upload = multer({
 });
 
 const router = express.Router();
-router.post('/', authVerified, upload.single('file'), uploadFile);
+router.post('/', auth, upload.single('file'), uploadFile);
 module.exports = router;

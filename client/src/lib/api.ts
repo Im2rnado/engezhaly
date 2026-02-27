@@ -65,14 +65,21 @@ export const api = {
             const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
             const form = new FormData();
             form.append('file', file);
-            const res = await fetch(`${API_URL}/upload`, {
-                method: 'POST',
-                headers: token ? { 'x-auth-token': token } : {},
-                body: form,
-            });
-            const result = await res.json();
-            if (!res.ok) throw new Error(result.message || 'Upload failed');
-            return result.url;
+            try {
+                const res = await fetch(`${API_URL}/upload`, {
+                    method: 'POST',
+                    headers: token ? { 'x-auth-token': token } : {},
+                    body: form,
+                });
+                const result = await res.json();
+                if (!res.ok) throw new Error(result.message || result.msg || 'Upload failed');
+                return result.url;
+            } catch (err: any) {
+                if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
+                    throw new Error('Cannot reach server. Ensure the API is running and NEXT_PUBLIC_API_URL matches (e.g. http://localhost:6767/api).');
+                }
+                throw err;
+            }
         }
     },
     freelancer: {

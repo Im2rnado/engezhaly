@@ -4,8 +4,8 @@ import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { X, ChevronDown, Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
-import ProjectCard from "@/components/ProjectCard";
 import MainHeader from "@/components/MainHeader";
+import ProjectCardCompact from "@/components/ProjectCardCompact";
 
 function ProjectsPageContent() {
     const router = useRouter();
@@ -244,7 +244,7 @@ function ProjectsPageContent() {
                 ) : filteredProjects.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {filteredProjects.map((project) => (
-                            <ProjectCard key={project._id} project={project} showContactMe={true} />
+                            <ProjectCardCompact key={project._id} project={project} />
                         ))}
                     </div>
                 ) : (
