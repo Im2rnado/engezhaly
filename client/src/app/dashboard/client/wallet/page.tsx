@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+import { formatStatus } from '@/lib/utils';
 import { Loader2, CreditCard, DollarSign, PanelLeft } from 'lucide-react';
 import { useModal } from '@/context/ModalContext';
 import ClientSidebar from '@/components/ClientSidebar';
@@ -174,7 +175,7 @@ export default function WalletPage() {
                                                 {tx.amount > 0 ? '+' : ''}{tx.amount} EGP
                                             </td>
                                             <td className="p-4">
-                                                <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-bold uppercase">{tx.status}</span>
+                                                <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-bold uppercase">{formatStatus(tx.status)}</span>
                                             </td>
                                             <td className="p-4 text-gray-500 text-sm">
                                                 {new Date(tx.createdAt).toLocaleDateString()}

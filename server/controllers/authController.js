@@ -8,7 +8,7 @@ const { verification: verificationTemplate, passwordReset: passwordResetTemplate
 
 const register = async (req, res) => {
     try {
-        const { firstName, lastName, username, email, password, role, phoneNumber, businessType, profilePicture, dateOfBirth } = req.body;
+        const { firstName, lastName, username, email, password, role, phoneNumber, businessType, profilePicture, dateOfBirth, clientProfile, category, experienceYears, isStudent, certificates, universityId, skills, bio, idDocument, surveyResponses, starterPricing } = req.body;
 
         let user = await User.findOne({ $or: [{ email }, { username }] });
         if (user) {
@@ -31,16 +31,34 @@ const register = async (req, res) => {
 
         if (role === 'client') {
             userData.businessType = businessType || 'personal';
+            userData.phoneNumber = phoneNumber;
+            if (clientProfile && typeof clientProfile === 'object') {
+                userData.clientProfile = {};
+                if (clientProfile.companyName) userData.clientProfile.companyName = clientProfile.companyName;
+                if (clientProfile.companyDescription) userData.clientProfile.companyDescription = clientProfile.companyDescription;
+                if (clientProfile.position) userData.clientProfile.position = clientProfile.position;
+                if (clientProfile.linkedIn) userData.clientProfile.linkedIn = clientProfile.linkedIn;
+                if (clientProfile.instagram) userData.clientProfile.instagram = clientProfile.instagram;
+                if (clientProfile.facebook) userData.clientProfile.facebook = clientProfile.facebook;
+                if (clientProfile.tiktok) userData.clientProfile.tiktok = clientProfile.tiktok;
+            }
         }
 
         if (role === 'freelancer') {
             userData.freelancerProfile = { status: 'pending' };
-            if (profilePicture) {
-                userData.freelancerProfile.profilePicture = profilePicture;
-            }
-            if (dateOfBirth) {
-                userData.dateOfBirth = new Date(dateOfBirth);
-            }
+            if (profilePicture) userData.freelancerProfile.profilePicture = profilePicture;
+            if (dateOfBirth) userData.dateOfBirth = new Date(dateOfBirth);
+            if (phoneNumber) userData.phoneNumber = phoneNumber;
+            if (category) userData.freelancerProfile.category = category;
+            if (experienceYears !== undefined) userData.freelancerProfile.experienceYears = Number(experienceYears);
+            if (isStudent !== undefined) userData.freelancerProfile.isStudent = !!isStudent;
+            if (certificates && Array.isArray(certificates)) userData.freelancerProfile.certificates = certificates;
+            if (universityId) userData.freelancerProfile.universityId = universityId;
+            if (skills) userData.freelancerProfile.skills = Array.isArray(skills) ? skills : (typeof skills === 'string' ? skills.trim().split(/\s+/).filter(Boolean) : []);
+            if (bio) userData.freelancerProfile.bio = bio;
+            if (idDocument) userData.freelancerProfile.idDocument = idDocument;
+            if (surveyResponses && typeof surveyResponses === 'object') userData.freelancerProfile.surveyResponses = surveyResponses;
+            if (starterPricing && typeof starterPricing === 'object') userData.freelancerProfile.starterPricing = starterPricing;
         }
 
         user = new User(userData);

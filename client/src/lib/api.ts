@@ -61,12 +61,14 @@ export const api = {
         }
     },
     upload: {
-        file: async (file: File): Promise<string> => {
+        file: async (file: File, options?: { forSignup?: boolean }): Promise<string> => {
             const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+            const useSignupEndpoint = options?.forSignup ?? !token;
+            const uploadPath = useSignupEndpoint ? `${API_URL}/upload/signup` : `${API_URL}/upload`;
             const form = new FormData();
             form.append('file', file);
             try {
-                const res = await fetch(`${API_URL}/upload`, {
+                const res = await fetch(uploadPath, {
                     method: 'POST',
                     headers: token ? { 'x-auth-token': token } : {},
                     body: form,

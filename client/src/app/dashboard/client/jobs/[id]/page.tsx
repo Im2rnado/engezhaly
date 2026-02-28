@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Briefcase, Clock, User, ArrowLeft, Loader2, CheckCircle, XCircle, MessageSquare, Link as LinkIcon, Paperclip, PanelLeft } from 'lucide-react';
 import { api } from '@/lib/api';
+import { formatStatus } from '@/lib/utils';
 import { useModal } from '@/context/ModalContext';
 import ClientSidebar from '@/components/ClientSidebar';
 import CountdownTimer from '@/components/CountdownTimer';
@@ -164,7 +165,7 @@ export default function JobDetailPage() {
                                     Posted {new Date(job.createdAt).toLocaleDateString()}
                                 </span>
                                 <span className={`px-3 py-1 rounded-full text-xs font-bold ${job.status === 'open' ? 'bg-green-100 text-green-700' : job.status === 'in_progress' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
-                                    {job.status}
+                                    {formatStatus(job.status)}
                                 </span>
                             </div>
                         </div>

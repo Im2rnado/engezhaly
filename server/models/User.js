@@ -11,6 +11,15 @@ const UserSchema = new mongoose.Schema({
     role: { type: String, enum: ['client', 'freelancer', 'admin'], default: 'client' },
     emailVerified: { type: Boolean, default: false },
     businessType: { type: String, enum: ['personal', 'company'] }, // For Clients
+    clientProfile: {
+        companyName: { type: String },
+        companyDescription: { type: String },
+        position: { type: String },
+        linkedIn: { type: String },
+        instagram: { type: String },
+        facebook: { type: String },
+        tiktok: { type: String }
+    },
     walletBalance: { type: Number, default: 0 },
     strikes: { type: Number, default: 0, max: 3 },
     isFrozen: { type: Boolean, default: false },

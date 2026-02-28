@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { CheckCircle, AlertCircle, Info } from 'lucide-react';
+import { CheckCircle, AlertCircle, Info, Loader2 } from 'lucide-react';
 
 type ModalType = 'success' | 'error' | 'info' | 'confirm';
 
@@ -17,6 +17,7 @@ interface ModalOptions {
 
 interface ModalContextType {
     showModal: (options: ModalOptions) => void;
+    showRedirectLoader: (message: string) => void;
     hideModal: () => void;
 }
 
@@ -24,6 +25,7 @@ const ModalContext = createContext<ModalContextType | undefined>(undefined);
 
 export function ModalProvider({ children }: { children: ReactNode }) {
     const [isOpen, setIsOpen] = useState(false);
+    const [redirectLoader, setRedirectLoader] = useState<string | null>(null);
     const [modalConfig, setModalConfig] = useState<ModalOptions>({ title: '', message: '' });
 
     const showModal = (options: ModalOptions) => {
@@ -31,8 +33,13 @@ export function ModalProvider({ children }: { children: ReactNode }) {
         setIsOpen(true);
     };
 
+    const showRedirectLoader = (message: string) => {
+        setRedirectLoader(message);
+    };
+
     const hideModal = () => {
         setIsOpen(false);
+        setRedirectLoader(null);
     };
 
     const handleConfirm = () => {
@@ -50,8 +57,14 @@ export function ModalProvider({ children }: { children: ReactNode }) {
     };
 
     return (
-        <ModalContext.Provider value={{ showModal, hideModal }}>
+        <ModalContext.Provider value={{ showModal, showRedirectLoader, hideModal }}>
             {children}
+            {redirectLoader && (
+                <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-white/95 backdrop-blur-sm">
+                    <Loader2 className="w-12 h-12 animate-spin text-[#09BF44] mb-4" />
+                    <p className="text-lg font-bold text-gray-900">{redirectLoader}</p>
+                </div>
+            )}
             {isOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full mx-4 transform transition-all scale-100 animate-in zoom-in-95 duration-200">

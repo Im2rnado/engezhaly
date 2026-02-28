@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Briefcase, DollarSign, PlusCircle, ShoppingBag, Star, CheckCircle, Loader2, Edit, Award, MessageSquare, X, PanelLeft, Flag } from 'lucide-react';
 import { api } from '@/lib/api';
+import { formatStatus } from '@/lib/utils';
 import { useModal } from '@/context/ModalContext';
 import ProjectCard from '@/components/ProjectCard';
 import { MAIN_CATEGORIES } from '@/lib/categories';
@@ -273,14 +274,6 @@ function FreelancerDashboardContent() {
                         </div>
                         <p className="text-sm md:text-base text-gray-500 mt-1">Welcome back, {user.firstName}!</p>
                     </div>
-                    {!isPending && (
-                        <button
-                            onClick={() => router.push('/dashboard/freelancer/projects/create')}
-                            className="w-full sm:w-auto bg-[#09BF44] hover:bg-[#07a63a] text-white px-5 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors shadow-lg shadow-green-200"
-                        >
-                            <PlusCircle className="w-5 h-5" /> Create New Project
-                        </button>
-                    )}
                 </header>
 
                 {activeTab === 'dashboard' && (
@@ -372,7 +365,7 @@ function FreelancerDashboardContent() {
                                                     <div className="text-right">
                                                         <p className="font-black text-gray-900">{order.amount} EGP</p>
                                                         <span className={`px-2 py-1 rounded text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
-                                                            {order.status}
+                                                            {formatStatus(order.status)}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -465,7 +458,7 @@ function FreelancerDashboardContent() {
                                         <div className="text-right">
                                             <p className="text-xl font-black text-gray-900">{order.amount} EGP</p>
                                             <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'disputed' ? 'bg-amber-100 text-amber-700' : order.status === 'refunded' ? 'bg-gray-100 text-gray-700' : order.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
-                                                {order.status}
+                                                {formatStatus(order.status)}
                                             </span>
                                         </div>
                                     </div>

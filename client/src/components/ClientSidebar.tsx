@@ -5,6 +5,7 @@ import { Briefcase, BarChart3, ShoppingBag, User, Wallet, Plus, LogOut, MessageS
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
+import { useModal } from '@/context/ModalContext';
 
 interface ClientSidebarProps {
     user?: any;
@@ -17,6 +18,7 @@ interface ClientSidebarProps {
 
 export default function ClientSidebar({ user, activeTab, mobileOpen = false, onCloseMobile }: ClientSidebarProps) {
     const router = useRouter();
+    const { showModal } = useModal();
     const pathname = usePathname();
     const [jobs, setJobs] = useState<any[]>([]);
     const [orders, setOrders] = useState<any[]>([]);
@@ -159,9 +161,16 @@ export default function ClientSidebar({ user, activeTab, mobileOpen = false, onC
                 </div>
                 <button
                     onClick={() => {
-                        localStorage.removeItem('token');
-                        localStorage.removeItem('user');
-                        router.push('/');
+                        showModal({
+                            title: 'Log out?',
+                            message: 'Are you sure you want to log out?',
+                            type: 'confirm',
+                            onConfirm: () => {
+                                localStorage.removeItem('token');
+                                localStorage.removeItem('user');
+                                router.push('/');
+                            }
+                        });
                     }}
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-red-600 hover:bg-red-50 hover:text-red-700"
                 >

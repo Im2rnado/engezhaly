@@ -876,7 +876,9 @@ function ChatPageContent() {
                                                         </div>
                                                         <div className="flex items-center justify-between">
                                                             <span className="text-sm font-bold">Delivery:</span>
-                                                            <span className="text-sm font-medium">{offer.deliveryDays} days</span>
+                                                            <span className="text-sm font-medium">
+                                                                {offer.deliveryDate ? new Date(offer.deliveryDate).toLocaleDateString() : (offer.deliveryDays ? `${offer.deliveryDays} days` : '—')}
+                                                            </span>
                                                         </div>
                                                         <div className="pt-3 border-t border-white/20">
                                                             <p className="text-sm font-bold mb-2">What&apos;s Included:</p>

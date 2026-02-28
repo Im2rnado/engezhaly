@@ -5,7 +5,8 @@ const OfferSchema = new mongoose.Schema({
     senderId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // Freelancer or Client who created the offer
     receiverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // The other party
     price: { type: Number, required: true, min: 500 },
-    deliveryDays: { type: Number, required: true },
+    deliveryDays: { type: Number }, // Optional, for backward compatibility
+    deliveryDate: { type: Date }, // Preferred: explicit delivery date
     whatsIncluded: { type: String, required: true }, // Description of what's included
     milestones: [{
         name: { type: String, required: true },

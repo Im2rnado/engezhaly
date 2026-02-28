@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Briefcase, Clock, PlusCircle, ShoppingBag, Wallet, Edit, Loader2, X, Eye, PanelLeft, Flag } from 'lucide-react';
 import { api } from '@/lib/api';
+import { formatStatus } from '@/lib/utils';
 import { useModal } from '@/context/ModalContext';
 import ClientSidebar from '@/components/ClientSidebar';
 import ClientProfileEditModal from '@/components/ClientProfileEditModal';
@@ -23,16 +24,20 @@ function ClientDashboardContent() {
     const [orders, setOrders] = useState<any[]>([]);
     const [walletBalance, setWalletBalance] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [jobsLoading, setJobsLoading] = useState(false);
     const [profileEditModal, setProfileEditModal] = useState(false);
     const [editJobModal, setEditJobModal] = useState<any>(null);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
     const fetchJobs = useCallback(async () => {
+        setJobsLoading(true);
         try {
             const data = await api.client.getMyJobs();
             setJobs(data);
         } catch (err) {
             console.error(err);
+        } finally {
+            setJobsLoading(false);
         }
     }, []);
 
@@ -277,7 +282,7 @@ function ClientDashboardContent() {
                                                             Budget: {job.budgetRange.min} - {job.budgetRange.max} EGP
                                                         </span>
                                                         <span className={`px-2 py-1 rounded text-xs font-bold ${job.status === 'open' ? 'bg-green-100 text-green-700' : job.status === 'in_progress' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
-                                                            {job.status}
+                                                            {formatStatus(job.status)}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -316,7 +321,7 @@ function ClientDashboardContent() {
                                                 <div className="text-right">
                                                     <p className="font-black text-gray-900">{order.amount} EGP</p>
                                                     <span className={`px-2 py-1 rounded text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
-                                                        {order.status}
+                                                        {formatStatus(order.status)}
                                                     </span>
                                                 </div>
                                             </div>
@@ -335,7 +340,9 @@ function ClientDashboardContent() {
 
                 {activeTab === 'jobs' && (
                     <div className="space-y-4">
-                        {jobs.length > 0 ? (
+                        {jobsLoading ? (
+                            <div className="flex justify-center py-16"><Loader2 className="w-10 h-10 animate-spin text-[#09BF44]" /></div>
+                        ) : jobs.length > 0 ? (
                             jobs.map((job) => (
                                 <div key={job._id} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
                                     <div className="flex justify-between items-start gap-4 mb-4">
@@ -357,7 +364,7 @@ function ClientDashboardContent() {
                                             {job.proposals?.length || 0} proposal(s)
                                         </span>
                                         <span className={`px-3 py-1 rounded-full text-xs font-bold ${job.status === 'open' ? 'bg-green-100 text-green-700' : job.status === 'in_progress' ? 'bg-blue-100 text-blue-700' : job.status === 'completed' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'}`}>
-                                            {job.status}
+                                            {formatStatus(job.status)}
                                         </span>
                                         <span className="text-xs text-gray-500 font-bold">
                                             Posted {new Date(job.createdAt).toLocaleDateString()}
@@ -426,7 +433,7 @@ function ClientDashboardContent() {
                                         <div className="text-right shrink-0">
                                             <p className="text-xl font-black text-gray-900">{order.amount} EGP</p>
                                             <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'disputed' ? 'bg-amber-100 text-amber-700' : order.status === 'refunded' ? 'bg-gray-100 text-gray-700' : order.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
-                                                {order.status}
+                                                {formatStatus(order.status)}
                                             </span>
                                         </div>
                                     </div>

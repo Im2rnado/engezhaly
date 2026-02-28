@@ -4,13 +4,14 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { api } from '@/lib/api';
+import { formatStatus } from '@/lib/utils';
 import { Check, X, Ban, User, Flag, MessageSquare, Award, BarChart3, TrendingUp, Search, Loader2, Briefcase, FileText, ShoppingBag, CreditCard, Trash2, Star, Edit, LogOut, ArrowLeft, Send, Shield, PanelLeft, Mail, Video } from 'lucide-react';
 import { useModal } from '@/context/ModalContext';
 import EditModal from '@/components/EditModal';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 
 export default function AdminDashboard() {
-    const { showModal } = useModal();
+    const { showModal, hideModal } = useModal();
     const router = useRouter();
     const [activeTab, setActiveTab] = useState<'dashboard' | 'approvals' | 'users' | 'projects' | 'jobs' | 'orders' | 'finance' | 'chats' | 'strikes' | 'rewards' | 'emails'>('dashboard');
 
@@ -30,6 +31,13 @@ export default function AdminDashboard() {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResult, setSearchResult] = useState<any>(null);
     const [loading, setLoading] = useState(false);
+    const [usersLoading, setUsersLoading] = useState(false);
+    const [projectsLoading, setProjectsLoading] = useState(false);
+    const [jobsLoading, setJobsLoading] = useState(false);
+    const [ordersLoading, setOrdersLoading] = useState(false);
+    const [financeLoading, setFinanceLoading] = useState(false);
+    const [emailsLoading, setEmailsLoading] = useState(false);
+    const [chatsLoading, setChatsLoading] = useState(false);
     const [editModal, setEditModal] = useState<{ isOpen: boolean; type: 'user' | 'project' | 'job' | null; data: any }>({ isOpen: false, type: null, data: null });
     
     // Approvals states
@@ -58,11 +66,14 @@ export default function AdminDashboard() {
     };
 
     const fetchChats = async () => {
+        setChatsLoading(true);
         try {
             const data = await api.admin.getActiveChats();
             setActiveChats(data);
         } catch (err) {
             console.error('Failed to fetch chats', err);
+        } finally {
+            setChatsLoading(false);
         }
     };
 
@@ -126,47 +137,62 @@ export default function AdminDashboard() {
     };
 
     const fetchUsers = async () => {
+        setUsersLoading(true);
         try {
             const data = await api.admin.getAllUsers();
             setUsers(data);
         } catch (err) {
             console.error('Failed to fetch users', err);
+        } finally {
+            setUsersLoading(false);
         }
     };
 
     const fetchProjects = async () => {
+        setProjectsLoading(true);
         try {
             const data = await api.admin.getAllProjects();
             setProjects(data);
         } catch (err) {
             console.error('Failed to fetch projects', err);
+        } finally {
+            setProjectsLoading(false);
         }
     };
 
     const fetchJobs = async () => {
+        setJobsLoading(true);
         try {
             const data = await api.admin.getAllJobs();
             setJobs(data);
         } catch (err) {
             console.error('Failed to fetch jobs', err);
+        } finally {
+            setJobsLoading(false);
         }
     };
 
     const fetchOrders = async () => {
+        setOrdersLoading(true);
         try {
             const data = await api.admin.getAllOrders();
             setOrders(data);
         } catch (err) {
             console.error('Failed to fetch orders', err);
+        } finally {
+            setOrdersLoading(false);
         }
     };
 
     const fetchTransactions = async () => {
+        setFinanceLoading(true);
         try {
             const data = await api.admin.getAllTransactions();
             setTransactions(data);
         } catch (err) {
             console.error('Failed to fetch transactions', err);
+        } finally {
+            setFinanceLoading(false);
         }
     };
 
@@ -180,13 +206,20 @@ export default function AdminDashboard() {
     };
 
     const fetchEmailLogs = async () => {
+        setEmailsLoading(true);
         try {
             const data = await api.admin.getEmailLogs();
             setEmailLogs(data);
         } catch (err) {
             console.error('Failed to fetch email logs', err);
+        } finally {
+            setEmailsLoading(false);
         }
     };
+
+    useEffect(() => {
+        hideModal(); // Clear redirect loader when admin page loads
+    }, [hideModal]);
 
     useEffect(() => {
         fetchPending();
@@ -482,9 +515,16 @@ export default function AdminDashboard() {
                 <div className="p-4 border-t border-gray-100">
                     <button
                         onClick={() => {
-                            localStorage.removeItem('token');
-                            localStorage.removeItem('user');
-                            router.push('/');
+                            showModal({
+                                title: 'Log out?',
+                                message: 'Are you sure you want to log out?',
+                                type: 'confirm',
+                                onConfirm: () => {
+                                    localStorage.removeItem('token');
+                                    localStorage.removeItem('user');
+                                    router.push('/');
+                                }
+                            });
                         }}
                         className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-red-600 hover:bg-red-50 hover:text-red-700"
                     >
@@ -577,7 +617,13 @@ export default function AdminDashboard() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
-                                    {activeTab === 'users' && users.map(user => (
+                                    {activeTab === 'users' && usersLoading && (
+                                        <tr><td colSpan={4} className="p-8 text-center"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44] mx-auto" /></td></tr>
+                                    )}
+                                    {activeTab === 'users' && !usersLoading && users.length === 0 && (
+                                        <tr><td colSpan={4} className="p-8 text-center text-gray-500">No users yet.</td></tr>
+                                    )}
+                                    {activeTab === 'users' && !usersLoading && users.map(user => (
                                         <tr key={user._id} className="hover:bg-gray-50">
                                             <td className="p-4 font-bold">{user.firstName} {user.lastName}</td>
                                             <td className="p-4 text-gray-600">{user.email}</td>
@@ -588,7 +634,13 @@ export default function AdminDashboard() {
                                             </td>
                                         </tr>
                                     ))}
-                                    {activeTab === 'projects' && projects.map(project => (
+                                    {activeTab === 'projects' && projectsLoading && (
+                                        <tr><td colSpan={4} className="p-8 text-center"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44] mx-auto" /></td></tr>
+                                    )}
+                                    {activeTab === 'projects' && !projectsLoading && projects.length === 0 && (
+                                        <tr><td colSpan={4} className="p-8 text-center text-gray-500">No projects yet.</td></tr>
+                                    )}
+                                    {activeTab === 'projects' && !projectsLoading && projects.map(project => (
                                         <tr key={project._id} className="hover:bg-gray-50">
                                             <td className="p-4 font-bold truncate max-w-xs">{project.title}</td>
                                             <td className="p-4">{project.sellerId?.firstName} {project.sellerId?.lastName}</td>
@@ -599,7 +651,13 @@ export default function AdminDashboard() {
                                             </td>
                                         </tr>
                                     ))}
-                                    {activeTab === 'jobs' && jobs.map(job => (
+                                    {activeTab === 'jobs' && jobsLoading && (
+                                        <tr><td colSpan={4} className="p-8 text-center"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44] mx-auto" /></td></tr>
+                                    )}
+                                    {activeTab === 'jobs' && !jobsLoading && jobs.length === 0 && (
+                                        <tr><td colSpan={4} className="p-8 text-center text-gray-500">No jobs yet.</td></tr>
+                                    )}
+                                    {activeTab === 'jobs' && !jobsLoading && jobs.map(job => (
                                         <tr key={job._id} className="hover:bg-gray-50">
                                             <td className="p-4 font-bold truncate max-w-xs">{job.title}</td>
                                             <td className="p-4">{job.clientId?.firstName} {job.clientId?.lastName}</td>
@@ -610,14 +668,20 @@ export default function AdminDashboard() {
                                             </td>
                                         </tr>
                                     ))}
-                                    {activeTab === 'orders' && orders.map(order => (
+                                    {activeTab === 'orders' && ordersLoading && (
+                                        <tr><td colSpan={7} className="p-8 text-center"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44] mx-auto" /></td></tr>
+                                    )}
+                                    {activeTab === 'orders' && !ordersLoading && orders.length === 0 && (
+                                        <tr><td colSpan={7} className="p-8 text-center text-gray-500">No orders yet.</td></tr>
+                                    )}
+                                    {activeTab === 'orders' && !ordersLoading && orders.map(order => (
                                         <tr key={order._id} className="hover:bg-gray-50">
                                             <td className="p-4 text-gray-400 text-xs">{order._id.substring(0, 8)}...</td>
                                             <td className="p-4 font-bold truncate max-w-xs">{order.projectId?.title}</td>
                                             <td className="p-4">{order.buyerId?.firstName}</td>
                                             <td className="p-4">{order.sellerId?.firstName}</td>
                                             <td className="p-4 font-bold text-gray-900">{order.amount} EGP</td>
-                                            <td className="p-4"><span className={`px-2 py-1 rounded text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'disputed' ? 'bg-amber-100 text-amber-700' : order.status === 'refunded' ? 'bg-gray-100 text-gray-700' : 'bg-blue-100 text-blue-700'}`}>{order.status}</span></td>
+                                            <td className="p-4"><span className={`px-2 py-1 rounded text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'disputed' ? 'bg-amber-100 text-amber-700' : order.status === 'refunded' ? 'bg-gray-100 text-gray-700' : 'bg-blue-100 text-blue-700'}`}>{formatStatus(order.status)}</span></td>
                                             <td className="p-4">
                                                 {order.status === 'disputed' && (
                                                     <button
@@ -630,12 +694,20 @@ export default function AdminDashboard() {
                                             </td>
                                         </tr>
                                     ))}
-                                    {activeTab === 'finance' && transactions.map(tx => (
+                                    {activeTab === 'finance' && financeLoading && (
+                                        <tr><td colSpan={5} className="p-8 text-center"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44] mx-auto" /></td></tr>
+                                    )}
+                                    {activeTab === 'finance' && !financeLoading && transactions.length === 0 && (
+                                        <tr><td colSpan={5} className="p-8 text-center text-gray-500">No transactions yet.</td></tr>
+                                    )}
+                                    {activeTab === 'finance' && !financeLoading && transactions.map(tx => (
                                         <tr key={tx._id} className="hover:bg-gray-50">
                                             <td className="p-4 capitalize">{tx.type}</td>
                                             <td className="p-4">{tx.userId?.firstName} {tx.userId?.lastName}</td>
-                                            <td className={`p-4 font-bold ${tx.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>{tx.amount} EGP</td>
-                                            <td className="p-4"><span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">{tx.status}</span></td>
+                                            <td className={`p-4 font-bold ${(tx.type === 'fee' || tx.amount > 0) ? 'text-green-600' : 'text-red-600'}`}>
+                                                {tx.type === 'fee' || tx.amount > 0 ? `+${Math.abs(tx.amount)}` : tx.amount} EGP
+                                            </td>
+                                            <td className="p-4"><span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">{formatStatus(tx.status)}</span></td>
                                             <td className="p-4 text-gray-500">{new Date(tx.createdAt).toLocaleDateString()}</td>
                                         </tr>
                                     ))}
@@ -660,7 +732,11 @@ export default function AdminDashboard() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
-                                    {emailLogs.length === 0 ? (
+                                    {emailsLoading ? (
+                                        <tr>
+                                            <td colSpan={6} className="p-8 text-center"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44] mx-auto" /></td>
+                                        </tr>
+                                    ) : emailLogs.length === 0 ? (
                                         <tr>
                                             <td colSpan={6} className="p-8 text-center text-gray-500">No email logs yet.</td>
                                         </tr>
@@ -672,7 +748,7 @@ export default function AdminDashboard() {
                                                 <td className="p-4"><span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">{log.templateType}</span></td>
                                                 <td className="p-4">
                                                     <span className={`px-2 py-1 rounded text-xs font-bold ${log.status === 'sent' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                                        {log.status}
+                                                        {formatStatus(log.status)}
                                                     </span>
                                                 </td>
                                                 <td className="p-4 text-gray-500">{log.sentAt ? new Date(log.sentAt).toLocaleString() : '-'}</td>
@@ -715,8 +791,11 @@ export default function AdminDashboard() {
                                                             <p className="text-sm text-gray-500">{f.freelancerProfile?.experienceYears != null ? `${f.freelancerProfile.experienceYears} Years Exp.` : ''}</p>
                                                         </div>
                                                     </div>
-                                                    <div className="flex items-center gap-3">
+                                                    <div className="flex items-center gap-3 flex-wrap">
                                                         <span className="px-3 py-1 bg-[#09BF44]/10 text-[#09BF44] text-xs font-bold rounded-full uppercase">{(f.freelancerProfile?.category || 'No category')}</span>
+                                                        {f.freelancerProfile?.isStudent && (
+                                                            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">STUDENT</span>
+                                                        )}
                                                         <span className="text-xs font-bold text-gray-400">Click to review →</span>
                                                     </div>
                                                 </div>
@@ -752,9 +831,14 @@ export default function AdminDashboard() {
                                         <div>
                                             <h2 className="text-2xl font-black text-gray-900">{selectedFreelancer.firstName} {selectedFreelancer.lastName}</h2>
                                             <p className="text-gray-500 font-medium">@{selectedFreelancer.username}</p>
-                                            {selectedFreelancer.freelancerProfile?.category && (
-                                                <span className="inline-block mt-2 px-3 py-1 bg-[#09BF44]/10 text-[#09BF44] text-sm font-bold rounded-full uppercase">{selectedFreelancer.freelancerProfile.category}</span>
-                                            )}
+                                            <div className="flex flex-wrap gap-2 mt-2">
+                                                {selectedFreelancer.freelancerProfile?.category && (
+                                                    <span className="inline-block px-3 py-1 bg-[#09BF44]/10 text-[#09BF44] text-sm font-bold rounded-full uppercase">{selectedFreelancer.freelancerProfile.category}</span>
+                                                )}
+                                                {selectedFreelancer.freelancerProfile?.isStudent && (
+                                                    <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-sm font-bold rounded-full">STUDENT</span>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
 
@@ -798,6 +882,10 @@ export default function AdminDashboard() {
                                                 <p className="font-medium text-gray-900">{selectedFreelancer.freelancerProfile?.experienceYears != null ? `${selectedFreelancer.freelancerProfile.experienceYears} years` : 'Not provided'}</p>
                                             </div>
                                             <div className="bg-gray-50 p-4 rounded-xl">
+                                                <p className="text-xs font-bold text-gray-400 mb-1">Student</p>
+                                                <p className="font-medium text-gray-900">{selectedFreelancer.freelancerProfile?.isStudent ? 'Yes' : 'No'}</p>
+                                            </div>
+                                            <div className="bg-gray-50 p-4 rounded-xl">
                                                 <p className="text-xs font-bold text-gray-400 mb-1">Full-time</p>
                                                 <p className="font-medium text-gray-900">{selectedFreelancer.freelancerProfile?.surveyResponses?.isFullTime ? 'Yes' : 'No'}</p>
                                             </div>
@@ -832,6 +920,7 @@ export default function AdminDashboard() {
                                                             <h5 className="font-bold capitalize text-[#09BF44] mb-2">{tier}</h5>
                                                             <p className="text-gray-900 font-bold text-lg">{pkg.price} EGP</p>
                                                             <p className="text-gray-500 text-sm">{pkg.days} day delivery</p>
+                                                            {pkg.description && <p className="text-gray-600 text-sm mt-2">{pkg.description}</p>}
                                                         </div>
                                                     ) : null;
                                                 })}
@@ -843,20 +932,33 @@ export default function AdminDashboard() {
                                     <div>
                                         <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Documents</h4>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div className="bg-gray-50 p-4 rounded-xl">
-                                                <p className="text-xs font-bold text-gray-400 mb-2">Certificate(s)</p>
-                                                {selectedFreelancer.freelancerProfile?.certificates?.length > 0 ? (
-                                                    <div className="space-y-2">
-                                                        {selectedFreelancer.freelancerProfile.certificates.filter(Boolean).map((url: string, i: number) => (
-                                                            <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline font-medium">
-                                                                <FileText className="w-4 h-4" /> Certificate {i + 1}
-                                                            </a>
-                                                        ))}
-                                                    </div>
-                                                ) : (
-                                                    <p className="text-sm text-gray-400">None uploaded</p>
-                                                )}
-                                            </div>
+                                            {selectedFreelancer.freelancerProfile?.isStudent ? (
+                                                <div className="bg-gray-50 p-4 rounded-xl">
+                                                    <p className="text-xs font-bold text-gray-400 mb-2">University ID</p>
+                                                    {selectedFreelancer.freelancerProfile?.universityId ? (
+                                                        <a href={selectedFreelancer.freelancerProfile.universityId} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline font-medium">
+                                                            <FileText className="w-4 h-4" /> View University ID
+                                                        </a>
+                                                    ) : (
+                                                        <p className="text-sm text-gray-400">None uploaded</p>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <div className="bg-gray-50 p-4 rounded-xl">
+                                                    <p className="text-xs font-bold text-gray-400 mb-2">Certificate(s)</p>
+                                                    {selectedFreelancer.freelancerProfile?.certificates?.length > 0 ? (
+                                                        <div className="space-y-2">
+                                                            {selectedFreelancer.freelancerProfile.certificates.filter(Boolean).map((url: string, i: number) => (
+                                                                <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline font-medium block">
+                                                                    <FileText className="w-4 h-4" /> Certificate {i + 1}
+                                                                </a>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-sm text-gray-400">None uploaded</p>
+                                                    )}
+                                                </div>
+                                            )}
                                             <div className="bg-gray-50 p-4 rounded-xl">
                                                 <p className="text-xs font-bold text-gray-400 mb-2">ID Document</p>
                                                 {selectedFreelancer.freelancerProfile?.idDocument ? (
@@ -1014,7 +1116,11 @@ export default function AdminDashboard() {
                                     <span className="text-xs font-bold bg-gray-100 px-3 py-1 rounded-full text-gray-500">{activeChats.length} Active</span>
                                 </div>
                                 <div className="divide-y divide-gray-100 flex-1 min-h-0 overflow-y-auto">
-                                    {activeChats.map((chat) => {
+                                    {chatsLoading ? (
+                                        <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44]" /></div>
+                                    ) : activeChats.length === 0 ? (
+                                        <div className="p-12 text-center text-gray-500">No active chats yet.</div>
+                                    ) : activeChats.map((chat) => {
                                         const participants = chat.participants || [];
                                         const participant1 = participants[0];
                                         const participant2 = participants[1];
@@ -1065,12 +1171,6 @@ export default function AdminDashboard() {
                                             </div>
                                         );
                                     })}
-                                    {activeChats.length === 0 && (
-                                        <div className="text-center py-12 text-gray-400">
-                                            <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                                            <p>No active conversations.</p>
-                                        </div>
-                                    )}
                                 </div>
                             </>
                         ) : (

@@ -8,7 +8,7 @@ interface CreateOfferModalProps {
     onClose: () => void;
     onSubmit: (offer: {
         price: number;
-        deliveryDays: number;
+        deliveryDate: string;
         whatsIncluded: string;
         milestones: Array<{ name: string; price: number; dueDate?: string }>;
     }) => void;
@@ -16,7 +16,7 @@ interface CreateOfferModalProps {
 
 export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOfferModalProps) {
     const [price, setPrice] = useState('');
-    const [deliveryDays, setDeliveryDays] = useState('');
+    const [deliveryDate, setDeliveryDate] = useState('');
     const [whatsIncluded, setWhatsIncluded] = useState('');
     const [milestones, setMilestones] = useState<Array<{ name: string; price: string; dueDate: string }>>([]);
     const [showMilestones, setShowMilestones] = useState(false);
@@ -28,7 +28,7 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
 
         const offerData = {
             price: Number(price),
-            deliveryDays: Number(deliveryDays),
+            deliveryDate: deliveryDate,
             whatsIncluded: whatsIncluded.trim(),
             milestones: milestones.map(m => ({
                 name: m.name.trim(),
@@ -42,8 +42,13 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
             return;
         }
 
-        if (offerData.deliveryDays < 1) {
-            alert('Delivery days must be at least 1');
+        if (!deliveryDate) {
+            alert('Please select a delivery date');
+            return;
+        }
+        const selectedDate = new Date(deliveryDate);
+        if (selectedDate < new Date(new Date().setHours(0, 0, 0, 0))) {
+            alert('Delivery date must be today or later');
             return;
         }
 
@@ -55,7 +60,7 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
         onSubmit(offerData);
         // Reset form
         setPrice('');
-        setDeliveryDays('');
+        setDeliveryDate('');
         setWhatsIncluded('');
         setMilestones([]);
         setShowMilestones(false);
@@ -123,19 +128,18 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                 )}
                             </div>
 
-                            {/* Delivery Days */}
+                            {/* Delivery Date */}
                             <div>
                                 <label className="block text-sm font-bold text-gray-900 mb-2">
-                                    Delivery Days <span className="text-red-500">*</span>
+                                    Delivery Date <span className="text-red-500">*</span>
                                 </label>
                                 <input
-                                    type="number"
-                                    value={deliveryDays}
-                                    onChange={(e) => setDeliveryDays(e.target.value)}
-                                    min="1"
+                                    type="date"
+                                    value={deliveryDate}
+                                    onChange={(e) => setDeliveryDate(e.target.value)}
+                                    min={new Date().toISOString().split('T')[0]}
                                     required
                                     className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:border-[#09BF44] focus:ring-2 focus:ring-[#09BF44]/20 outline-none transition-all"
-                                    placeholder="e.g., 7"
                                 />
                             </div>
 
@@ -275,7 +279,7 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <span className="text-gray-600">Delivery:</span>
-                                        <span className="font-bold text-gray-900">{deliveryDays || '—'} days</span>
+                                        <span className="font-bold text-gray-900">{deliveryDate ? new Date(deliveryDate).toLocaleDateString() : '—'}</span>
                                     </div>
                                     {milestones.length > 0 && (
                                         <div className="flex justify-between items-center">

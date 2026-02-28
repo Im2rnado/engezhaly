@@ -22,7 +22,7 @@ const getProfile = async (req, res) => {
 const updateProfile = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { firstName, lastName, email, phoneNumber, businessType } = req.body;
+        const { firstName, lastName, email, phoneNumber, businessType, clientProfile } = req.body;
 
         const user = await User.findById(userId);
         if (!user) {
@@ -38,6 +38,16 @@ const updateProfile = async (req, res) => {
         if (email !== undefined) user.email = email;
         if (phoneNumber !== undefined) user.phoneNumber = phoneNumber;
         if (businessType !== undefined) user.businessType = businessType;
+        if (clientProfile && typeof clientProfile === 'object') {
+            if (!user.clientProfile) user.clientProfile = {};
+            if (clientProfile.companyName !== undefined) user.clientProfile.companyName = clientProfile.companyName;
+            if (clientProfile.companyDescription !== undefined) user.clientProfile.companyDescription = clientProfile.companyDescription;
+            if (clientProfile.position !== undefined) user.clientProfile.position = clientProfile.position;
+            if (clientProfile.linkedIn !== undefined) user.clientProfile.linkedIn = clientProfile.linkedIn;
+            if (clientProfile.instagram !== undefined) user.clientProfile.instagram = clientProfile.instagram;
+            if (clientProfile.facebook !== undefined) user.clientProfile.facebook = clientProfile.facebook;
+            if (clientProfile.tiktok !== undefined) user.clientProfile.tiktok = clientProfile.tiktok;
+        }
 
         await user.save();
         res.json(user);

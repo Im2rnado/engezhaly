@@ -7,9 +7,11 @@ import { Search, Loader2, Award, Clock, CheckCircle } from 'lucide-react';
 import { api } from '@/lib/api';
 import ProjectCard from '@/components/ProjectCard';
 import AuthModal from '@/components/AuthModal';
+import { useModal } from '@/context/ModalContext';
 
 export default function FreelancerProfilePage() {
     const router = useRouter();
+    const { showModal } = useModal();
     const params = useParams();
     const freelancerId = params.id as string;
 
@@ -56,10 +58,17 @@ export default function FreelancerProfilePage() {
     };
 
     const handleLogout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setUser(null);
-        router.push('/');
+        showModal({
+            title: 'Log out?',
+            message: 'Are you sure you want to log out?',
+            type: 'confirm',
+            onConfirm: () => {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                setUser(null);
+                router.push('/');
+            }
+        });
     };
 
     const getDashboardPath = () => {

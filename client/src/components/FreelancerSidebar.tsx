@@ -5,6 +5,7 @@ import { Briefcase, BarChart3, ShoppingBag, User, Clock, LogOut, MessageSquare, 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
+import { useModal } from '@/context/ModalContext';
 
 interface FreelancerSidebarProps {
     user?: any;
@@ -18,6 +19,7 @@ interface FreelancerSidebarProps {
 
 export default function FreelancerSidebar({ user, profile, onToggleBusy, activeTab, mobileOpen = false, onCloseMobile }: FreelancerSidebarProps) {
     const router = useRouter();
+    const { showModal } = useModal();
     const pathname = usePathname();
     const [projects, setProjects] = useState<any[]>([]);
     const [orders, setOrders] = useState<any[]>([]);
@@ -108,7 +110,7 @@ export default function FreelancerSidebar({ user, profile, onToggleBusy, activeT
                     }}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'orders' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
                 >
-                    <ShoppingBag className="w-5 h-5" /> Orders
+                    <ShoppingBag className="w-5 h-5" /> Orders Received
                     {activeOrders > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{activeOrders}</span>}
                 </button>
                 <button
@@ -170,9 +172,16 @@ export default function FreelancerSidebar({ user, profile, onToggleBusy, activeT
                 )}
                 <button
                     onClick={() => {
-                        localStorage.removeItem('token');
-                        localStorage.removeItem('user');
-                        router.push('/');
+                        showModal({
+                            title: 'Log out?',
+                            message: 'Are you sure you want to log out?',
+                            type: 'confirm',
+                            onConfirm: () => {
+                                localStorage.removeItem('token');
+                                localStorage.removeItem('user');
+                                router.push('/');
+                            }
+                        });
                     }}
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-red-600 hover:bg-red-50 hover:text-red-700"
                 >

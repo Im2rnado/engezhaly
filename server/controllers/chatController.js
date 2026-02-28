@@ -275,8 +275,12 @@ const sendMessage = async (req, res) => {
 
 const createOffer = async (req, res) => {
     try {
-        const { conversationId, receiverId, price, deliveryDays, whatsIncluded, milestones } = req.body;
+        const { conversationId, receiverId, price, deliveryDays, deliveryDate, whatsIncluded, milestones } = req.body;
         const senderId = req.user.id;
+
+        if (!deliveryDate && (!deliveryDays || deliveryDays < 1)) {
+            return res.status(400).json({ msg: 'Provide deliveryDate or deliveryDays (min 1)' });
+        }
 
         // Validate conversation exists and user is participant
         const conversation = await Conversation.findById(conversationId);
@@ -284,25 +288,25 @@ const createOffer = async (req, res) => {
             return res.status(403).json({ msg: 'Invalid conversation or unauthorized' });
         }
 
+        const offerData = { conversationId, senderId, receiverId, price, whatsIncluded, milestones: milestones || [] };
+        if (deliveryDate) {
+            offerData.deliveryDate = new Date(deliveryDate);
+        } else {
+            offerData.deliveryDays = Number(deliveryDays);
+        }
+
         // Create offer
-        const offer = new Offer({
-            conversationId,
-            senderId,
-            receiverId,
-            price,
-            deliveryDays,
-            whatsIncluded,
-            milestones: milestones || []
-        });
+        const offer = new Offer(offerData);
 
         await offer.save();
 
+        const deliveryDesc = deliveryDate ? new Date(deliveryDate).toLocaleDateString() : `${deliveryDays} days`;
         // Send a message in chat about the offer
         const offerMessage = new Chat({
             conversationId,
             senderId,
             receiverId,
-            content: `[OFFER] Custom offer created: ${price} EGP, ${deliveryDays} days delivery`,
+            content: `[OFFER] Custom offer created: ${price} EGP, delivery ${deliveryDesc}`,
             messageType: 'text'
         });
         await offerMessage.save();
@@ -342,7 +346,11 @@ const acceptOffer = async (req, res) => {
             return res.status(400).json({ msg: 'Insufficient wallet balance' });
         }
 
-        // Create order from offer
+        // Create order from offer - use deliveryDate if set, else compute from deliveryDays
+        const orderDeliveryDate = offer.deliveryDate
+            ? new Date(offer.deliveryDate)
+            : new Date(Date.now() + (offer.deliveryDays || 7) * 24 * 60 * 60 * 1000);
+
         const order = new Order({
             projectId: null, // Custom offers don't have a projectId
             buyerId: userId,
@@ -352,7 +360,7 @@ const acceptOffer = async (req, res) => {
             amount: offer.price,
             platformFee: 20, // Fixed 20 EGP platform fee
             status: 'active',
-            deliveryDate: new Date(Date.now() + offer.deliveryDays * 24 * 60 * 60 * 1000)
+            deliveryDate: orderDeliveryDate
         });
         await order.save();
 

@@ -31,4 +31,6 @@ const upload = multer({
 
 const router = express.Router();
 router.post('/', auth, upload.single('file'), uploadFile);
+// Signup upload - no auth required (user not yet registered)
+router.post('/signup', upload.single('file'), uploadFile);
 module.exports = router;
