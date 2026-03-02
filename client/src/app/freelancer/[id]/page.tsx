@@ -141,7 +141,7 @@ export default function FreelancerProfilePage() {
                                 onClick={() => router.push('/projects')}
                                 className="hover:text-[#09BF44] transition-colors"
                             >
-                                Explore Projects
+                                Find a Freelancer
                             </button>
                             <button
                                 onClick={() => router.push('/jobs')}

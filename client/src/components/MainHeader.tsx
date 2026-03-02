@@ -340,7 +340,7 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                                 onClick={() => router.push('/projects')}
                                 className={`hover:text-[#09BF44] transition-colors ${pathname === '/projects' ? 'text-[#09BF44]' : ''}`}
                             >
-                                Explore Projects
+                                Find a Freelancer
                             </button>
                             <button
                                 onClick={() => router.push('/jobs')}
@@ -416,7 +416,7 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                 {mobileMenuOpen && (
                     <div className="md:hidden border-t border-gray-100 bg-white">
                         <div className="max-w-[95%] mx-auto px-3 py-3 space-y-2">
-                            <button onClick={() => { router.push('/projects'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50">Explore Projects</button>
+                            <button onClick={() => { router.push('/projects'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50">Find a Freelancer</button>
                             <button onClick={() => { router.push('/jobs'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50">Browse Jobs</button>
                             {user?.role === 'client' && (
                                 <button onClick={() => { router.push('/dashboard/client/jobs/create'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50">Post Job</button>
