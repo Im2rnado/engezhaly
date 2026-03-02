@@ -102,6 +102,9 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             setShowPassword(false);
             setProfilePicture(null);
             setProfilePictureUploading(false);
+            setProfilePictureProgress(0);
+            setDocumentUploadProgress(null);
+            setDocumentUploadingLabel(null);
             setProfessionalInfo({ category: '', experienceYears: '', skills: '', bio: '', isStudent: false, certificateUrls: [], universityIdUrl: '', idDocumentUrl: '' });
             setSurvey({ isFullTime: false, speedQualityCommitment: 'Yes' });
             setPricing({ basic: { price: 500, days: 3, description: '' }, standard: { price: 1000, days: 5, description: '' }, premium: { price: 2000, days: 7, description: '' } });
@@ -109,6 +112,10 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
     }, [isOpen]);
 
     const [profilePictureUploading, setProfilePictureUploading] = useState(false);
+    const [profilePictureProgress, setProfilePictureProgress] = useState(0);
+    const [documentUploadProgress, setDocumentUploadProgress] = useState<number | null>(null);
+    const [documentUploadingLabel, setDocumentUploadingLabel] = useState<string | null>(null);
+
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -122,13 +129,18 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
         }
         setError('');
         setProfilePictureUploading(true);
+        setProfilePictureProgress(0);
         try {
-            const url = await api.upload.file(file, { forSignup: true });
+            const url = await api.upload.file(file, {
+                forSignup: true,
+                onProgress: (p) => setProfilePictureProgress(p)
+            });
             setProfilePicture(url);
         } catch (err: any) {
             setError(err.message || 'Profile picture upload failed');
         } finally {
             setProfilePictureUploading(false);
+            setProfilePictureProgress(0);
             e.target.value = '';
         }
     };
@@ -732,12 +744,20 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                             className={`relative p-6 border-2 border-dashed rounded-xl text-center transition-colors ${profilePictureUploading ? 'border-[#09BF44] bg-green-50 cursor-wait' : 'border-gray-200 text-gray-500 hover:border-[#09BF44] hover:bg-green-50 cursor-pointer'}`}
                                         >
                                             {profilePictureUploading ? (
-                                                <Loader2 className="w-8 h-8 mx-auto mb-2 text-[#09BF44] animate-spin" />
+                                                <>
+                                                    <Loader2 className="w-8 h-8 mx-auto mb-2 text-[#09BF44] animate-spin" />
+                                                    <p className="text-sm font-bold text-[#09BF44] mb-2">Uploading... {profilePictureProgress}%</p>
+                                                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                                        <div className="h-full bg-[#09BF44] transition-all duration-300" style={{ width: `${profilePictureProgress}%` }} />
+                                                    </div>
+                                                </>
                                             ) : (
-                                                <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                                                <>
+                                                    <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                                                    <p className="text-sm font-bold">Click to upload profile photo</p>
+                                                    <p className="text-xs text-gray-400 mt-1">Max 5MB</p>
+                                                </>
                                             )}
-                                            <p className="text-sm font-bold">{profilePictureUploading ? 'Uploading...' : 'Click to upload profile photo'}</p>
-                                            <p className="text-xs text-gray-400 mt-1">Max 5MB</p>
                                         </div>
                                     )}
                                     <input
@@ -903,7 +923,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                     </button>
                                                 </div>
                                             ) : (
-                                                <label className="block p-4 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 hover:border-[#09BF44]/50 cursor-pointer transition-colors">
+                                                <label className={`block p-4 rounded-xl border-2 border-dashed transition-colors ${documentUploadingLabel === 'universityId' ? 'border-[#09BF44] bg-green-50 cursor-wait' : 'bg-gray-50 border-gray-200 hover:border-[#09BF44]/50 cursor-pointer'}`}>
                                                     <input
                                                         type="file"
                                                         accept="image/*,.pdf"
@@ -911,19 +931,36 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                             const file = e.target.files?.[0];
                                                             if (!file) return;
                                                             setError('');
+                                                            setDocumentUploadingLabel('universityId');
+                                                            setDocumentUploadProgress(0);
                                                             try {
-                                                                const url = await api.upload.file(file);
+                                                                const url = await api.upload.file(file, { onProgress: (p) => setDocumentUploadProgress(p) });
                                                                 setProfessionalInfo((prev) => ({ ...prev, universityIdUrl: url }));
                                                             } catch (err: any) {
                                                                 setError(err.message || 'Upload failed');
+                                                            } finally {
+                                                                setDocumentUploadingLabel(null);
+                                                                setDocumentUploadProgress(null);
                                                             }
                                                             e.target.value = '';
                                                         }}
+                                                        disabled={!!documentUploadingLabel}
                                                         className="hidden"
                                                     />
-                                                    <span className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                                                        <Upload className="w-5 h-5" /> Click to upload University ID
-                                                    </span>
+                                                    {documentUploadingLabel === 'universityId' ? (
+                                                        <div className="flex flex-col gap-2">
+                                                            <span className="flex items-center gap-2 text-sm font-medium text-[#09BF44]">
+                                                                <Loader2 className="w-5 h-5 animate-spin" /> Uploading... {documentUploadProgress ?? 0}%
+                                                            </span>
+                                                            <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                                                <div className="h-full bg-[#09BF44] transition-all duration-300" style={{ width: `${documentUploadProgress ?? 0}%` }} />
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                                                            <Upload className="w-5 h-5" /> Click to upload University ID
+                                                        </span>
+                                                    )}
                                                 </label>
                                             )}
                                         </div>
@@ -946,7 +983,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                             </button>
                                                         </div>
                                                     ))}
-                                                    <label className="block p-3 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 hover:border-[#09BF44]/50 cursor-pointer transition-colors">
+                                                    <label className={`block p-3 rounded-xl border-2 border-dashed transition-colors ${documentUploadingLabel === 'certificate' ? 'border-[#09BF44] bg-green-50 cursor-wait' : 'bg-gray-50 border-gray-200 hover:border-[#09BF44]/50 cursor-pointer'}`}>
                                                         <input
                                                             type="file"
                                                             accept="image/*,.pdf"
@@ -954,23 +991,40 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                                 const file = e.target.files?.[0];
                                                                 if (!file) return;
                                                                 setError('');
+                                                                setDocumentUploadingLabel('certificate');
+                                                                setDocumentUploadProgress(0);
                                                                 try {
-                                                                    const url = await api.upload.file(file);
+                                                                    const url = await api.upload.file(file, { onProgress: (p) => setDocumentUploadProgress(p) });
                                                                     setProfessionalInfo((prev) => ({ ...prev, certificateUrls: [...prev.certificateUrls, url] }));
                                                                 } catch (err: any) {
                                                                     setError(err.message || 'Upload failed');
+                                                                } finally {
+                                                                    setDocumentUploadingLabel(null);
+                                                                    setDocumentUploadProgress(null);
                                                                 }
                                                                 e.target.value = '';
                                                             }}
+                                                            disabled={!!documentUploadingLabel}
                                                             className="hidden"
                                                         />
-                                                        <span className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                                                            <Upload className="w-5 h-5" /> Add another certificate
-                                                        </span>
+                                                        {documentUploadingLabel === 'certificate' ? (
+                                                            <div className="flex flex-col gap-1.5">
+                                                                <span className="flex items-center gap-2 text-sm font-medium text-[#09BF44]">
+                                                                    <Loader2 className="w-5 h-5 animate-spin" /> Uploading... {documentUploadProgress ?? 0}%
+                                                                </span>
+                                                                <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                                                    <div className="h-full bg-[#09BF44] transition-all duration-300" style={{ width: `${documentUploadProgress ?? 0}%` }} />
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                                                                <Upload className="w-5 h-5" /> Add another certificate
+                                                            </span>
+                                                        )}
                                                     </label>
                                                 </div>
                                             ) : (
-                                                <label className="block p-4 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 hover:border-[#09BF44]/50 cursor-pointer transition-colors">
+                                                <label className={`block p-4 rounded-xl border-2 border-dashed transition-colors ${documentUploadingLabel === 'certificate' ? 'border-[#09BF44] bg-green-50 cursor-wait' : 'bg-gray-50 border-gray-200 hover:border-[#09BF44]/50 cursor-pointer'}`}>
                                                     <input
                                                         type="file"
                                                         accept="image/*,.pdf"
@@ -978,19 +1032,36 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                             const file = e.target.files?.[0];
                                                             if (!file) return;
                                                             setError('');
+                                                            setDocumentUploadingLabel('certificate');
+                                                            setDocumentUploadProgress(0);
                                                             try {
-                                                                const url = await api.upload.file(file);
+                                                                const url = await api.upload.file(file, { onProgress: (p) => setDocumentUploadProgress(p) });
                                                                 setProfessionalInfo((prev) => ({ ...prev, certificateUrls: [...prev.certificateUrls, url] }));
                                                             } catch (err: any) {
                                                                 setError(err.message || 'Upload failed');
+                                                            } finally {
+                                                                setDocumentUploadingLabel(null);
+                                                                setDocumentUploadProgress(null);
                                                             }
                                                             e.target.value = '';
                                                         }}
+                                                        disabled={!!documentUploadingLabel}
                                                         className="hidden"
                                                     />
-                                                    <span className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                                                        <Upload className="w-5 h-5" /> Click to upload certificate
-                                                    </span>
+                                                    {documentUploadingLabel === 'certificate' ? (
+                                                        <div className="flex flex-col gap-2">
+                                                            <span className="flex items-center gap-2 text-sm font-medium text-[#09BF44]">
+                                                                <Loader2 className="w-5 h-5 animate-spin" /> Uploading... {documentUploadProgress ?? 0}%
+                                                            </span>
+                                                            <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                                                <div className="h-full bg-[#09BF44] transition-all duration-300" style={{ width: `${documentUploadProgress ?? 0}%` }} />
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                                                            <Upload className="w-5 h-5" /> Click to upload certificate
+                                                        </span>
+                                                    )}
                                                 </label>
                                             )}
                                         </div>
@@ -1011,7 +1082,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                 </button>
                                             </div>
                                         ) : (
-                                            <label className="block p-4 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 hover:border-[#09BF44]/50 cursor-pointer transition-colors">
+                                            <label className={`block p-4 rounded-xl border-2 border-dashed transition-colors ${documentUploadingLabel === 'idDocument' ? 'border-[#09BF44] bg-green-50 cursor-wait' : 'bg-gray-50 border-gray-200 hover:border-[#09BF44]/50 cursor-pointer'}`}>
                                                 <input
                                                     type="file"
                                                     accept="image/*,.pdf"
@@ -1019,19 +1090,36 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                         const file = e.target.files?.[0];
                                                         if (!file) return;
                                                         setError('');
+                                                        setDocumentUploadingLabel('idDocument');
+                                                        setDocumentUploadProgress(0);
                                                         try {
-                                                            const url = await api.upload.file(file);
+                                                            const url = await api.upload.file(file, { onProgress: (p) => setDocumentUploadProgress(p) });
                                                             setProfessionalInfo((prev) => ({ ...prev, idDocumentUrl: url }));
                                                         } catch (err: any) {
                                                             setError(err.message || 'Upload failed');
+                                                        } finally {
+                                                            setDocumentUploadingLabel(null);
+                                                            setDocumentUploadProgress(null);
                                                         }
                                                         e.target.value = '';
                                                     }}
+                                                    disabled={!!documentUploadingLabel}
                                                     className="hidden"
                                                 />
-                                                <span className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                                                    <Upload className="w-5 h-5" /> Click to upload ID Document
-                                                </span>
+                                                {documentUploadingLabel === 'idDocument' ? (
+                                                    <div className="flex flex-col gap-2">
+                                                        <span className="flex items-center gap-2 text-sm font-medium text-[#09BF44]">
+                                                            <Loader2 className="w-5 h-5 animate-spin" /> Uploading... {documentUploadProgress ?? 0}%
+                                                        </span>
+                                                        <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                                            <div className="h-full bg-[#09BF44] transition-all duration-300" style={{ width: `${documentUploadProgress ?? 0}%` }} />
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <span className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                                                        <Upload className="w-5 h-5" /> Click to upload ID Document
+                                                    </span>
+                                                )}
                                             </label>
                                         )}
                                     </div>
@@ -1106,7 +1194,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                         <input type="number" min="1" value={pricing[tier].days} onChange={(e) => handlePricingChange(tier, 'days', e.target.value)} className="w-full p-2 bg-gray-50 rounded-lg border-2 border-transparent focus:border-[#09BF44] outline-none transition-all" />
                                                     </div>
                                                     <div>
-                                                        <label className="text-xs font-bold text-gray-500">Description (optional)</label>
+                                                        <label className="text-xs font-bold text-gray-500">Description</label>
                                                         <textarea
                                                             placeholder="e.g. Single page fix"
                                                             value={pricing[tier].description ?? ''}

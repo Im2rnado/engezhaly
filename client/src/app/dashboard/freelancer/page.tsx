@@ -27,6 +27,7 @@ function FreelancerDashboardContent() {
     const [profileEditModal, setProfileEditModal] = useState(false);
     const [workOrder, setWorkOrder] = useState<any>(null);
     const [submittingWork, setSubmittingWork] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState<number | null>(null);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
     const [workSubmission, setWorkSubmission] = useState({
         message: '',
@@ -181,14 +182,19 @@ function FreelancerDashboardContent() {
         e.preventDefault();
         if (!workOrder) return;
         setSubmittingWork(true);
+        setUploadProgress(null);
         try {
             const fileUrls: string[] = [];
-            if (workSubmission.files.length > 0) {
-                for (const f of workSubmission.files) {
-                    const url = await api.upload.file(f);
+            const files = workSubmission.files;
+            if (files.length > 0) {
+                for (let i = 0; i < files.length; i++) {
+                    const url = await api.upload.file(files[i], {
+                        onProgress: (p) => setUploadProgress(Math.round(((i + p / 100) / files.length) * 100))
+                    });
                     fileUrls.push(url);
                 }
             }
+            setUploadProgress(100);
 
             const links = workSubmission.links
                 .split(/[\n, ]+/)
@@ -209,6 +215,7 @@ function FreelancerDashboardContent() {
             showModal({ title: 'Error', message: err.message || 'Failed to submit work', type: 'error' });
         } finally {
             setSubmittingWork(false);
+            setUploadProgress(null);
         }
     };
 
@@ -647,6 +654,16 @@ function FreelancerDashboardContent() {
                                     <p className="text-xs text-gray-500 mt-2">{workSubmission.files.length} file(s) selected</p>
                                 )}
                             </div>
+                            {uploadProgress !== null && workSubmission.files.length > 0 && (
+                                <div className="space-y-1.5">
+                                    <p className="text-sm font-medium text-[#09BF44]">
+                                        Uploading files... {uploadProgress}%
+                                    </p>
+                                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                        <div className="h-full bg-[#09BF44] transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+                                    </div>
+                                </div>
+                            )}
                             <div className="flex justify-end gap-3 pt-2">
                                 <button
                                     type="button"
@@ -659,8 +676,9 @@ function FreelancerDashboardContent() {
                                 <button
                                     type="submit"
                                     disabled={submittingWork}
-                                    className="px-5 py-2 rounded-xl bg-black text-white font-bold hover:bg-gray-800 transition-colors disabled:opacity-60"
+                                    className="px-5 py-2 rounded-xl bg-black text-white font-bold hover:bg-gray-800 transition-colors disabled:opacity-60 flex items-center gap-2"
                                 >
+                                    {submittingWork && <Loader2 className="w-4 h-4 animate-spin" />}
                                     {submittingWork ? 'Submitting...' : 'Submit Work'}
                                 </button>
                             </div>

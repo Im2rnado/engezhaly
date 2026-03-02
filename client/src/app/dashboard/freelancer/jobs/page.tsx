@@ -19,6 +19,7 @@ export default function MyJobsPage() {
     const [profile, setProfile] = useState<any>(null);
     const [workJob, setWorkJob] = useState<any>(null);
     const [submittingWork, setSubmittingWork] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState<number | null>(null);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
     const [workSubmission, setWorkSubmission] = useState({
         message: '',
@@ -79,14 +80,19 @@ export default function MyJobsPage() {
         e.preventDefault();
         if (!workJob) return;
         setSubmittingWork(true);
+        setUploadProgress(null);
         try {
             const fileUrls: string[] = [];
-            if (workSubmission.files.length > 0) {
-                for (const f of workSubmission.files) {
-                    const url = await api.upload.file(f);
+            const files = workSubmission.files;
+            if (files.length > 0) {
+                for (let i = 0; i < files.length; i++) {
+                    const url = await api.upload.file(files[i], {
+                        onProgress: (p) => setUploadProgress(Math.round(((i + p / 100) / files.length) * 100))
+                    });
                     fileUrls.push(url);
                 }
             }
+            setUploadProgress(100);
 
             const links = workSubmission.links
                 .split(/[\n, ]+/)
@@ -108,6 +114,7 @@ export default function MyJobsPage() {
             showModal({ title: 'Error', message: err.message || 'Failed to submit work', type: 'error' });
         } finally {
             setSubmittingWork(false);
+            setUploadProgress(null);
         }
     };
 
@@ -325,6 +332,16 @@ export default function MyJobsPage() {
                                     )}
                                 </div>
 
+                                {uploadProgress !== null && workSubmission.files.length > 0 && (
+                                    <div className="space-y-1.5">
+                                        <p className="text-sm font-medium text-[#09BF44]">
+                                            Uploading files... {uploadProgress}%
+                                        </p>
+                                        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                            <div className="h-full bg-[#09BF44] transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="flex gap-4 pt-2">
                                     <button
                                         type="button"
@@ -336,8 +353,9 @@ export default function MyJobsPage() {
                                     <button
                                         type="submit"
                                         disabled={submittingWork}
-                                        className="flex-1 bg-[#09BF44] text-white font-bold p-3 rounded-xl hover:bg-[#07a63a] transition-colors disabled:opacity-70"
+                                        className="flex-1 bg-[#09BF44] text-white font-bold p-3 rounded-xl hover:bg-[#07a63a] transition-colors disabled:opacity-70 flex items-center justify-center gap-2"
                                     >
+                                        {submittingWork && <Loader2 className="w-4 h-4 animate-spin" />}
                                         {submittingWork ? 'Submitting...' : 'Submit Work'}
                                     </button>
                                 </div>

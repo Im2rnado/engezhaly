@@ -71,27 +71,38 @@ export const api = {
         }
     },
     upload: {
-        file: async (file: File, options?: { forSignup?: boolean }): Promise<string> => {
+        file: async (file: File, options?: { forSignup?: boolean; onProgress?: (percent: number) => void }): Promise<string> => {
             const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
             const useSignupEndpoint = options?.forSignup ?? !token;
             const uploadPath = useSignupEndpoint ? `${API_URL}/upload/signup` : `${API_URL}/upload`;
             const form = new FormData();
             form.append('file', file);
-            try {
-                const res = await fetch(uploadPath, {
-                    method: 'POST',
-                    headers: token ? { 'x-auth-token': token } : {},
-                    body: form,
-                });
-                const result = await res.json();
-                if (!res.ok) throw new Error(result.message || result.msg || 'Upload failed');
-                return result.url;
-            } catch (err: any) {
-                if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
-                    throw new Error('Cannot reach server. Ensure the API is running and NEXT_PUBLIC_API_URL matches (e.g. http://localhost:6767/api).');
+            const onProgress = options?.onProgress;
+
+            return new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', uploadPath);
+                if (token) xhr.setRequestHeader('x-auth-token', token);
+
+                if (onProgress) {
+                    xhr.upload.onprogress = (e) => {
+                        const percent = e.lengthComputable ? Math.round((e.loaded / e.total) * 100) : 50;
+                        onProgress(percent);
+                    };
                 }
-                throw err;
-            }
+
+                xhr.onload = () => {
+                    try {
+                        const result = JSON.parse(xhr.responseText || '{}');
+                        if (xhr.status >= 200 && xhr.status < 300) return resolve(result.url);
+                        reject(new Error(result.message || result.msg || 'Upload failed'));
+                    } catch {
+                        reject(new Error('Upload failed'));
+                    }
+                };
+                xhr.onerror = () => reject(new Error('Cannot reach server. Ensure the API is running and NEXT_PUBLIC_API_URL matches (e.g. http://localhost:6767/api).'));
+                xhr.send(form);
+            });
         }
     },
     freelancer: {
