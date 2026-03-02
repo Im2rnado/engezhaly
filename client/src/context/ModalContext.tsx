@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { CheckCircle, AlertCircle, Info, Loader2 } from 'lucide-react';
 
 type ModalType = 'success' | 'error' | 'info' | 'confirm';
@@ -28,19 +28,19 @@ export function ModalProvider({ children }: { children: ReactNode }) {
     const [redirectLoader, setRedirectLoader] = useState<string | null>(null);
     const [modalConfig, setModalConfig] = useState<ModalOptions>({ title: '', message: '' });
 
-    const showModal = (options: ModalOptions) => {
+    const showModal = useCallback((options: ModalOptions) => {
         setModalConfig(options);
         setIsOpen(true);
-    };
+    }, []);
 
-    const showRedirectLoader = (message: string) => {
+    const showRedirectLoader = useCallback((message: string) => {
         setRedirectLoader(message);
-    };
+    }, []);
 
-    const hideModal = () => {
+    const hideModal = useCallback(() => {
         setIsOpen(false);
         setRedirectLoader(null);
-    };
+    }, []);
 
     const handleConfirm = () => {
         setIsOpen(false);

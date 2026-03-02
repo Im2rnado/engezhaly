@@ -219,7 +219,8 @@ export default function AdminDashboard() {
 
     useEffect(() => {
         hideModal(); // Clear redirect loader when admin page loads
-    }, [hideModal]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Run only on mount - hideModal is stable (memoized in ModalProvider)
 
     useEffect(() => {
         fetchPending();
@@ -286,14 +287,16 @@ export default function AdminDashboard() {
         }
     };
 
-    const handleReject = async (id: string) => {
+    const handleReject = (id: string) => {
         showModal({
             title: 'Confirm Rejection',
             message: 'Are you sure you want to reject and delete this freelancer?',
-            type: 'info',
+            type: 'confirm',
+            confirmText: 'Reject',
             onConfirm: async () => {
                 try {
                     await api.admin.rejectFreelancer(id);
+                    setSelectedFreelancer(null);
                     showModal({ title: 'Success', message: 'Freelancer Rejected', type: 'success' });
                     fetchPending();
                 } catch (err) {
@@ -975,13 +978,16 @@ export default function AdminDashboard() {
                                     {/* Approve / Reject */}
                                     <div className="flex gap-4 pt-4 border-t border-gray-100">
                                         <button
-                                            onClick={() => { handleApprove(selectedFreelancer._id); setSelectedFreelancer(null); }}
+                                            onClick={async () => {
+                                                await handleApprove(selectedFreelancer._id);
+                                                setSelectedFreelancer(null);
+                                            }}
                                             className="flex-1 bg-[#09BF44] hover:bg-[#07a63a] text-white font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2"
                                         >
                                             <Check className="w-5 h-5" /> Approve Freelancer
                                         </button>
                                         <button
-                                            onClick={() => { handleReject(selectedFreelancer._id); setSelectedFreelancer(null); }}
+                                            onClick={() => handleReject(selectedFreelancer._id)}
                                             className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2"
                                         >
                                             <X className="w-5 h-5" /> Reject & Delete
