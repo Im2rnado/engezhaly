@@ -49,3 +49,7 @@ Engezhaly is a freelance marketplace platform tailored for the Egyptian market. 
 │   ├── /middleware
 │   └── /services
 ```
+
+## Deployment Notes
+
+If you use **nginx** as a reverse proxy, add `client_max_body_size 10M;` (or higher) to allow file uploads and large registration payloads. The default 1MB can cause PDF uploads and signup to fail with "Failed to fetch".

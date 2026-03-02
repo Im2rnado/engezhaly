@@ -71,9 +71,9 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
         speedQualityCommitment: 'Yes'
     });
     const [pricing, setPricing] = useState({
-        basic: { price: 500, days: 3 },
-        standard: { price: 1000, days: 5 },
-        premium: { price: 2000, days: 7 }
+        basic: { price: 500, days: 3, description: '' },
+        standard: { price: 1000, days: 5, description: '' },
+        premium: { price: 2000, days: 7, description: '' }
     });
 
     // Reset state when modal opens/closes
@@ -101,28 +101,35 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             setForgotPasswordEmail('');
             setShowPassword(false);
             setProfilePicture(null);
+            setProfilePictureUploading(false);
             setProfessionalInfo({ category: '', experienceYears: '', skills: '', bio: '', isStudent: false, certificateUrls: [], universityIdUrl: '', idDocumentUrl: '' });
             setSurvey({ isFullTime: false, speedQualityCommitment: 'Yes' });
-            setPricing({ basic: { price: 500, days: 3 }, standard: { price: 1000, days: 5 }, premium: { price: 2000, days: 7 } });
+            setPricing({ basic: { price: 500, days: 3, description: '' }, standard: { price: 1000, days: 5, description: '' }, premium: { price: 2000, days: 7, description: '' } });
         }
     }, [isOpen]);
 
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const [profilePictureUploading, setProfilePictureUploading] = useState(false);
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) {
-            if (file.size > 5 * 1024 * 1024) { // 5MB limit
-                setError('Image size must be less than 5MB');
-                return;
-            }
-            if (!file.type.startsWith('image/')) {
-                setError('Please upload an image file');
-                return;
-            }
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setProfilePicture(reader.result as string);
-            };
-            reader.readAsDataURL(file);
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) {
+            setError('Image size must be less than 5MB');
+            return;
+        }
+        if (!file.type.startsWith('image/')) {
+            setError('Please upload an image file');
+            return;
+        }
+        setError('');
+        setProfilePictureUploading(true);
+        try {
+            const url = await api.upload.file(file, { forSignup: true });
+            setProfilePicture(url);
+        } catch (err: any) {
+            setError(err.message || 'Profile picture upload failed');
+        } finally {
+            setProfilePictureUploading(false);
+            e.target.value = '';
         }
     };
 
@@ -289,10 +296,10 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
         setStep('freelancer-step-3');
     };
 
-    const handlePricingChange = (tier: 'basic' | 'standard' | 'premium', field: 'price' | 'days', value: string) => {
+    const handlePricingChange = (tier: 'basic' | 'standard' | 'premium', field: 'price' | 'days' | 'description', value: string) => {
         setPricing({
             ...pricing,
-            [tier]: { ...pricing[tier], [field]: Number(value) }
+            [tier]: { ...pricing[tier], [field]: field === 'description' ? value : Number(value) }
         });
     };
 
@@ -701,13 +708,14 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                     <label className="block text-sm font-bold text-gray-700 mb-2">Profile Picture (Optional)</label>
                                     {profilePicture ? (
                                         <div className="relative">
-                                            <div className="w-32 h-32 mx-auto rounded-full overflow-hidden border-4 border-[#09BF44]">
+                                            <div className="w-32 h-32 mx-auto rounded-full overflow-hidden border-4 border-[#09BF44] bg-gray-100">
                                                 <Image
                                                     src={profilePicture}
                                                     alt="Profile preview"
                                                     width={128}
                                                     height={128}
                                                     className="w-full h-full object-cover"
+                                                    unoptimized
                                                 />
                                             </div>
                                             <button
@@ -720,11 +728,15 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                         </div>
                                     ) : (
                                         <div
-                                            onClick={() => fileInputRef.current?.click()}
-                                            className="p-6 border-2 border-dashed border-gray-200 rounded-xl text-center text-gray-500 hover:border-[#09BF44] hover:bg-green-50 transition-colors cursor-pointer"
+                                            onClick={() => !profilePictureUploading && fileInputRef.current?.click()}
+                                            className={`relative p-6 border-2 border-dashed rounded-xl text-center transition-colors ${profilePictureUploading ? 'border-[#09BF44] bg-green-50 cursor-wait' : 'border-gray-200 text-gray-500 hover:border-[#09BF44] hover:bg-green-50 cursor-pointer'}`}
                                         >
-                                            <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                                            <p className="text-sm font-bold">Click to upload profile photo</p>
+                                            {profilePictureUploading ? (
+                                                <Loader2 className="w-8 h-8 mx-auto mb-2 text-[#09BF44] animate-spin" />
+                                            ) : (
+                                                <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                                            )}
+                                            <p className="text-sm font-bold">{profilePictureUploading ? 'Uploading...' : 'Click to upload profile photo'}</p>
                                             <p className="text-xs text-gray-400 mt-1">Max 5MB</p>
                                         </div>
                                     )}
@@ -1092,6 +1104,16 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                     <div>
                                                         <label className="text-xs font-bold text-gray-500">Delivery (Days)</label>
                                                         <input type="number" min="1" value={pricing[tier].days} onChange={(e) => handlePricingChange(tier, 'days', e.target.value)} className="w-full p-2 bg-gray-50 rounded-lg border-2 border-transparent focus:border-[#09BF44] outline-none transition-all" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-xs font-bold text-gray-500">Description (optional)</label>
+                                                        <textarea
+                                                            placeholder="e.g. Single page fix"
+                                                            value={pricing[tier].description ?? ''}
+                                                            onChange={(e) => handlePricingChange(tier, 'description', e.target.value)}
+                                                            className="w-full p-2 bg-gray-50 rounded-lg border-2 border-transparent focus:border-[#09BF44] outline-none transition-all resize-none min-h-[60px]"
+                                                            rows={2}
+                                                        />
                                                     </div>
                                                 </div>
                                             </div>

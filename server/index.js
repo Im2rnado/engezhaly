@@ -17,7 +17,8 @@ const io = new Server(server, {
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+// 15MB limit for JSON (registration sends base64 profile picture + certificates)
+app.use(express.json({ limit: '15mb' }));
 
 // Uploaded files (public)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

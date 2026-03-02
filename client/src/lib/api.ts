@@ -11,14 +11,24 @@ const getHeaders = () => {
 export const api = {
     auth: {
         register: async (data: any) => {
-            const res = await fetch(`${API_URL}/auth/register`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-            });
-            const result = await res.json();
-            if (!res.ok) throw new Error(result.message || 'Registration failed');
-            return result;
+            try {
+                const res = await fetch(`${API_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                });
+                const result = await res.json().catch(() => ({ message: '' }));
+                if (!res.ok) {
+                    if (res.status === 413) throw new Error('Request too large. Try a smaller profile picture or fewer files.');
+                    throw new Error(result.message || result.msg || 'Registration failed');
+                }
+                return result;
+            } catch (err: any) {
+                if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
+                    throw new Error('Cannot reach server. Ensure the API is running and NEXT_PUBLIC_API_URL matches.');
+                }
+                throw err;
+            }
         },
         login: async (data: any) => {
             const res = await fetch(`${API_URL}/auth/login`, {
