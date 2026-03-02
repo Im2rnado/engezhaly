@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 
 const STORAGE_KEY = "engezhaly_site_access";
-const PASSWORD = process.env.NEXT_PUBLIC_SITE_PASSWORD || "EngezhalyxWebicco2026";
+const PASSWORD = process.env.NEXT_PUBLIC_SITE_PASSWORD || "111210";
 
 export default function PasswordGate({ children }: { children: React.ReactNode }) {
   const [unlocked, setUnlocked] = useState(false);
