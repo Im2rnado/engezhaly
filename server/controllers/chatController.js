@@ -278,6 +278,11 @@ const createOffer = async (req, res) => {
         const { conversationId, receiverId, price, deliveryDays, deliveryDate, whatsIncluded, milestones } = req.body;
         const senderId = req.user.id;
 
+        const sender = await User.findById(senderId).select('role');
+        if (!sender || sender.role !== 'freelancer') {
+            return res.status(403).json({ msg: 'Only freelancers can create custom offers' });
+        }
+
         if (!deliveryDate && (!deliveryDays || deliveryDays < 1)) {
             return res.status(400).json({ msg: 'Provide deliveryDate or deliveryDays (min 1)' });
         }
@@ -340,10 +345,15 @@ const acceptOffer = async (req, res) => {
             return res.status(400).json({ msg: 'Offer is no longer pending' });
         }
 
-        // Check wallet balance
+        const clientFee = 20;
+        const freelancerFee = 20;
+        const totalClientPays = offer.price + clientFee;
+        const freelancerReceives = offer.price - freelancerFee;
+
+        // Check wallet balance (client pays price + 20 EGP fee)
         const buyer = await User.findById(userId);
-        if (buyer.walletBalance < offer.price) {
-            return res.status(400).json({ msg: 'Insufficient wallet balance' });
+        if (buyer.walletBalance < totalClientPays) {
+            return res.status(400).json({ msg: `Insufficient wallet balance. You need ${totalClientPays} EGP (${offer.price} + ${clientFee} EGP fee)` });
         }
 
         // Create order from offer - use deliveryDate if set, else compute from deliveryDays
@@ -358,22 +368,29 @@ const acceptOffer = async (req, res) => {
             packageType: 'Custom',
             offerId: offer._id, // Link to the offer
             amount: offer.price,
-            platformFee: 20, // Fixed 20 EGP platform fee
+            platformFee: clientFee + freelancerFee,
             status: 'active',
             deliveryDate: orderDeliveryDate
         });
         await order.save();
 
-        // Deduct from buyer wallet
-        buyer.walletBalance -= offer.price;
+        // Deduct from buyer wallet (client pays price + 20 EGP fee)
+        buyer.walletBalance -= totalClientPays;
         await buyer.save();
 
-        // Create Transaction records
-        const platformFee = 20;
-        const netAmount = offer.price - platformFee;
+        // Add to freelancer wallet (freelancer receives price - 20 EGP fee)
+        const seller = await User.findById(offer.senderId);
+        if (seller) {
+            seller.walletBalance = (seller.walletBalance || 0) + freelancerReceives;
+            await seller.save();
+        }
+
+        // Create Transaction records (fee amounts positive = platform gains)
         await Transaction.create([
-            { userId: userId, type: 'payment', amount: -offer.price, description: 'Custom Offer', orderId: order._id, relatedUserId: offer.senderId },
-            { userId: offer.senderId, type: 'payment', amount: netAmount, description: 'Custom Offer', orderId: order._id, relatedUserId: userId }
+            { userId: userId, type: 'payment', amount: -totalClientPays, description: `Custom Offer (incl. ${clientFee} EGP fee)`, orderId: order._id, relatedUserId: offer.senderId },
+            { userId: userId, type: 'fee', amount: clientFee, description: 'Platform fee (client)', orderId: order._id },
+            { userId: offer.senderId, type: 'payment', amount: freelancerReceives, description: 'Custom Offer', orderId: order._id, relatedUserId: userId },
+            { userId: offer.senderId, type: 'fee', amount: freelancerFee, description: 'Platform fee (freelancer)', orderId: order._id }
         ]);
 
         // Update offer status
@@ -382,7 +399,6 @@ const acceptOffer = async (req, res) => {
         await offer.save();
 
         // Notify freelancer (seller): if online -> push; if offline -> email
-        const seller = await User.findById(offer.senderId).select('email firstName lastName');
         const sellerId = offer.senderId;
         const clientName = buyer ? `${buyer.firstName} ${buyer.lastName}` : 'A client';
         const orderLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard/freelancer?tab=orders`;
@@ -403,11 +419,11 @@ const acceptOffer = async (req, res) => {
 
         // Send payment receipt emails to both
         if (buyer?.email) {
-            const { subject, html } = paymentReceiptClient(offer.price, 'Custom Offer', order._id.toString(), new Date().toLocaleDateString());
+            const { subject, html } = paymentReceiptClient(totalClientPays, 'Custom Offer', order._id.toString(), new Date().toLocaleDateString());
             sendAndLog(buyer.email, subject, html, 'payment_receipt_client', { orderId: order._id }).catch(err => console.error('[Chat] Receipt email failed:', err.message));
         }
         if (seller?.email) {
-            const { subject, html } = paymentReceiptFreelancer(offer.price, netAmount, platformFee, 'Custom Offer', order._id.toString(), new Date().toLocaleDateString());
+            const { subject, html } = paymentReceiptFreelancer(offer.price, freelancerReceives, clientFee + freelancerFee, 'Custom Offer', order._id.toString(), new Date().toLocaleDateString());
             sendAndLog(seller.email, subject, html, 'payment_receipt_freelancer', { orderId: order._id }).catch(err => console.error('[Chat] Receipt email failed:', err.message));
         }
 
@@ -416,8 +432,7 @@ const acceptOffer = async (req, res) => {
             conversationId: offer.conversationId._id,
             senderId: userId,
             receiverId: offer.senderId,
-            content: `[OFFER ACCEPTED] Order #${order._id} created. Payment of ${offer.price} EGP processed.`,
-            messageType: 'text'
+            content: `[OFFER ACCEPTED] Order #${order._id} created. Payment of ${offer.price} EGP processed.`, messageType: 'text'
         });
         await acceptanceMessage.save();
 

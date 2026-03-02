@@ -233,7 +233,7 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                                             type="text"
                                                             value={milestone.name}
                                                             onChange={(e) => updateMilestone(index, 'name', e.target.value)}
-                                                            placeholder="Milestone name (e.g., Design Phase)"
+                                                            placeholder="Milestone description (e.g., Design Phase)"
                                                             className="w-full px-4 py-2.5 bg-white border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:border-[#09BF44] focus:ring-2 focus:ring-[#09BF44]/20 outline-none transition-all"
                                                         />
                                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

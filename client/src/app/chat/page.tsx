@@ -422,13 +422,15 @@ function ChatPageContent() {
     };
 
     const handleAcceptOffer = async (offer: { _id: string; price: number }) => {
-        const total = Number(offer.price || 0);
-        const platformFee = 20;
-        const freelancerReceives = total - platformFee;
+        const price = Number(offer.price || 0);
+        const clientFee = 20;
+        const freelancerFee = 20;
+        const totalYouPay = price + clientFee;
+        const freelancerReceives = price - freelancerFee;
 
         showModal({
             title: 'Accept Offer',
-            message: `Total: ${total} EGP. Platform fee (20 EGP): ${platformFee} EGP. Freelancer receives: ${freelancerReceives} EGP. Proceed?`,
+            message: `Offer price: ${price} EGP. You will pay ${clientFee} EGP fee (total: ${totalYouPay} EGP). Proceed?`,
             type: 'confirm',
             onConfirm: async () => {
                 try {
@@ -874,6 +876,11 @@ function ChatPageContent() {
                                                             <span className="text-sm font-bold">Price:</span>
                                                             <span className="text-lg font-black">{offer.price} EGP</span>
                                                         </div>
+                                                        {canAccept && (
+                                                            <div className="text-xs opacity-90">
+                                                                + 20 EGP fee = {offer.price + 20} EGP total to pay
+                                                            </div>
+                                                        )}
                                                         <div className="flex items-center justify-between">
                                                             <span className="text-sm font-bold">Delivery:</span>
                                                             <span className="text-sm font-medium">
@@ -985,16 +992,18 @@ function ChatPageContent() {
                                 {/* Input */}
                                 <div className={`p-3 md:p-6 bg-white border-t border-gray-200 shadow-lg flex-shrink-0 ${activeChat.isFrozen ? 'opacity-50 pointer-events-none' : ''}`}>
                                     <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 md:gap-3">
-                                        {/* Create Offer Button */}
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowOfferModal(true)}
-                                            disabled={activeChat.isFrozen}
-                                            className="flex items-center justify-center gap-2 px-3 md:px-4 py-2.5 bg-gradient-to-r from-[#09BF44]/10 to-[#09BF44]/5 hover:from-[#09BF44]/20 hover:to-[#09BF44]/10 border border-[#09BF44]/20 rounded-xl font-bold text-[#09BF44] transition-all text-sm whitespace-nowrap flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            <FileText className="w-4 h-8" />
-                                            Custom Offer
-                                        </button>
+                                        {/* Create Offer Button - freelancers only */}
+                                        {currentUser?.role === 'freelancer' && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowOfferModal(true)}
+                                                disabled={activeChat.isFrozen}
+                                                className="flex items-center justify-center gap-2 px-3 md:px-4 py-2.5 bg-gradient-to-r from-[#09BF44]/10 to-[#09BF44]/5 hover:from-[#09BF44]/20 hover:to-[#09BF44]/10 border border-[#09BF44]/20 rounded-xl font-bold text-[#09BF44] transition-all text-sm whitespace-nowrap flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                <FileText className="w-4 h-5" />
+                                                Custom Offer
+                                            </button>
+                                        )}
                                         <form onSubmit={sendMessage} className="flex items-center gap-2 md:gap-3 bg-gray-50 p-2 rounded-2xl border-2 border-gray-200 focus-within:border-[#09BF44] focus-within:ring-2 focus-within:ring-[#09BF44]/20 transition-all flex-1 min-w-0">
                                             <button type="button" disabled={activeChat.isFrozen} className="p-2.5 text-gray-400 hover:text-[#09BF44] hover:bg-white rounded-xl transition-all flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed">
                                                 <Paperclip className="w-5 h-5" />
