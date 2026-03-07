@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, usePathname } from 'next/navigation';
-import { Briefcase, BarChart3, ShoppingBag, User, Wallet, Plus, LogOut, MessageSquare, X } from 'lucide-react';
+import { Briefcase, BarChart3, ShoppingBag, User, Wallet, Plus, LogOut, MessageSquare, X, Home } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
@@ -73,6 +73,15 @@ export default function ClientSidebar({ user, activeTab, mobileOpen = false, onC
             <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
                 <button
                     onClick={() => {
+                        router.push('/');
+                        onCloseMobile?.();
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+                >
+                    <Home className="w-5 h-5" /> Home Page
+                </button>
+                <button
+                    onClick={() => {
                         router.push('/dashboard/client?tab=dashboard');
                     }}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'dashboard' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
@@ -94,7 +103,7 @@ export default function ClientSidebar({ user, activeTab, mobileOpen = false, onC
                     }}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'orders' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
                 >
-                    <ShoppingBag className="w-5 h-5" /> Projects Ordered
+                    <ShoppingBag className="w-5 h-5" /> My Orders
                     {activeOrders > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{activeOrders}</span>}
                 </button>
                 <button
@@ -134,10 +143,10 @@ export default function ClientSidebar({ user, activeTab, mobileOpen = false, onC
                     <Plus className="w-5 h-5" /> Post a Job
                 </button>
                 <button
-                    onClick={() => router.push('/projects')}
+                    onClick={() => router.push('/offers')}
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-gray-500 hover:bg-gray-50 hover:text-gray-900"
                 >
-                    <Briefcase className="w-5 h-5" /> Browse Projects
+                    <Briefcase className="w-5 h-5" /> Find a Freelancer
                 </button>
             </nav>
 

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Clock, RotateCcw, Check, ArrowRight, Edit, MessageSquare, Phone, ChevronDown, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Image from 'next/image';
 import { api } from '@/lib/api';
 import { useModal } from '@/context/ModalContext';
@@ -23,6 +24,8 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
     const [selectedPackage, setSelectedPackage] = useState(0);
     const [showContactDropdown, setShowContactDropdown] = useState(false);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+    const [orderModalStep, setOrderModalStep] = useState<'description' | 'confirm' | null>(null);
+    const [orderDescription, setOrderDescription] = useState('');
     const [isCustomizeLoading, setIsCustomizeLoading] = useState(false);
     const packages = project.packages || [];
     const currentPackage = packages[selectedPackage] || {};
@@ -214,7 +217,10 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                 )}
 
                 {/* Freelancer Info */}
-                <div className="relative h-full flex items-center gap-3 md:gap-4 px-4 md:px-6">
+                <Link
+                    href={initialSellerId ? `/freelancer/${initialSellerId}` : '#'}
+                    className="relative h-full flex items-center gap-3 md:gap-4 px-4 md:px-6 hover:opacity-90 transition-opacity"
+                >
                     {/* Profile Picture */}
                     <div className="relative">
                         {/* Gradient Background Blur */}
@@ -243,7 +249,7 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                     <div>
                         <h4 className="font-bold text-gray-900 text-sm md:text-lg line-clamp-1">{freelancerName}</h4>
                     </div>
-                </div>
+                </Link>
             </div>
 
             {/* Package Tabs */}
@@ -381,7 +387,7 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                                 <Edit className="w-4 h-4" /> Edit
                             </button>
                             <button
-                                onClick={() => router.push(`/dashboard/freelancer/projects/${project._id}/view`)}
+                                onClick={() => router.push(`/dashboard/freelancer/offers/${project._id}/view`)}
                                 className="flex-1 bg-black hover:bg-gray-800 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
                             >
                                 View <ArrowRight className="w-4 h-4" />
@@ -392,40 +398,69 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                         <>
                             <button
                                 onClick={() => {
-                                    if (!checkClientAuth()) {
-                                        return;
-                                    }
-
-                                    const total = Number(currentPackage.price || 0);
-                                    const platformFee = 20;
-
-                                    showModal({
-                                        title: 'Confirm Order',
-                                        message: `Total: ${total} EGP. Platform fee (20 EGP): ${platformFee} EGP. Proceed?`,
-                                        type: 'confirm',
-                                        onConfirm: async () => {
-                                            try {
-                                                await api.projects.createOrder(project._id, selectedPackage);
-                                                showModal({
-                                                    title: 'Order Created',
-                                                    message: 'Your order was created successfully.',
-                                                    type: 'success'
-                                                });
-                                                router.push('/dashboard/client?tab=orders');
-                                            } catch (err: any) {
-                                                showModal({
-                                                    title: 'Error',
-                                                    message: err.message || 'Failed to create order',
-                                                    type: 'error'
-                                                });
-                                            }
-                                        }
-                                    });
+                                    if (!checkClientAuth()) return;
+                                    setOrderDescription('');
+                                    setOrderModalStep('description');
                                 }}
                                 className="w-full bg-[#09BF44] hover:bg-[#07a63a] text-white font-bold py-3 rounded-xl transition-colors"
                             >
-                                Continue
+                                Order
                             </button>
+                            {orderModalStep === 'description' && (
+                                <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4" onClick={() => setOrderModalStep(null)}>
+                                    <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl" onClick={e => e.stopPropagation()}>
+                                        <h3 className="text-lg font-bold mb-2">Order Description</h3>
+                                        <p className="text-sm text-gray-600 mb-4">Describe what you need. The freelancer will see this and must approve before work starts.</p>
+                                        <textarea
+                                            value={orderDescription}
+                                            onChange={e => setOrderDescription(e.target.value)}
+                                            placeholder="Describe your requirements..."
+                                            className="w-full p-4 rounded-xl border-2 border-gray-200 focus:border-[#09BF44] outline-none resize-none h-32 mb-4"
+                                            required
+                                        />
+                                        <div className="flex gap-2 justify-end">
+                                            <button onClick={() => setOrderModalStep(null)} className="px-4 py-2 rounded-xl font-bold text-gray-600 hover:bg-gray-100">Cancel</button>
+                                            <button
+                                                onClick={() => {
+                                                    if (!orderDescription.trim()) return;
+                                                    setOrderModalStep('confirm');
+                                                }}
+                                                disabled={!orderDescription.trim()}
+                                                className="px-4 py-2 bg-[#09BF44] text-white rounded-xl font-bold disabled:opacity-50"
+                                            >
+                                                Continue
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            {orderModalStep === 'confirm' && (
+                                <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4" onClick={() => setOrderModalStep(null)}>
+                                    <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl" onClick={e => e.stopPropagation()}>
+                                        <h3 className="text-lg font-bold mb-2">Confirm Order</h3>
+                                        <p className="text-sm text-gray-600 mb-2">Total: <strong>{Number(currentPackage.price || 0)} EGP</strong></p>
+                                        <p className="text-xs text-gray-500 mb-4">Platform fee: 20 EGP. The freelancer must approve before work starts.</p>
+                                        <div className="flex gap-2 justify-end">
+                                            <button onClick={() => setOrderModalStep('description')} className="px-4 py-2 rounded-xl font-bold text-gray-600 hover:bg-gray-100">Back</button>
+                                            <button
+                                                onClick={async () => {
+                                                    try {
+                                                        await api.projects.createOrder(project._id, selectedPackage, orderDescription.trim());
+                                                        setOrderModalStep(null);
+                                                        showModal({ title: 'Order Created', message: 'Your order was submitted. The freelancer will approve or decline shortly.', type: 'success' });
+                                                        router.push('/dashboard/client?tab=orders');
+                                                    } catch (err: any) {
+                                                        showModal({ title: 'Error', message: err.message || 'Failed to create order', type: 'error' });
+                                                    }
+                                                }}
+                                                className="px-4 py-2 bg-[#09BF44] text-white rounded-xl font-bold"
+                                            >
+                                                Submit Order
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                             {showContactMe && (
                                 <div className="relative z-20" style={{ overflow: 'visible' }}>
                                     <button

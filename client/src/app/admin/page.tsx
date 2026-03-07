@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { api } from '@/lib/api';
-import { formatStatus } from '@/lib/utils';
+import { formatStatus, formatDateDDMMYYYY } from '@/lib/utils';
 import { Check, X, Ban, User, Flag, MessageSquare, Award, BarChart3, TrendingUp, Search, Loader2, Briefcase, FileText, ShoppingBag, CreditCard, Trash2, Star, Edit, LogOut, ArrowLeft, Send, Shield, PanelLeft, Mail, Video } from 'lucide-react';
 import { useModal } from '@/context/ModalContext';
 import EditModal from '@/components/EditModal';
@@ -39,7 +39,7 @@ export default function AdminDashboard() {
     const [emailsLoading, setEmailsLoading] = useState(false);
     const [chatsLoading, setChatsLoading] = useState(false);
     const [editModal, setEditModal] = useState<{ isOpen: boolean; type: 'user' | 'project' | 'job' | null; data: any }>({ isOpen: false, type: null, data: null });
-    
+
     // Approvals states
     const [selectedFreelancer, setSelectedFreelancer] = useState<any>(null);
 
@@ -117,7 +117,7 @@ export default function AdminDashboard() {
                     content: adminMessageInput
                 });
             }
-            
+
             setAdminMessageInput('');
             await fetchChatMessages(selectedChat._id);
             await fetchChats(); // Refresh chat list
@@ -484,7 +484,7 @@ export default function AdminDashboard() {
                         <User className="w-5 h-5" /> Users
                     </button>
                     <button onClick={() => setActiveTab('projects')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'projects' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
-                        <Briefcase className="w-5 h-5" /> Projects
+                        <Briefcase className="w-5 h-5" /> Offers
                     </button>
                     <button onClick={() => setActiveTab('jobs')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'jobs' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <FileText className="w-5 h-5" /> Jobs
@@ -641,7 +641,7 @@ export default function AdminDashboard() {
                                         <tr><td colSpan={4} className="p-8 text-center"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44] mx-auto" /></td></tr>
                                     )}
                                     {activeTab === 'projects' && !projectsLoading && projects.length === 0 && (
-                                        <tr><td colSpan={4} className="p-8 text-center text-gray-500">No projects yet.</td></tr>
+                                        <tr><td colSpan={4} className="p-8 text-center text-gray-500">No offers yet.</td></tr>
                                     )}
                                     {activeTab === 'projects' && !projectsLoading && projects.map(project => (
                                         <tr key={project._id} className="hover:bg-gray-50">
@@ -711,7 +711,7 @@ export default function AdminDashboard() {
                                                 {tx.type === 'fee' || tx.amount > 0 ? `+${Math.abs(tx.amount)}` : tx.amount} EGP
                                             </td>
                                             <td className="p-4"><span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">{formatStatus(tx.status)}</span></td>
-                                            <td className="p-4 text-gray-500">{new Date(tx.createdAt).toLocaleDateString()}</td>
+                                            <td className="p-4 text-gray-500">{formatDateDDMMYYYY(tx.createdAt)}</td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -859,11 +859,23 @@ export default function AdminDashboard() {
                                             </div>
                                             <div className="bg-gray-50 p-4 rounded-xl">
                                                 <p className="text-xs font-bold text-gray-400 mb-1">Date of Birth</p>
-                                                <p className="font-medium text-gray-900">{selectedFreelancer.dateOfBirth ? new Date(selectedFreelancer.dateOfBirth).toLocaleDateString() : 'Not provided'}</p>
+                                                <p className="font-medium text-gray-900">{selectedFreelancer.dateOfBirth ? formatDateDDMMYYYY(selectedFreelancer.dateOfBirth) : 'Not provided'}</p>
+                                            </div>
+                                            <div className="bg-gray-50 p-4 rounded-xl">
+                                                <p className="text-xs font-bold text-gray-400 mb-1">City</p>
+                                                <p className="font-medium text-gray-900">{selectedFreelancer.freelancerProfile?.city || 'Not provided'}</p>
+                                            </div>
+                                            <div className="bg-gray-50 p-4 rounded-xl">
+                                                <p className="text-xs font-bold text-gray-400 mb-1">Languages</p>
+                                                <p className="font-medium text-gray-900">
+                                                    {selectedFreelancer.freelancerProfile?.languages?.english || selectedFreelancer.freelancerProfile?.languages?.arabic
+                                                        ? [selectedFreelancer.freelancerProfile.languages.english && `English: ${selectedFreelancer.freelancerProfile.languages.english}`, selectedFreelancer.freelancerProfile.languages.arabic && `Arabic: ${selectedFreelancer.freelancerProfile.languages.arabic}`].filter(Boolean).join(' • ')
+                                                        : 'Not provided'}
+                                                </p>
                                             </div>
                                             <div className="bg-gray-50 p-4 rounded-xl">
                                                 <p className="text-xs font-bold text-gray-400 mb-1">Joined</p>
-                                                <p className="font-medium text-gray-900">{new Date(selectedFreelancer.createdAt).toLocaleDateString()}</p>
+                                                <p className="font-medium text-gray-900">{formatDateDDMMYYYY(selectedFreelancer.createdAt)}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -892,7 +904,7 @@ export default function AdminDashboard() {
                                                 <p className="text-xs font-bold text-gray-400 mb-1">Full-time</p>
                                                 <p className="font-medium text-gray-900">{selectedFreelancer.freelancerProfile?.surveyResponses?.isFullTime ? 'Yes' : 'No'}</p>
                                             </div>
-                                            <div className="bg-gray-50 p-4 rounded-xl md:col-span-2">
+                                            <div className="bg-gray-50 p-4 rounded-xl">
                                                 <p className="text-xs font-bold text-gray-400 mb-1">Speed / Quality Commitment</p>
                                                 <p className="font-medium text-gray-900">{selectedFreelancer.freelancerProfile?.surveyResponses?.speedQualityCommitment || 'Not provided'}</p>
                                             </div>
@@ -934,8 +946,20 @@ export default function AdminDashboard() {
                                     {/* Documents */}
                                     <div>
                                         <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Documents</h4>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {selectedFreelancer.freelancerProfile?.isStudent ? (
+                                        <div className="space-y-4">
+                                            {/* Government ID - required for all freelancers */}
+                                            <div className="bg-gray-50 p-4 rounded-xl">
+                                                <p className="text-xs font-bold text-gray-400 mb-2">Government ID</p>
+                                                {selectedFreelancer.freelancerProfile?.idDocument ? (
+                                                    <a href={selectedFreelancer.freelancerProfile.idDocument} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline font-medium">
+                                                        <FileText className="w-4 h-4" /> View Document
+                                                    </a>
+                                                ) : (
+                                                    <p className="text-sm text-gray-400">None uploaded</p>
+                                                )}
+                                            </div>
+                                            {/* University ID - for students only */}
+                                            {selectedFreelancer.freelancerProfile?.isStudent && (
                                                 <div className="bg-gray-50 p-4 rounded-xl">
                                                     <p className="text-xs font-bold text-gray-400 mb-2">University ID</p>
                                                     {selectedFreelancer.freelancerProfile?.universityId ? (
@@ -946,32 +970,42 @@ export default function AdminDashboard() {
                                                         <p className="text-sm text-gray-400">None uploaded</p>
                                                     )}
                                                 </div>
-                                            ) : (
-                                                <div className="bg-gray-50 p-4 rounded-xl">
-                                                    <p className="text-xs font-bold text-gray-400 mb-2">Certificate(s)</p>
-                                                    {selectedFreelancer.freelancerProfile?.certificates?.length > 0 ? (
+                                            )}
+                                            {/* Certifications - name, date, institute, optional document */}
+                                            {(selectedFreelancer.freelancerProfile?.certifications?.length > 0 || (selectedFreelancer.freelancerProfile?.certificates?.length > 0 && !selectedFreelancer.freelancerProfile?.certifications?.length)) ? (
+                                                <div>
+                                                    <p className="text-xs font-bold text-gray-400 mb-2">Certifications</p>
+                                                    {selectedFreelancer.freelancerProfile?.certifications?.length > 0 ? (
                                                         <div className="space-y-2">
-                                                            {selectedFreelancer.freelancerProfile.certificates.filter(Boolean).map((url: string, i: number) => (
-                                                                <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline font-medium block">
+                                                            {selectedFreelancer.freelancerProfile.certifications.map((c: any, i: number) => (
+                                                                <div key={i} className="bg-gray-50 p-4 rounded-xl flex flex-wrap items-center justify-between gap-2">
+                                                                    <div>
+                                                                        <span className="font-bold">{c.name || `Certification ${i + 1}`}</span>
+                                                                        {(c.institute || c.date) && (
+                                                                            <span className="text-sm text-gray-600 block mt-1">
+                                                                                {c.institute}{c.date ? ` • ${formatDateDDMMYYYY(c.date)}` : ''}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    {c.documentUrl && (
+                                                                        <a href={c.documentUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline font-medium flex items-center gap-1 shrink-0">
+                                                                            <FileText className="w-4 h-4" /> View document
+                                                                        </a>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="space-y-2">
+                                                            {(selectedFreelancer.freelancerProfile?.certificates || []).filter(Boolean).map((url: string, i: number) => (
+                                                                <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline font-medium block bg-gray-50 p-4 rounded-xl">
                                                                     <FileText className="w-4 h-4" /> Certificate {i + 1}
                                                                 </a>
                                                             ))}
                                                         </div>
-                                                    ) : (
-                                                        <p className="text-sm text-gray-400">None uploaded</p>
                                                     )}
                                                 </div>
-                                            )}
-                                            <div className="bg-gray-50 p-4 rounded-xl">
-                                                <p className="text-xs font-bold text-gray-400 mb-2">ID Document</p>
-                                                {selectedFreelancer.freelancerProfile?.idDocument ? (
-                                                    <a href={selectedFreelancer.freelancerProfile.idDocument} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline font-medium">
-                                                        <FileText className="w-4 h-4" /> View Document
-                                                    </a>
-                                                ) : (
-                                                    <p className="text-sm text-gray-400">None uploaded</p>
-                                                )}
-                                            </div>
+                                            ) : null}
                                         </div>
                                     </div>
 
@@ -1160,7 +1194,7 @@ export default function AdminDashboard() {
                                                     <div className="flex-1 min-w-0">
                                                         <h4 className="font-bold text-sm text-gray-900 truncate">{participantNames}</h4>
                                                         <p className="text-xs text-gray-500 truncate">
-                                                            {chat.updatedAt ? `Last active ${new Date(chat.updatedAt).toLocaleDateString()}` : 'No activity'}
+                                                            {chat.updatedAt ? `Last active ${formatDateDDMMYYYY(chat.updatedAt)}` : 'No activity'}
                                                         </p>
                                                     </div>
                                                 </div>

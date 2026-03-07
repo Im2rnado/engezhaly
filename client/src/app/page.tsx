@@ -1,16 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, ArrowRight, Code, Palette, TrendingUp, Video, Sparkles, PenTool, Mic, Search, Briefcase, ShieldCheck, Zap, Star, Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
 import ProjectCardCompact from "@/components/ProjectCardCompact";
 import { MAIN_CATEGORIES } from "@/lib/categories";
 import MainHeader from "@/components/MainHeader";
+import { useModal } from "@/context/ModalContext";
 
 export default function Home() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { showModal } = useModal();
   const [user, setUser] = useState<any>(null);
   const [projects, setProjects] = useState<any[]>([]);
   const [jobs, setJobs] = useState<any[]>([]);
@@ -22,6 +25,17 @@ export default function Home() {
   const [heroSearchType, setHeroSearchType] = useState<"projects" | "jobs">("projects");
 
   useEffect(() => {
+    const sessionExpired = searchParams.get('session_expired');
+    if (sessionExpired === '1') {
+      router.replace('/');
+      showModal({
+        title: 'Session Expired',
+        message: 'Your session has expired. Please log in again.',
+        type: 'info'
+      });
+      return;
+    }
+
     const token = localStorage.getItem('token');
     if (token) {
       const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
@@ -43,7 +57,7 @@ export default function Home() {
     }).catch(() => {
       setLoading(false);
     });
-  }, []);
+  }, [searchParams, router, showModal]);
 
   return (
     <main className="min-h-screen bg-white text-gray-900 font-sans">
@@ -61,7 +75,7 @@ export default function Home() {
                 e.preventDefault();
                 const params = new URLSearchParams();
                 if (heroSearchQuery.trim()) params.set("search", heroSearchQuery.trim());
-                router.push(heroSearchType === "projects" ? `/projects?${params.toString()}` : `/jobs?${params.toString()}`);
+                router.push(heroSearchType === "projects" ? `/offers?${params.toString()}` : `/jobs?${params.toString()}`);
               }}
               className="bg-white rounded-md p-1 flex flex-col sm:flex-row sm:items-center max-w-lg mb-5 md:mb-6 shadow-lg gap-1"
             >
@@ -81,7 +95,7 @@ export default function Home() {
                   onClick={() => setHeroSearchType("projects")}
                   className={`px-2 py-2 rounded-md text-xs font-bold ${heroSearchType === "projects" ? "bg-[#09BF44] text-white" : "bg-gray-100 text-gray-600"}`}
                 >
-                  Projects
+                  Find a freelancer
                 </button>
                 <button
                   type="button"
@@ -98,7 +112,7 @@ export default function Home() {
             <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm font-medium text-gray-700">
               <span className="font-bold">Popular:</span>
               <span className="border border-gray-300 rounded-full px-3 py-0.5 hover:bg-[#09BF44] hover:text-white hover:border-[#09BF44] cursor-pointer transition">Website Design</span>
-              <span className="border border-gray-300 rounded-full px-3 py-0.5 hover:bg-[#09BF44] hover:text-white hover:border-[#09BF44] cursor-pointer transition">WordPress</span>
+              <span className="border border-gray-300 rounded-full px-3 py-0.5 hover:bg-[#09BF44] hover:text-white hover:border-[#09BF44] cursor-pointer transition">Web Development</span>
               <span className="border border-gray-300 rounded-full px-3 py-0.5 hover:bg-[#09BF44] hover:text-white hover:border-[#09BF44] cursor-pointer transition">Logo Design</span>
               <span className="border border-gray-300 rounded-full px-3 py-0.5 hover:bg-[#09BF44] hover:text-white hover:border-[#09BF44] cursor-pointer transition">Video Editing</span>
             </div>
@@ -122,7 +136,7 @@ export default function Home() {
               // Map categories to icons
               const categoryIcons: { [key: string]: any } = {
                 'Development & Tech': Code,
-                'Design & Creativity': Palette,
+                'Design & Creative': Palette,
                 'Digital Marketing': TrendingUp,
                 'Video Editor': Video,
                 'AI and Automations': Sparkles,
@@ -134,7 +148,7 @@ export default function Home() {
               return (
                 <div
                   key={category}
-                  onClick={() => router.push(`/projects?category=${encodeURIComponent(category)}`)}
+                  onClick={() => router.push(`/offers?category=${encodeURIComponent(category)}`)}
                   className="relative h-48 rounded-xl bg-white border border-gray-200 overflow-hidden cursor-pointer group transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:border-[#09BF44]/50"
                 >
                   {/* Soft green gradient centered */}
@@ -245,7 +259,7 @@ export default function Home() {
               <p className="text-gray-600">Explore professional services from talented freelancers</p>
             </div>
             <button
-              onClick={() => router.push('/projects')}
+              onClick={() => router.push('/offers')}
               className="flex items-center gap-2 text-[#09BF44] hover:text-[#07a63a] font-bold transition-colors text-sm md:text-base"
             >
               View More <ArrowRight className="w-4 h-4" />
@@ -255,7 +269,7 @@ export default function Home() {
           {loading ? (
             <div className="flex flex-col items-center justify-center py-16">
               <Loader2 className="w-10 h-10 animate-spin text-[#09BF44] mb-4" />
-              <p className="text-gray-600 font-bold">Exploring projects...</p>
+              <p className="text-gray-600 font-bold">Finding freelancers...</p>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8 w-full max-w-5xl">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="bg-white rounded-2xl border border-gray-100 p-6 animate-pulse">
@@ -300,8 +314,8 @@ export default function Home() {
           ) : (
             <div className="text-center py-12 text-gray-400">
               <Briefcase className="w-12 h-12 mx-auto mb-3 opacity-20" />
-              <h3 className="text-xl font-bold text-gray-900 mb-2">No Projects Available</h3>
-              <p className="text-gray-500">Check back later for new projects.</p>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">No Services Available</h3>
+              <p className="text-gray-500">Check back later for new offers.</p>
             </div>
           )}
         </div>
@@ -313,7 +327,7 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 md:mb-8">
             <div>
               <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Browse available jobs</h2>
-              <p className="text-gray-600">Find projects that match your skills</p>
+              <p className="text-gray-600">Find jobs that match your skills</p>
             </div>
             <button
               onClick={() => router.push('/jobs')}

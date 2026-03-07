@@ -129,7 +129,7 @@ function ProjectsPageContent() {
         if (query) params.set('search', query);
         if (selectedCategory) params.set('category', selectedCategory);
         if (selectedSubCategory) params.set('subCategory', selectedSubCategory);
-        router.push(`/projects?${params.toString()}`);
+        router.push(`/offers?${params.toString()}`);
     };
 
     const clearFilters = () => {
@@ -137,7 +137,7 @@ function ProjectsPageContent() {
         setSelectedCategory('');
         setSelectedSubCategory('');
         setFilters({ budget: '', deliveryTime: '', sellerLevel: '' });
-        router.push('/projects');
+        router.push('/offers');
     };
 
     return (
@@ -151,7 +151,7 @@ function ProjectsPageContent() {
 
             <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6 py-6 md:py-8">
                 {/* Page Title */}
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-5 md:mb-6">Browse Projects</h1>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-5 md:mb-6">Find a Freelancer</h1>
                 {/* Filters Bar */}
                 <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
                     <div className="space-y-3 lg:space-y-0 lg:flex lg:items-end lg:gap-4">
@@ -230,7 +230,7 @@ function ProjectsPageContent() {
                 {loading ? (
                     <div className="flex flex-col items-center justify-center py-16">
                         <Loader2 className="w-10 h-10 animate-spin text-[#09BF44] mb-4" />
-                        <p className="text-gray-600 font-bold mb-6">Exploring projects...</p>
+                        <p className="text-gray-600 font-bold mb-6">Exploring offers...</p>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
                             {[1, 2, 3, 4, 5, 6].map((i) => (
                                 <div key={i} className="bg-white rounded-2xl border border-gray-100 p-6 animate-pulse">
@@ -249,7 +249,7 @@ function ProjectsPageContent() {
                     </div>
                 ) : (
                     <div className="text-center py-12 bg-white rounded-xl">
-                        <p className="text-gray-400 text-lg font-bold">No projects found</p>
+                                <p className="text-gray-400 text-lg font-bold">No offers found</p>
                         <p className="text-gray-500 text-sm mt-2">Try adjusting your filters</p>
                     </div>
                 )}

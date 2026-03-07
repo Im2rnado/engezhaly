@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { X, User, Briefcase, ChevronRight, Loader2, Eye, EyeOff, Upload, X as XIcon, CheckCircle } from 'lucide-react';
+import { X, User, Briefcase, ChevronRight, Loader2, Eye, EyeOff, Upload, X as XIcon, CheckCircle, Plus } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useModal } from '@/context/ModalContext';
 import { MAIN_CATEGORIES } from '@/lib/categories';
@@ -60,9 +60,12 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
         skills: '', // space-separated, displayed as tags
         bio: '',
         isStudent: false,
-        certificateUrls: [] as string[], // from file uploads
+        certifications: [] as { name: string; date: string; institute: string; documentUrl: string }[],
         universityIdUrl: '' as string, // for students
-        idDocumentUrl: '' as string // from file upload
+        idDocumentUrl: '' as string, // from file upload
+        city: '',
+        english: '',
+        arabic: ''
     });
 
     // Step 3: Survey & Pricing
@@ -105,7 +108,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             setProfilePictureProgress(0);
             setDocumentUploadProgress(null);
             setDocumentUploadingLabel(null);
-            setProfessionalInfo({ category: '', experienceYears: '', skills: '', bio: '', isStudent: false, certificateUrls: [], universityIdUrl: '', idDocumentUrl: '' });
+            setProfessionalInfo({ category: '', experienceYears: '', skills: '', bio: '', isStudent: false, certifications: [], universityIdUrl: '', idDocumentUrl: '', city: '', english: '', arabic: '' });
             setSurvey({ isFullTime: false, speedQualityCommitment: 'Yes' });
             setPricing({ basic: { price: 500, days: 3, description: '' }, standard: { price: 1000, days: 5, description: '' }, premium: { price: 2000, days: 7, description: '' } });
         }
@@ -300,8 +303,12 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             setError('Please upload your University ID');
             return;
         }
-        if (!professionalInfo.isStudent && professionalInfo.certificateUrls.length === 0) {
-            setError('Please upload at least one certificate');
+        if (!professionalInfo.isStudent && professionalInfo.certifications.filter(c => c.name?.trim()).length === 0) {
+            setError('Please add at least one certification with a name');
+            return;
+        }
+        if (!professionalInfo.idDocumentUrl) {
+            setError('Please upload your Government ID');
             return;
         }
         setError('');
@@ -319,11 +326,11 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
         setLoading(true);
         setError('');
         const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-        const profilePayload = {
+        const profilePayload: Record<string, unknown> = {
             category: professionalInfo.category,
             experienceYears: Number(professionalInfo.experienceYears),
             isStudent: professionalInfo.isStudent,
-            certificates: professionalInfo.isStudent ? [] : professionalInfo.certificateUrls,
+            certifications: professionalInfo.isStudent ? [] : professionalInfo.certifications.filter(c => c.name?.trim()).map(c => ({ name: c.name.trim(), date: c.date || '', institute: c.institute || '', documentUrl: c.documentUrl || '' })),
             universityId: professionalInfo.isStudent ? professionalInfo.universityIdUrl || undefined : undefined,
             skills: professionalInfo.skills.trim().split(/\s+/).filter(Boolean),
             bio: professionalInfo.bio,
@@ -331,9 +338,21 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             surveyResponses: { isFullTime: survey.isFullTime, speedQualityCommitment: survey.speedQualityCommitment },
             starterPricing: pricing
         };
+        if (professionalInfo.city) profilePayload.city = professionalInfo.city;
+        if (professionalInfo.english || professionalInfo.arabic) {
+            profilePayload.languages = {};
+            if (professionalInfo.english) (profilePayload.languages as Record<string, string>).english = professionalInfo.english;
+            if (professionalInfo.arabic) (profilePayload.languages as Record<string, string>).arabic = professionalInfo.arabic;
+        }
         try {
             if (token) {
                 await api.freelancer.updateProfile(profilePayload);
+                // Clear token so header doesn't show Dashboard until approved
+                const updated = await api.freelancer.getProfile();
+                if (updated?.freelancerProfile?.status === 'pending') {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                }
             } else {
                 const registerData: any = {
                     firstName: formData.firstName,
@@ -347,9 +366,8 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                 };
                 if (formData.dob) registerData.dateOfBirth = formData.dob;
                 if (profilePicture) registerData.profilePicture = profilePicture;
-                const data = await api.auth.register(registerData);
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('user', JSON.stringify(data.user));
+                await api.auth.register(registerData);
+                // Don't save token/user - freelancer is pending. Header would show Dashboard but it doesn't work until approved.
             }
             setStep('freelancer-step-4');
         } catch (err: any) {
@@ -616,7 +634,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                         </button>
                                     </div>
                                     <select name="businessType" onChange={handleChange} value={formData.businessType} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900">
-                                        <option value="personal">Personal Project</option>
+                                        <option value="personal">Personal</option>
                                         <option value="company">Company</option>
                                     </select>
                                 </div>
@@ -835,6 +853,56 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                 </div>
 
                                 <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">City</label>
+                                    <input
+                                        type="text"
+                                        name="city"
+                                        placeholder="e.g. Cairo, Alexandria"
+                                        value={professionalInfo.city}
+                                        onChange={(e) => setProfessionalInfo({ ...professionalInfo, city: e.target.value })}
+                                        className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Languages</label>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <span className="block text-sm text-gray-500 mb-1">English</span>
+                                            <select
+                                                name="english"
+                                                value={professionalInfo.english}
+                                                onChange={(e) => setProfessionalInfo({ ...professionalInfo, english: e.target.value })}
+                                                className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900"
+                                            >
+                                                <option value="">Select fluency</option>
+                                                <option value="Native">Native</option>
+                                                <option value="Fluent">Fluent</option>
+                                                <option value="Intermediate">Intermediate</option>
+                                                <option value="Basic">Basic</option>
+                                                <option value="None">None</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <span className="block text-sm text-gray-500 mb-1">Arabic</span>
+                                            <select
+                                                name="arabic"
+                                                value={professionalInfo.arabic}
+                                                onChange={(e) => setProfessionalInfo({ ...professionalInfo, arabic: e.target.value })}
+                                                className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900"
+                                            >
+                                                <option value="">Select fluency</option>
+                                                <option value="Native">Native</option>
+                                                <option value="Fluent">Fluent</option>
+                                                <option value="Intermediate">Intermediate</option>
+                                                <option value="Basic">Basic</option>
+                                                <option value="None">None</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-2">Describe Yourself</label>
                                     <textarea
                                         name="bio"
@@ -852,7 +920,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Skills (space separated)</label>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Skills (separate with space or Enter)</label>
                                     {(() => {
                                         const parts = professionalInfo.skills.split(/\s+/);
                                         const completedTags = parts.slice(0, -1).filter(Boolean);
@@ -869,11 +937,14 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                     type="text"
                                                     name="skills"
                                                     required={professionalInfo.skills.trim().split(/\s+/).filter(Boolean).length === 0}
-                                                    placeholder={completedTags.length === 0 ? 'e.g. React Photoshop SEO' : ''}
+                                                    placeholder={completedTags.length === 0 ? 'e.g. React Photoshop SEO (space or Enter between items)' : ''}
                                                     value={currentWord}
                                                     onChange={(e) => setProfessionalInfo({ ...professionalInfo, skills: prefix + e.target.value })}
                                                     onKeyDown={(e) => {
-                                                        if (e.key === 'Backspace' && !currentWord && completedTags.length > 0) {
+                                                        if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            setProfessionalInfo({ ...professionalInfo, skills: (prefix + currentWord).trim() + ' ' });
+                                                        } else if (e.key === 'Backspace' && !currentWord && completedTags.length > 0) {
                                                             e.preventDefault();
                                                             setProfessionalInfo({ ...professionalInfo, skills: completedTags.slice(0, -1).join(' ') });
                                                         }
@@ -890,7 +961,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                     <div className="flex gap-2">
                                         <button
                                             type="button"
-                                            onClick={() => setProfessionalInfo((prev) => ({ ...prev, isStudent: true, certificateUrls: [] }))}
+                                            onClick={() => setProfessionalInfo((prev) => ({ ...prev, isStudent: true, certifications: [] }))}
                                             className={`px-4 py-1 text-sm rounded-lg font-bold border-2 transition-all ${professionalInfo.isStudent ? 'bg-green-100 border-[#09BF44] text-[#09BF44]' : 'bg-gray-50 border-transparent hover:border-gray-200'}`}
                                         >
                                             Yes
@@ -966,27 +1037,46 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                         </div>
                                     ) : (
                                         <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Certificates (image/pdf)</label>
-                                            {professionalInfo.certificateUrls.length > 0 ? (
-                                                <div className="space-y-2">
-                                                    {professionalInfo.certificateUrls.map((url, idx) => (
-                                                        <div key={idx} className="flex items-center gap-3 p-4 bg-green-50 border-2 border-[#09BF44]/40 rounded-xl">
-                                                            <CheckCircle className="w-6 h-6 text-[#09BF44] shrink-0" />
-                                                            <span className="flex-1 text-sm font-bold text-gray-800">Certificate {idx + 1} uploaded</span>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setProfessionalInfo((prev) => ({ ...prev, certificateUrls: prev.certificateUrls.filter((_, i) => i !== idx) }))}
-                                                                className="p-1.5 rounded-lg hover:bg-red-100 text-red-600"
-                                                                aria-label="Remove"
-                                                            >
-                                                                <XIcon className="w-5 h-5" />
-                                                            </button>
-                                                        </div>
-                                                    ))}
-                                                    <label className={`block p-3 rounded-xl border-2 border-dashed transition-colors ${documentUploadingLabel === 'certificate' ? 'border-[#09BF44] bg-green-50 cursor-wait' : 'bg-gray-50 border-gray-200 hover:border-[#09BF44]/50 cursor-pointer'}`}>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Certifications</label>
+                                            <p className="text-xs text-gray-500 mb-2">Name, date, institute. Optional: upload document (visible to admins only).</p>
+                                            {professionalInfo.certifications.map((cert, idx) => (
+                                                <div key={idx} className="flex flex-wrap gap-2 mb-3 p-3 bg-gray-50 rounded-xl">
+                                                    <input
+                                                        value={cert.name}
+                                                        onChange={(e) => {
+                                                            const next = [...professionalInfo.certifications];
+                                                            next[idx] = { ...next[idx], name: e.target.value };
+                                                            setProfessionalInfo({ ...professionalInfo, certifications: next });
+                                                        }}
+                                                        placeholder="Certification name"
+                                                        className="flex-1 min-w-[120px] p-2 rounded-lg border border-gray-200 text-sm"
+                                                    />
+                                                    <input
+                                                        type="date"
+                                                        value={cert.date}
+                                                        onChange={(e) => {
+                                                            const next = [...professionalInfo.certifications];
+                                                            next[idx] = { ...next[idx], date: e.target.value };
+                                                            setProfessionalInfo({ ...professionalInfo, certifications: next });
+                                                        }}
+                                                        placeholder="Date"
+                                                        className="w-36 p-2 rounded-lg border border-gray-200 text-sm"
+                                                    />
+                                                    <input
+                                                        value={cert.institute}
+                                                        onChange={(e) => {
+                                                            const next = [...professionalInfo.certifications];
+                                                            next[idx] = { ...next[idx], institute: e.target.value };
+                                                            setProfessionalInfo({ ...professionalInfo, certifications: next });
+                                                        }}
+                                                        placeholder="Institute"
+                                                        className="flex-1 min-w-[120px] p-2 rounded-lg border border-gray-200 text-sm"
+                                                    />
+                                                    <label className="px-3 py-2 rounded-lg border border-gray-200 text-sm font-medium cursor-pointer hover:bg-gray-100">
                                                         <input
                                                             type="file"
                                                             accept="image/*,.pdf"
+                                                            className="hidden"
                                                             onChange={async (e) => {
                                                                 const file = e.target.files?.[0];
                                                                 if (!file) return;
@@ -994,8 +1084,10 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                                 setDocumentUploadingLabel('certificate');
                                                                 setDocumentUploadProgress(0);
                                                                 try {
-                                                                    const url = await api.upload.file(file, { onProgress: (p) => setDocumentUploadProgress(p) });
-                                                                    setProfessionalInfo((prev) => ({ ...prev, certificateUrls: [...prev.certificateUrls, url] }));
+                                                                    const url = await api.upload.file(file, { forSignup: true, onProgress: (p) => setDocumentUploadProgress(p) });
+                                                                    const next = [...professionalInfo.certifications];
+                                                                    next[idx] = { ...next[idx], documentUrl: url };
+                                                                    setProfessionalInfo({ ...professionalInfo, certifications: next });
                                                                 } catch (err: any) {
                                                                     setError(err.message || 'Upload failed');
                                                                 } finally {
@@ -1004,70 +1096,29 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                                 }
                                                                 e.target.value = '';
                                                             }}
-                                                            disabled={!!documentUploadingLabel}
-                                                            className="hidden"
                                                         />
-                                                        {documentUploadingLabel === 'certificate' ? (
-                                                            <div className="flex flex-col gap-1.5">
-                                                                <span className="flex items-center gap-2 text-sm font-medium text-[#09BF44]">
-                                                                    <Loader2 className="w-5 h-5 animate-spin" /> Uploading... {documentUploadProgress ?? 0}%
-                                                                </span>
-                                                                <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                                                                    <div className="h-full bg-[#09BF44] transition-all duration-300" style={{ width: `${documentUploadProgress ?? 0}%` }} />
-                                                                </div>
-                                                            </div>
-                                                        ) : (
-                                                            <span className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                                                                <Upload className="w-5 h-5" /> Add another certificate
-                                                            </span>
-                                                        )}
+                                                        {cert.documentUrl ? '✓ Doc' : 'Upload'}
                                                     </label>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setProfessionalInfo({ ...professionalInfo, certifications: professionalInfo.certifications.filter((_, i) => i !== idx) })}
+                                                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                                                    >
+                                                        <XIcon className="w-4 h-4" />
+                                                    </button>
                                                 </div>
-                                            ) : (
-                                                <label className={`block p-4 rounded-xl border-2 border-dashed transition-colors ${documentUploadingLabel === 'certificate' ? 'border-[#09BF44] bg-green-50 cursor-wait' : 'bg-gray-50 border-gray-200 hover:border-[#09BF44]/50 cursor-pointer'}`}>
-                                                    <input
-                                                        type="file"
-                                                        accept="image/*,.pdf"
-                                                        onChange={async (e) => {
-                                                            const file = e.target.files?.[0];
-                                                            if (!file) return;
-                                                            setError('');
-                                                            setDocumentUploadingLabel('certificate');
-                                                            setDocumentUploadProgress(0);
-                                                            try {
-                                                                const url = await api.upload.file(file, { onProgress: (p) => setDocumentUploadProgress(p) });
-                                                                setProfessionalInfo((prev) => ({ ...prev, certificateUrls: [...prev.certificateUrls, url] }));
-                                                            } catch (err: any) {
-                                                                setError(err.message || 'Upload failed');
-                                                            } finally {
-                                                                setDocumentUploadingLabel(null);
-                                                                setDocumentUploadProgress(null);
-                                                            }
-                                                            e.target.value = '';
-                                                        }}
-                                                        disabled={!!documentUploadingLabel}
-                                                        className="hidden"
-                                                    />
-                                                    {documentUploadingLabel === 'certificate' ? (
-                                                        <div className="flex flex-col gap-2">
-                                                            <span className="flex items-center gap-2 text-sm font-medium text-[#09BF44]">
-                                                                <Loader2 className="w-5 h-5 animate-spin" /> Uploading... {documentUploadProgress ?? 0}%
-                                                            </span>
-                                                            <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                                                                <div className="h-full bg-[#09BF44] transition-all duration-300" style={{ width: `${documentUploadProgress ?? 0}%` }} />
-                                                            </div>
-                                                        </div>
-                                                    ) : (
-                                                        <span className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                                                            <Upload className="w-5 h-5" /> Click to upload certificate
-                                                        </span>
-                                                    )}
-                                                </label>
-                                            )}
+                                            ))}
+                                            <button
+                                                type="button"
+                                                onClick={() => setProfessionalInfo({ ...professionalInfo, certifications: [...professionalInfo.certifications, { name: '', date: '', institute: '', documentUrl: '' }] })}
+                                                className="text-sm font-bold text-[#09BF44] hover:text-[#07a63a] flex items-center gap-1"
+                                            >
+                                                <Plus className="w-4 h-4" /> Add Certification
+                                            </button>
                                         </div>
                                     )}
                                     <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-2">Government ID (only admins see this) (image/pdf)</label>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">Government ID (required, only admins see this) (image/pdf)</label>
                                         {professionalInfo.idDocumentUrl ? (
                                             <div className="flex items-center gap-3 p-4 bg-green-50 border-2 border-[#09BF44]/40 rounded-xl">
                                                 <CheckCircle className="w-6 h-6 text-[#09BF44] shrink-0" />
@@ -1233,13 +1284,17 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                             </div>
                             <h2 className="text-3xl font-black text-gray-900 mb-4">Profile Under Review!</h2>
                             <p className="text-lg text-gray-600 mb-4 max-w-lg mx-auto">
-                                Our team is reviewing your application. You will be notified once your profile is approved and you can start creating Projects.
+                                Our team is reviewing your application. You will be notified once your profile is approved and you can start creating offers.
                             </p>
                             <p className="text-sm text-gray-500 mb-8 max-w-lg mx-auto">
-                                Please check your email to verify your account. You must verify before accessing the dashboard.
+                                Please check your email to verify your account. Once approved, log in again to access your dashboard.
                             </p>
                             <button
-                                onClick={() => { onClose(); router.push('/'); }}
+                                onClick={() => {
+                                    onClose();
+                                    // Reload so header re-reads from localStorage (we cleared it for pending freelancers)
+                                    window.location.href = '/';
+                                }}
                                 className="bg-gray-900 text-white font-bold px-8 py-3 rounded-full hover:bg-gray-800 transition-colors"
                             >
                                 Go Home

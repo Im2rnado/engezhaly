@@ -94,7 +94,7 @@ export default function CountdownTimer({ deadline, variant = 'card', className =
                 <div>
                     <h3 className="font-bold text-gray-900">Deadline Countdown</h3>
                     <p className={`text-sm ${timeLeft.isOverdue ? 'text-red-600' : 'text-gray-600'}`}>
-                        {timeLeft.isOverdue ? 'Project deadline has passed' : 'Time remaining until delivery'}
+                        {timeLeft.isOverdue ? 'Offer deadline has passed' : 'Time remaining until delivery'}
                     </p>
                 </div>
             </div>

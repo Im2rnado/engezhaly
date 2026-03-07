@@ -48,7 +48,7 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
 
     // Sync with URL params
     useEffect(() => {
-        if (showCategories && pathname === '/projects') {
+        if (showCategories && pathname === '/offers') {
             setTimeout(() => {
                 setSelectedCategory(searchParams.get('category') || '');
                 setSelectedSubCategory(searchParams.get('subCategory') || '');
@@ -80,7 +80,7 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
         setTimeout(() => {
             if (pathname === '/jobs') {
                 setSearchType('jobs');
-            } else if (pathname === '/projects') {
+            } else if (pathname === '/offers') {
                 setSearchType('projects');
             }
         }, 0);
@@ -101,17 +101,17 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
         } else {
             const params = new URLSearchParams();
             if (query) params.set('search', query);
-            if (pathname === '/projects' || searchType === 'projects') {
+            if (pathname === '/offers' || searchType === 'projects') {
                 if (selectedCategory) params.set('category', selectedCategory);
                 if (selectedSubCategory) params.set('subCategory', selectedSubCategory);
-                router.push(`/projects?${params.toString()}`);
+                router.push(`/offers?${params.toString()}`);
             } else if (pathname === '/jobs' || searchType === 'jobs') {
                 router.push(`/jobs?${params.toString()}`);
             } else {
                 if (searchType === 'projects') {
                     if (selectedCategory) params.set('category', selectedCategory);
                     if (selectedSubCategory) params.set('subCategory', selectedSubCategory);
-                    router.push(`/projects?${params.toString()}`);
+                    router.push(`/offers?${params.toString()}`);
                 } else {
                     router.push(`/jobs?${params.toString()}`);
                 }
@@ -139,7 +139,7 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
         if (selectedCategory !== category) {
             params.set('category', category);
         }
-        router.push(`/projects?${params.toString()}`);
+        router.push(`/offers?${params.toString()}`);
     };
 
     const handleSubCategoryClick = (subCategory: string) => {
@@ -148,7 +148,7 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
         if (searchQuery) params.set('search', searchQuery);
         if (selectedCategory) params.set('category', selectedCategory);
         params.set('subCategory', subCategory);
-        router.push(`/projects?${params.toString()}`);
+        router.push(`/offers?${params.toString()}`);
         setHoveredCategory(null);
     };
 
@@ -208,7 +208,7 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                                         setShowAutofill(true);
                                     }}
                                     onFocus={() => setShowAutofill(true)}
-                                    placeholder={pathname === '/jobs' ? 'Search jobs...' : 'Search projects...'}
+                                    placeholder={pathname === '/jobs' ? 'Search jobs...' : 'Search freelancers...'}
                                     className="flex-1 px-3 py-2.5 text-sm text-gray-700 placeholder-gray-400 outline-none rounded-l-lg"
                                 />
                                 <button type="submit" className="bg-black hover:bg-gray-800 text-white px-3 py-2.5 transition-colors rounded-r-lg">
@@ -265,7 +265,7 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                                         onClick={() => setShowSearchDropdown(!showSearchDropdown)}
                                         className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium z-10 flex items-center gap-1"
                                     >
-                                        {searchType === 'projects' ? 'Projects' : 'Jobs'}
+                                        {searchType === 'projects' ? 'Freelancer' : 'Jobs'}
                                         <ChevronDown className="w-3 h-3" />
                                     </button>
                                     {showSearchDropdown && (
@@ -278,7 +278,7 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                                                 }}
                                                 className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${searchType === 'projects' ? 'bg-[#09BF44]/10 text-[#09BF44]' : 'text-gray-700 hover:bg-gray-50'}`}
                                             >
-                                                Search Projects
+                                                Find Freelancer
                                             </button>
                                             <button
                                                 type="button"
@@ -304,8 +304,8 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                                         setShowAutofill(true);
                                     }}
                                     onFocus={() => setShowAutofill(true)}
-                                    placeholder={pathname === '/' ? (searchType === 'projects' ? 'Search projects...' : 'Search jobs...') : (pathname === '/jobs' ? 'Search jobs...' : (pathname === '/projects' ? 'Search projects...' : searchPlaceholder))}
-                                    className={`flex-1 px-4 py-2 text-sm text-gray-700 placeholder-gray-400 outline-none rounded-l-lg ${pathname === '/' ? 'pl-24' : ''}`}
+                                    placeholder={pathname === '/' ? (searchType === 'projects' ? 'Search freelancers...' : 'Search jobs...') : (pathname === '/jobs' ? 'Search jobs...' : (pathname === '/offers' ? 'Search freelancers...' : searchPlaceholder))}
+                                    className={`flex-1 px-4 py-2 text-sm text-gray-700 placeholder-gray-400 outline-none rounded-l-lg ${pathname === '/' ? 'pl-26' : ''}`}
                                 />
                                 <button type="submit" className="bg-black hover:bg-gray-800 text-white px-4 py-2 transition-colors rounded-r-lg">
                                     <Search className="w-4 h-4" />
@@ -337,8 +337,8 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                     <div className="flex items-center gap-3 md:gap-6 shrink-0">
                         <nav className="hidden md:flex gap-6 text-sm font-semibold text-gray-600">
                             <button
-                                onClick={() => router.push('/projects')}
-                                className={`hover:text-[#09BF44] transition-colors ${pathname === '/projects' ? 'text-[#09BF44]' : ''}`}
+                                onClick={() => router.push('/offers')}
+                                className={`hover:text-[#09BF44] transition-colors ${pathname === '/offers' ? 'text-[#09BF44]' : ''}`}
                             >
                                 Find a Freelancer
                             </button>
@@ -371,11 +371,11 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                                 ) : user.role === 'freelancer' ? (
                                     <>
                                         <button
-                                            onClick={() => router.push('/dashboard/freelancer/projects/create')}
+                                            onClick={() => router.push('/dashboard/freelancer/offers/create')}
                                             className="flex items-center gap-2 border border-[#09BF44] text-[#09BF44] hover:bg-[#09BF44] hover:text-white text-sm font-bold px-4 py-2 rounded-md transition-all bg-transparent"
                                         >
                                             <Plus className="w-4 h-4" />
-                                            Create Project
+                                            Create Offer
                                         </button>
                                         <button
                                             onClick={() => router.push(getDashboardPath())}
@@ -416,13 +416,13 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                 {mobileMenuOpen && (
                     <div className="md:hidden border-t border-gray-100 bg-white">
                         <div className="max-w-[95%] mx-auto px-3 py-3 space-y-2">
-                            <button onClick={() => { router.push('/projects'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50">Find a Freelancer</button>
+                            <button onClick={() => { router.push('/offers'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50">Find a Freelancer</button>
                             <button onClick={() => { router.push('/jobs'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50">Browse Jobs</button>
                             {user?.role === 'client' && (
                                 <button onClick={() => { router.push('/dashboard/client/jobs/create'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50">Post Job</button>
                             )}
                             {user?.role === 'freelancer' && (
-                                <button onClick={() => { router.push('/dashboard/freelancer/projects/create'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50">Create Project</button>
+                                <button onClick={() => { router.push('/dashboard/freelancer/offers/create'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50">Create Offer</button>
                             )}
                             <div className="pt-2 border-t border-gray-100">
                                 <p className="text-xs font-bold text-gray-500 mb-2 px-1">Categories</p>
@@ -434,7 +434,7 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                                         if (value) {
                                             setSelectedCategory(value);
                                             setSelectedSubCategory('');
-                                            router.push(`/projects?category=${encodeURIComponent(value)}`);
+                                            router.push(`/offers?category=${encodeURIComponent(value)}`);
                                         }
                                     }}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700"
@@ -453,7 +453,7 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                                                     setSelectedCategory(mobileSelectedCategory);
                                                     setSelectedSubCategory(subCategory);
                                                     setMobileMenuOpen(false);
-                                                    router.push(`/projects?category=${encodeURIComponent(mobileSelectedCategory)}&subCategory=${encodeURIComponent(subCategory)}`);
+                                                    router.push(`/offers?category=${encodeURIComponent(mobileSelectedCategory)}&subCategory=${encodeURIComponent(subCategory)}`);
                                                 }}
                                                 className="w-full text-left px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-50"
                                             >
@@ -482,7 +482,7 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                                     onClick={() => {
                                         setSelectedCategory('');
                                         setSelectedSubCategory('');
-                                        router.push(`/projects${searchQuery ? `?search=${searchQuery}` : ''}`);
+                                        router.push(`/offers${searchQuery ? `?search=${searchQuery}` : ''}`);
                                     }}
                                     className={`px-4 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap transition-all ${!selectedCategory
                                         ? 'bg-[#09BF44] text-white shadow-sm'

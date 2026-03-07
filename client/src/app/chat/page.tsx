@@ -6,6 +6,7 @@ import { io } from 'socket.io-client';
 import { Send, Video, Paperclip, MoreVertical, FileText, CheckCircle, XCircle, MessageSquare, Shield, PanelLeft, ArrowLeft, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
+import { formatDateDDMMYYYY } from '@/lib/utils';
 import { useModal } from '@/context/ModalContext';
 import CreateOfferModal from '@/components/CreateOfferModal';
 import ClientSidebar from '@/components/ClientSidebar';
@@ -884,7 +885,7 @@ function ChatPageContent() {
                                                         <div className="flex items-center justify-between">
                                                             <span className="text-sm font-bold">Delivery:</span>
                                                             <span className="text-sm font-medium">
-                                                                {offer.deliveryDate ? new Date(offer.deliveryDate).toLocaleDateString() : (offer.deliveryDays ? `${offer.deliveryDays} days` : '—')}
+                                                                {offer.deliveryDate ? formatDateDDMMYYYY(offer.deliveryDate) : (offer.deliveryDays ? `${offer.deliveryDays} days` : '—')}
                                                             </span>
                                                         </div>
                                                         <div className="pt-3 border-t border-white/20">
@@ -898,7 +899,7 @@ function ChatPageContent() {
                                                                     <div key={idx} className="text-xs mb-1.5 flex items-center gap-2">
                                                                         <div className="w-1.5 h-1.5 rounded-full bg-current opacity-60"></div>
                                                                         {milestone.name}: {milestone.price} EGP
-                                                                        {milestone.dueDate && ` (Due: ${new Date(milestone.dueDate).toLocaleDateString()})`}
+                                                                        {milestone.dueDate && ` (Due: ${formatDateDDMMYYYY(milestone.dueDate)})`}
                                                                     </div>
                                                                 ))}
                                                             </div>

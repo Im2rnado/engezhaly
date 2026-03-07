@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -10,7 +9,7 @@ import { api } from '@/lib/api';
 import ProjectCard from '@/components/ProjectCard';
 import MainHeader from '@/components/MainHeader';
 
-export default function ProjectDetailPage() {
+export default function OfferDetailPage() {
     const router = useRouter();
     const params = useParams();
     const projectId = params?.id as string;
@@ -18,7 +17,8 @@ export default function ProjectDetailPage() {
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<any>(null);
     const [slideshowIndex, setSlideshowIndex] = useState(0);
-    const images = project?.images || [];
+    const raw = (project?.images || []).filter(Boolean) as string[];
+    const images = [...new Set(raw)];
     const hasMultipleImages = images.length > 1;
 
     useEffect(() => {
@@ -41,7 +41,6 @@ export default function ProjectDetailPage() {
     const seller = project?.sellerId;
     const freelancerName = seller ? `${seller.firstName || ''} ${seller.lastName || ''}`.trim() : 'Freelancer';
     const profilePicture = seller?.freelancerProfile?.profilePicture;
-    const bannerImage = images[0] || null;
 
     if (loading) {
         return (
@@ -65,9 +64,9 @@ export default function ProjectDetailPage() {
                     <div className="text-center py-16">
                         <h2 className="text-2xl font-bold text-gray-900 mb-2">Offer Not Found</h2>
                         <p className="text-gray-500 mb-6">The offer you&apos;re looking for doesn&apos;t exist or has been removed.</p>
-                        <button onClick={() => router.push('/offers')} className="bg-[#09BF44] text-white font-bold px-6 py-3 rounded-xl hover:bg-[#07a63a] transition-colors">
+                        <Link href="/offers" className="bg-[#09BF44] text-white font-bold px-6 py-3 rounded-xl hover:bg-[#07a63a] transition-colors inline-block">
                             Browse Offers
-                        </button>
+                        </Link>
                     </div>
                 </div>
             </div>
@@ -84,11 +83,9 @@ export default function ProjectDetailPage() {
                 </button>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
-                    {/* Left column - Fiverr-like content */}
                     <div className="lg:col-span-2 space-y-6">
                         <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{project.title}</h1>
 
-                        {/* Freelancer info line: pfp | name | rating | reviews */}
                         <Link
                             href={seller?._id ? `/freelancer/${seller._id}` : '#'}
                             className="flex items-center gap-3 hover:opacity-90 transition-opacity"
@@ -111,14 +108,6 @@ export default function ProjectDetailPage() {
                             </div>
                         </Link>
 
-                        {/* Banner image */}
-                        {bannerImage && (
-                            <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-gray-200">
-                                <Image src={bannerImage} alt={project.title} fill className="object-cover" priority />
-                            </div>
-                        )}
-
-                        {/* Slideshow of project media */}
                         {images.length > 0 && (
                             <div className="relative">
                                 <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-gray-200">
@@ -127,40 +116,38 @@ export default function ProjectDetailPage() {
                                         alt={`${project.title} - ${slideshowIndex + 1}`}
                                         fill
                                         className="object-cover"
+                                        priority
                                     />
                                 </div>
+                                <button
+                                    onClick={() => setSlideshowIndex((i) => (i === 0 ? images.length - 1 : i - 1))}
+                                    className="absolute left-2 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-white/90 shadow-md hover:bg-white transition-colors"
+                                    aria-label="Previous"
+                                >
+                                    <ChevronLeft className="w-5 h-5 text-gray-700" />
+                                </button>
+                                <button
+                                    onClick={() => setSlideshowIndex((i) => (i === images.length - 1 ? 0 : i + 1))}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-white/90 shadow-md hover:bg-white transition-colors"
+                                    aria-label="Next"
+                                >
+                                    <ChevronRight className="w-5 h-5 text-gray-700" />
+                                </button>
                                 {hasMultipleImages && (
-                                    <>
-                                        <button
-                                            onClick={() => setSlideshowIndex((i) => (i === 0 ? images.length - 1 : i - 1))}
-                                            className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/90 shadow-md hover:bg-white transition-colors"
-                                            aria-label="Previous"
-                                        >
-                                            <ChevronLeft className="w-5 h-5 text-gray-700" />
-                                        </button>
-                                        <button
-                                            onClick={() => setSlideshowIndex((i) => (i === images.length - 1 ? 0 : i + 1))}
-                                            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/90 shadow-md hover:bg-white transition-colors"
-                                            aria-label="Next"
-                                        >
-                                            <ChevronRight className="w-5 h-5 text-gray-700" />
-                                        </button>
-                                        <div className="flex justify-center gap-2 mt-2">
-                                            {images.map((_: any, idx: number) => (
-                                                <button
-                                                    key={idx}
-                                                    onClick={() => setSlideshowIndex(idx)}
-                                                    className={`w-2 h-2 rounded-full transition-colors ${idx === slideshowIndex ? 'bg-[#09BF44]' : 'bg-gray-300'}`}
-                                                    aria-label={`Slide ${idx + 1}`}
-                                                />
-                                            ))}
-                                        </div>
-                                    </>
+                                    <div className="flex justify-center gap-2 mt-2">
+                                        {images.map((_: any, idx: number) => (
+                                            <button
+                                                key={idx}
+                                                onClick={() => setSlideshowIndex(idx)}
+                                                className={`w-2 h-2 rounded-full transition-colors ${idx === slideshowIndex ? 'bg-[#09BF44]' : 'bg-gray-300'}`}
+                                                aria-label={`Slide ${idx + 1}`}
+                                            />
+                                        ))}
+                                    </div>
                                 )}
                             </div>
                         )}
 
-                        {/* Description */}
                         {project.description && (
                             <div className="prose prose-gray max-w-none">
                                 <h3 className="text-lg font-bold text-gray-900 mb-2">About This Offer</h3>
@@ -169,7 +156,6 @@ export default function ProjectDetailPage() {
                         )}
                     </div>
 
-                    {/* Right column - ProjectCard (packages, customize, contact) */}
                     <div className="lg:col-span-1">
                         <div className="lg:sticky lg:top-24">
                             <ProjectCard project={project} showContactMe={true} />

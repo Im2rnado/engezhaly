@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
-import { formatStatus } from '@/lib/utils';
+import { formatStatus, formatDateDDMMYYYY } from '@/lib/utils';
 import { Loader2, CreditCard, DollarSign, PanelLeft } from 'lucide-react';
 import { useModal } from '@/context/ModalContext';
 import ClientSidebar from '@/components/ClientSidebar';
@@ -109,6 +109,7 @@ export default function WalletPage() {
                         </button>
                         <h1 className="text-2xl md:text-3xl font-black text-gray-900">My Wallet</h1>
                     </div>
+                    <p className="text-sm md:text-base text-gray-500 -mt-4 mb-6">Top up your balance and view transaction history.</p>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                         {/* Balance Card */}
@@ -178,7 +179,7 @@ export default function WalletPage() {
                                                 <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-bold uppercase">{formatStatus(tx.status)}</span>
                                             </td>
                                             <td className="p-4 text-gray-500 text-sm">
-                                                {new Date(tx.createdAt).toLocaleDateString()}
+                                                {formatDateDDMMYYYY(tx.createdAt)}
                                             </td>
                                         </tr>
                                     ))}

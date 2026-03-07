@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { X, Plus, Trash2, FileText } from 'lucide-react';
+import { formatDateDDMMYYYY } from '@/lib/utils';
 
 interface CreateOfferModalProps {
     isOpen: boolean;
@@ -279,7 +280,7 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <span className="text-gray-600">Delivery:</span>
-                                        <span className="font-bold text-gray-900">{deliveryDate ? new Date(deliveryDate).toLocaleDateString() : '—'}</span>
+                                        <span className="font-bold text-gray-900">{deliveryDate ? formatDateDDMMYYYY(deliveryDate) : '—'}</span>
                                     </div>
                                     {milestones.length > 0 && (
                                         <div className="flex justify-between items-center">

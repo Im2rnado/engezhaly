@@ -76,10 +76,10 @@ export default function ViewProjectPage() {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Project Not Found</h2>
-                    <p className="text-gray-500 mb-4">The project you&apos;re looking for doesn&apos;t exist.</p>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Offer Not Found</h2>
+                    <p className="text-gray-500 mb-4">The offer you&apos;re looking for doesn&apos;t exist.</p>
                     <button
-                        onClick={() => router.push('/dashboard/freelancer?tab=projects')}
+                        onClick={() => router.push('/dashboard/freelancer?tab=offers')}
                         className="bg-[#09BF44] text-white px-6 py-2 rounded-xl font-bold hover:bg-[#07a63a] transition-colors"
                     >
                         Go Back
@@ -95,7 +95,7 @@ export default function ViewProjectPage() {
                 user={user}
                 profile={profile}
                 onToggleBusy={toggleBusy}
-                activeTab="projects"
+                activeTab="offers"
                 mobileOpen={mobileSidebarOpen}
                 onCloseMobile={() => setMobileSidebarOpen(false)}
             />
@@ -120,7 +120,7 @@ export default function ViewProjectPage() {
                         </button>
                     </div>
                     <button
-                        onClick={() => router.push('/dashboard/freelancer?tab=projects')}
+                        onClick={() => router.push('/dashboard/freelancer?tab=offers')}
                         className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 font-bold transition-colors"
                     >
                         <ArrowLeft className="w-4 h-4" /> Back to Dashboard
@@ -128,7 +128,7 @@ export default function ViewProjectPage() {
 
                     <ProjectCard
                         project={project}
-                        onEdit={() => router.push(`/dashboard/freelancer/projects/${project._id}/edit`)}
+                        onEdit={() => router.push(`/dashboard/freelancer/offers/${project._id}/edit`)}
                     />
 
                 </div>

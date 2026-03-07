@@ -8,6 +8,24 @@ const getHeaders = () => {
     };
 };
 
+/** Clears session and redirects to home with session_expired param for user feedback */
+const handleSessionExpired = () => {
+    if (typeof window !== 'undefined') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/?session_expired=1';
+    }
+};
+
+/** Returns true if response is 401 (session expired), and handles redirect */
+const isUnauthorized = (res: Response): boolean => {
+    if (res.status === 401) {
+        handleSessionExpired();
+        return true;
+    }
+    return false;
+};
+
 export const api = {
     auth: {
         register: async (data: any) => {
@@ -95,6 +113,11 @@ export const api = {
                     try {
                         const result = JSON.parse(xhr.responseText || '{}');
                         if (xhr.status >= 200 && xhr.status < 300) return resolve(result.url);
+                        if (xhr.status === 401) {
+                            handleSessionExpired();
+                            reject(new Error('Session expired. Please log in again.'));
+                            return;
+                        }
                         reject(new Error(result.message || result.msg || 'Upload failed'));
                     } catch {
                         reject(new Error('Upload failed'));
@@ -128,10 +151,7 @@ export const api = {
                 headers: getHeaders()
             });
             if (!res.ok) {
-                if (typeof window !== 'undefined') {
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('user');
-                }
+                if (isUnauthorized(res)) throw new Error('Session expired. Please log in again.');
                 throw new Error('Failed to fetch profile');
             }
             return res.json();
@@ -170,6 +190,24 @@ export const api = {
             const result = await res.json();
             if (!res.ok) throw new Error(result.msg || 'Failed to raise dispute');
             return result;
+        },
+        approveOrder: async (orderId: string) => {
+            const res = await fetch(`${API_URL}/freelancer/orders/${orderId}/approve`, {
+                method: 'PATCH',
+                headers: getHeaders(),
+            });
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.msg || 'Failed to approve order');
+            return result;
+        },
+        denyOrder: async (orderId: string) => {
+            const res = await fetch(`${API_URL}/freelancer/orders/${orderId}/deny`, {
+                method: 'PATCH',
+                headers: getHeaders(),
+            });
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.msg || 'Failed to deny order');
+            return result;
         }
     },
     client: {
@@ -179,10 +217,7 @@ export const api = {
                 headers: getHeaders()
             });
             if (!res.ok) {
-                if (typeof window !== 'undefined') {
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('user');
-                }
+                if (isUnauthorized(res)) throw new Error('Session expired. Please log in again.');
                 throw new Error('Failed to fetch profile');
             }
             return res.json();
@@ -351,11 +386,11 @@ export const api = {
             if (!res.ok) throw new Error('Failed to update project');
             return res.json();
         },
-        createOrder: async (projectId: string, packageIndex: number) => {
+        createOrder: async (projectId: string, packageIndex: number, description: string) => {
             const res = await fetch(`${API_URL}/projects/${projectId}/order`, {
                 method: 'POST',
                 headers: getHeaders(),
-                body: JSON.stringify({ packageIndex }),
+                body: JSON.stringify({ packageIndex, description }),
             });
             const result = await res.json().catch(() => ({ msg: 'Failed to create order' }));
             if (!res.ok) throw new Error(result.msg || 'Failed to create order');
@@ -531,10 +566,7 @@ export const api = {
                 headers: getHeaders()
             });
             if (!res.ok) {
-                if (typeof window !== 'undefined') {
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('user');
-                }
+                if (isUnauthorized(res)) throw new Error('Session expired. Please log in again.');
                 throw new Error('Failed to fetch insights');
             }
             return res.json();
@@ -552,6 +584,7 @@ export const api = {
                 method: 'GET',
                 headers: getHeaders()
             });
+            if (!res.ok && isUnauthorized(res)) throw new Error('Session expired. Please log in again.');
             return res.json();
         },
         updateUser: async (id: string, data: any) => {
@@ -574,6 +607,7 @@ export const api = {
                 method: 'GET',
                 headers: getHeaders()
             });
+            if (!res.ok && isUnauthorized(res)) throw new Error('Session expired. Please log in again.');
             return res.json();
         },
         updateProject: async (id: string, data: any) => {
@@ -596,6 +630,7 @@ export const api = {
                 method: 'GET',
                 headers: getHeaders()
             });
+            if (!res.ok && isUnauthorized(res)) throw new Error('Session expired. Please log in again.');
             return res.json();
         },
         updateJob: async (id: string, data: any) => {
@@ -618,6 +653,7 @@ export const api = {
                 method: 'GET',
                 headers: getHeaders()
             });
+            if (!res.ok && isUnauthorized(res)) throw new Error('Session expired. Please log in again.');
             return res.json();
         },
         updateOrder: async (id: string, data: any) => {
@@ -633,6 +669,7 @@ export const api = {
                 method: 'GET',
                 headers: getHeaders()
             });
+            if (!res.ok && isUnauthorized(res)) throw new Error('Session expired. Please log in again.');
             return res.json();
         },
         getTopFreelancers: async () => {
@@ -647,7 +684,10 @@ export const api = {
                 method: 'GET',
                 headers: getHeaders()
             });
-            if (!res.ok) throw new Error('Failed to fetch email logs');
+            if (!res.ok) {
+                if (isUnauthorized(res)) throw new Error('Session expired. Please log in again.');
+                throw new Error('Failed to fetch email logs');
+            }
             return res.json();
         }
     },

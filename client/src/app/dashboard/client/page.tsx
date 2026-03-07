@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Briefcase, Clock, PlusCircle, ShoppingBag, Wallet, Edit, Loader2, X, Eye, PanelLeft, Flag } from 'lucide-react';
 import { api } from '@/lib/api';
-import { formatStatus } from '@/lib/utils';
+import { formatStatus, formatDateDDMMYYYY } from '@/lib/utils';
 import { useModal } from '@/context/ModalContext';
 import ClientSidebar from '@/components/ClientSidebar';
 import ClientProfileEditModal from '@/components/ClientProfileEditModal';
@@ -217,7 +217,12 @@ function ClientDashboardContent() {
                             </button>
                             <h2 className="text-2xl md:text-3xl font-black text-gray-900 capitalize">{activeTab}</h2>
                         </div>
-                        <p className="text-sm md:text-base text-gray-500 mt-1">Welcome back, {user.firstName}!</p>
+                        <p className="text-xs md:text-sm text-gray-400 mt-0.5">
+                            {activeTab === 'dashboard' && 'Manage your jobs, orders, and wallet in one place.'}
+                            {activeTab === 'jobs' && 'Post and track your job listings.'}
+                            {activeTab === 'orders' && 'View and manage your orders from freelancers.'}
+                            {activeTab === 'profile' && 'Update your account information.'}
+                        </p>
                     </div>
                     {activeTab === 'jobs' && (
                         <button
@@ -310,7 +315,7 @@ function ClientDashboardContent() {
                                         {orders.slice(0, 5).map((order) => (
                                             <div key={order._id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
                                                 <div>
-                                                    <h4 className="font-bold text-gray-900">{order.projectId?.title || 'Project'}</h4>
+                                                    <h4 className="font-bold text-gray-900">{order.projectId?.title || 'Offer'}</h4>
                                                     <p className="text-sm text-gray-500">Seller: {order.sellerId?.firstName} {order.sellerId?.lastName}</p>
                                                     {order.status === 'active' && order.deliveryDate && (
                                                         <div className="mt-2">
@@ -367,7 +372,7 @@ function ClientDashboardContent() {
                                             {formatStatus(job.status)}
                                         </span>
                                         <span className="text-xs text-gray-500 font-bold">
-                                            Posted {new Date(job.createdAt).toLocaleDateString()}
+                                            Posted {formatDateDDMMYYYY(job.createdAt)}
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-2 pt-4 border-t border-gray-100">
@@ -420,7 +425,7 @@ function ClientDashboardContent() {
                                 <div key={order._id} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
                                     <div className="flex justify-between items-start gap-4 mb-4">
                                         <div className="flex-1">
-                                            <h4 className="text-xl font-bold text-gray-900">{order.projectId?.title || 'Project'}</h4>
+                                            <h4 className="text-xl font-bold text-gray-900">{order.projectId?.title || 'Offer'}</h4>
                                             <p className="text-gray-500 text-sm mt-1">
                                                 Seller: {order.sellerId?.firstName} {order.sellerId?.lastName}
                                             </p>
@@ -442,7 +447,7 @@ function ClientDashboardContent() {
                                             {order.packageType}
                                         </span>
                                         <span className="text-xs text-gray-500 font-bold">
-                                            Ordered {new Date(order.createdAt).toLocaleDateString()}
+                                            Ordered {formatDateDDMMYYYY(order.createdAt)}
                                         </span>
                                         {order.status === 'active' && (
                                             <button

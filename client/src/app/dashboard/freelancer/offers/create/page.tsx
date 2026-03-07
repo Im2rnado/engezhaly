@@ -9,7 +9,7 @@ import FreelancerSidebar from '@/components/FreelancerSidebar';
 import { CATEGORIES } from '@/lib/categories';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 
-export default function CreateProjectPage() {
+export default function CreateOfferPage() {
     const { showModal } = useModal();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
@@ -169,7 +169,6 @@ export default function CreateProjectPage() {
                             {error && <div className="bg-red-50 text-red-500 p-4 rounded-xl mb-6">{error}</div>}
 
                             <form onSubmit={handleSubmit} className="space-y-8">
-                                {/* 1. Overview */}
                                 <div className="space-y-4">
                                     <h2 className="text-xl font-bold text-gray-900">Offer Overview</h2>
 
@@ -293,7 +292,6 @@ export default function CreateProjectPage() {
                                     </div>
                                 </div>
 
-                                {/* 2. Packages */}
                                 <div className="space-y-4">
                                     <h2 className="text-xl font-bold text-gray-900">Pricing Packages</h2>
 

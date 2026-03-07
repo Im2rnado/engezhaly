@@ -5,13 +5,11 @@ export const CATEGORIES = {
         'Backend',
         'Full-Stack',
         'Mobile App Developer',
-        'WordPress Developer',
         'Shopify / E-commerce Store Developer'
     ],
-    'Design & Creativity': [
-        'Graphic Designer',
+    'Design & Creative': [
+        'Graphic Designer (branding)',
         'Logo Designer',
-        'Branding Specialist',
         'UI Designer',
         'UX Designer',
         'Clothing / Fashion Designer'
@@ -24,7 +22,7 @@ export const CATEGORIES = {
     'Video Editor': [
         'Video Editor',
         'Video Commercials Ads',
-        'Short Reels TikTok\'s'
+        'UGC (short-video editor)'
     ],
     'AI and Automations': [
         'AI Content Creation (photos or videos)',

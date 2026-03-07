@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Briefcase, DollarSign, PlusCircle, ShoppingBag, Star, CheckCircle, Loader2, Edit, Award, MessageSquare, X, PanelLeft, Flag } from 'lucide-react';
 import { api } from '@/lib/api';
-import { formatStatus } from '@/lib/utils';
+import { formatStatus, formatDateDDMMYYYY } from '@/lib/utils';
 import { useModal } from '@/context/ModalContext';
 import ProjectCard from '@/components/ProjectCard';
 import { MAIN_CATEGORIES } from '@/lib/categories';
@@ -17,7 +17,7 @@ function FreelancerDashboardContent() {
     const { showModal } = useModal();
     const router = useRouter();
     const searchParams = useSearchParams();
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'projects' | 'orders' | 'profile'>('dashboard');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'offers' | 'orders' | 'profile' | 'portfolio'>('dashboard');
 
     const [user, setUser] = useState<any>(null);
     const [profile, setProfile] = useState<any>(null);
@@ -55,8 +55,8 @@ function FreelancerDashboardContent() {
 
     // Read tab from URL on mount and when URL changes
     useEffect(() => {
-        const tab = searchParams.get('tab') as 'dashboard' | 'projects' | 'orders' | 'profile' | null;
-        if (tab && ['dashboard', 'projects', 'orders', 'profile'].includes(tab)) {
+        const tab = searchParams.get('tab') as 'dashboard' | 'offers' | 'orders' | 'profile' | null;
+        if (tab && ['dashboard', 'offers', 'orders', 'profile'].includes(tab)) {
             setActiveTab(tab);
         }
     }, [searchParams]);
@@ -102,7 +102,7 @@ function FreelancerDashboardContent() {
     }, [router]);
 
     useEffect(() => {
-        if (activeTab === 'projects') {
+        if (activeTab === 'offers') {
             fetchProjects();
         }
         if (activeTab === 'orders' && user?._id) {
@@ -154,7 +154,7 @@ function FreelancerDashboardContent() {
             if (!conversation) {
                 await api.chat.sendMessage({
                     receiverId: clientId,
-                    content: `Hi! I have an update regarding your order for: ${order.projectId?.title || 'your project'}`,
+                    content: `Hi! I have an update regarding your order for: ${order.projectId?.title || 'your offer'}`,
                     messageType: 'text'
                 });
                 const updatedConversations = await api.chat.getConversations();
@@ -279,7 +279,12 @@ function FreelancerDashboardContent() {
                             </button>
                             <h2 className="text-2xl md:text-3xl font-black text-gray-900 capitalize">{activeTab}</h2>
                         </div>
-                        <p className="text-sm md:text-base text-gray-500 mt-1">Welcome back, {user.firstName}!</p>
+                        <p className="text-xs md:text-sm text-gray-400 mt-0.5">
+                            {activeTab === 'dashboard' && 'Overview of your offers, orders, and earnings.'}
+                            {activeTab === 'offers' && 'Manage your service offers and pricing.'}
+                            {activeTab === 'orders' && 'View and fulfill orders from clients.'}
+                            {activeTab === 'profile' && 'Edit your profile and professional details.'}
+                        </p>
                     </div>
                 </header>
 
@@ -317,13 +322,13 @@ function FreelancerDashboardContent() {
                             </div>
                         </div>
 
-                        {/* Recent Projects */}
+                        {/* Recent Offers */}
                         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
                             <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                                <h3 className="text-lg font-bold">My Projects</h3>
+                                <h3 className="text-lg font-bold">My Offers</h3>
                                 <button onClick={() => {
-                                    setActiveTab('projects');
-                                    router.push('/dashboard/freelancer?tab=projects');
+                                    setActiveTab('offers');
+                                    router.push('/dashboard/freelancer?tab=offers');
                                 }} className="text-[#09BF44] font-bold text-sm hover:underline">View All</button>
                             </div>
                             <div className="p-6">
@@ -333,7 +338,7 @@ function FreelancerDashboardContent() {
                                             <div key={project._id} className="space-y-2">
                                                 <ProjectCard
                                                     project={project}
-                                                    onEdit={() => router.push(`/dashboard/freelancer/projects/${project._id}/edit`)}
+                                                    onEdit={() => router.push(`/dashboard/freelancer/offers/${project._id}/edit`)}
                                                 />
                                                 <div className="px-2 text-xs font-bold text-gray-500">
                                                     Orders received: {orderCountByProject[project._id] || 0}
@@ -344,7 +349,7 @@ function FreelancerDashboardContent() {
                                 ) : (
                                     <div className="text-center py-12 text-gray-400">
                                         <Briefcase className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                                        <p>No projects yet. Create your first project to start earning!</p>
+                                        <p>No offers yet. Create your first offer to start earning!</p>
                                     </div>
                                 )}
                             </div>
@@ -366,7 +371,7 @@ function FreelancerDashboardContent() {
                                             <div key={order._id} className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
                                                 <div className="flex items-center justify-between">
                                                     <div>
-                                                        <h4 className="font-bold text-gray-900">{order.projectId?.title || 'Project'}</h4>
+                                                        <h4 className="font-bold text-gray-900">{order.projectId?.title || 'Offer'}</h4>
                                                         <p className="text-sm text-gray-500">Buyer: {order.buyerId?.firstName} {order.buyerId?.lastName}</p>
                                                     </div>
                                                     <div className="text-right">
@@ -378,11 +383,11 @@ function FreelancerDashboardContent() {
                                                 </div>
                                                 <div className="flex flex-wrap gap-3 mt-3 pt-3 border-t border-gray-200">
                                                     <span className="text-xs text-gray-500 font-bold">
-                                                        Ordered {new Date(order.createdAt).toLocaleDateString()}
+                                                        Ordered {formatDateDDMMYYYY(order.createdAt)}
                                                     </span>
                                                     {order.deliveryDate && (
                                                         <span className="text-xs text-gray-500 font-bold">
-                                                            Delivery {new Date(order.deliveryDate).toLocaleDateString()}
+                                                            Delivery {formatDateDDMMYYYY(order.deliveryDate)}
                                                         </span>
                                                     )}
                                                     {order.status === 'active' && order.deliveryDate && (
@@ -403,16 +408,16 @@ function FreelancerDashboardContent() {
                     </div>
                 )}
 
-                {activeTab === 'projects' && (
+                {activeTab === 'offers' && (
                     <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
                         <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                            <h3 className="text-lg font-bold">My Projects ({projects.length})</h3>
+                            <h3 className="text-lg font-bold">My Offers ({projects.length})</h3>
                             {!isPending && (
                                 <button
-                                    onClick={() => router.push('/dashboard/freelancer/projects/create')}
+                                    onClick={() => router.push('/dashboard/freelancer/offers/create')}
                                     className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 transition-colors"
                                 >
-                                    <PlusCircle className="w-4 h-4" /> New Project
+                                    <PlusCircle className="w-4 h-4" /> New Offer
                                 </button>
                             )}
                         </div>
@@ -423,7 +428,7 @@ function FreelancerDashboardContent() {
                                         <div key={project._id} className="space-y-2">
                                             <ProjectCard
                                                 project={project}
-                                                onEdit={() => router.push(`/dashboard/freelancer/projects/${project._id}/edit`)}
+                                                onEdit={() => router.push(`/dashboard/freelancer/offers/${project._id}/edit`)}
                                             />
                                             <div className="px-2 text-xs font-bold text-gray-500">
                                                 Orders received: {orderCountByProject[project._id] || 0}
@@ -434,14 +439,14 @@ function FreelancerDashboardContent() {
                             ) : (
                                 <div className="text-center py-12 text-gray-400">
                                     <Briefcase className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                                    <h3 className="text-xl font-bold text-gray-900 mb-2">No Projects Yet</h3>
+                                    <h3 className="text-xl font-bold text-gray-900 mb-2">No Offers Yet</h3>
                                     <p className="text-gray-500 mb-6">Start selling your services to clients.</p>
                                     {!isPending && (
                                         <button
-                                            onClick={() => router.push('/dashboard/freelancer/projects/create')}
+                                                onClick={() => router.push('/dashboard/freelancer/offers/create')}
                                             className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-colors mx-auto"
                                         >
-                                            <PlusCircle className="w-5 h-5" /> Create your first Project
+                                            <PlusCircle className="w-5 h-5" /> Create your first Offer
                                         </button>
                                     )}
                                 </div>
@@ -457,14 +462,14 @@ function FreelancerDashboardContent() {
                                 <div key={order._id} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
                                     <div className="flex items-start justify-between gap-4 mb-4">
                                         <div className="flex-1">
-                                            <h4 className="text-xl font-bold text-gray-900">{order.projectId?.title || 'Project'}</h4>
+                                            <h4 className="text-xl font-bold text-gray-900">{order.projectId?.title || 'Offer'}</h4>
                                             <p className="text-sm text-gray-500 mt-1">
                                                 Buyer: {order.buyerId?.firstName} {order.buyerId?.lastName}
                                             </p>
                                         </div>
                                         <div className="text-right">
                                             <p className="text-xl font-black text-gray-900">{order.amount} EGP</p>
-                                            <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'disputed' ? 'bg-amber-100 text-amber-700' : order.status === 'refunded' ? 'bg-gray-100 text-gray-700' : order.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                                            <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'disputed' ? 'bg-amber-100 text-amber-700' : order.status === 'refunded' ? 'bg-gray-100 text-gray-700' : order.status === 'pending_approval' ? 'bg-amber-100 text-amber-700' : order.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
                                                 {formatStatus(order.status)}
                                             </span>
                                         </div>
@@ -472,13 +477,14 @@ function FreelancerDashboardContent() {
                                     <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-100">
                                         <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-bold">
                                             {order.packageType}
+                                            {order.projectId?.subCategory && ` • ${order.projectId.subCategory}`}
                                         </span>
                                         <span className="text-xs text-gray-500 font-bold">
-                                            Ordered {new Date(order.createdAt).toLocaleDateString()}
+                                            Ordered {formatDateDDMMYYYY(order.createdAt)}
                                         </span>
                                         {order.deliveryDate && (
                                             <span className="text-xs text-gray-500 font-bold">
-                                                Delivery {new Date(order.deliveryDate).toLocaleDateString()}
+                                                Delivery {formatDateDDMMYYYY(order.deliveryDate)}
                                             </span>
                                         )}
                                         {order.status === 'active' && order.deliveryDate && (
@@ -487,9 +493,12 @@ function FreelancerDashboardContent() {
                                     </div>
                                     <div className="mt-4 pt-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
                                         <div className="text-sm text-gray-600">
+                                            {order.status === 'pending_approval' && order.description && (
+                                                <p className="text-gray-700 mb-2"><strong>Description:</strong> {order.description}</p>
+                                            )}
                                             {order?.workSubmission?.updatedAt
                                                 ? `Last submitted: ${new Date(order.workSubmission.updatedAt).toLocaleString()}`
-                                                : 'No work submitted yet'}
+                                                : order.status !== 'pending_approval' && 'No work submitted yet'}
                                         </div>
                                         <div className="flex gap-2 flex-wrap">
                                             <button
@@ -498,17 +507,51 @@ function FreelancerDashboardContent() {
                                             >
                                                 <MessageSquare className="w-4 h-4" /> Message Client
                                             </button>
-                                            <button
-                                                onClick={() => openSubmitOrderWork(order)}
-                                                disabled={order.status !== 'active'}
-                                                className={`px-5 py-2 rounded-xl font-bold transition-colors ${order.status === 'active'
-                                                    ? 'bg-black text-white hover:bg-gray-800'
-                                                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                                    }`}
-                                            >
-                                                {order?.workSubmission?.updatedAt ? 'Update Submission' : 'Submit Work'}
-                                            </button>
-                                            {order.status === 'active' && (
+                                            {order.status === 'pending_approval' ? (
+                                                <>
+                                                    <button
+                                                        onClick={async () => {
+                                                            try {
+                                                                await api.freelancer.approveOrder(order._id);
+                                                                showModal({ title: 'Order Approved', message: 'The client has been notified.', type: 'success' });
+                                                                fetchOrders();
+                                                            } catch (e: any) {
+                                                                showModal({ title: 'Error', message: e.message || 'Failed to approve', type: 'error' });
+                                                            }
+                                                        }}
+                                                        className="px-5 py-2 rounded-xl font-bold bg-green-600 text-white hover:bg-green-700 transition-colors"
+                                                    >
+                                                        Approve
+                                                    </button>
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (!confirm('Deny this order? The client will be refunded.')) return;
+                                                            try {
+                                                                await api.freelancer.denyOrder(order._id);
+                                                                showModal({ title: 'Order Denied', message: 'The client has been refunded and notified.', type: 'success' });
+                                                                fetchOrders();
+                                                            } catch (e: any) {
+                                                                showModal({ title: 'Error', message: e.message || 'Failed to deny', type: 'error' });
+                                                            }
+                                                        }}
+                                                        className="px-5 py-2 rounded-xl font-bold bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                                                    >
+                                                        Deny
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <button
+                                                        onClick={() => openSubmitOrderWork(order)}
+                                                        disabled={order.status !== 'active'}
+                                                        className={`px-5 py-2 rounded-xl font-bold transition-colors ${order.status === 'active'
+                                                            ? 'bg-black text-white hover:bg-gray-800'
+                                                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                            }`}
+                                                    >
+                                                        {order?.workSubmission?.updatedAt ? 'Update Submission' : 'Submit Work'}
+                                                    </button>
+                                                    {order.status === 'active' && (
                                                 <button
                                                     onClick={async () => {
                                                         if (!confirm('Raise a dispute? Our team will review and resolve it.')) return;
@@ -523,7 +566,9 @@ function FreelancerDashboardContent() {
                                                     className="text-amber-600 hover:text-amber-700 px-4 py-2 rounded-xl font-bold hover:bg-amber-50 transition-colors flex items-center gap-2"
                                                 >
                                                     <Flag className="w-4 h-4" /> Raise Dispute
-                                                </button>
+                                                    </button>
+                                                    )}
+                                                </>
                                             )}
                                         </div>
                                     </div>
@@ -597,6 +642,24 @@ function FreelancerDashboardContent() {
                                                 <span key={idx} className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-bold">{skill}</span>
                                             ))}
                                         </div>
+                                    </div>
+                                )}
+                                {profile.freelancerProfile?.certifications && profile.freelancerProfile.certifications.length > 0 && (
+                                    <div>
+                                        <label className="text-sm font-bold text-gray-500 mb-2 block">Certifications</label>
+                                        <ul className="space-y-2">
+                                            {profile.freelancerProfile.certifications.map((c: any, idx: number) => (
+                                                <li key={idx} className="bg-gray-50 px-4 py-3 rounded-xl">
+                                                    <span className="font-bold text-gray-900">{c.name}</span>
+                                                    {(c.institute || c.date) && (
+                                                        <span className="text-gray-600 text-sm">
+                                                            {c.institute && ` • ${c.institute}`}
+                                                            {c.date && ` • ${formatDateDDMMYYYY(c.date)}`}
+                                                        </span>
+                                                    )}
+                                                </li>
+                                            ))}
+                                        </ul>
                                     </div>
                                 )}
                             </div>

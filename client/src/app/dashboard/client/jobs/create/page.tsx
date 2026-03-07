@@ -125,7 +125,7 @@ export default function PostJobPage() {
                                 <textarea
                                     name="description"
                                     required
-                                    placeholder="Describe your project details..."
+                                    placeholder="Describe your job details..."
                                     value={jobData.description}
                                     onChange={handleChange}
                                     className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none h-32"
@@ -133,7 +133,7 @@ export default function PostJobPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Required Skills (space separated)</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Required Skills (separate with space or Enter)</label>
                                 {(() => {
                                     const parts = jobData.skills.split(/\s+/);
                                     const completedTags = parts.slice(0, -1).filter(Boolean);
@@ -150,11 +150,14 @@ export default function PostJobPage() {
                                                 type="text"
                                                 name="skills"
                                                 required={jobData.skills.trim().split(/\s+/).filter(Boolean).length === 0}
-                                                placeholder={completedTags.length === 0 ? 'e.g. React Node.js Design' : ''}
+                                                placeholder={completedTags.length === 0 ? 'e.g. React Node.js Design (space or Enter between items)' : ''}
                                                 value={currentWord}
                                                 onChange={(e) => setJobData({ ...jobData, skills: prefix + e.target.value })}
                                                 onKeyDown={(e) => {
-                                                    if (e.key === 'Backspace' && !currentWord && completedTags.length > 0) {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        setJobData({ ...jobData, skills: (prefix + currentWord).trim() + ' ' });
+                                                    } else if (e.key === 'Backspace' && !currentWord && completedTags.length > 0) {
                                                         e.preventDefault();
                                                         setJobData({ ...jobData, skills: completedTags.slice(0, -1).join(' ') });
                                                     }

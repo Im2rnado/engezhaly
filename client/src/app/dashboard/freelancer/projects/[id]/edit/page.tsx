@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { api } from '@/lib/api';
-import { Loader2, Upload, ArrowLeft, PanelLeft } from 'lucide-react';
+import { Loader2, Upload, ArrowLeft, PanelLeft, X as XIcon } from 'lucide-react';
 import { useModal } from '@/context/ModalContext';
 import FreelancerSidebar from '@/components/FreelancerSidebar';
-import { CATEGORIES, MAIN_CATEGORIES } from '@/lib/categories';
+import { CATEGORIES } from '@/lib/categories';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 
 export default function EditProjectPage() {
@@ -16,6 +16,8 @@ export default function EditProjectPage() {
     const projectId = params?.id as string;
 
     const [loading, setLoading] = useState(false);
+    const [imageUploading, setImageUploading] = useState(false);
+    const [imageUploadProgress, setImageUploadProgress] = useState(0);
     const [fetching, setFetching] = useState(true);
     const [error, setError] = useState('');
     const [user, setUser] = useState<any>(null);
@@ -58,10 +60,14 @@ export default function EditProjectPage() {
 
                 if (projectId) {
                     const projectData = await api.projects.getById(projectId);
+                    const lockedCategory = profileData.freelancerProfile?.category;
+                    if (lockedCategory && projectData.category && projectData.category !== lockedCategory) {
+                        setError('This offer\'s category no longer matches your profile. Contact support.');
+                    }
                     setProjectData({
                         title: projectData.title || '',
                         description: projectData.description || '',
-                        category: projectData.category || '',
+                        category: lockedCategory || projectData.category || '',
                         subCategory: projectData.subCategory || '',
                         images: projectData.images || [],
                         packages: projectData.packages || [
@@ -134,8 +140,8 @@ export default function EditProjectPage() {
                     features: Array.isArray(p.features) ? p.features.filter((f: string) => f && f.trim()) : []
                 }))
             });
-            showModal({ title: 'Success', message: 'Project Updated Successfully!', type: 'success' });
-            router.push('/dashboard/freelancer?tab=projects');
+            showModal({ title: 'Success', message: 'Offer Updated Successfully!', type: 'success' });
+            router.push('/dashboard/freelancer?tab=offers');
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -157,7 +163,7 @@ export default function EditProjectPage() {
                 user={user}
                 profile={profile}
                 onToggleBusy={toggleBusy}
-                activeTab="projects"
+                activeTab="offers"
                 mobileOpen={mobileSidebarOpen}
                 onCloseMobile={() => setMobileSidebarOpen(false)}
             />
@@ -182,14 +188,14 @@ export default function EditProjectPage() {
                         </button>
                     </div>
                     <button
-                        onClick={() => router.push('/dashboard/freelancer?tab=projects')}
+                        onClick={() => router.push('/dashboard/freelancer?tab=offers')}
                         className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 font-bold transition-colors"
                     >
                         <ArrowLeft className="w-4 h-4" /> Back to Dashboard
                     </button>
 
                     <header className="mb-6 md:mb-10">
-                        <h1 className="text-2xl md:text-3xl font-black text-gray-900 mb-2">Edit Project</h1>
+                        <h1 className="text-2xl md:text-3xl font-black text-gray-900 mb-2">Edit Offer</h1>
                         <p className="text-gray-500">Update your service details.</p>
                     </header>
 
@@ -200,10 +206,10 @@ export default function EditProjectPage() {
                             <form onSubmit={handleSubmit} className="space-y-8">
                                 {/* 1. Overview */}
                                 <div className="space-y-4">
-                                    <h2 className="text-xl font-bold text-gray-900">Project Overview</h2>
+                                    <h2 className="text-xl font-bold text-gray-900">Offer Overview</h2>
 
                                     <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-2">Project Title</label>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">Offer Title</label>
                                         <input
                                             type="text"
                                             name="title"
@@ -216,7 +222,7 @@ export default function EditProjectPage() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-2">Project Description</label>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">Offer Description</label>
                                         <textarea
                                             name="description"
                                             required
@@ -231,20 +237,10 @@ export default function EditProjectPage() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-sm font-bold text-gray-700 mb-2">Category</label>
-                                            <select
-                                                name="category"
-                                                required
-                                                value={projectData.category}
-                                                onChange={(e) => {
-                                                    setProjectData({ ...projectData, category: e.target.value, subCategory: '' });
-                                                }}
-                                                className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none"
-                                            >
-                                                <option value="">Select Category</option>
-                                                {MAIN_CATEGORIES.map((cat: string) => (
-                                                    <option key={cat} value={cat}>{cat}</option>
-                                                ))}
-                                            </select>
+                                            <div className="w-full p-4 bg-gray-100 rounded-xl border-2 border-gray-200 text-gray-700 font-medium">
+                                                {projectData.category || profile?.freelancerProfile?.category || '—'}
+                                            </div>
+                                            <p className="text-xs text-gray-500 mt-1">Your main category is locked and cannot be changed.</p>
                                         </div>
                                         <div>
                                             <label className="block text-sm font-bold text-gray-700 mb-2">Sub Category</label>
@@ -266,11 +262,64 @@ export default function EditProjectPage() {
 
                                     <div>
                                         <label className="block text-sm font-bold text-gray-700 mb-2">Banner Images (Up to 3)</label>
-                                        <div className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center hover:bg-gray-50 transition-colors cursor-pointer">
-                                            <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                                            <p className="text-gray-500 font-bold">Click to Upload Images</p>
-                                            <p className="text-xs text-gray-400 mt-1">(Placeholder for File Upload)</p>
-                                        </div>
+                                        {projectData.images.length > 0 && (
+                                            <div className="flex flex-wrap gap-3 mb-3">
+                                                {projectData.images.map((url, idx) => (
+                                                    <div key={idx} className="relative w-24 h-24 rounded-xl overflow-hidden border-2 border-gray-200 group">
+                                                        <img src={url} alt={`Banner ${idx + 1}`} className="w-full h-full object-cover" />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setProjectData({ ...projectData, images: projectData.images.filter((_, i) => i !== idx) })}
+                                                            className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                                                        >
+                                                            <XIcon className="w-6 h-6 text-white" />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {projectData.images.length < 3 && (
+                                            <label className={`block border-2 border-dashed rounded-xl p-6 text-center transition-colors cursor-pointer ${imageUploading ? 'border-[#09BF44] bg-green-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    multiple
+                                                    className="hidden"
+                                                    disabled={imageUploading}
+                                                    onChange={async (e) => {
+                                                        const files = Array.from(e.target.files || []).slice(0, 3 - projectData.images.length);
+                                                        if (!files.length) return;
+                                                        setImageUploading(true);
+                                                        for (let i = 0; i < files.length; i++) {
+                                                            setImageUploadProgress(0);
+                                                            try {
+                                                                const url = await api.upload.file(files[i], { onProgress: (p) => setImageUploadProgress(p) });
+                                                                setProjectData(prev => ({ ...prev, images: [...prev.images, url] }));
+                                                            } catch (err: any) {
+                                                                showModal({ title: 'Upload Failed', message: err.message || 'Failed to upload image', type: 'error' });
+                                                            }
+                                                        }
+                                                        setImageUploading(false);
+                                                        e.target.value = '';
+                                                    }}
+                                                />
+                                                {imageUploading ? (
+                                                    <>
+                                                        <Loader2 className="w-8 h-8 text-[#09BF44] mx-auto mb-2 animate-spin" />
+                                                        <p className="text-sm font-bold text-[#09BF44]">Uploading... {imageUploadProgress}%</p>
+                                                        <div className="h-2 bg-gray-200 rounded-full overflow-hidden mt-2 max-w-[200px] mx-auto">
+                                                            <div className="h-full bg-[#09BF44] transition-all" style={{ width: `${imageUploadProgress}%` }} />
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                                                        <p className="text-gray-500 font-bold">Click to Upload Images</p>
+                                                        <p className="text-xs text-gray-400 mt-1">Max 3 images. JPG, PNG, WebP</p>
+                                                    </>
+                                                )}
+                                            </label>
+                                        )}
                                     </div>
                                 </div>
 
@@ -350,14 +399,14 @@ export default function EditProjectPage() {
                                             onChange={(e) => setProjectData({ ...projectData, isActive: e.target.checked })}
                                             className="w-5 h-5 rounded border-gray-300 text-[#09BF44] focus:ring-[#09BF44]"
                                         />
-                                        <span className="text-sm font-bold text-gray-700">Active (Project is visible to clients)</span>
+                                        <span className="text-sm font-bold text-gray-700">Active (Offer is visible to clients)</span>
                                     </label>
                                 </div>
 
                                 <div className="flex justify-end gap-4 pt-4 border-t border-gray-100">
                                     <button
                                         type="button"
-                                        onClick={() => router.push('/dashboard/freelancer?tab=projects')}
+                                        onClick={() => router.push('/dashboard/freelancer?tab=offers')}
                                         className="bg-gray-100 text-gray-600 font-bold px-8 py-3 rounded-xl hover:bg-gray-200 transition-colors"
                                     >
                                         Cancel
@@ -368,7 +417,7 @@ export default function EditProjectPage() {
                                         className="bg-[#09BF44] text-white font-bold px-8 py-3 rounded-xl hover:bg-[#07a63a] transition-colors flex items-center gap-2"
                                     >
                                         {loading && <Loader2 className="w-5 h-5 animate-spin" />}
-                                        Update Project
+                                        Update Offer
                                     </button>
                                 </div>
                             </form>
