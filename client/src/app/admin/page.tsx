@@ -225,7 +225,14 @@ export default function AdminDashboard() {
     useEffect(() => {
         fetchPending();
         fetchInsights();
-        // Lazy load other tabs data when active to save bandwidth
+        // Pre-fetch counts for sidebar badges
+        fetchUsers();
+        fetchProjects();
+        fetchJobs();
+        fetchOrders();
+        fetchTransactions();
+        fetchChats();
+        fetchEmailLogs();
     }, []);
 
     useEffect(() => {
@@ -482,18 +489,23 @@ export default function AdminDashboard() {
                     </button>
                     <button onClick={() => setActiveTab('users')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'users' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <User className="w-5 h-5" /> Users
+                        {users.length > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{users.length}</span>}
                     </button>
                     <button onClick={() => setActiveTab('projects')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'projects' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <Briefcase className="w-5 h-5" /> Offers
+                        {projects.length > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{projects.length}</span>}
                     </button>
                     <button onClick={() => setActiveTab('jobs')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'jobs' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <FileText className="w-5 h-5" /> Jobs
+                        {jobs.length > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{jobs.length}</span>}
                     </button>
                     <button onClick={() => setActiveTab('orders')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'orders' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <ShoppingBag className="w-5 h-5" /> Orders
+                        {orders.length > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{orders.length}</span>}
                     </button>
                     <button onClick={() => setActiveTab('finance')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'finance' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <CreditCard className="w-5 h-5" /> Finance
+                        {transactions.length > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{transactions.length}</span>}
                     </button>
                     <div className="h-px bg-gray-100 my-2"></div>
                     <button onClick={() => setActiveTab('approvals')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'approvals' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
@@ -502,6 +514,7 @@ export default function AdminDashboard() {
                     </button>
                     <button onClick={() => setActiveTab('chats')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'chats' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <MessageSquare className="w-5 h-5" /> Chats
+                        {activeChats.length > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{activeChats.length}</span>}
                     </button>
                     <button onClick={() => setActiveTab('strikes')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'strikes' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <Ban className="w-5 h-5" /> Strikes
@@ -511,6 +524,7 @@ export default function AdminDashboard() {
                     </button>
                     <button onClick={() => setActiveTab('emails')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'emails' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <Mail className="w-5 h-5" /> Email Logs
+                        {emailLogs.length > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{emailLogs.length}</span>}
                     </button>
                 </nav>
 
@@ -1166,15 +1180,15 @@ export default function AdminDashboard() {
                                         const participant2 = participants[1];
                                         const participant1Initial = participant1?.firstName?.[0]?.toUpperCase() || 'U';
                                         const participant2Initial = participant2?.firstName?.[0]?.toUpperCase() || 'U';
-                                        const participantNames = participants.length >= 2 
+                                        const participantNames = participants.length >= 2
                                             ? `${participant1?.firstName || 'Unknown'} & ${participant2?.firstName || 'Unknown'}`
-                                            : participants.length === 1 
+                                            : participants.length === 1
                                                 ? `${participant1?.firstName || 'Unknown'}`
                                                 : 'Unknown Users';
-                                        
+
                                         return (
-                                            <div 
-                                                key={chat._id} 
+                                            <div
+                                                key={chat._id}
                                                 onClick={() => handleSelectChat(chat)}
                                                 className="p-4 hover:bg-gray-50 cursor-pointer transition-colors flex items-center justify-between"
                                             >
@@ -1269,7 +1283,7 @@ export default function AdminDashboard() {
                                         )}
                                     </div>
                                 </div>
-                                
+
                                 {/* Messages */}
                                 <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-4 bg-gray-50">
                                     {chatMessages.map((msg: any) => {
@@ -1285,18 +1299,17 @@ export default function AdminDashboard() {
                                         const participant1Id = selectedChat.participants?.[0]?._id ? String(selectedChat.participants[0]._id) : null;
                                         const participant2Id = selectedChat.participants?.[1]?._id ? String(selectedChat.participants[1]._id) : null;
                                         const isFromParticipant1 = participant1Id && senderId === participant1Id;
-                                        
+
                                         return (
                                             <div key={msg._id} className={`flex ${isCentered ? 'justify-center' : isFromParticipant1 ? 'justify-start' : 'justify-end'}`}>
-                                                <div className={`max-w-[70%] px-4 py-2 rounded-2xl shadow-sm ${
-                                                    isAdmin 
+                                                <div className={`max-w-[70%] px-4 py-2 rounded-2xl shadow-sm ${isAdmin
                                                         ? 'bg-yellow-100 border-2 border-yellow-300 text-gray-900'
                                                         : isMeeting
                                                             ? 'bg-green-50 border-2 border-[#09BF44]/40 text-gray-900'
                                                             : isFromParticipant1
                                                                 ? 'bg-white border border-gray-200 text-gray-900 rounded-bl-sm'
                                                                 : 'bg-[#09BF44] text-white rounded-br-sm'
-                                                }`}>
+                                                    }`}>
                                                     {isAdmin && (
                                                         <div className="flex items-center gap-2 mb-1">
                                                             <Shield className="w-4 h-4 text-yellow-600" />
@@ -1336,7 +1349,7 @@ export default function AdminDashboard() {
                                         </div>
                                     )}
                                 </div>
-                                
+
                                 {/* Admin Message Input */}
                                 <div className="p-6 border-t border-gray-200 bg-white flex-shrink-0">
                                     <form onSubmit={handleSendAdminMessage} className="flex items-center gap-3">

@@ -16,11 +16,33 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://engezhaly.com";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(APP_URL),
   title: "Engezhaly | Freelance Marketplace Egypt",
   description: "The simplest way to hire freelancers or find work in Egypt. Secure, fast, and teenager-friendly.",
   icons: {
-    icon: '/favicon.ico',
+    icon: "/logos/logo-green.png",
+    apple: "/logos/logo-green.png",
+  },
+  openGraph: {
+    title: "Engezhaly | Freelance Marketplace Egypt",
+    description: "The simplest way to hire freelancers or find work in Egypt. Secure, fast, and teenager-friendly.",
+    url: APP_URL,
+    siteName: "Engezhaly",
+    images: [{ url: "/logos/logo-green.png", width: 512, height: 512, alt: "Engezhaly" }],
+    locale: "en_EG",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Engezhaly | Freelance Marketplace Egypt",
+    description: "The simplest way to hire freelancers or find work in Egypt.",
+    images: ["/logos/logo-green.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
   },
 };
 

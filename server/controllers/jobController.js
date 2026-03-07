@@ -11,13 +11,22 @@ const log = (data) => {
     } catch (e) { }
 };
 
+const { isValidCategorySubCategory } = require('../config/categories');
+
 const createJob = async (req, res) => {
     try {
-        const { title, description, skills, budgetMin, budgetMax, deadline } = req.body;
+        const { title, description, skills, budgetMin, budgetMax, deadline, category, subCategory } = req.body;
 
         // Validation: Min budget 500
         if (budgetMin < 500) {
             return res.status(400).json({ msg: 'Minimum budget must be 500 EGP' });
+        }
+
+        if (!category || !subCategory) {
+            return res.status(400).json({ msg: 'Category and subcategory are required' });
+        }
+        if (!isValidCategorySubCategory(category, subCategory)) {
+            return res.status(400).json({ msg: 'Invalid subcategory for this category' });
         }
 
         const newJob = new Job({
@@ -25,6 +34,8 @@ const createJob = async (req, res) => {
             title,
             description,
             skills,
+            category,
+            subCategory,
             budgetRange: { min: budgetMin, max: budgetMax },
             deadline
         });

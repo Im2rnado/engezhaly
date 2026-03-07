@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -152,6 +153,37 @@ export default function OfferDetailPage() {
                             <div className="prose prose-gray max-w-none">
                                 <h3 className="text-lg font-bold text-gray-900 mb-2">About This Offer</h3>
                                 <p className="text-gray-600 whitespace-pre-wrap">{project.description}</p>
+                            </div>
+                        )}
+
+                        {seller?.freelancerProfile?.portfolio && seller.freelancerProfile.portfolio.length > 0 && (
+                            <div className="pt-6 border-t border-gray-100">
+                                <h3 className="text-lg font-bold text-gray-900 mb-3">Freelancer Portfolio</h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {seller.freelancerProfile.portfolio.map((item: any, idx: number) => (
+                                        <div key={idx} className="rounded-xl overflow-hidden border border-gray-100">
+                                            {item.imageUrl && (
+                                                <div className="relative w-full aspect-video bg-gray-100">
+                                                    <Image src={item.imageUrl} alt={item.title || 'Portfolio'} fill className="object-cover" sizes="(max-width: 768px) 100vw, 400px" />
+                                                </div>
+                                            )}
+                                            <div className="p-3">
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <h4 className="font-bold text-gray-900">{item.title}</h4>
+                                                    {item.subCategory && (
+                                                        <span className="px-2 py-0.5 bg-[#09BF44]/10 text-[#09BF44] text-xs font-bold rounded-full">{item.subCategory}</span>
+                                                    )}
+                                                </div>
+                                                {item.description && <p className="text-sm text-gray-600 line-clamp-2 mt-1">{item.description}</p>}
+                                                {item.link && (
+                                                    <a href={item.link.startsWith('http') ? item.link : `https://${item.link}`} target="_blank" rel="noopener noreferrer" className="text-xs text-[#09BF44] font-bold mt-2 inline-block">
+                                                        View →
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         )}
                     </div>

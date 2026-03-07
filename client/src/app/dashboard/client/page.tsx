@@ -249,7 +249,7 @@ function ClientDashboardContent() {
                                 <div className="flex items-center justify-between mb-2 md:mb-4">
                                     <div className="p-2 md:p-3 bg-blue-50 rounded-xl text-blue-600"><Briefcase className="w-5 h-5 md:w-6 md:h-6" /></div>
                                 </div>
-                                <h3 className="text-gray-500 font-bold text-xs md:text-sm">Active Jobs</h3>
+                                <h3 className="text-gray-500 font-bold text-xs md:text-sm">Posted Jobs</h3>
                                 <p className="text-xl md:text-3xl font-black text-gray-900 mt-1">{activeJobs}</p>
                             </div>
                             <div className="bg-white p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-sm border border-gray-100">
@@ -376,13 +376,15 @@ function ClientDashboardContent() {
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-2 pt-4 border-t border-gray-100">
-                                        <button
-                                            onClick={() => setEditJobModal(job)}
-                                            className="bg-gray-100 text-gray-700 font-bold px-4 py-2 rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2"
-                                            title="Edit"
-                                        >
-                                            <Edit className="w-4 h-4" /> Edit
-                                        </button>
+                                        {job.status === 'open' && (
+                                            <button
+                                                onClick={() => setEditJobModal(job)}
+                                                className="bg-gray-100 text-gray-700 font-bold px-4 py-2 rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2"
+                                                title="Edit"
+                                            >
+                                                <Edit className="w-4 h-4" /> Edit
+                                            </button>
+                                        )}
                                         <button
                                             onClick={() => router.push(`/dashboard/client/jobs/${job._id}`)}
                                             className="bg-gray-100 text-gray-700 font-bold px-4 py-2 rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2"
@@ -557,14 +559,7 @@ function ClientDashboardContent() {
                         { name: 'title', label: 'Title', type: 'text', defaultValue: editJobModal.title || '' },
                         { name: 'description', label: 'Description', type: 'textarea', defaultValue: editJobModal.description || '' },
                         { name: 'budgetMin', label: 'Min Budget (EGP)', type: 'text', defaultValue: String(editJobModal.budgetRange?.min || 500) },
-                        { name: 'budgetMax', label: 'Max Budget (EGP)', type: 'text', defaultValue: String(editJobModal.budgetRange?.max || 1000) },
-                        {
-                            name: 'status',
-                            label: 'Status',
-                            type: 'select',
-                            options: ['open', 'in_progress', 'completed', 'closed'],
-                            defaultValue: editJobModal.status || 'open'
-                        }
+                        { name: 'budgetMax', label: 'Max Budget (EGP)', type: 'text', defaultValue: String(editJobModal.budgetRange?.max || 1000) }
                     ]}
                     onSave={(data) => {
                         handleUpdateJob({

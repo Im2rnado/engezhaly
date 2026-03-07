@@ -22,6 +22,7 @@ const updateProfile = async (req, res) => {
             profilePicture,
             city,
             languages,
+            extraLanguages,
             portfolio,
             certifications
         } = req.body;
@@ -61,6 +62,9 @@ const updateProfile = async (req, res) => {
             user.freelancerProfile.languages = user.freelancerProfile.languages || {};
             if (languages.english !== undefined) user.freelancerProfile.languages.english = languages.english;
             if (languages.arabic !== undefined) user.freelancerProfile.languages.arabic = languages.arabic;
+        }
+        if (extraLanguages !== undefined && Array.isArray(extraLanguages)) {
+            user.freelancerProfile.extraLanguages = extraLanguages.filter(Boolean).map(String);
         }
         if (portfolio !== undefined && Array.isArray(portfolio)) {
             user.freelancerProfile.portfolio = portfolio.map(p => ({

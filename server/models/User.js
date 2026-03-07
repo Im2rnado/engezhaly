@@ -50,6 +50,7 @@ const UserSchema = new mongoose.Schema({
             english: { type: String },
             arabic: { type: String }
         },
+        extraLanguages: [String], // Other languages (name only, no fluency level)
         certificates: [String], // URLs to uploaded files
         skills: [String],
         surveyResponses: {

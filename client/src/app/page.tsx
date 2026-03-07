@@ -22,7 +22,6 @@ export default function Home() {
   const [projectStartIndex, setProjectStartIndex] = useState(0);
   const [jobStartIndex, setJobStartIndex] = useState(0);
   const [heroSearchQuery, setHeroSearchQuery] = useState("");
-  const [heroSearchType, setHeroSearchType] = useState<"projects" | "jobs">("projects");
 
   useEffect(() => {
     const sessionExpired = searchParams.get('session_expired');
@@ -75,7 +74,7 @@ export default function Home() {
                 e.preventDefault();
                 const params = new URLSearchParams();
                 if (heroSearchQuery.trim()) params.set("search", heroSearchQuery.trim());
-                router.push(heroSearchType === "projects" ? `/offers?${params.toString()}` : `/jobs?${params.toString()}`);
+                router.push(`/jobs?${params.toString()}`);
               }}
               className="bg-white rounded-md p-1 flex flex-col sm:flex-row sm:items-center max-w-lg mb-5 md:mb-6 shadow-lg gap-1"
             >
@@ -89,22 +88,6 @@ export default function Home() {
                 onChange={(e) => setHeroSearchQuery(e.target.value)}
                 className="flex-1 px-3 py-2 sm:p-3 text-gray-800 outline-none placeholder-gray-400 text-sm sm:text-base rounded-md"
               />
-              <div className="flex gap-1 p-1">
-                <button
-                  type="button"
-                  onClick={() => setHeroSearchType("projects")}
-                  className={`px-2 py-2 rounded-md text-xs font-bold ${heroSearchType === "projects" ? "bg-[#09BF44] text-white" : "bg-gray-100 text-gray-600"}`}
-                >
-                  Find a freelancer
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setHeroSearchType("jobs")}
-                  className={`px-2 py-2 rounded-md text-xs font-bold ${heroSearchType === "jobs" ? "bg-[#09BF44] text-white" : "bg-gray-100 text-gray-600"}`}
-                >
-                  Jobs
-                </button>
-              </div>
               <button type="submit" className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-5 sm:px-4 py-2.5 sm:py-3 rounded-md font-bold transition-colors text-sm sm:text-base">
                 Search
               </button>

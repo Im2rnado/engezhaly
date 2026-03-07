@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
       { source: '/dashboard/freelancer/projects/create', destination: '/dashboard/freelancer/offers/create', permanent: true },
       { source: '/dashboard/freelancer/projects/:id/edit', destination: '/dashboard/freelancer/offers/:id/edit', permanent: true },
       { source: '/dashboard/freelancer/projects/:id/view', destination: '/dashboard/freelancer/offers/:id/view', permanent: true },
+      { source: '/dashboard/freelancer/portfolio', destination: '/dashboard/freelancer?tab=profile', permanent: true },
     ];
   },
   images: {

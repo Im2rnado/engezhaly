@@ -24,7 +24,13 @@ export default function EditModal({ isOpen, onClose, onSave, title, fields }: Ed
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave(formData);
+        // Merge formData with field defaults so unchanged fields are included
+        const payload: Record<string, any> = {};
+        for (const field of fields) {
+            const val = formData[field.name];
+            payload[field.name] = val !== undefined && val !== '' ? val : (field.defaultValue ?? '');
+        }
+        onSave(payload);
         setFormData({});
         onClose();
     };

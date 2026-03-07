@@ -65,7 +65,8 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
         idDocumentUrl: '' as string, // from file upload
         city: '',
         english: '',
-        arabic: ''
+        arabic: '',
+        extraLanguages: '' // Other languages (space or Enter), no fluency
     });
 
     // Step 3: Survey & Pricing
@@ -108,7 +109,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             setProfilePictureProgress(0);
             setDocumentUploadProgress(null);
             setDocumentUploadingLabel(null);
-            setProfessionalInfo({ category: '', experienceYears: '', skills: '', bio: '', isStudent: false, certifications: [], universityIdUrl: '', idDocumentUrl: '', city: '', english: '', arabic: '' });
+            setProfessionalInfo({ category: '', experienceYears: '', skills: '', bio: '', isStudent: false, certifications: [], universityIdUrl: '', idDocumentUrl: '', city: '', english: '', arabic: '', extraLanguages: '' });
             setSurvey({ isFullTime: false, speedQualityCommitment: 'Yes' });
             setPricing({ basic: { price: 500, days: 3, description: '' }, standard: { price: 1000, days: 5, description: '' }, premium: { price: 2000, days: 7, description: '' } });
         }
@@ -344,6 +345,8 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             if (professionalInfo.english) (profilePayload.languages as Record<string, string>).english = professionalInfo.english;
             if (professionalInfo.arabic) (profilePayload.languages as Record<string, string>).arabic = professionalInfo.arabic;
         }
+        const extraLangs = professionalInfo.extraLanguages.trim().split(/\s+/).filter(Boolean);
+        if (extraLangs.length > 0) profilePayload.extraLanguages = extraLangs;
         try {
             if (token) {
                 await api.freelancer.updateProfile(profilePayload);
@@ -875,8 +878,6 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                 onChange={(e) => setProfessionalInfo({ ...professionalInfo, english: e.target.value })}
                                                 className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900"
                                             >
-                                                <option value="">Select fluency</option>
-                                                <option value="Native">Native</option>
                                                 <option value="Fluent">Fluent</option>
                                                 <option value="Intermediate">Intermediate</option>
                                                 <option value="Basic">Basic</option>
@@ -891,14 +892,46 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                 onChange={(e) => setProfessionalInfo({ ...professionalInfo, arabic: e.target.value })}
                                                 className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900"
                                             >
-                                                <option value="">Select fluency</option>
-                                                <option value="Native">Native</option>
                                                 <option value="Fluent">Fluent</option>
                                                 <option value="Intermediate">Intermediate</option>
                                                 <option value="Basic">Basic</option>
                                                 <option value="None">None</option>
                                             </select>
                                         </div>
+                                    </div>
+                                    <div className="mt-3">
+                                        <span className="block text-sm text-gray-500 mb-1">Other languages (optional, no fluency level)</span>
+                                        {(() => {
+                                            const parts = professionalInfo.extraLanguages.split(/\s+/);
+                                            const completedTags = parts.slice(0, -1).filter(Boolean);
+                                            const currentWord = parts.length > 0 ? (parts[parts.length - 1] ?? '') : '';
+                                            const prefix = completedTags.length ? completedTags.join(' ') + ' ' : '';
+                                            return (
+                                                <div className="flex flex-wrap items-center gap-2 w-full p-3 py-2.5 min-h-[44px] bg-gray-50 rounded-xl border-2 border-transparent focus-within:border-[#09BF44] focus-within:bg-white outline-none transition-all font-medium text-gray-900">
+                                                    {completedTags.map((tag) => (
+                                                        <span key={tag} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-700">
+                                                            {tag}
+                                                        </span>
+                                                    ))}
+                                                    <input
+                                                        type="text"
+                                                        placeholder="e.g. French, German (space or Enter to add)"
+                                                        value={currentWord}
+                                                        onChange={(e) => setProfessionalInfo({ ...professionalInfo, extraLanguages: prefix + e.target.value })}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                                e.preventDefault();
+                                                                setProfessionalInfo({ ...professionalInfo, extraLanguages: (prefix + currentWord).trim() + ' ' });
+                                                            } else if (e.key === 'Backspace' && !currentWord && completedTags.length > 0) {
+                                                                e.preventDefault();
+                                                                setProfessionalInfo({ ...professionalInfo, extraLanguages: completedTags.slice(0, -1).join(' ') });
+                                                            }
+                                                        }}
+                                                        className="flex-1 min-w-[120px] py-1 bg-transparent border-0 outline-none placeholder:text-gray-400 text-sm"
+                                                    />
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
 

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { Loader2, PanelLeft } from 'lucide-react';
+import { MAIN_CATEGORIES, CATEGORIES } from '@/lib/categories';
 import { useModal } from '@/context/ModalContext';
 import ClientSidebar from '@/components/ClientSidebar';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
@@ -31,6 +32,8 @@ export default function PostJobPage() {
     const [jobData, setJobData] = useState({
         title: '',
         description: '',
+        category: '',
+        subCategory: '',
         skills: '', // space separated, displayed as tags
         budgetMin: 500,
         budgetMax: 1000,
@@ -38,7 +41,12 @@ export default function PostJobPage() {
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-        setJobData({ ...jobData, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+        if (name === 'category') {
+            setJobData({ ...jobData, category: value, subCategory: '' });
+        } else {
+            setJobData({ ...jobData, [name]: value });
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -52,12 +60,20 @@ export default function PostJobPage() {
             return;
         }
 
+        if (!jobData.category || !jobData.subCategory) {
+            setError('Please select both category and subcategory.');
+            setLoading(false);
+            return;
+        }
+
         try {
             await api.jobs.create({
                 ...jobData,
                 budgetMin: Number(jobData.budgetMin),
                 budgetMax: Number(jobData.budgetMax),
-                skills: jobData.skills.trim().split(/\s+/).filter(Boolean)
+                skills: jobData.skills.trim().split(/\s+/).filter(Boolean),
+                category: jobData.category,
+                subCategory: jobData.subCategory
             });
             showModal({ title: 'Success', message: 'Job Posted Successfully!', type: 'success' });
             router.push('/dashboard/client');
@@ -130,6 +146,40 @@ export default function PostJobPage() {
                                     onChange={handleChange}
                                     className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none h-32"
                                 />
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Category</label>
+                                    <select
+                                        name="category"
+                                        required
+                                        value={jobData.category}
+                                        onChange={handleChange}
+                                        className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none"
+                                    >
+                                        <option value="">Select category</option>
+                                        {MAIN_CATEGORIES.map((cat) => (
+                                            <option key={cat} value={cat}>{cat}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Subcategory</label>
+                                    <select
+                                        name="subCategory"
+                                        required
+                                        value={jobData.subCategory}
+                                        onChange={handleChange}
+                                        disabled={!jobData.category}
+                                        className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none disabled:opacity-60"
+                                    >
+                                        <option value="">Select subcategory</option>
+                                        {(CATEGORIES[jobData.category as keyof typeof CATEGORIES] || []).map((sub) => (
+                                            <option key={sub} value={sub}>{sub}</option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
 
                             <div>

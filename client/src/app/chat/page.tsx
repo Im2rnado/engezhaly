@@ -599,7 +599,7 @@ function ChatPageContent() {
             setProfile(updated);
             showModal({
                 title: 'Success',
-                message: `Status updated to ${newStatus ? 'Busy' : 'Available'}`,
+                message: `Status updated to ${newStatus ? 'Busy' : 'Available'}.\nNow your account is ${newStatus ? 'not ' : ''}visible to clients.`,
                 type: 'success'
             });
         } catch (err: any) {

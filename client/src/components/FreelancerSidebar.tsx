@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, usePathname } from 'next/navigation';
-import { Briefcase, BarChart3, ShoppingBag, User, Clock, LogOut, MessageSquare, X, ImageIcon } from 'lucide-react';
+import { Briefcase, BarChart3, ShoppingBag, User, Clock, LogOut, MessageSquare, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
@@ -44,7 +44,6 @@ export default function FreelancerSidebar({ user, profile, onToggleBusy, activeT
     const isActive = (path: string) => pathname === path || pathname?.startsWith(path);
     const isPending = profile?.freelancerProfile?.status === 'pending';
     const isBusy = profile?.freelancerProfile?.isBusy;
-    const activeOrders = orders.filter((o: any) => o.status === 'active').length;
 
     return (
         <div className={`w-72 bg-white border-r border-gray-200 flex flex-col fixed h-full z-40 shadow-sm transition-transform duration-300 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
@@ -111,15 +110,7 @@ export default function FreelancerSidebar({ user, profile, onToggleBusy, activeT
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'orders' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
                 >
                     <ShoppingBag className="w-5 h-5" /> Orders Received
-                    {activeOrders > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{activeOrders}</span>}
-                </button>
-                <button
-                    onClick={() => {
-                        router.push('/dashboard/freelancer/portfolio');
-                    }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${pathname === '/dashboard/freelancer/portfolio' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
-                >
-                    <ImageIcon className="w-5 h-5" /> Portfolio
+                    {orders.length > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{orders.length}</span>}
                 </button>
                 <button
                     onClick={() => {

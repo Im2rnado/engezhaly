@@ -191,7 +191,7 @@ export default function FreelancerProfilePage() {
                                 {profile.portfolio.map((item: any, idx: number) => (
                                     <div key={idx} className="rounded-xl overflow-hidden border border-gray-100">
                                         {item.imageUrl && (
-                                            <img src={item.imageUrl} alt={item.title || 'Portfolio'} className="w-full h-32 object-cover" />
+                                            <img src={item.imageUrl} alt={item.title || 'Portfolio'} className="w-full aspect-video object-cover" />
                                         )}
                                         <div className="p-3">
                                             <div className="flex items-center gap-2 flex-wrap">

@@ -90,6 +90,18 @@ const updateJob = async (req, res) => {
         if (title !== undefined) job.title = title;
         if (description !== undefined) job.description = description;
         if (skills !== undefined) job.skills = Array.isArray(skills) ? skills : [];
+        if (job.status === 'open') {
+            const { category, subCategory } = req.body;
+            if (category !== undefined) job.category = category;
+            if (subCategory !== undefined) {
+                const cat = category || job.category;
+                const { isValidCategorySubCategory } = require('../config/categories');
+                if (!isValidCategorySubCategory(cat, subCategory)) {
+                    return res.status(400).json({ msg: 'Invalid subcategory for this category' });
+                }
+                job.subCategory = subCategory;
+            }
+        }
         if (budgetMin !== undefined) {
             if (budgetMin < 500) {
                 return res.status(400).json({ msg: 'Minimum budget must be 500 EGP' });

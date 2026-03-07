@@ -8,7 +8,7 @@ const { verification: verificationTemplate, passwordReset: passwordResetTemplate
 
 const register = async (req, res) => {
     try {
-        const { firstName, lastName, username, email, password, role, phoneNumber, businessType, profilePicture, dateOfBirth, clientProfile, category, experienceYears, isStudent, certificates, certifications, universityId, skills, bio, idDocument, surveyResponses, starterPricing, city, languages } = req.body;
+        const { firstName, lastName, username, email, password, role, phoneNumber, businessType, profilePicture, dateOfBirth, clientProfile, category, experienceYears, isStudent, certificates, certifications, universityId, skills, bio, idDocument, surveyResponses, starterPricing, city, languages, extraLanguages } = req.body;
 
         let user = await User.findOne({ $or: [{ email }, { username }] });
         if (user) {
@@ -72,6 +72,9 @@ const register = async (req, res) => {
                 userData.freelancerProfile.languages = {};
                 if (languages.english) userData.freelancerProfile.languages.english = languages.english;
                 if (languages.arabic) userData.freelancerProfile.languages.arabic = languages.arabic;
+            }
+            if (extraLanguages && Array.isArray(extraLanguages)) {
+                userData.freelancerProfile.extraLanguages = extraLanguages.filter(Boolean).map(String);
             }
         }
 

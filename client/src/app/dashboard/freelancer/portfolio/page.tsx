@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { api } from '@/lib/api';
-import { Loader2, Upload, PanelLeft, Plus, Trash2, ImageIcon } from 'lucide-react';
+import { Loader2, Upload, PanelLeft, Plus, Trash2, ImageIcon, Save } from 'lucide-react';
 import { useModal } from '@/context/ModalContext';
 import FreelancerSidebar from '@/components/FreelancerSidebar';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
@@ -23,6 +23,8 @@ function PortfolioCard({
     onUpdate,
     onRemove,
     onNewItemChange,
+    onSave,
+    saving,
 }: {
     item: PortfolioItem;
     index: number;
@@ -34,6 +36,8 @@ function PortfolioCard({
     onUpdate: (index: number, field: keyof PortfolioItem, value: string) => void;
     onRemove: (index: number) => void;
     onNewItemChange: (updates: Partial<PortfolioItem>) => void;
+    onSave?: () => void;
+    saving?: boolean;
 }) {
     return (
         <div className="group bg-white rounded-2xl border-2 border-gray-100 overflow-hidden hover:border-[#09BF44]/30 transition-all duration-200 shadow-sm hover:shadow-md">
@@ -110,6 +114,16 @@ function PortfolioCard({
                     placeholder="Project link (optional)"
                     className="w-full px-3 py-2 rounded-xl border-2 border-transparent bg-gray-50 focus:bg-white focus:border-[#09BF44] outline-none text-sm text-gray-600 placeholder:text-gray-400"
                 />
+                {!isNew && onSave && (
+                    <button
+                        onClick={onSave}
+                        disabled={saving}
+                        className="w-full mt-2 py-2.5 bg-[#09BF44] text-white font-bold rounded-xl hover:bg-[#07a63a] disabled:opacity-60 flex items-center justify-center gap-2 transition-colors"
+                    >
+                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        {saving ? 'Saving...' : 'Save'}
+                    </button>
+                )}
             </div>
         </div>
     );
@@ -276,7 +290,7 @@ export default function PortfolioPage() {
                             <p className="text-sm text-gray-500">
                                 {portfolio.length} {portfolio.length === 1 ? 'item' : 'items'}
                                 {lockedCategory && subCategories.length > 0 && (
-                                    <span className="text-gray-400"> • Tag with subcategories from {lockedCategory}</span>
+                                    <span className="text-gray-400"></span>
                                 )}
                             </p>
                             {saving && <span className="text-sm text-[#09BF44] font-medium flex items-center gap-1"><Loader2 className="w-4 h-4 animate-spin" /> Saving...</span>}
@@ -312,6 +326,8 @@ export default function PortfolioPage() {
                                             onUpdate={updateItem}
                                             onRemove={removeItem}
                                             onNewItemChange={handleNewItemChange}
+                                            onSave={() => savePortfolio(portfolio)}
+                                            saving={saving}
                                         />
                                     ))}
                                     {showAddForm && (

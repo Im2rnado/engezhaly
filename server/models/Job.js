@@ -4,6 +4,8 @@ const JobSchema = new mongoose.Schema({
     clientId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     title: { type: String, required: true },
     description: { type: String, required: true },
+    category: { type: String },
+    subCategory: { type: String },
     skills: [String],
     budgetRange: {
         min: { type: Number, required: true, min: 500 },

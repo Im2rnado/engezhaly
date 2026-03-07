@@ -9,6 +9,7 @@ import { useModal } from '@/context/ModalContext';
 import ProjectCard from '@/components/ProjectCard';
 import { MAIN_CATEGORIES } from '@/lib/categories';
 import ProfileEditModal from '@/components/ProfileEditModal';
+import PortfolioSection from '@/components/PortfolioSection';
 import FreelancerSidebar from '@/components/FreelancerSidebar';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 import CountdownTimer from '@/components/CountdownTimer';
@@ -664,6 +665,11 @@ function FreelancerDashboardContent() {
                                 )}
                             </div>
                         </div>
+
+                        <PortfolioSection
+                            profile={profile}
+                            onProfileUpdate={(updated) => setProfile(updated)}
+                        />
                     </div>
                 )}
             </div>
