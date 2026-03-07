@@ -136,6 +136,42 @@ function depositReceipt(amount, transactionId, date) {
     return { subject: `Wallet top-up: ${amount} EGP added`, html: wrapEmail(content) };
 }
 
+function orderApproved(clientName, offerTitle, amount, orderId) {
+    const link = `${FRONTEND_URL}/dashboard/client?tab=orders`;
+    const content = `
+        <h2 style="margin: 0 0 16px; font-size: 22px; color: #111827;">Order Approved</h2>
+        <p style="margin: 0 0 16px; font-size: 16px; line-height: 1.6; color: #4b5563;">
+            Hi ${clientName}, your order for <strong>${offerTitle}</strong> has been approved by the freelancer.
+        </p>
+        <p style="margin: 0 0 16px; font-size: 16px; color: #111827;">
+            Amount: <strong>${amount} EGP</strong>
+        </p>
+        <p style="margin: 0 0 16px; font-size: 14px; color: #6b7280;">
+            The freelancer can now start working. You can communicate via chat.
+        </p>
+        ${ctaButton('View Order', link)}
+    `;
+    return { subject: 'Your order has been approved', html: wrapEmail(content) };
+}
+
+function orderDenied(clientName, offerTitle, amount, orderId) {
+    const link = `${FRONTEND_URL}/dashboard/client?tab=orders`;
+    const content = `
+        <h2 style="margin: 0 0 16px; font-size: 22px; color: #111827;">Order Denied</h2>
+        <p style="margin: 0 0 16px; font-size: 16px; line-height: 1.6; color: #4b5563;">
+            Hi ${clientName}, the freelancer has declined your order for <strong>${offerTitle}</strong>.
+        </p>
+        <p style="margin: 0 0 16px; font-size: 16px; color: #111827;">
+            Amount refunded: <strong>${amount} EGP</strong> (returned to your wallet)
+        </p>
+        <p style="margin: 0 0 16px; font-size: 14px; color: #6b7280;">
+            You can browse other offers or contact the freelancer to discuss.
+        </p>
+        ${ctaButton('View Dashboard', link)}
+    `;
+    return { subject: 'Your order was declined', html: wrapEmail(content) };
+}
+
 function disputeResolved(title, outcome, orderId) {
     const link = `${FRONTEND_URL}/dashboard/client?tab=orders`;
     const content = `
@@ -161,5 +197,7 @@ module.exports = {
     depositReceipt,
     passwordReset,
     freelancerApproved,
-    disputeResolved
+    disputeResolved,
+    orderApproved,
+    orderDenied
 };

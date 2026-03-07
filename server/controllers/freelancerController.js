@@ -1,5 +1,9 @@
 const User = require('../models/User');
 const Order = require('../models/Order');
+const Transaction = require('../models/Transaction');
+const Project = require('../models/Project');
+const { sendAndLog } = require('../services/mailgunService');
+const { orderApproved, orderDenied } = require('../templates/emailTemplates');
 
 const updateProfile = async (req, res) => {
     try {
@@ -15,7 +19,11 @@ const updateProfile = async (req, res) => {
             starterPricing,
             bio,
             idDocument,
-            profilePicture
+            profilePicture,
+            city,
+            languages,
+            portfolio,
+            certifications
         } = req.body;
 
         const user = await User.findById(userId);
@@ -48,6 +56,29 @@ const updateProfile = async (req, res) => {
         if (bio !== undefined) user.freelancerProfile.bio = bio;
         if (idDocument) user.freelancerProfile.idDocument = idDocument;
         if (profilePicture !== undefined) user.freelancerProfile.profilePicture = profilePicture;
+        if (city !== undefined) user.freelancerProfile.city = city;
+        if (languages && typeof languages === 'object') {
+            user.freelancerProfile.languages = user.freelancerProfile.languages || {};
+            if (languages.english !== undefined) user.freelancerProfile.languages.english = languages.english;
+            if (languages.arabic !== undefined) user.freelancerProfile.languages.arabic = languages.arabic;
+        }
+        if (portfolio !== undefined && Array.isArray(portfolio)) {
+            user.freelancerProfile.portfolio = portfolio.map(p => ({
+                title: p?.title || '',
+                description: p?.description || '',
+                imageUrl: p?.imageUrl || '',
+                link: p?.link || '',
+                subCategory: p?.subCategory || ''
+            }));
+        }
+        if (certifications !== undefined && Array.isArray(certifications)) {
+            user.freelancerProfile.certifications = certifications.map(c => ({
+                name: c?.name || '',
+                date: c?.date ? new Date(c.date) : null,
+                institute: c?.institute || '',
+                documentUrl: c?.documentUrl || ''
+            }));
+        }
 
         // Toggle Busy Mode
         if (req.body.isBusy !== undefined) {
@@ -80,7 +111,7 @@ const getPublicProfile = async (req, res) => {
     try {
         const freelancerId = req.params.id;
         const user = await User.findById(freelancerId)
-            .select('-password -phoneNumber -strikes -isFrozen -walletBalance')
+            .select('-password -phoneNumber -strikes -isFrozen -walletBalance +dateOfBirth')
             .select('-freelancerProfile.idDocument');
 
         if (!user) {
@@ -96,7 +127,14 @@ const getPublicProfile = async (req, res) => {
             return res.status(403).json({ msg: 'Freelancer profile is not available' });
         }
 
-        res.json(user);
+        const obj = user.toObject ? user.toObject() : user;
+        if (obj.freelancerProfile?.certifications && Array.isArray(obj.freelancerProfile.certifications)) {
+            obj.freelancerProfile.certifications = obj.freelancerProfile.certifications.map((c) => {
+                const { documentUrl, ...rest } = c;
+                return rest;
+            });
+        }
+        res.json(obj);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
@@ -194,7 +232,7 @@ const getMyOrders = async (req, res) => {
     try {
         const freelancerId = req.user.id;
         const orders = await Order.find({ sellerId: freelancerId })
-            .populate('projectId', 'title packages')
+            .populate('projectId', 'title packages subCategory')
             .populate('buyerId', 'firstName lastName email')
             .sort({ createdAt: -1 });
 
@@ -240,7 +278,7 @@ const submitOrderWork = async (req, res) => {
         await order.save();
 
         const populated = await Order.findById(orderId)
-            .populate('projectId', 'title packages')
+            .populate('projectId', 'title packages subCategory')
             .populate('buyerId', 'firstName lastName email')
             .populate('sellerId', 'firstName lastName email');
 
@@ -251,6 +289,119 @@ const submitOrderWork = async (req, res) => {
     }
 };
 
+const approveOrder = async (req, res) => {
+    try {
+        const freelancerId = req.user.id;
+        const orderId = req.params.id;
+
+        const order = await Order.findById(orderId)
+            .populate('projectId', 'title packages')
+            .populate('buyerId', 'firstName lastName email');
+
+        if (!order) return res.status(404).json({ msg: 'Order not found' });
+        if (String(order.sellerId) !== String(freelancerId)) {
+            return res.status(403).json({ msg: 'Not authorized to approve this order' });
+        }
+        if (order.status !== 'pending_approval') {
+            return res.status(400).json({ msg: 'Only pending approval orders can be approved' });
+        }
+
+        const platformFee = order.platformFee || 20;
+        const netAmount = order.amount - platformFee;
+
+        order.status = 'active';
+        await order.save();
+
+        // Credit seller
+        const seller = await User.findById(order.sellerId);
+        if (seller) {
+            seller.walletBalance = (seller.walletBalance || 0) + netAmount;
+            await seller.save();
+        }
+
+        await Transaction.create({
+            userId: order.sellerId,
+            type: 'payment',
+            amount: netAmount,
+            description: `Order approved: ${order.projectId?.title || 'Project'}`,
+            orderId: order._id,
+            relatedUserId: order.buyerId
+        });
+
+        const clientName = order.buyerId ? `${order.buyerId.firstName} ${order.buyerId.lastName}` : 'Client';
+        const offerTitle = order.projectId?.title || 'Order';
+
+        if (order.buyerId?.email) {
+            const { subject, html } = orderApproved(clientName, offerTitle, order.amount, orderId);
+            sendAndLog(order.buyerId.email, subject, html, 'order_approved', { orderId }).catch(err => console.error('[Freelancer] orderApproved email failed:', err.message));
+        }
+
+        const populated = await Order.findById(orderId)
+            .populate('projectId', 'title packages subCategory')
+            .populate('buyerId', 'firstName lastName email');
+
+        res.json(populated);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: err.message || 'Server Error' });
+    }
+};
+
+const denyOrder = async (req, res) => {
+    try {
+        const freelancerId = req.user.id;
+        const orderId = req.params.id;
+
+        const order = await Order.findById(orderId)
+            .populate('projectId', 'title')
+            .populate('buyerId', 'firstName lastName email');
+
+        if (!order) return res.status(404).json({ msg: 'Order not found' });
+        if (String(order.sellerId) !== String(freelancerId)) {
+            return res.status(403).json({ msg: 'Not authorized to deny this order' });
+        }
+        if (order.status !== 'pending_approval') {
+            return res.status(400).json({ msg: 'Only pending approval orders can be denied' });
+        }
+
+        // Refund buyer
+        const buyer = await User.findById(order.buyerId);
+        if (buyer) {
+            buyer.walletBalance = (buyer.walletBalance || 0) + order.amount;
+            await buyer.save();
+        }
+
+        await Transaction.create({
+            userId: order.buyerId,
+            type: 'refund',
+            amount: order.amount,
+            description: `Order denied - refund: ${order.projectId?.title || 'Project'}`,
+            orderId: order._id,
+            relatedUserId: order.sellerId
+        });
+
+        order.status = 'refunded';
+        await order.save();
+
+        const clientName = order.buyerId ? `${order.buyerId.firstName} ${order.buyerId.lastName}` : 'Client';
+        const offerTitle = order.projectId?.title || 'Order';
+
+        if (order.buyerId?.email) {
+            const { subject, html } = orderDenied(clientName, offerTitle, order.amount, orderId);
+            sendAndLog(order.buyerId.email, subject, html, 'order_denied', { orderId }).catch(err => console.error('[Freelancer] orderDenied email failed:', err.message));
+        }
+
+        const populated = await Order.findById(orderId)
+            .populate('projectId', 'title packages subCategory')
+            .populate('buyerId', 'firstName lastName email');
+
+        res.json(populated);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: err.message || 'Server Error' });
+    }
+};
+
 module.exports = {
     updateProfile,
     getProfile,
@@ -258,5 +409,7 @@ module.exports = {
     getTopFreelancers,
     getMyOrders,
     submitOrderWork,
-    raiseDispute
+    raiseDispute,
+    approveOrder,
+    denyOrder
 };

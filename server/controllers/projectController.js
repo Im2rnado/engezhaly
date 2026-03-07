@@ -2,6 +2,9 @@ const Project = require('../models/Project');
 const User = require('../models/User');
 const Order = require('../models/Order');
 const Transaction = require('../models/Transaction');
+const Conversation = require('../models/Conversation');
+const Chat = require('../models/Chat');
+const { isValidCategorySubCategory } = require('../config/categories');
 const { sendAndLog } = require('../services/mailgunService');
 const { offerPurchased: offerPurchasedTemplate, paymentReceiptFreelancer, paymentReceiptClient } = require('../templates/emailTemplates');
 const { emitToUser, isUserOnline } = require('../services/notificationService');
@@ -17,6 +20,18 @@ const createProject = async (req, res) => {
 
         if (!category || !subCategory) {
             return res.status(400).json({ msg: 'Category and subcategory are required' });
+        }
+
+        const seller = await User.findById(req.user.id);
+        const lockedCategory = seller?.freelancerProfile?.category;
+        if (!lockedCategory) {
+            return res.status(400).json({ msg: 'Freelancer must complete profile with category before creating offers' });
+        }
+        if (category !== lockedCategory) {
+            return res.status(400).json({ msg: 'Category must match your profile category. You cannot change your main category.' });
+        }
+        if (!isValidCategorySubCategory(category, subCategory)) {
+            return res.status(400).json({ msg: 'Invalid subcategory for this category' });
         }
 
         const newProject = new Project({
@@ -84,11 +99,25 @@ const updateProject = async (req, res) => {
             return res.status(403).json({ msg: 'Not authorized to update this project' });
         }
 
-        // Update fields
+        const seller = await User.findById(req.user.id);
+        const lockedCategory = seller?.freelancerProfile?.category;
+        if (!lockedCategory) {
+            return res.status(400).json({ msg: 'Freelancer must have a profile category' });
+        }
+        if (category && category !== lockedCategory) {
+            return res.status(400).json({ msg: 'You cannot change the main category. It is locked to your profile.' });
+        }
+
+        // Update fields (category is locked - only subcategory can change within allowed list)
         if (title) project.title = title;
         if (description !== undefined) project.description = description;
-        if (category) project.category = category;
-        if (subCategory) project.subCategory = subCategory;
+        if (subCategory) {
+            const cat = category || project.category;
+            if (!isValidCategorySubCategory(cat, subCategory)) {
+                return res.status(400).json({ msg: 'Invalid subcategory for this category' });
+            }
+            project.subCategory = subCategory;
+        }
         if (images) project.images = images;
         if (packages) {
             // Validate packages
@@ -111,7 +140,11 @@ const createProjectOrder = async (req, res) => {
     try {
         const buyerId = req.user.id;
         const { id: projectId } = req.params;
-        const { packageIndex } = req.body;
+        const { packageIndex, description } = req.body;
+
+        if (!description || typeof description !== 'string' || !description.trim()) {
+            return res.status(400).json({ msg: 'Order description is required' });
+        }
 
         const buyer = await User.findById(buyerId);
         if (!buyer || buyer.role !== 'client') {
@@ -162,7 +195,8 @@ const createProjectOrder = async (req, res) => {
             packageType: selectedPackage.type || 'Basic',
             amount,
             platformFee,
-            status: 'active',
+            status: 'pending_approval',
+            description: description.trim(),
             deliveryDate
         });
 
@@ -171,11 +205,33 @@ const createProjectOrder = async (req, res) => {
         buyer.walletBalance -= amount;
         await buyer.save();
 
-        // Create Transaction records
+        // Create Transaction records (buyer charged; seller receives on approval)
         await Transaction.create([
-            { userId: buyerId, type: 'payment', amount: -amount, description: `Order: ${project.title}`, orderId: order._id, relatedUserId: project.sellerId },
-            { userId: project.sellerId, type: 'payment', amount: amount - platformFee, description: `Order: ${project.title}`, orderId: order._id, relatedUserId: buyerId }
+            { userId: buyerId, type: 'payment', amount: -amount, description: `Order: ${project.title} (pending approval)`, orderId: order._id, relatedUserId: project.sellerId }
         ]);
+
+        // Create/find conversation and send description as message from buyer
+        let conversation = await Conversation.findOne({
+            participants: { $all: [buyerId, project.sellerId] }
+        });
+        if (!conversation) {
+            conversation = new Conversation({
+                participants: [buyerId, project.sellerId],
+                lastMessage: `[Order] ${description.trim().substring(0, 80)}${description.trim().length > 80 ? '...' : ''}`
+            });
+            await conversation.save();
+        }
+        const orderMsg = new Chat({
+            conversationId: conversation._id,
+            senderId: buyerId,
+            receiverId: project.sellerId,
+            content: `[Order #${order._id}] ${description.trim()}`,
+            messageType: 'text'
+        });
+        await orderMsg.save();
+        conversation.lastMessage = orderMsg.content;
+        conversation.lastMessageId = orderMsg._id;
+        await conversation.save();
 
         const populated = await Order.findById(order._id)
             .populate('projectId', 'title')
@@ -192,8 +248,8 @@ const createProjectOrder = async (req, res) => {
         if (sellerId && req.app) {
             if (isUserOnline(req.app, sellerId)) {
                 emitToUser(req.app, sellerId, {
-                    title: 'Your offer has been purchased!',
-                    message: `${clientName} purchased: ${offerTitle} (${amount} EGP)`,
+                    title: 'New order - approval needed',
+                    message: `${clientName} ordered: ${offerTitle} (${amount} EGP). Please approve or deny.`,
                     link: orderLink,
                     type: 'order'
                 });
@@ -203,17 +259,7 @@ const createProjectOrder = async (req, res) => {
             }
         }
 
-        // Send payment receipt emails to both
-        const buyerUser = populated.buyerId;
-        if (buyerUser?.email) {
-            const { subject, html } = paymentReceiptClient(amount, populated.projectId?.title || 'Project', order._id.toString(), new Date().toLocaleDateString());
-            sendAndLog(buyerUser.email, subject, html, 'payment_receipt_client', { orderId: order._id }).catch(err => console.error('[Project] Receipt email failed:', err.message));
-        }
-        if (seller?.email) {
-            const { subject, html } = paymentReceiptFreelancer(amount, amount - platformFee, platformFee, populated.projectId?.title, order._id.toString(), new Date().toLocaleDateString());
-            sendAndLog(seller.email, subject, html, 'payment_receipt_freelancer', { orderId: order._id }).catch(err => console.error('[Project] Receipt email failed:', err.message));
-        }
-
+        // No payment receipts for pending_approval; client gets orderApproved on approval, orderDenied on deny
         res.json(populated);
     } catch (err) {
         console.error(err.message);

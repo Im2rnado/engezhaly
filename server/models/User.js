@@ -34,7 +34,7 @@ const UserSchema = new mongoose.Schema({
             type: String,
             enum: [
                 'Development & Tech',
-                'Design & Creativity',
+                'Design & Creative',
                 'Digital Marketing',
                 'Video Editor',
                 'AI and Automations',
@@ -45,6 +45,11 @@ const UserSchema = new mongoose.Schema({
         experienceYears: { type: Number },
         isStudent: { type: Boolean, default: false },
         universityId: { type: String }, // URL to uploaded University ID (for students)
+        city: { type: String },
+        languages: {
+            english: { type: String },
+            arabic: { type: String }
+        },
         certificates: [String], // URLs to uploaded files
         skills: [String],
         surveyResponses: {
@@ -55,7 +60,20 @@ const UserSchema = new mongoose.Schema({
             basic: { price: Number, days: Number, description: String },
             standard: { price: Number, days: Number, description: String },
             premium: { price: Number, days: Number, description: String }
-        }
+        },
+        portfolio: [{
+            title: { type: String },
+            description: { type: String },
+            imageUrl: { type: String },
+            link: { type: String },
+            subCategory: { type: String }
+        }],
+        certifications: [{
+            name: { type: String },
+            date: { type: Date },
+            institute: { type: String },
+            documentUrl: { type: String }
+        }]
     }
 }, { timestamps: true });
 

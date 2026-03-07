@@ -8,7 +8,7 @@ const { verification: verificationTemplate, passwordReset: passwordResetTemplate
 
 const register = async (req, res) => {
     try {
-        const { firstName, lastName, username, email, password, role, phoneNumber, businessType, profilePicture, dateOfBirth, clientProfile, category, experienceYears, isStudent, certificates, universityId, skills, bio, idDocument, surveyResponses, starterPricing } = req.body;
+        const { firstName, lastName, username, email, password, role, phoneNumber, businessType, profilePicture, dateOfBirth, clientProfile, category, experienceYears, isStudent, certificates, certifications, universityId, skills, bio, idDocument, surveyResponses, starterPricing, city, languages } = req.body;
 
         let user = await User.findOne({ $or: [{ email }, { username }] });
         if (user) {
@@ -53,12 +53,26 @@ const register = async (req, res) => {
             if (experienceYears !== undefined) userData.freelancerProfile.experienceYears = Number(experienceYears);
             if (isStudent !== undefined) userData.freelancerProfile.isStudent = !!isStudent;
             if (certificates && Array.isArray(certificates)) userData.freelancerProfile.certificates = certificates;
+            if (certifications !== undefined && Array.isArray(certifications)) {
+                userData.freelancerProfile.certifications = certifications.map(c => ({
+                    name: c?.name || '',
+                    date: c?.date ? new Date(c.date) : null,
+                    institute: c?.institute || '',
+                    documentUrl: c?.documentUrl || ''
+                }));
+            }
             if (universityId) userData.freelancerProfile.universityId = universityId;
             if (skills) userData.freelancerProfile.skills = Array.isArray(skills) ? skills : (typeof skills === 'string' ? skills.trim().split(/\s+/).filter(Boolean) : []);
             if (bio) userData.freelancerProfile.bio = bio;
             if (idDocument) userData.freelancerProfile.idDocument = idDocument;
             if (surveyResponses && typeof surveyResponses === 'object') userData.freelancerProfile.surveyResponses = surveyResponses;
             if (starterPricing && typeof starterPricing === 'object') userData.freelancerProfile.starterPricing = starterPricing;
+            if (city) userData.freelancerProfile.city = city;
+            if (languages && typeof languages === 'object') {
+                userData.freelancerProfile.languages = {};
+                if (languages.english) userData.freelancerProfile.languages.english = languages.english;
+                if (languages.arabic) userData.freelancerProfile.languages.arabic = languages.arabic;
+            }
         }
 
         user = new User(userData);
