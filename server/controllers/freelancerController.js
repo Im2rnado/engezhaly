@@ -310,27 +310,9 @@ const approveOrder = async (req, res) => {
             return res.status(400).json({ msg: 'Only pending approval orders can be approved' });
         }
 
-        const platformFee = order.platformFee || 20;
-        const netAmount = order.amount - platformFee;
-
-        order.status = 'active';
+        // Set to pending_payment - client must pay via Paymob before seller is credited
+        order.status = 'pending_payment';
         await order.save();
-
-        // Credit seller
-        const seller = await User.findById(order.sellerId);
-        if (seller) {
-            seller.walletBalance = (seller.walletBalance || 0) + netAmount;
-            await seller.save();
-        }
-
-        await Transaction.create({
-            userId: order.sellerId,
-            type: 'payment',
-            amount: netAmount,
-            description: `Order approved: ${order.projectId?.title || 'Project'}`,
-            orderId: order._id,
-            relatedUserId: order.buyerId
-        });
 
         const clientName = order.buyerId ? `${order.buyerId.firstName} ${order.buyerId.lastName}` : 'Client';
         const offerTitle = order.projectId?.title || 'Order';
@@ -368,22 +350,7 @@ const denyOrder = async (req, res) => {
             return res.status(400).json({ msg: 'Only pending approval orders can be denied' });
         }
 
-        // Refund buyer
-        const buyer = await User.findById(order.buyerId);
-        if (buyer) {
-            buyer.walletBalance = (buyer.walletBalance || 0) + order.amount;
-            await buyer.save();
-        }
-
-        await Transaction.create({
-            userId: order.buyerId,
-            type: 'refund',
-            amount: order.amount,
-            description: `Order denied - refund: ${order.projectId?.title || 'Project'}`,
-            orderId: order._id,
-            relatedUserId: order.sellerId
-        });
-
+        // No refund needed - client was never charged (payment happens on approval)
         order.status = 'refunded';
         await order.save();
 

@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Briefcase, Clock, PlusCircle, ShoppingBag, Wallet, Edit, Loader2, X, Eye, PanelLeft, Flag } from 'lucide-react';
+import { Briefcase, Clock, PlusCircle, ShoppingBag, CreditCard, Edit, Loader2, X, Eye, PanelLeft, Flag } from 'lucide-react';
 import { api } from '@/lib/api';
 import { formatStatus, formatDateDDMMYYYY } from '@/lib/utils';
 import { useModal } from '@/context/ModalContext';
@@ -11,6 +11,7 @@ import ClientProfileEditModal from '@/components/ClientProfileEditModal';
 import EditModal from '@/components/EditModal';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 import CountdownTimer from '@/components/CountdownTimer';
+import PaymobCheckoutModal from '@/components/PaymobCheckoutModal';
 
 function ClientDashboardContent() {
     const { showModal } = useModal();
@@ -22,12 +23,12 @@ function ClientDashboardContent() {
     const [profile, setProfile] = useState<any>(null);
     const [jobs, setJobs] = useState<any[]>([]);
     const [orders, setOrders] = useState<any[]>([]);
-    const [walletBalance, setWalletBalance] = useState(0);
     const [loading, setLoading] = useState(true);
     const [jobsLoading, setJobsLoading] = useState(false);
     const [profileEditModal, setProfileEditModal] = useState(false);
     const [editJobModal, setEditJobModal] = useState<any>(null);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+    const [checkoutIframeUrl, setCheckoutIframeUrl] = useState<string | null>(null);
 
     const fetchJobs = useCallback(async () => {
         setJobsLoading(true);
@@ -50,14 +51,6 @@ function ClientDashboardContent() {
         }
     }, []);
 
-    const fetchWallet = useCallback(async () => {
-        try {
-            const data = await api.wallet.getBalance();
-            setWalletBalance(data.balance);
-        } catch (err) {
-            console.error(err);
-        }
-    }, []);
 
     // Read tab from URL on mount and when URL changes
     useEffect(() => {
@@ -66,6 +59,18 @@ function ClientDashboardContent() {
             setActiveTab(tab);
         }
     }, [searchParams]);
+
+    // Handle payment success redirect (e.g. from project order payment)
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('payment_success') === '1') {
+            window.history.replaceState({}, '', '/dashboard/client?tab=orders');
+            setActiveTab('orders');
+            fetchOrders();
+            showModal({ title: 'Payment Successful', message: 'Your order is now active.', type: 'success' });
+        }
+    }, [fetchOrders]);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -85,7 +90,7 @@ function ClientDashboardContent() {
                     router.push('/');
                     return;
                 }
-                await Promise.all([fetchJobs(), fetchOrders(), fetchWallet()]);
+                await Promise.all([fetchJobs(), fetchOrders()]);
             } catch (err) {
                 console.error(err);
                 router.push('/');
@@ -95,7 +100,7 @@ function ClientDashboardContent() {
         };
 
         loadData();
-    }, [router, fetchJobs, fetchOrders, fetchWallet]);
+    }, [router, fetchJobs, fetchOrders]);
 
     useEffect(() => {
         if (activeTab === 'jobs') {
@@ -104,10 +109,7 @@ function ClientDashboardContent() {
         if (activeTab === 'orders') {
             fetchOrders();
         }
-        if (activeTab === 'wallet') {
-            fetchWallet();
-        }
-    }, [activeTab, fetchJobs, fetchOrders, fetchWallet]);
+    }, [activeTab, fetchJobs, fetchOrders]);
 
     const handleTabChange = (tab: 'dashboard' | 'jobs' | 'orders' | 'wallet' | 'profile') => {
         setActiveTab(tab);
@@ -218,7 +220,7 @@ function ClientDashboardContent() {
                             <h2 className="text-2xl md:text-3xl font-black text-gray-900 capitalize">{activeTab}</h2>
                         </div>
                         <p className="text-xs md:text-sm text-gray-400 mt-0.5">
-                            {activeTab === 'dashboard' && 'Manage your jobs, orders, and wallet in one place.'}
+                            {activeTab === 'dashboard' && 'Manage your jobs, orders, and payment methods in one place.'}
                             {activeTab === 'jobs' && 'Post and track your job listings.'}
                             {activeTab === 'orders' && 'View and manage your orders from freelancers.'}
                             {activeTab === 'profile' && 'Update your account information.'}
@@ -238,13 +240,6 @@ function ClientDashboardContent() {
                     <div className="space-y-8">
                         {/* Stats Cards */}
                         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                            <div className="bg-white p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-sm border border-gray-100">
-                                <div className="flex items-center justify-between mb-2 md:mb-4">
-                                    <div className="p-2 md:p-3 bg-green-50 rounded-xl text-[#09BF44]"><Wallet className="w-5 h-5 md:w-6 md:h-6" /></div>
-                                </div>
-                                <h3 className="text-gray-500 font-bold text-xs md:text-sm">Wallet Balance</h3>
-                                <p className="text-xl md:text-3xl font-black text-gray-900 mt-1">{walletBalance} EGP</p>
-                            </div>
                             <div className="bg-white p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-sm border border-gray-100">
                                 <div className="flex items-center justify-between mb-2 md:mb-4">
                                     <div className="p-2 md:p-3 bg-blue-50 rounded-xl text-blue-600"><Briefcase className="w-5 h-5 md:w-6 md:h-6" /></div>
@@ -379,7 +374,7 @@ function ClientDashboardContent() {
                                         {job.status === 'open' && (
                                             <button
                                                 onClick={() => setEditJobModal(job)}
-                                                className="bg-gray-100 text-gray-700 font-bold px-4 py-2 rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2"
+                                                className="bg-gray-100 text-gray-700 font-bold px-4 py-2 rounded-xl hover:bg-[#09BF44]/10 hover:text-[#09BF44] transition-colors flex items-center gap-2"
                                                 title="Edit"
                                             >
                                                 <Edit className="w-4 h-4" /> Edit
@@ -439,7 +434,7 @@ function ClientDashboardContent() {
                                         </div>
                                         <div className="text-right shrink-0">
                                             <p className="text-xl font-black text-gray-900">{order.amount} EGP</p>
-                                            <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'disputed' ? 'bg-amber-100 text-amber-700' : order.status === 'refunded' ? 'bg-gray-100 text-gray-700' : order.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                                            <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'disputed' ? 'bg-amber-100 text-amber-700' : order.status === 'refunded' ? 'bg-gray-100 text-gray-700' : order.status === 'pending_payment' ? 'bg-amber-100 text-amber-700' : order.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
                                                 {formatStatus(order.status)}
                                             </span>
                                         </div>
@@ -451,6 +446,32 @@ function ClientDashboardContent() {
                                         <span className="text-xs text-gray-500 font-bold">
                                             Ordered {formatDateDDMMYYYY(order.createdAt)}
                                         </span>
+                                        {order.status === 'pending_payment' && (
+                                            <button
+                                                onClick={async () => {
+                                                    try {
+                                                        const clientFee = 20; // Platform fee charged to client
+                                                        const totalPays = (order.amount || 0) + clientFee;
+                                                        const amountCents = Math.round(totalPays * 100);
+                                                        const callbackUrl = typeof window !== 'undefined'
+                                                            ? `${window.location.origin}/dashboard/client?tab=orders&payment_success=1`
+                                                            : undefined;
+                                                        const charge = await api.paymentMethods.initCharge({
+                                                            type: 'project_order',
+                                                            amountCents,
+                                                            callbackSuccessUrl: callbackUrl,
+                                                            orderId: order._id
+                                                        });
+                                                        setCheckoutIframeUrl(charge.iframeUrl || null);
+                                                    } catch (e: any) {
+                                                        showModal({ title: 'Error', message: e.message || 'Failed to start payment', type: 'error' });
+                                                    }
+                                                }}
+                                                className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-4 py-2 rounded-xl text-sm font-bold"
+                                            >
+                                                Pay Now
+                                            </button>
+                                        )}
                                         {order.status === 'active' && (
                                             <button
                                                 onClick={async () => {
@@ -485,22 +506,28 @@ function ClientDashboardContent() {
                         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
                             <div className="flex items-center justify-between mb-6">
                                 <div>
-                                    <h3 className="text-2xl font-black text-gray-900">Wallet Balance</h3>
-                                    <p className="text-gray-500 mt-1">Funds are held securely in Escrow until job completion.</p>
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-5xl font-black text-[#09BF44]">{walletBalance} EGP</p>
+                                    <h3 className="text-2xl font-black text-gray-900">Payment Methods</h3>
+                                    <p className="text-gray-500 mt-1">Add and manage your saved cards for secure payments when ordering offers or accepting freelancers.</p>
                                 </div>
                             </div>
                             <button
                                 onClick={() => router.push('/dashboard/client/wallet')}
-                                className="bg-black text-white px-6 py-3 rounded-xl font-bold hover:bg-gray-800 transition-colors"
+                                className="bg-[#09BF44] text-white px-6 py-3 rounded-xl font-bold hover:bg-[#07a63a] transition-colors flex items-center gap-2"
                             >
-                                Manage Wallet
+                                <CreditCard className="w-5 h-5" /> Manage Payment Methods
                             </button>
                         </div>
                     </div>
                 )}
+
+                <PaymobCheckoutModal
+                    iframeUrl={checkoutIframeUrl}
+                    title="Complete Payment"
+                    onClose={() => {
+                        setCheckoutIframeUrl(null);
+                        fetchOrders();
+                    }}
+                />
 
                 {activeTab === 'profile' && (
                     <div className="space-y-6">
@@ -509,7 +536,7 @@ function ClientDashboardContent() {
                                 <h3 className="text-lg font-bold">Profile Information</h3>
                                 <button
                                     onClick={() => setProfileEditModal(true)}
-                                    className="bg-black text-white text-sm px-3 py-1.5 rounded-xl font-bold flex items-center gap-2 hover:bg-gray-800 transition-colors"
+                                    className="bg-[#09BF44] text-white text-sm px-3 py-1.5 rounded-xl font-bold flex items-center gap-2 hover:bg-[#07a63a] transition-colors"
                                 >
                                     <Edit className="w-4 h-4" /> Edit Profile
                                 </button>

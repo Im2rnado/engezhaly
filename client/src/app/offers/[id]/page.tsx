@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
-import { Loader2, ArrowLeft, Star, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, ArrowLeft, Star, ChevronLeft, ChevronRight, Video } from 'lucide-react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import ProjectCard from '@/components/ProjectCard';
@@ -42,6 +42,11 @@ export default function OfferDetailPage() {
     const seller = project?.sellerId;
     const freelancerName = seller ? `${seller.firstName || ''} ${seller.lastName || ''}`.trim() : 'Freelancer';
     const profilePicture = seller?.freelancerProfile?.profilePicture;
+    const profile = seller?.freelancerProfile;
+    const category = project?.category;
+    const subCategory = project?.subCategory;
+    const packages = project?.packages || [];
+    const firstPackage = packages[0];
 
     if (loading) {
         return (
@@ -75,43 +80,68 @@ export default function OfferDetailPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-white">
             <MainHeader user={user} showCategories={false} />
 
-            <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 py-6 md:py-8">
-                <button onClick={() => router.back()} className="flex items-center gap-2 text-gray-600 hover:text-[#09BF44] font-bold mb-6 transition-colors">
-                    <ArrowLeft className="w-5 h-5" /> Back
+            <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">
+                <button onClick={() => router.back()} className="flex items-center gap-2 text-gray-600 hover:text-gray-900 font-bold mb-6 transition-colors text-sm">
+                    <ArrowLeft className="w-4 h-4" /> Back to offers
                 </button>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
-                    <div className="lg:col-span-2 space-y-6">
-                        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{project.title}</h1>
+                {/* Fiverr-style two-column layout */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+                    {/* Left column - content */}
+                    <div className="lg:col-span-7 space-y-8">
+                        {/* Title */}
+                        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight">
+                            {project.title}
+                        </h1>
 
-                        <Link
-                            href={seller?._id ? `/freelancer/${seller._id}` : '#'}
-                            className="flex items-center gap-3 hover:opacity-90 transition-opacity"
-                        >
-                            <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-md bg-gray-200 shrink-0">
-                                {profilePicture ? (
-                                    <Image src={profilePicture} alt={freelancerName} fill className="object-cover" />
-                                ) : (
-                                    <div className="w-full h-full rounded-full bg-gradient-to-br from-[#09BF44] to-[#07a63a] flex items-center justify-center text-white font-black text-lg">
-                                        {freelancerName[0]?.toUpperCase() || 'F'}
-                                    </div>
+                        {/* Freelancer card - Get to know */}
+                        <div className="flex items-start gap-4 py-4 border-y border-gray-200">
+                            <Link
+                                href={seller?._id ? `/freelancer/${seller._id}` : '#'}
+                                className="shrink-0"
+                            >
+                                <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-gray-100 bg-gray-100">
+                                    {profilePicture ? (
+                                        <Image src={profilePicture} alt={freelancerName} fill className="object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full rounded-full bg-gradient-to-br from-[#09BF44] to-[#07a63a] flex items-center justify-center text-white font-black text-xl">
+                                            {freelancerName[0]?.toUpperCase() || 'F'}
+                                        </div>
+                                    )}
+                                </div>
+                            </Link>
+                            <div className="flex-1 min-w-0">
+                                <h2 className="text-lg font-bold text-gray-900 mb-1">{freelancerName}</h2>
+                                {profile?.bio && (
+                                    <p className="text-gray-600 text-sm leading-relaxed line-clamp-2 mb-3">
+                                        {profile.bio}
+                                    </p>
                                 )}
-                            </div>
-                            <div>
-                                <p className="font-bold text-gray-900">{freelancerName}</p>
-                                <div className="flex items-center gap-2 text-amber-500">
-                                    <Star className="w-4 h-4 fill-amber-400" />
-                                    <span className="text-sm font-bold text-gray-700">New seller</span>
+                                <div className="flex flex-wrap items-center gap-3 mb-3">
+                                    <div className="flex items-center gap-1.5 text-amber-500">
+                                        <Star className="w-4 h-4 fill-amber-400" />
+                                        <span className="text-sm font-bold text-gray-700">New seller</span>
+                                    </div>
+                                    {(category || subCategory) && (
+                                        <span className="text-gray-400">|</span>
+                                    )}
+                                    {subCategory && (
+                                        <span className="text-sm font-bold text-gray-600">{subCategory}</span>
+                                    )}
+                                    {category && !subCategory && (
+                                        <span className="text-sm font-bold text-gray-600">{category}</span>
+                                    )}
                                 </div>
                             </div>
-                        </Link>
+                        </div>
 
+                        {/* Media gallery */}
                         {images.length > 0 && (
                             <div className="relative">
-                                <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-gray-200">
+                                <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-gray-100">
                                     <Image
                                         src={images[slideshowIndex]}
                                         alt={`${project.title} - ${slideshowIndex + 1}`}
@@ -120,77 +150,103 @@ export default function OfferDetailPage() {
                                         priority
                                     />
                                 </div>
-                                <button
-                                    onClick={() => setSlideshowIndex((i) => (i === 0 ? images.length - 1 : i - 1))}
-                                    className="absolute left-2 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-white/90 shadow-md hover:bg-white transition-colors"
-                                    aria-label="Previous"
-                                >
-                                    <ChevronLeft className="w-5 h-5 text-gray-700" />
-                                </button>
-                                <button
-                                    onClick={() => setSlideshowIndex((i) => (i === images.length - 1 ? 0 : i + 1))}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-white/90 shadow-md hover:bg-white transition-colors"
-                                    aria-label="Next"
-                                >
-                                    <ChevronRight className="w-5 h-5 text-gray-700" />
-                                </button>
                                 {hasMultipleImages && (
-                                    <div className="flex justify-center gap-2 mt-2">
-                                        {images.map((_: any, idx: number) => (
-                                            <button
-                                                key={idx}
-                                                onClick={() => setSlideshowIndex(idx)}
-                                                className={`w-2 h-2 rounded-full transition-colors ${idx === slideshowIndex ? 'bg-[#09BF44]' : 'bg-gray-300'}`}
-                                                aria-label={`Slide ${idx + 1}`}
-                                            />
-                                        ))}
-                                    </div>
+                                    <>
+                                        <button
+                                            onClick={() => setSlideshowIndex((i) => (i === 0 ? images.length - 1 : i - 1))}
+                                            className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors"
+                                            aria-label="Previous"
+                                        >
+                                            <ChevronLeft className="w-5 h-5" />
+                                        </button>
+                                        <button
+                                            onClick={() => setSlideshowIndex((i) => (i === images.length - 1 ? 0 : i + 1))}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors"
+                                            aria-label="Next"
+                                        >
+                                            <ChevronRight className="w-5 h-5" />
+                                        </button>
+                                        <div className="flex gap-2 mt-3 overflow-x-auto pb-2">
+                                            {images.map((img: string, idx: number) => (
+                                                <button
+                                                    key={idx}
+                                                    onClick={() => setSlideshowIndex(idx)}
+                                                    className={`relative w-20 h-14 shrink-0 rounded-lg overflow-hidden border-2 transition-colors ${idx === slideshowIndex ? 'border-gray-900' : 'border-transparent hover:border-gray-300'}`}
+                                                >
+                                                    <Image src={img} alt="" fill className="object-cover" sizes="80px" />
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </>
                                 )}
                             </div>
                         )}
 
+                        {/* About this gig */}
                         {project.description && (
-                            <div className="prose prose-gray max-w-none">
-                                <h3 className="text-lg font-bold text-gray-900 mb-2">About This Offer</h3>
-                                <p className="text-gray-600 whitespace-pre-wrap">{project.description}</p>
+                            <div>
+                                <h3 className="text-xl font-bold text-gray-900 mb-4">About this gig</h3>
+                                <div className="text-gray-600 leading-relaxed whitespace-pre-wrap">
+                                    {project.description}
+                                </div>
                             </div>
                         )}
 
+                        {/* Service includes - from first package features */}
+                        {firstPackage?.features && firstPackage.features.length > 0 && (
+                            <div>
+                                <h3 className="text-xl font-bold text-gray-900 mb-4">Service includes</h3>
+                                <ul className="space-y-2">
+                                    {firstPackage.features.filter((f: any) => f?.trim()).map((f: string, idx: number) => (
+                                        <li key={idx} className="flex items-start gap-3 text-gray-700">
+                                            <span className="text-[#09BF44] mt-0.5">✓</span>
+                                            <span>{f}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+
+                        {/* Portfolio - My Portfolio */}
                         {seller?.freelancerProfile?.portfolio && seller.freelancerProfile.portfolio.length > 0 && (
-                            <div className="pt-6 border-t border-gray-100">
-                                <h3 className="text-lg font-bold text-gray-900 mb-3">Freelancer Portfolio</h3>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {seller.freelancerProfile.portfolio.map((item: any, idx: number) => (
-                                        <div key={idx} className="rounded-xl overflow-hidden border border-gray-100">
+                            <div className="pt-8 border-t border-gray-200">
+                                <h3 className="text-xl font-bold text-gray-900 mb-4">My Portfolio</h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    {seller.freelancerProfile.portfolio.slice(0, 6).map((item: any, idx: number) => (
+                                        <div key={idx} className="rounded-xl overflow-hidden border border-gray-200 hover:border-gray-300 transition-colors">
                                             {item.imageUrl && (
                                                 <div className="relative w-full aspect-video bg-gray-100">
-                                                    <Image src={item.imageUrl} alt={item.title || 'Portfolio'} fill className="object-cover" sizes="(max-width: 768px) 100vw, 400px" />
+                                                    <Image src={item.imageUrl} alt={item.title || 'Portfolio'} fill className="object-cover" sizes="(max-width: 640px) 100vw, 50vw" />
                                                 </div>
                                             )}
-                                            <div className="p-3">
-                                                <div className="flex items-center gap-2 flex-wrap">
+                                            <div className="p-4">
+                                                <div className="flex items-center gap-2 flex-wrap mb-1">
                                                     <h4 className="font-bold text-gray-900">{item.title}</h4>
                                                     {item.subCategory && (
-                                                        <span className="px-2 py-0.5 bg-[#09BF44]/10 text-[#09BF44] text-xs font-bold rounded-full">{item.subCategory}</span>
+                                                        <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-bold rounded">{item.subCategory}</span>
                                                     )}
                                                 </div>
-                                                {item.description && <p className="text-sm text-gray-600 line-clamp-2 mt-1">{item.description}</p>}
+                                                {item.description && <p className="text-sm text-gray-600 line-clamp-2">{item.description}</p>}
                                                 {item.link && (
-                                                    <a href={item.link.startsWith('http') ? item.link : `https://${item.link}`} target="_blank" rel="noopener noreferrer" className="text-xs text-[#09BF44] font-bold mt-2 inline-block">
-                                                        View →
+                                                    <a href={item.link.startsWith('http') ? item.link : `https://${item.link}`} target="_blank" rel="noopener noreferrer" className="text-sm text-[#09BF44] font-bold mt-2 inline-block hover:underline">
+                                                        View project →
                                                     </a>
                                                 )}
                                             </div>
                                         </div>
                                     ))}
                                 </div>
+                                {seller.freelancerProfile.portfolio.length > 6 && (
+                                    <p className="text-sm text-gray-500 mt-4">+{seller.freelancerProfile.portfolio.length - 6} more projects</p>
+                                )}
                             </div>
                         )}
                     </div>
 
-                    <div className="lg:col-span-1">
+                    {/* Right column - sticky pricing card */}
+                    <div className="lg:col-span-5">
                         <div className="lg:sticky lg:top-24">
-                            <ProjectCard project={project} showContactMe={true} />
+                            <ProjectCard project={project} showContactMe={true} variant="bundle" />
                         </div>
                     </div>
                 </div>

@@ -181,10 +181,6 @@ const createProjectOrder = async (req, res) => {
         }
 
         const amount = Number(selectedPackage.price || 0);
-        if (buyer.walletBalance < amount) {
-            return res.status(400).json({ msg: 'Insufficient wallet balance' });
-        }
-
         const platformFee = 20; // Fixed 20 EGP platform fee
         const deliveryDate = new Date(Date.now() + Number(selectedPackage.days || 0) * 24 * 60 * 60 * 1000);
 
@@ -201,14 +197,7 @@ const createProjectOrder = async (req, res) => {
         });
 
         await order.save();
-
-        buyer.walletBalance -= amount;
-        await buyer.save();
-
-        // Create Transaction records (buyer charged; seller receives on approval)
-        await Transaction.create([
-            { userId: buyerId, type: 'payment', amount: -amount, description: `Order: ${project.title} (pending approval)`, orderId: order._id, relatedUserId: project.sellerId }
-        ]);
+        // No charge at order creation - client pays when freelancer approves
 
         // Create/find conversation and send description as message from buyer
         let conversation = await Conversation.findOne({

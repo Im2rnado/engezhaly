@@ -1328,7 +1328,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                     // Reload so header re-reads from localStorage (we cleared it for pending freelancers)
                                     window.location.href = '/';
                                 }}
-                                className="bg-gray-900 text-white font-bold px-8 py-3 rounded-full hover:bg-gray-800 transition-colors"
+                                className="bg-[#09BF44] text-white font-bold px-8 py-3 rounded-full hover:bg-[#07a63a] transition-colors"
                             >
                                 Go Home
                             </button>

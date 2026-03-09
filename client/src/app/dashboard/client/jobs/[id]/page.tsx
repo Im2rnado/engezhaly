@@ -9,6 +9,7 @@ import { useModal } from '@/context/ModalContext';
 import ClientSidebar from '@/components/ClientSidebar';
 import CountdownTimer from '@/components/CountdownTimer';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
+import PaymobCheckoutModal from '@/components/PaymobCheckoutModal';
 
 export default function JobDetailPage() {
     const { showModal } = useModal();
@@ -22,6 +23,7 @@ export default function JobDetailPage() {
     const [loading, setLoading] = useState(true);
     const [jobDeadline, setJobDeadline] = useState<Date | null>(null);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+    const [checkoutIframeUrl, setCheckoutIframeUrl] = useState<string | null>(null);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -72,25 +74,58 @@ export default function JobDetailPage() {
         loadData();
     }, [jobId, router, showModal]);
 
+    const refreshJob = async () => {
+        try {
+            const jobData = await api.client.getJobById(jobId);
+            setJob(jobData);
+            if (jobData.status === 'in_progress' && jobData.proposals) {
+                const acceptedProposal = jobData.proposals.find((p: any) => p.status === 'accepted');
+                if (acceptedProposal?.deliveryDays) {
+                    const createdDate = new Date(jobData.createdAt);
+                    const deadline = new Date(createdDate);
+                    deadline.setDate(deadline.getDate() + acceptedProposal.deliveryDays);
+                    setJobDeadline(deadline);
+                }
+            }
+        } catch {
+            // ignore
+        }
+    };
+
+    // Handle payment success redirect
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('payment_success') === '1') {
+            window.history.replaceState({}, '', window.location.pathname);
+            refreshJob();
+            showModal({ title: 'Success', message: 'Payment successful! Job is now in progress.', type: 'success' });
+        }
+    }, [jobId]);
+
     const handleAcceptProposal = async (proposalId: string) => {
         showModal({
             title: 'Accept Proposal',
-            message: 'Are you sure you want to accept this proposal? This will start the job.',
+            message: 'You will be charged via card to accept this proposal. Proceed to payment?',
             type: 'confirm',
             onConfirm: async () => {
                 try {
-                    const updatedJob = await api.client.acceptProposal(jobId, proposalId);
-                    setJob(updatedJob);
-                    if (updatedJob.status === 'in_progress' && updatedJob.proposals) {
-                        const acceptedProposal = updatedJob.proposals.find((p: any) => p.status === 'accepted');
-                        if (acceptedProposal?.deliveryDays) {
-                            const createdDate = new Date(updatedJob.createdAt);
-                            const deadline = new Date(createdDate);
-                            deadline.setDate(deadline.getDate() + acceptedProposal.deliveryDays);
-                            setJobDeadline(deadline);
-                        }
+                    const result = await api.client.acceptProposal(jobId, proposalId);
+                    if (result?.requiresPayment && result?.type === 'job_proposal') {
+                        const callbackUrl = typeof window !== 'undefined'
+                            ? `${window.location.origin}/dashboard/client/jobs/${jobId}?payment_success=1`
+                            : undefined;
+                        const charge = await api.paymentMethods.initCharge({
+                            type: 'job_proposal',
+                            amountCents: result.amountCents,
+                            callbackSuccessUrl: callbackUrl,
+                            ...result.meta
+                        });
+                        setCheckoutIframeUrl(charge.iframeUrl || null);
+                    } else {
+                        setJob(result);
+                        showModal({ title: 'Success', message: 'Proposal accepted!', type: 'success' });
                     }
-                    showModal({ title: 'Success', message: 'Proposal accepted! Job is now in progress.', type: 'success' });
                 } catch (err: any) {
                     console.error(err);
                     showModal({
@@ -101,6 +136,11 @@ export default function JobDetailPage() {
                 }
             }
         });
+    };
+
+    const closeCheckout = () => {
+        setCheckoutIframeUrl(null);
+        refreshJob();
     };
 
     if (loading || !user || !job) {
@@ -385,6 +425,12 @@ export default function JobDetailPage() {
                     </div>
                 </div>
             </div>
+
+            <PaymobCheckoutModal
+                iframeUrl={checkoutIframeUrl}
+                title="Pay to Accept Proposal"
+                onClose={closeCheckout}
+            />
         </div>
     );
 }

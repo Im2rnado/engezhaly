@@ -263,7 +263,7 @@ export default function PostJobPage() {
                                 <button
                                     type="button"
                                     onClick={() => router.back()}
-                                    className="w-full sm:w-auto bg-gray-100 text-gray-600 font-bold px-8 py-3 rounded-xl hover:bg-gray-200 transition-colors"
+                                    className="w-full sm:w-auto bg-gray-100 text-gray-600 font-bold px-8 py-3 rounded-xl hover:bg-[#09BF44]/20 hover:text-[#09BF44] transition-colors"
                                 >
                                     Cancel
                                 </button>

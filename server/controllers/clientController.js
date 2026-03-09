@@ -177,19 +177,21 @@ const acceptProposal = async (req, res) => {
             return res.status(404).json({ msg: 'Proposal not found' });
         }
 
-        job.proposals.forEach((p) => {
-            p.status = p._id.toString() === proposalId ? 'accepted' : 'rejected';
-        });
-        job.status = 'in_progress';
-        await job.save();
+        const amount = Number(proposal.price) || job.budgetRange?.min || 500;
+        const clientFee = 20; // 20 EGP platform fee charged to client
+        const totalClientPays = amount + clientFee;
+        const amountCents = Math.round(totalClientPays * 100);
+        if (amountCents < 100) {
+            return res.status(400).json({ msg: 'Invalid proposal amount' });
+        }
 
-        const populated = await Job.findById(jobId)
-            .populate('clientId', 'firstName lastName email')
-            .populate({
-                path: 'proposals.freelancerId',
-                select: 'firstName lastName email freelancerProfile'
-            });
-        res.json(populated);
+        // Do NOT accept immediately - return payment params for frontend to call initCharge
+        res.json({
+            requiresPayment: true,
+            type: 'job_proposal',
+            amountCents,
+            meta: { jobId, proposalId }
+        });
     } catch (err) {
         console.error(err);
         res.status(500).send('Server Error');

@@ -47,6 +47,9 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/projects', require('./routes/projects'));
 app.use('/api/chat', require('./routes/chat'));
 app.use('/api/wallet', require('./routes/wallet'));
+app.use('/api/webhooks', require('./routes/webhooks'));
+app.use('/api/payment-methods', require('./routes/paymentMethods'));
+app.use('/api/withdrawal-methods', require('./routes/withdrawalMethods'));
 app.use('/api/upload', require('./routes/upload'));
 
 app.get('/', (req, res) => {

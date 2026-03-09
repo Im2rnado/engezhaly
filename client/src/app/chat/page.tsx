@@ -9,6 +9,7 @@ import { api } from '@/lib/api';
 import { formatDateDDMMYYYY } from '@/lib/utils';
 import { useModal } from '@/context/ModalContext';
 import CreateOfferModal from '@/components/CreateOfferModal';
+import PaymobCheckoutModal from '@/components/PaymobCheckoutModal';
 import ClientSidebar from '@/components/ClientSidebar';
 import FreelancerSidebar from '@/components/FreelancerSidebar';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
@@ -37,6 +38,8 @@ function ChatPageContent() {
     const [meetingDate, setMeetingDate] = useState('');
     const [meetingTime, setMeetingTime] = useState('');
     const [settingMeeting, setSettingMeeting] = useState(false);
+    const [checkoutIframeUrl, setCheckoutIframeUrl] = useState<string | null>(null);
+    const [checkoutTitle, setCheckoutTitle] = useState('Complete Payment');
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const resolveUserId = useCallback(() => {
         const storedUser = typeof window !== 'undefined'
@@ -130,6 +133,35 @@ function ChatPageContent() {
             newSocket.disconnect();
         };
     }, [searchParams]);
+
+    // Handle payment success redirect
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const params = new URLSearchParams(window.location.search);
+        const success = params.get('payment_success');
+        if (!success) return;
+        const conv = searchParams.get('conversation');
+        window.history.replaceState({}, '', `/chat${conv ? `?conversation=${conv}` : ''}`);
+        if (conversationId) {
+            api.chat.getConsultationStatus(conversationId).then(setConsultationStatus).catch(() => {});
+            api.chat.getOffers(conversationId).then((o: any) => setOffers(o || [])).catch(() => {});
+        }
+        showModal({
+            title: 'Payment Successful',
+            message: success === 'consultation'
+                ? 'Consultation paid! Click the video call button again to schedule your meeting.'
+                : 'Order created successfully! Payment processed.',
+            type: 'success'
+        });
+    }, [searchParams, conversationId]);
+
+    const closeCheckout = useCallback(() => {
+        setCheckoutIframeUrl(null);
+        if (conversationId) {
+            api.chat.getConsultationStatus(conversationId).then(setConsultationStatus).catch(() => {});
+            api.chat.getOffers(conversationId).then((o: any) => setOffers(o || [])).catch(() => {});
+        }
+    }, [conversationId]);
 
     useEffect(() => {
         if (socket) {
@@ -425,36 +457,38 @@ function ChatPageContent() {
     const handleAcceptOffer = async (offer: { _id: string; price: number }) => {
         const price = Number(offer.price || 0);
         const clientFee = 20;
-        const freelancerFee = 20;
         const totalYouPay = price + clientFee;
-        const freelancerReceives = price - freelancerFee;
 
         showModal({
             title: 'Accept Offer',
-            message: `Offer price: ${price} EGP. You will pay ${clientFee} EGP fee (total: ${totalYouPay} EGP). Proceed?`,
+            message: `Offer price: ${price} EGP. You will pay ${clientFee} EGP fee (total: ${totalYouPay} EGP). Proceed to payment?`,
             type: 'confirm',
             onConfirm: async () => {
                 try {
                     const result = await api.chat.acceptOffer(offer._id);
 
-                    // Refresh offers
-                    if (conversationId) {
-                        const offersData = await api.chat.getOffers(conversationId);
-                        setOffers(offersData || []);
+                    if (result?.requiresPayment && result?.type === 'custom_offer') {
+                        const callbackUrl = typeof window !== 'undefined' && conversationId
+                            ? `${window.location.origin}/chat?conversation=${conversationId}&payment_success=1`
+                            : undefined;
+                        const charge = await api.paymentMethods.initCharge({
+                            type: 'custom_offer',
+                            amountCents: result.amountCents,
+                            callbackSuccessUrl: callbackUrl,
+                            ...result.meta
+                        });
+                        setCheckoutTitle('Pay for Custom Offer');
+                        setCheckoutIframeUrl(charge.iframeUrl || null);
+                    } else {
+                        if (conversationId) {
+                            const offersData = await api.chat.getOffers(conversationId);
+                            setOffers(offersData || []);
+                        }
+                        showModal({ title: 'Success', message: 'Order created successfully! Payment processed.', type: 'success' });
                     }
-
-                    showModal({
-                        title: 'Success',
-                        message: `Order #${result.order._id} created successfully! Payment processed.`,
-                        type: 'success'
-                    });
                 } catch (err: any) {
                     console.error(err);
-                    showModal({
-                        title: 'Error',
-                        message: err.message || 'Failed to accept offer',
-                        type: 'error'
-                    });
+                    showModal({ title: 'Error', message: err.message || 'Failed to accept offer', type: 'error' });
                 }
             }
         });
@@ -481,7 +515,6 @@ function ChatPageContent() {
                 return;
             }
 
-            // No unused payment - client must pay first
             if (!isClient) {
                 showModal({
                     title: 'Consultation Payment Required',
@@ -491,54 +524,28 @@ function ChatPageContent() {
                 return;
             }
 
-            const balance = await api.wallet.getBalance();
-            if (balance.balance < 100) {
-                showModal({
-                    title: 'Insufficient Balance',
-                    message: 'You need at least 100 EGP in your wallet to book a consultation.',
-                    type: 'error'
-                });
-                return;
-            }
-
             showModal({
                 title: 'Pay for Video Consultation',
-                message: 'This will deduct 100 EGP from your wallet. After payment, you can schedule a meeting date and time. Proceed?',
+                message: 'You will be charged 100 EGP via card. After payment, you can schedule a meeting date and time. Proceed?',
                 type: 'confirm',
                 onConfirm: async () => {
                     try {
-                        await api.wallet.payConsultation(conversationId);
-                        const receiverId = activeChat.partnerId?._id ?? activeChat.partnerId;
-                        if (receiverId) {
-                            await api.chat.sendMessage({
-                                receiverId,
-                                content: '[Engezhaly Meeting] A video consultation has been paid for (100 EGP). You can now schedule the meeting by clicking the video call button.',
-                                messageType: 'text'
+                        const result = await api.wallet.payConsultation(conversationId);
+                        if (result?.requiresPayment && result?.type === 'consultation') {
+                            const callbackUrl = typeof window !== 'undefined' && conversationId
+                                ? `${window.location.origin}/chat?conversation=${conversationId}&payment_success=consultation`
+                                : undefined;
+                            const charge = await api.paymentMethods.initCharge({
+                                type: 'consultation',
+                                amountCents: result.amountCents,
+                                callbackSuccessUrl: callbackUrl,
+                                ...result.meta
                             });
-                        }
-                        setConsultationStatus({ hasUnusedPayment: true });
-                        showModal({ title: 'Success', message: 'Payment successful! Click the video call button again to schedule your meeting.', type: 'success' });
-                        if (conversationId) {
-                            const data = await api.chat.getMessages(conversationId);
-                            const userId = resolveUserId();
-                            const formatted = data.map((m: any) => {
-                                const senderId = m.senderId?._id || m.senderId;
-                                const isAdmin = m.isAdmin || m.content?.includes('[Engezhaly Admin]');
-                                const isMeeting = m.messageType === 'meeting' || m.content?.includes('[Engezhaly Meeting]');
-                                return {
-                                    _id: m._id,
-                                    text: m.content,
-                                    sender: String(senderId) === String(userId) ? 'me' : 'them',
-                                    senderId: senderId,
-                                    timestamp: m.createdAt,
-                                    messageType: m.messageType,
-                                    isRead: !!m.isRead,
-                                    isAdmin: isAdmin,
-                                    isMeeting: isMeeting,
-                                    isBlurred: !!m.isBlurred
-                                };
-                            });
-                            setMessages(formatted);
+                            setCheckoutTitle('Pay for Video Consultation');
+                            setCheckoutIframeUrl(charge.iframeUrl || null);
+                        } else {
+                            setConsultationStatus({ hasUnusedPayment: true });
+                            showModal({ title: 'Success', message: 'Payment successful! Click the video call button again to schedule.', type: 'success' });
                         }
                     } catch (err: any) {
                         showModal({ title: 'Error', message: err.message || 'Payment failed', type: 'error' });
@@ -1104,6 +1111,12 @@ function ChatPageContent() {
                     onSubmit={handleCreateOffer}
                 />
             )}
+
+            <PaymobCheckoutModal
+                iframeUrl={checkoutIframeUrl}
+                title={checkoutTitle}
+                onClose={closeCheckout}
+            />
         </div>
     );
 }

@@ -89,7 +89,7 @@ export default function EditModal({ isOpen, onClose, onSave, title, fields }: Ed
                         </button>
                         <button
                             type="submit"
-                            className="flex-1 bg-black text-white font-bold py-3 rounded-xl hover:bg-gray-800 transition-colors"
+                            className="flex-1 bg-[#09BF44] text-white font-bold py-3 rounded-xl hover:bg-[#07a63a] transition-colors"
                         >
                             Save
                         </button>

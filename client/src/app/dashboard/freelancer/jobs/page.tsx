@@ -257,7 +257,7 @@ export default function MyJobsPage() {
                                                                 files: []
                                                             });
                                                         }}
-                                                        className="bg-black text-white px-5 py-2 rounded-xl font-bold hover:bg-gray-800 transition-colors"
+                                                        className="bg-[#09BF44] text-white px-5 py-2 rounded-xl font-bold hover:bg-[#07a63a] transition-colors"
                                                     >
                                                         {myProposal?.workSubmission?.updatedAt ? 'Update Submission' : 'Submit Work'}
                                                     </button>

@@ -689,28 +689,33 @@ export const api = {
                 throw new Error('Failed to fetch email logs');
             }
             return res.json();
+        },
+        getWithdrawals: async () => {
+            const res = await fetch(`${API_URL}/admin/withdrawals`, { method: 'GET', headers: getHeaders() });
+            if (!res.ok) throw new Error('Failed to fetch withdrawals');
+            return res.json();
+        },
+        completeWithdrawal: async (id: string) => {
+            const res = await fetch(`${API_URL}/admin/withdrawals/${id}/complete`, {
+                method: 'PATCH',
+                headers: getHeaders()
+            });
+            const result = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(result.msg || 'Failed to complete');
+            return result;
+        },
+        rejectWithdrawal: async (id: string, reason?: string) => {
+            const res = await fetch(`${API_URL}/admin/withdrawals/${id}/reject`, {
+                method: 'PATCH',
+                headers: getHeaders(),
+                body: JSON.stringify({ reason })
+            });
+            const result = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(result.msg || 'Failed to reject');
+            return result;
         }
     },
     wallet: {
-        topUp: async (data: any) => {
-            const res = await fetch(`${API_URL}/wallet/topup`, {
-                method: 'POST',
-                headers: getHeaders(),
-                body: JSON.stringify(data)
-            });
-            if (!res.ok) throw new Error('Top up failed');
-            return res.json();
-        },
-        payConsultation: async (conversationId: string) => {
-            const res = await fetch(`${API_URL}/wallet/consultation-pay`, {
-                method: 'POST',
-                headers: getHeaders(),
-                body: JSON.stringify({ conversationId })
-            });
-            const result = await res.json().catch(() => ({ msg: 'Payment failed' }));
-            if (!res.ok) throw new Error(result.msg || 'Payment failed');
-            return result;
-        },
         getBalance: async () => {
             const res = await fetch(`${API_URL}/wallet/balance`, {
                 method: 'GET',
@@ -726,6 +731,98 @@ export const api = {
             });
             if (!res.ok) throw new Error('Failed to fetch transactions');
             return res.json();
+        },
+        payConsultation: async (conversationId: string) => {
+            const res = await fetch(`${API_URL}/wallet/consultation-pay`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify({ conversationId })
+            });
+            const result = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(result.msg || 'Failed to pay consultation');
+            return result;
+        },
+        createWithdrawal: async (data: { amount: number; method: string; phoneNumber?: string; accountNumber?: string; bankName?: string; notes?: string }) => {
+            const res = await fetch(`${API_URL}/wallet/withdraw`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify(data)
+            });
+            const result = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(result.msg || 'Failed to request withdrawal');
+            return result;
+        },
+        getWithdrawals: async () => {
+            const res = await fetch(`${API_URL}/wallet/withdrawals`, { method: 'GET', headers: getHeaders() });
+            if (!res.ok) throw new Error('Failed to fetch withdrawals');
+            return res.json();
+        }
+    },
+    withdrawalMethods: {
+        list: async () => {
+            const res = await fetch(`${API_URL}/withdrawal-methods`, { method: 'GET', headers: getHeaders() });
+            if (!res.ok) throw new Error('Failed to fetch withdrawal methods');
+            return res.json();
+        },
+        add: async (data: { method: string; phoneNumber?: string; accountNumber?: string; bankName?: string; label?: string }) => {
+            const res = await fetch(`${API_URL}/withdrawal-methods`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify(data)
+            });
+            const result = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(result.msg || 'Failed to add withdrawal method');
+            return result;
+        },
+        remove: async (id: string) => {
+            const res = await fetch(`${API_URL}/withdrawal-methods/${id}`, { method: 'DELETE', headers: getHeaders() });
+            if (!res.ok) throw new Error('Failed to remove');
+            return res.json();
+        },
+        setDefault: async (id: string) => {
+            const res = await fetch(`${API_URL}/withdrawal-methods/${id}/default`, { method: 'PATCH', headers: getHeaders() });
+            if (!res.ok) throw new Error('Failed to set default');
+            return res.json();
+        }
+    },
+    paymentMethods: {
+        list: async () => {
+            const res = await fetch(`${API_URL}/payment-methods`, { method: 'GET', headers: getHeaders() });
+            if (!res.ok) throw new Error('Failed to fetch payment methods');
+            return res.json();
+        },
+        add: async (callbackSuccessUrl?: string) => {
+            const res = await fetch(`${API_URL}/payment-methods`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify({ callbackSuccessUrl })
+            });
+            const result = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(result.msg || 'Failed to add card');
+            return result;
+        },
+        remove: async (id: string) => {
+            const res = await fetch(`${API_URL}/payment-methods/${id}`, { method: 'DELETE', headers: getHeaders() });
+            if (!res.ok) throw new Error('Failed to remove card');
+            return res.json();
+        },
+        setDefault: async (id: string) => {
+            const res = await fetch(`${API_URL}/payment-methods/${id}/default`, {
+                method: 'PATCH',
+                headers: getHeaders()
+            });
+            if (!res.ok) throw new Error('Failed to set default');
+            return res.json();
+        },
+        initCharge: async (data: { type: string; amountCents: number; callbackSuccessUrl?: string; [k: string]: any }) => {
+            const res = await fetch(`${API_URL}/payment-methods/init-charge`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify(data)
+            });
+            const result = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(result.msg || 'Failed to init charge');
+            return result;
         }
     }
 };

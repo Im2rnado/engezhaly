@@ -1,10 +1,12 @@
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const ConsultationPayment = require('../models/ConsultationPayment');
+const WithdrawalRequest = require('../models/WithdrawalRequest');
 const { sendAndLog } = require('../services/mailgunService');
 const { depositReceipt } = require('../templates/emailTemplates');
 
 const CONSULTATION_AMOUNT = 100;
+const WITHDRAWAL_FEE = 20;
 
 // Mock Deposit (Top Up)
 const topUpWallet = async (req, res) => {
@@ -71,7 +73,7 @@ const getBalance = async (req, res) => {
     }
 };
 
-// Pay for consultation (deduct from wallet, create payment record) - clients only
+// Pay for consultation - returns payment params for frontend to call initCharge (Paymob)
 const payConsultation = async (req, res) => {
     try {
         const { conversationId } = req.body;
@@ -80,35 +82,19 @@ const payConsultation = async (req, res) => {
         if (!conversationId) return res.status(400).json({ msg: 'conversationId is required' });
 
         const user = await User.findById(userId);
-        if (user.role !== 'client') return res.status(403).json({ msg: 'Only clients can pay for consultations.' });
-        if (!user) return res.status(404).json({ msg: 'User not found' });
-
-        if (user.walletBalance < CONSULTATION_AMOUNT) {
-            return res.status(400).json({ msg: 'Insufficient balance. You need at least 100 EGP.' });
+        if (!user || user.role !== 'client') {
+            return res.status(403).json({ msg: 'Only clients can pay for consultations.' });
         }
 
-        user.walletBalance -= CONSULTATION_AMOUNT;
-        await user.save();
+        const amountCents = CONSULTATION_AMOUNT * 100;
 
-        const tx = new Transaction({
-            userId,
+        // Do NOT deduct from wallet - return payment params for frontend to call initCharge
+        res.json({
+            requiresPayment: true,
             type: 'consultation',
-            amount: -CONSULTATION_AMOUNT,
-            description: 'Video consultation payment',
-            status: 'completed',
-            metadata: { conversationId }
+            amountCents,
+            meta: { conversationId }
         });
-        await tx.save();
-
-        const payment = new ConsultationPayment({
-            userId,
-            conversationId,
-            amount: CONSULTATION_AMOUNT,
-            used: false
-        });
-        await payment.save();
-
-        res.json({ msg: 'Payment successful', balance: user.walletBalance, paymentId: payment._id });
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ msg: err.message || 'Server Error' });
@@ -125,9 +111,98 @@ const getTransactions = async (req, res) => {
     }
 };
 
+// Create withdrawal request - freelancers only
+const createWithdrawalRequest = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const user = await User.findById(userId);
+
+        if (!user || user.role !== 'freelancer') {
+            return res.status(403).json({ msg: 'Only freelancers can request withdrawals.' });
+        }
+
+        const { amount, method, phoneNumber, accountNumber, bankName, notes } = req.body || {};
+
+        if (!amount || amount < 50) {
+            return res.status(400).json({ msg: 'Minimum withdrawal amount is 50 EGP' });
+        }
+
+        const validMethods = ['instapay', 'vodafone_cash', 'bank'];
+        if (!method || !validMethods.includes(method)) {
+            return res.status(400).json({ msg: 'Invalid withdrawal method. Use instapay, vodafone_cash, or bank' });
+        }
+
+        const totalDeducted = amount + WITHDRAWAL_FEE;
+        const balance = user.walletBalance || 0;
+
+        if (balance < totalDeducted) {
+            return res.status(400).json({
+                msg: `Insufficient balance. You need ${totalDeducted} EGP (${amount} + ${WITHDRAWAL_FEE} EGP fee). Your balance: ${balance} EGP`
+            });
+        }
+
+        if ((method === 'instapay' || method === 'vodafone_cash') && !phoneNumber) {
+            return res.status(400).json({ msg: 'Phone number is required for InstaPay and Vodafone Cash' });
+        }
+        if (method === 'bank' && (!accountNumber || !bankName)) {
+            return res.status(400).json({ msg: 'Account number and bank name are required for bank transfer' });
+        }
+
+        user.walletBalance = balance - totalDeducted;
+        await user.save();
+
+        const withdrawal = new WithdrawalRequest({
+            userId,
+            amount,
+            fee: WITHDRAWAL_FEE,
+            method,
+            phoneNumber: phoneNumber || undefined,
+            accountNumber: accountNumber || undefined,
+            bankName: bankName || undefined,
+            notes: notes || undefined,
+            status: 'pending'
+        });
+        await withdrawal.save();
+
+        await Transaction.create({
+            userId,
+            type: 'withdrawal',
+            amount: -totalDeducted,
+            description: `Withdrawal request (${amount} EGP + ${WITHDRAWAL_FEE} EGP fee) - pending`,
+            status: 'pending',
+            referenceId: withdrawal._id.toString()
+        });
+
+        res.json(withdrawal);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: err.message || 'Server Error' });
+    }
+};
+
+// List my withdrawal requests - freelancers only
+const getMyWithdrawals = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const user = await User.findById(userId);
+
+        if (!user || user.role !== 'freelancer') {
+            return res.status(403).json({ msg: 'Only freelancers can view withdrawals.' });
+        }
+
+        const requests = await WithdrawalRequest.find({ userId }).sort({ createdAt: -1 });
+        res.json(requests);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
 module.exports = {
     topUpWallet,
     getBalance,
     getTransactions,
-    payConsultation
+    payConsultation,
+    createWithdrawalRequest,
+    getMyWithdrawals
 };

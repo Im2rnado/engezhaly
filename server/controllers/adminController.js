@@ -8,6 +8,7 @@ const Transaction = require('../models/Transaction');
 const Project = require('../models/Project');
 const Job = require('../models/Job');
 const Order = require('../models/Order');
+const WithdrawalRequest = require('../models/WithdrawalRequest');
 
 const getPendingFreelancers = async (req, res) => {
     try {
@@ -508,6 +509,81 @@ const getEmailLogs = async (req, res) => {
     }
 };
 
+const getWithdrawals = async (req, res) => {
+    try {
+        const requests = await WithdrawalRequest.find()
+            .sort({ createdAt: -1 })
+            .populate('userId', 'firstName lastName email');
+        res.json(requests);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+const completeWithdrawal = async (req, res) => {
+    try {
+        const withdrawal = await WithdrawalRequest.findById(req.params.id);
+        if (!withdrawal) return res.status(404).json({ msg: 'Withdrawal not found' });
+        if (withdrawal.status !== 'pending') return res.status(400).json({ msg: 'Only pending withdrawals can be completed' });
+
+        withdrawal.status = 'completed';
+        withdrawal.processedAt = new Date();
+        withdrawal.processedBy = req.user.id;
+        await withdrawal.save();
+
+        await Transaction.updateOne(
+            { userId: withdrawal.userId, type: 'withdrawal', referenceId: withdrawal._id.toString() },
+            { $set: { status: 'completed', description: `Withdrawal (${withdrawal.amount} EGP + ${withdrawal.fee} EGP fee) - completed` } }
+        );
+
+        res.json(withdrawal);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+const rejectWithdrawal = async (req, res) => {
+    try {
+        const { reason } = req.body || {};
+        const withdrawal = await WithdrawalRequest.findById(req.params.id);
+        if (!withdrawal) return res.status(404).json({ msg: 'Withdrawal not found' });
+        if (withdrawal.status !== 'pending') return res.status(400).json({ msg: 'Only pending withdrawals can be rejected' });
+
+        withdrawal.status = 'rejected';
+        withdrawal.processedAt = new Date();
+        withdrawal.processedBy = req.user.id;
+        withdrawal.rejectReason = reason;
+        await withdrawal.save();
+
+        const refundAmount = withdrawal.amount + (withdrawal.fee || 20);
+        const user = await User.findById(withdrawal.userId);
+        if (user) {
+            user.walletBalance = (user.walletBalance || 0) + refundAmount;
+            await user.save();
+        }
+
+        await Transaction.updateOne(
+            { userId: withdrawal.userId, type: 'withdrawal', referenceId: withdrawal._id.toString() },
+            { $set: { status: 'failed', description: `Withdrawal rejected - refunded ${refundAmount} EGP` } }
+        );
+        await Transaction.create({
+            userId: withdrawal.userId,
+            type: 'refund',
+            amount: refundAmount,
+            description: `Withdrawal request rejected - refund`,
+            status: 'completed',
+            referenceId: withdrawal._id.toString()
+        });
+
+        res.json(withdrawal);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
 module.exports = {
     getPendingFreelancers,
     approveFreelancer,
@@ -533,5 +609,8 @@ module.exports = {
     getAllTransactions,
     getTopFreelancers,
     sendAdminMessage,
-    getEmailLogs
+    getEmailLogs,
+    getWithdrawals,
+    completeWithdrawal,
+    rejectWithdrawal
 };

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, usePathname } from 'next/navigation';
-import { Briefcase, BarChart3, ShoppingBag, User, Wallet, Plus, LogOut, MessageSquare, X, Home } from 'lucide-react';
+import { Briefcase, BarChart3, ShoppingBag, User, CreditCard, Plus, LogOut, MessageSquare, X, Home } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
@@ -112,7 +112,7 @@ export default function ClientSidebar({ user, activeTab, mobileOpen = false, onC
                     }}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'wallet' || pathname?.includes('/wallet') ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
                 >
-                    <Wallet className="w-5 h-5" /> Wallet
+                    <CreditCard className="w-5 h-5" /> Payment Methods
                 </button>
                 <button
                     onClick={() => {
@@ -165,7 +165,7 @@ export default function ClientSidebar({ user, activeTab, mobileOpen = false, onC
                         </div>
                     </div>
                     <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                        Wallet: {user?.walletBalance || 0} EGP
+                        Client
                     </div>
                 </div>
                 <button

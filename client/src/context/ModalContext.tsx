@@ -99,7 +99,7 @@ export function ModalProvider({ children }: { children: ReactNode }) {
                                         </button>
                                         <button
                                             onClick={handleConfirm}
-                                            className="flex-1 bg-black text-white font-bold py-3 rounded-xl hover:bg-gray-800 transition-colors"
+                                            className="flex-1 bg-[#09BF44] text-white font-bold py-3 rounded-xl hover:bg-[#07a63a] transition-colors"
                                         >
                                             {modalConfig.confirmText || 'Confirm'}
                                         </button>
@@ -107,7 +107,7 @@ export function ModalProvider({ children }: { children: ReactNode }) {
                                 ) : (
                                     <button
                                         onClick={handleConfirm}
-                                        className="w-full bg-black text-white font-bold py-3 rounded-xl hover:bg-gray-800 transition-colors"
+                                        className="w-full bg-[#09BF44] text-white font-bold py-3 rounded-xl hover:bg-[#07a63a] transition-colors"
                                     >
                                         OK
                                     </button>

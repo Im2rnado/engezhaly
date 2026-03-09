@@ -377,7 +377,7 @@ function FreelancerDashboardContent() {
                                                     </div>
                                                     <div className="text-right">
                                                         <p className="font-black text-gray-900">{order.amount} EGP</p>
-                                                        <span className={`px-2 py-1 rounded text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                                                        <span className={`px-2 py-1 rounded text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'active' ? 'bg-blue-100 text-blue-700' : order.status === 'pending_approval' || order.status === 'pending_payment' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
                                                             {formatStatus(order.status)}
                                                         </span>
                                                     </div>
@@ -470,7 +470,7 @@ function FreelancerDashboardContent() {
                                         </div>
                                         <div className="text-right">
                                             <p className="text-xl font-black text-gray-900">{order.amount} EGP</p>
-                                            <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'disputed' ? 'bg-amber-100 text-amber-700' : order.status === 'refunded' ? 'bg-gray-100 text-gray-700' : order.status === 'pending_approval' ? 'bg-amber-100 text-amber-700' : order.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                                            <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'disputed' ? 'bg-amber-100 text-amber-700' : order.status === 'refunded' ? 'bg-gray-100 text-gray-700' : order.status === 'pending_approval' || order.status === 'pending_payment' ? 'bg-amber-100 text-amber-700' : order.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
                                                 {formatStatus(order.status)}
                                             </span>
                                         </div>
@@ -546,7 +546,7 @@ function FreelancerDashboardContent() {
                                                         onClick={() => openSubmitOrderWork(order)}
                                                         disabled={order.status !== 'active'}
                                                         className={`px-5 py-2 rounded-xl font-bold transition-colors ${order.status === 'active'
-                                                            ? 'bg-black text-white hover:bg-gray-800'
+                                                            ? 'bg-[#09BF44] text-white hover:bg-[#07a63a]'
                                                             : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                                             }`}
                                                     >
@@ -591,7 +591,7 @@ function FreelancerDashboardContent() {
                                 <h3 className="text-lg font-bold">Profile Information</h3>
                                 <button
                                     onClick={() => setProfileEditModal(true)}
-                                    className="bg-black text-white text-sm px-3 py-1.5 rounded-xl font-bold flex items-center gap-2 hover:bg-gray-800 transition-colors"
+                                    className="bg-[#09BF44] text-white text-sm px-3 py-1.5 rounded-xl font-bold flex items-center gap-2 hover:bg-[#07a63a] transition-colors"
                                 >
                                     <Edit className="w-4 h-4" /> Edit Profile
                                 </button>
@@ -745,7 +745,7 @@ function FreelancerDashboardContent() {
                                 <button
                                     type="submit"
                                     disabled={submittingWork}
-                                    className="px-5 py-2 rounded-xl bg-black text-white font-bold hover:bg-gray-800 transition-colors disabled:opacity-60 flex items-center gap-2"
+                                    className="px-5 py-2 rounded-xl bg-[#09BF44] text-white font-bold hover:bg-[#07a63a] transition-colors disabled:opacity-60 flex items-center gap-2"
                                 >
                                     {submittingWork && <Loader2 className="w-4 h-4 animate-spin" />}
                                     {submittingWork ? 'Submitting...' : 'Submit Work'}

@@ -1,24 +1,42 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { api } from '@/lib/api';
-import { formatStatus, formatDateDDMMYYYY } from '@/lib/utils';
-import { Loader2, CreditCard, DollarSign, PanelLeft } from 'lucide-react';
+import { Loader2, CreditCard, Plus, Trash2, Check, PanelLeft } from 'lucide-react';
 import { useModal } from '@/context/ModalContext';
 import ClientSidebar from '@/components/ClientSidebar';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
+import { api } from '@/lib/api';
+import { formatDateDDMMYYYY } from '@/lib/utils';
 
-export default function WalletPage() {
+export default function PaymentMethodsPage() {
     const { showModal } = useModal();
     const router = useRouter();
-    const [balance, setBalance] = useState(0);
-    const [amount, setAmount] = useState('');
-    const [loading, setLoading] = useState(false);
+    const [methods, setMethods] = useState<any[]>([]);
     const [transactions, setTransactions] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [addingCard, setAddingCard] = useState(false);
+    const [iframeUrl, setIframeUrl] = useState<string | null>(null);
     const [user, setUser] = useState<any>(null);
     const [profile, setProfile] = useState<any>(null);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+    const fetchData = useCallback(async () => {
+        try {
+            const [methodsData, txData] = await Promise.all([
+                api.paymentMethods.list().catch(() => []),
+                api.wallet.getTransactions().catch(() => [])
+            ]);
+            setMethods(Array.isArray(methodsData) ? methodsData : []);
+            setTransactions(Array.isArray(txData) ? txData : []);
+        } catch (err) {
+            console.error(err);
+            setMethods([]);
+            setTransactions([]);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -28,63 +46,87 @@ export default function WalletPage() {
         }
         const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
         setUser(storedUser);
-        api.client.getProfile().then(setProfile).catch(() => { });
+        if (storedUser.role !== 'client') {
+            router.push('/');
+            return;
+        }
+        api.client.getProfile().then(setProfile).catch(() => {});
         fetchData();
-    }, [router]);
+    }, [router, fetchData]);
 
-    const fetchData = async () => {
+    const handleAddCard = async () => {
+        setAddingCard(true);
         try {
-            const balanceData = await api.wallet.getBalance();
-            setBalance(balanceData.balance);
-
-            const txData = await api.wallet.getTransactions();
-            setTransactions(txData);
-        } catch (err) {
-            console.error(err);
+            const callbackUrl = typeof window !== 'undefined' ? `${window.location.origin}/dashboard/client/wallet?success=1` : undefined;
+            const result = await api.paymentMethods.add(callbackUrl);
+            setIframeUrl(result.iframeUrl || null);
+            if (!result.iframeUrl) {
+                showModal({ title: 'Success', message: 'Card added successfully. Refreshing...', type: 'success' });
+                fetchData();
+            }
+        } catch (err: any) {
+            showModal({ title: 'Error', message: err.message || 'Failed to add card', type: 'error' });
+        } finally {
+            setAddingCard(false);
         }
     };
 
-    const handleTopUp = async (e: React.FormEvent) => {
-        e.preventDefault();
-        const amt = Number(amount);
-        if (amt < 50) return;
-
-        const fee = 20;
-        const netCredit = amt - fee;
-        if (netCredit <= 0) {
-            showModal({ title: 'Invalid Amount', message: 'Amount must be greater than 20 EGP to cover the platform fee.', type: 'error' });
-            return;
-        }
-
+    const handleRemoveCard = (id: string) => {
         showModal({
-            title: 'Confirm Top-Up',
-            message: `You will add ${amt} EGP. A 20 EGP platform fee applies. Net credit: ${netCredit} EGP. Confirm?`,
+            title: 'Remove Card',
+            message: 'Are you sure you want to remove this payment method?',
             type: 'confirm',
             onConfirm: async () => {
-                setLoading(true);
                 try {
-                    await api.wallet.topUp({ amount: amt });
-                    showModal({ title: 'Success', message: 'Top Up Successful!', type: 'success' });
-                    setAmount('');
+                    await api.paymentMethods.remove(id);
+                    showModal({ title: 'Success', message: 'Card removed', type: 'success' });
                     fetchData();
-                } catch (err) {
-                    console.error(err);
-                    showModal({ title: 'Error', message: 'Top Up Failed', type: 'error' });
-                } finally {
-                    setLoading(false);
+                } catch (err: any) {
+                    showModal({ title: 'Error', message: err.message || 'Failed to remove', type: 'error' });
                 }
             }
         });
     };
 
-    if (!user) return <div className="min-h-screen bg-gray-50 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44]" /></div>;
+    const handleSetDefault = async (id: string) => {
+        try {
+            await api.paymentMethods.setDefault(id);
+            fetchData();
+        } catch (err: any) {
+            showModal({ title: 'Error', message: err.message || 'Failed to set default', type: 'error' });
+        }
+    };
+
+    // Check for success redirect after Paymob callback
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('success') === '1') {
+            window.history.replaceState({}, '', window.location.pathname);
+            fetchData();
+            showModal({ title: 'Success', message: 'Payment method added successfully.', type: 'success' });
+        }
+    }, [fetchData]);
+
+    const closeIframe = () => {
+        setIframeUrl(null);
+        fetchData();
+    };
+
+    if (!user) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-[#09BF44]" />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-50 flex font-sans text-gray-900">
             <ClientSidebar
                 user={user}
                 profile={profile}
-                onTabChange={() => { }}
+                onTabChange={() => {}}
                 activeTab="wallet"
                 mobileOpen={mobileSidebarOpen}
                 onCloseMobile={() => setMobileSidebarOpen(false)}
@@ -97,7 +139,6 @@ export default function WalletPage() {
                 />
             )}
             <div className="flex-1 md:ml-72 px-4 sm:px-6 md:p-8 pt-3 md:pt-8 pb-8 overflow-y-auto min-h-screen">
-                <div className="max-w-4xl mx-auto">
                     <DashboardMobileTopStrip />
                     <div className="flex items-center gap-3 mb-7 md:mb-8">
                         <button
@@ -107,93 +148,139 @@ export default function WalletPage() {
                         >
                             <PanelLeft className="w-5 h-5" />
                         </button>
-                        <h1 className="text-2xl md:text-3xl font-black text-gray-900">My Wallet</h1>
+                        <h1 className="text-2xl md:text-3xl font-black text-gray-900">Payment Methods</h1>
                     </div>
-                    <p className="text-sm md:text-base text-gray-500 -mt-4 mb-6">Top up your balance and view transaction history.</p>
+                    <p className="text-sm md:text-base text-gray-500 -mt-4 mb-6">Add and manage your saved cards for secure payments when ordering.</p>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                        {/* Balance Card */}
-                        <div className="bg-white p-5 md:p-8 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between">
-                            <div>
-                                <h2 className="text-gray-500 font-bold mb-2">Current Balance</h2>
-                                <div className="text-3xl md:text-5xl font-black text-[#09BF44]">{balance} EGP</div>
-                            </div>
-                            <div className="mt-8">
-                                <p className="text-sm text-gray-400">Funds are held securely in Escrow until job completion.</p>
-                            </div>
+                    {loading ? (
+                        <div className="flex justify-center py-12">
+                            <Loader2 className="w-8 h-8 animate-spin text-[#09BF44]" />
                         </div>
-
-                        {/* Top Up Form */}
-                        <div className="bg-white p-5 md:p-8 rounded-3xl shadow-sm border border-gray-100">
-                            <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                                <CreditCard className="w-5 h-5" /> Top Up Wallet
-                            </h2>
-                            <form onSubmit={handleTopUp} className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Amount (EGP)</label>
-                                    <div className="relative">
-                                        <DollarSign className="absolute left-3 top-3.5 text-gray-400 w-5 h-5" />
-                                        <input
-                                            type="number"
-                                            required
-                                            min="50"
-                                            value={amount}
-                                            onChange={(e) => setAmount(e.target.value)}
-                                            className="w-full pl-10 p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none font-bold"
-                                            placeholder="0.00"
-                                        />
-                                    </div>
-                                    <p className="text-xs text-gray-400 mt-2">+ 20 EGP Platform Fee will be deducted.</p>
-                                </div>
-                                <button disabled={loading} type="submit" className="w-full bg-black text-white font-bold py-3 rounded-xl hover:bg-gray-800 transition-all flex items-center justify-center gap-2">
-                                    {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                                    Confirm Payment
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-
-                    {/* Transactions */}
-                    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-                        <div className="p-6 border-b border-gray-100">
-                            <h2 className="text-xl font-bold text-gray-900">Transaction History</h2>
-                        </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="text-left p-4 text-xs font-bold text-gray-500 uppercase">Type</th>
-                                        <th className="text-left p-4 text-xs font-bold text-gray-500 uppercase">Amount</th>
-                                        <th className="text-left p-4 text-xs font-bold text-gray-500 uppercase">Status</th>
-                                        <th className="text-left p-4 text-xs font-bold text-gray-500 uppercase">Date</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {transactions.map((tx) => (
-                                        <tr key={tx._id} className="border-b border-gray-50 hover:bg-gray-50/50">
-                                            <td className="p-4 font-bold capitalize text-gray-700">{tx.type}</td>
-                                            <td className={`p-4 font-black ${tx.amount > 0 ? 'text-[#09BF44]' : 'text-red-500'}`}>
-                                                {tx.amount > 0 ? '+' : ''}{tx.amount} EGP
-                                            </td>
-                                            <td className="p-4">
-                                                <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-bold uppercase">{formatStatus(tx.status)}</span>
-                                            </td>
-                                            <td className="p-4 text-gray-500 text-sm">
-                                                {formatDateDDMMYYYY(tx.createdAt)}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {transactions.length === 0 && (
-                                        <tr>
-                                            <td colSpan={4} className="p-8 text-center text-gray-400">No transactions yet.</td>
-                                        </tr>
+                    ) : (
+                        <>
+                            <div className="bg-white p-5 md:p-8 rounded-3xl shadow-sm border border-gray-100 mb-8">
+                                <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                                    <CreditCard className="w-5 h-5" /> Saved Cards
+                                </h2>
+                                <div className="space-y-4">
+                                    {methods.length === 0 && (
+                                        <div className="text-center py-8 text-gray-500">
+                                            <CreditCard className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                                            <p className="font-bold">No saved cards yet</p>
+                                            <p className="text-sm mt-1">Add a card to make payments when you order offers or accept freelancers.</p>
+                                        </div>
                                     )}
-                                </tbody>
-                            </table>
+                                    {methods.map((m: any) => (
+                                        <div
+                                            key={m._id}
+                                            className="flex items-center justify-between p-4 rounded-xl border-2 border-gray-100 hover:border-gray-200 transition-colors"
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-8 bg-gray-100 rounded flex items-center justify-center">
+                                                    <CreditCard className="w-6 h-6 text-gray-500" />
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-gray-900">
+                                                        {m.brand || 'Card'} ****{m.last4 || '****'}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500">Expires securely with Paymob</p>
+                                                </div>
+                                                {m.isDefault && (
+                                                    <span className="px-2 py-1 bg-[#09BF44]/10 text-[#09BF44] text-xs font-bold rounded-full flex items-center gap-1">
+                                                        <Check className="w-3 h-3" /> Default
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                {!m.isDefault && (
+                                                    <button
+                                                        onClick={() => handleSetDefault(m._id)}
+                                                        className="px-3 py-1.5 text-sm font-bold text-[#09BF44] hover:bg-[#09BF44]/10 rounded-lg transition-colors"
+                                                    >
+                                                        Set default
+                                                    </button>
+                                                )}
+                                                <button
+                                                    onClick={() => handleRemoveCard(m._id)}
+                                                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                    aria-label="Remove card"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <button
+                                        onClick={handleAddCard}
+                                        disabled={addingCard}
+                                        className="w-full py-4 border-2 border-dashed border-gray-200 rounded-xl text-gray-600 font-bold hover:border-[#09BF44] hover:text-[#09BF44] transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+                                    >
+                                        {addingCard ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
+                                        Add new card
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Payment History */}
+                            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                                <div className="p-6 border-b border-gray-100">
+                                    <h2 className="text-xl font-bold text-gray-900">Payment History</h2>
+                                </div>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="text-left p-4 text-xs font-bold text-gray-500 uppercase">Type</th>
+                                                <th className="text-left p-4 text-xs font-bold text-gray-500 uppercase">Amount</th>
+                                                <th className="text-left p-4 text-xs font-bold text-gray-500 uppercase">Date</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {transactions.map((tx: any) => (
+                                                <tr key={tx._id} className="border-b border-gray-50 hover:bg-gray-50/50">
+                                                    <td className="p-4 font-bold capitalize text-gray-700">{tx.type}</td>
+                                                    <td className={`p-4 font-black ${tx.amount >= 0 ? 'text-[#09BF44]' : 'text-red-500'}`}>
+                                                        {tx.amount >= 0 ? '+' : ''}{tx.amount} EGP
+                                                    </td>
+                                                    <td className="p-4 text-gray-500 text-sm">{formatDateDDMMYYYY(tx.createdAt)}</td>
+                                                </tr>
+                                            ))}
+                                            {transactions.length === 0 && (
+                                                <tr>
+                                                    <td colSpan={3} className="p-8 text-center text-gray-400">No payments yet.</td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </>
+                    )}
+            </div>
+
+            {/* Paymob iframe modal */}
+            {iframeUrl && (
+                <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+                        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+                            <h3 className="font-bold text-gray-900">Add Payment Method</h3>
+                            <button
+                                onClick={closeIframe}
+                                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
+                            >
+                                Close
+                            </button>
+                        </div>
+                        <div className="flex-1 min-h-[400px]">
+                            <iframe
+                                src={iframeUrl}
+                                className="w-full h-full min-h-[400px] border-0"
+                                title="Paymob Payment"
+                            />
                         </div>
                     </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 }

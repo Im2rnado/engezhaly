@@ -336,7 +336,6 @@ const acceptOffer = async (req, res) => {
             return res.status(404).json({ msg: 'Offer not found' });
         }
 
-        // Check if user is the receiver
         if (offer.receiverId.toString() !== userId) {
             return res.status(403).json({ msg: 'Not authorized to accept this offer' });
         }
@@ -346,97 +345,20 @@ const acceptOffer = async (req, res) => {
         }
 
         const clientFee = 20;
-        const freelancerFee = 20;
         const totalClientPays = offer.price + clientFee;
-        const freelancerReceives = offer.price - freelancerFee;
+        const amountCents = Math.round(totalClientPays * 100);
 
-        // Check wallet balance (client pays price + 20 EGP fee)
-        const buyer = await User.findById(userId);
-        if (buyer.walletBalance < totalClientPays) {
-            return res.status(400).json({ msg: `Insufficient wallet balance. You need ${totalClientPays} EGP (${offer.price} + ${clientFee} EGP fee)` });
+        if (amountCents < 100) {
+            return res.status(400).json({ msg: 'Invalid offer amount' });
         }
 
-        // Create order from offer - use deliveryDate if set, else compute from deliveryDays
-        const orderDeliveryDate = offer.deliveryDate
-            ? new Date(offer.deliveryDate)
-            : new Date(Date.now() + (offer.deliveryDays || 7) * 24 * 60 * 60 * 1000);
-
-        const order = new Order({
-            projectId: null, // Custom offers don't have a projectId
-            buyerId: userId,
-            sellerId: offer.senderId,
-            packageType: 'Custom',
-            offerId: offer._id, // Link to the offer
-            amount: offer.price,
-            platformFee: clientFee + freelancerFee,
-            status: 'active',
-            deliveryDate: orderDeliveryDate
+        // Do NOT deduct from wallet - return payment params for frontend to call initCharge
+        res.json({
+            requiresPayment: true,
+            type: 'custom_offer',
+            amountCents,
+            meta: { offerId: offer._id.toString() }
         });
-        await order.save();
-
-        // Deduct from buyer wallet (client pays price + 20 EGP fee)
-        buyer.walletBalance -= totalClientPays;
-        await buyer.save();
-
-        // Add to freelancer wallet (freelancer receives price - 20 EGP fee)
-        const seller = await User.findById(offer.senderId);
-        if (seller) {
-            seller.walletBalance = (seller.walletBalance || 0) + freelancerReceives;
-            await seller.save();
-        }
-
-        // Create Transaction records (fee amounts positive = platform gains)
-        await Transaction.create([
-            { userId: userId, type: 'payment', amount: -totalClientPays, description: `Custom Offer (incl. ${clientFee} EGP fee)`, orderId: order._id, relatedUserId: offer.senderId },
-            { userId: userId, type: 'fee', amount: clientFee, description: 'Platform fee (client)', orderId: order._id },
-            { userId: offer.senderId, type: 'payment', amount: freelancerReceives, description: 'Custom Offer', orderId: order._id, relatedUserId: userId },
-            { userId: offer.senderId, type: 'fee', amount: freelancerFee, description: 'Platform fee (freelancer)', orderId: order._id }
-        ]);
-
-        // Update offer status
-        offer.status = 'accepted';
-        offer.acceptedAt = new Date();
-        await offer.save();
-
-        // Notify freelancer (seller): if online -> push; if offline -> email
-        const sellerId = offer.senderId;
-        const clientName = buyer ? `${buyer.firstName} ${buyer.lastName}` : 'A client';
-        const orderLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard/freelancer?tab=orders`;
-
-        if (sellerId && req.app) {
-            if (isUserOnline(req.app, sellerId)) {
-                emitToUser(req.app, sellerId, {
-                    title: 'Your offer has been purchased!',
-                    message: `${clientName} accepted your custom offer (${offer.price} EGP)`,
-                    link: orderLink,
-                    type: 'order'
-                });
-            } else if (seller?.email) {
-                const { subject, html } = offerPurchasedTemplate(clientName, 'Custom Offer', offer.price, order._id);
-                sendAndLog(seller.email, subject, html, 'offer_purchased', { orderId: order._id, offerId: offer._id }).catch(err => console.error('[Chat] Offer email failed:', err.message));
-            }
-        }
-
-        // Send payment receipt emails to both
-        if (buyer?.email) {
-            const { subject, html } = paymentReceiptClient(totalClientPays, 'Custom Offer', order._id.toString(), new Date().toLocaleDateString());
-            sendAndLog(buyer.email, subject, html, 'payment_receipt_client', { orderId: order._id }).catch(err => console.error('[Chat] Receipt email failed:', err.message));
-        }
-        if (seller?.email) {
-            const { subject, html } = paymentReceiptFreelancer(offer.price, freelancerReceives, clientFee + freelancerFee, 'Custom Offer', order._id.toString(), new Date().toLocaleDateString());
-            sendAndLog(seller.email, subject, html, 'payment_receipt_freelancer', { orderId: order._id }).catch(err => console.error('[Chat] Receipt email failed:', err.message));
-        }
-
-        // Send acceptance message
-        const acceptanceMessage = new Chat({
-            conversationId: offer.conversationId._id,
-            senderId: userId,
-            receiverId: offer.senderId,
-            content: `[OFFER ACCEPTED] Order #${order._id} created. Payment of ${offer.price} EGP processed.`, messageType: 'text'
-        });
-        await acceptanceMessage.save();
-
-        res.json({ order, offer });
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ msg: err.message || 'Server Error' });

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { api } from '@/lib/api';
 import { formatStatus, formatDateDDMMYYYY } from '@/lib/utils';
-import { Check, X, Ban, User, Flag, MessageSquare, Award, BarChart3, TrendingUp, Search, Loader2, Briefcase, FileText, ShoppingBag, CreditCard, Trash2, Star, Edit, LogOut, ArrowLeft, Send, Shield, PanelLeft, Mail, Video } from 'lucide-react';
+import { Check, X, Ban, User, Flag, MessageSquare, Award, BarChart3, TrendingUp, Search, Loader2, Briefcase, FileText, ShoppingBag, CreditCard, Trash2, Star, Edit, LogOut, ArrowLeft, Send, Shield, PanelLeft, Mail, Video, ArrowDownToLine } from 'lucide-react';
 import { useModal } from '@/context/ModalContext';
 import EditModal from '@/components/EditModal';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
@@ -13,7 +13,7 @@ import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 export default function AdminDashboard() {
     const { showModal, hideModal } = useModal();
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'approvals' | 'users' | 'projects' | 'jobs' | 'orders' | 'finance' | 'chats' | 'strikes' | 'rewards' | 'emails'>('dashboard');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'approvals' | 'users' | 'projects' | 'jobs' | 'orders' | 'finance' | 'withdrawals' | 'chats' | 'strikes' | 'rewards' | 'emails'>('dashboard');
 
     // Data States
     const [pendingFreelancers, setPendingFreelancers] = useState<any[]>([]);
@@ -26,6 +26,7 @@ export default function AdminDashboard() {
     const [transactions, setTransactions] = useState<any[]>([]);
     const [topFreelancers, setTopFreelancers] = useState<any>(null);
     const [emailLogs, setEmailLogs] = useState<any[]>([]);
+    const [withdrawals, setWithdrawals] = useState<any[]>([]);
 
     // Search & UI States
     const [searchQuery, setSearchQuery] = useState('');
@@ -37,6 +38,7 @@ export default function AdminDashboard() {
     const [ordersLoading, setOrdersLoading] = useState(false);
     const [financeLoading, setFinanceLoading] = useState(false);
     const [emailsLoading, setEmailsLoading] = useState(false);
+    const [withdrawalsLoading, setWithdrawalsLoading] = useState(false);
     const [chatsLoading, setChatsLoading] = useState(false);
     const [editModal, setEditModal] = useState<{ isOpen: boolean; type: 'user' | 'project' | 'job' | null; data: any }>({ isOpen: false, type: null, data: null });
 
@@ -217,6 +219,18 @@ export default function AdminDashboard() {
         }
     };
 
+    const fetchWithdrawals = async () => {
+        setWithdrawalsLoading(true);
+        try {
+            const data = await api.admin.getWithdrawals();
+            setWithdrawals(data);
+        } catch (err) {
+            console.error('Failed to fetch withdrawals', err);
+        } finally {
+            setWithdrawalsLoading(false);
+        }
+    };
+
     useEffect(() => {
         hideModal(); // Clear redirect loader when admin page loads
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -231,6 +245,7 @@ export default function AdminDashboard() {
         fetchJobs();
         fetchOrders();
         fetchTransactions();
+        fetchWithdrawals();
         fetchChats();
         fetchEmailLogs();
     }, []);
@@ -241,6 +256,7 @@ export default function AdminDashboard() {
         if (activeTab === 'jobs') fetchJobs();
         if (activeTab === 'orders') fetchOrders();
         if (activeTab === 'finance') fetchTransactions();
+        if (activeTab === 'withdrawals') fetchWithdrawals();
         if (activeTab === 'chats') fetchChats();
         if (activeTab === 'rewards') fetchTopFreelancers();
         if (activeTab === 'emails') fetchEmailLogs();
@@ -507,6 +523,10 @@ export default function AdminDashboard() {
                         <CreditCard className="w-5 h-5" /> Finance
                         {transactions.length > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{transactions.length}</span>}
                     </button>
+                    <button onClick={() => setActiveTab('withdrawals')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'withdrawals' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
+                        <ArrowDownToLine className="w-5 h-5" /> Withdrawals
+                        {withdrawals.filter((w: any) => w.status === 'pending').length > 0 && <span className="ml-auto bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">{withdrawals.filter((w: any) => w.status === 'pending').length}</span>}
+                    </button>
                     <div className="h-px bg-gray-100 my-2"></div>
                     <button onClick={() => setActiveTab('approvals')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'approvals' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <Check className="w-5 h-5" /> Approvals
@@ -728,6 +748,106 @@ export default function AdminDashboard() {
                                             <td className="p-4 text-gray-500">{formatDateDDMMYYYY(tx.createdAt)}</td>
                                         </tr>
                                     ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'withdrawals' && (
+                    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div className="p-6 border-b border-gray-100">
+                            <h2 className="text-xl font-bold text-gray-900">Freelancer Withdrawal Requests</h2>
+                            <p className="text-sm text-gray-500 mt-1">Complete or reject pending withdrawals. Rejected requests refund the freelancer.</p>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-gray-50 text-gray-500 font-bold uppercase">
+                                    <tr>
+                                        <th className="p-4">Freelancer</th>
+                                        <th className="p-4">Amount</th>
+                                        <th className="p-4">Fee</th>
+                                        <th className="p-4">Method</th>
+                                        <th className="p-4">Details</th>
+                                        <th className="p-4">Status</th>
+                                        <th className="p-4">Date</th>
+                                        <th className="p-4">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {withdrawalsLoading ? (
+                                        <tr><td colSpan={8} className="p-8 text-center"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44] mx-auto" /></td></tr>
+                                    ) : withdrawals.length === 0 ? (
+                                        <tr><td colSpan={8} className="p-8 text-center text-gray-500">No withdrawal requests yet.</td></tr>
+                                    ) : (
+                                        withdrawals.map((w: any) => {
+                                            const user = w.userId;
+                                            const acc = w.accountNumber || '';
+                                            const details = w.method === 'bank' ? `${w.bankName || ''} • ${acc.length >= 4 ? '****' + acc.slice(-4) : acc || '-'}` : (w.phoneNumber || '-');
+                                            return (
+                                                <tr key={w._id} className="hover:bg-gray-50">
+                                                    <td className="p-4">
+                                                        <span className="font-bold">{user?.firstName} {user?.lastName}</span>
+                                                        <span className="block text-xs text-gray-500">{user?.email}</span>
+                                                    </td>
+                                                    <td className="p-4 font-bold">{w.amount} EGP</td>
+                                                    <td className="p-4 text-gray-600">{w.fee || 20} EGP</td>
+                                                    <td className="p-4 capitalize">{w.method?.replace('_', ' ')}</td>
+                                                    <td className="p-4 text-gray-600 truncate max-w-[140px]">{details}</td>
+                                                    <td className="p-4">
+                                                        <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                                            w.status === 'completed' ? 'bg-green-100 text-green-700' :
+                                                            w.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                                            'bg-amber-100 text-amber-700'
+                                                        }`}>{w.status}</span>
+                                                    </td>
+                                                    <td className="p-4 text-gray-500">{formatDateDDMMYYYY(w.createdAt)}</td>
+                                                    <td className="p-4">
+                                                        {w.status === 'pending' && (
+                                                            <div className="flex gap-2">
+                                                                <button
+                                                                    onClick={async () => {
+                                                                        try {
+                                                                            await api.admin.completeWithdrawal(w._id);
+                                                                            showModal({ title: 'Completed', message: 'Withdrawal marked as completed.', type: 'success' });
+                                                                            fetchWithdrawals();
+                                                                        } catch (e: any) {
+                                                                            showModal({ title: 'Error', message: e.message, type: 'error' });
+                                                                        }
+                                                                    }}
+                                                                    className="text-green-600 hover:bg-green-50 px-3 py-1.5 rounded font-bold text-sm flex items-center gap-1"
+                                                                >
+                                                                    <Check className="w-4 h-4" /> Complete
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        showModal({
+                                                                            title: 'Reject Withdrawal',
+                                                                            message: 'Rejecting will refund the freelancer their amount + fee. Continue?',
+                                                                            type: 'confirm',
+                                                                            confirmText: 'Reject',
+                                                                            onConfirm: async () => {
+                                                                                try {
+                                                                                    await api.admin.rejectWithdrawal(w._id);
+                                                                                    showModal({ title: 'Rejected', message: 'Withdrawal rejected and freelancer refunded.', type: 'success' });
+                                                                                    fetchWithdrawals();
+                                                                                } catch (e: any) {
+                                                                                    showModal({ title: 'Error', message: e.message, type: 'error' });
+                                                                                }
+                                                                            }
+                                                                        });
+                                                                    }}
+                                                                    className="text-red-600 hover:bg-red-50 px-3 py-1.5 rounded font-bold text-sm flex items-center gap-1"
+                                                                >
+                                                                    <X className="w-4 h-4" /> Reject
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    )}
                                 </tbody>
                             </table>
                         </div>
@@ -1079,7 +1199,7 @@ export default function AdminDashboard() {
                                                 </div>
                                                 <button
                                                     onClick={() => handleToggleReward(topFreelancers.mostDeals._id)}
-                                                    className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors ${topFreelancers.mostDeals.freelancerProfile?.isEmployeeOfMonth ? 'bg-green-100 text-green-700' : 'bg-black text-white hover:bg-gray-800'}`}
+                                                    className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors ${topFreelancers.mostDeals.freelancerProfile?.isEmployeeOfMonth ? 'bg-green-100 text-green-700' : 'bg-[#09BF44] text-white hover:bg-[#07a63a]'}`}
                                                 >
                                                     <Award className="w-4 h-4" />
                                                     {topFreelancers.mostDeals.freelancerProfile?.isEmployeeOfMonth ? 'Current Winner' : 'Select Winner'}
@@ -1112,7 +1232,7 @@ export default function AdminDashboard() {
                                                 </div>
                                                 <button
                                                     onClick={() => handleToggleReward(topFreelancers.topRated._id)}
-                                                    className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors ${topFreelancers.topRated.freelancerProfile?.isEmployeeOfMonth ? 'bg-green-100 text-green-700' : 'bg-black text-white hover:bg-gray-800'}`}
+                                                    className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors ${topFreelancers.topRated.freelancerProfile?.isEmployeeOfMonth ? 'bg-green-100 text-green-700' : 'bg-[#09BF44] text-white hover:bg-[#07a63a]'}`}
                                                 >
                                                     <Award className="w-4 h-4" />
                                                     {topFreelancers.topRated.freelancerProfile?.isEmployeeOfMonth ? 'Current Winner' : 'Select Winner'}
@@ -1145,7 +1265,7 @@ export default function AdminDashboard() {
                                                 </div>
                                                 <button
                                                     onClick={() => handleToggleReward(topFreelancers.onTime._id)}
-                                                    className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors ${topFreelancers.onTime.freelancerProfile?.isEmployeeOfMonth ? 'bg-green-100 text-green-700' : 'bg-black text-white hover:bg-gray-800'}`}
+                                                    className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors ${topFreelancers.onTime.freelancerProfile?.isEmployeeOfMonth ? 'bg-green-100 text-green-700' : 'bg-[#09BF44] text-white hover:bg-[#07a63a]'}`}
                                                 >
                                                     <Award className="w-4 h-4" />
                                                     {topFreelancers.onTime.freelancerProfile?.isEmployeeOfMonth ? 'Current Winner' : 'Select Winner'}
@@ -1400,7 +1520,7 @@ export default function AdminDashboard() {
                                     <button
                                         onClick={handleSearchUser}
                                         disabled={loading}
-                                        className="bg-black text-white px-6 rounded-xl font-bold hover:bg-gray-800 transition-colors disabled:opacity-50"
+                                        className="bg-[#09BF44] text-white px-6 rounded-xl font-bold hover:bg-[#07a63a] transition-colors disabled:opacity-50"
                                     >
                                         {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Search'}
                                     </button>

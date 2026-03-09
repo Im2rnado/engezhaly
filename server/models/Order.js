@@ -8,7 +8,7 @@ const OrderSchema = new mongoose.Schema({
     offerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Offer' }, // For custom offers
     amount: { type: Number, required: true },
     platformFee: { type: Number, default: 20 },
-    status: { type: String, enum: ['active', 'completed', 'disputed', 'refunded', 'pending_approval'], default: 'active' },
+    status: { type: String, enum: ['active', 'completed', 'disputed', 'refunded', 'pending_approval', 'pending_payment'], default: 'active' },
     description: { type: String },
     deliveryDate: { type: Date },
     completedAt: { type: Date },

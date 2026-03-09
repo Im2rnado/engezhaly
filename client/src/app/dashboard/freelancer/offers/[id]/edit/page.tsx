@@ -404,7 +404,7 @@ export default function EditOfferPage() {
                                     <button
                                         type="button"
                                         onClick={() => router.push('/dashboard/freelancer?tab=offers')}
-                                        className="bg-gray-100 text-gray-600 font-bold px-8 py-3 rounded-xl hover:bg-gray-200 transition-colors"
+                                        className="bg-gray-100 text-gray-600 font-bold px-8 py-3 rounded-xl hover:bg-[#09BF44]/20 hover:text-[#09BF44] transition-colors"
                                     >
                                         Cancel
                                     </button>

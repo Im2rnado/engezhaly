@@ -212,7 +212,7 @@ function ProjectsPageContent() {
                         {(selectedCategory || selectedSubCategory || filters.budget || filters.deliveryTime || searchQuery) && (
                             <button
                                 onClick={clearFilters}
-                                className="w-full lg:w-auto flex items-center justify-center gap-1 px-3 py-2.5 text-sm font-bold text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg"
+                                className="w-full lg:w-auto flex items-center justify-center gap-1 px-3 py-2.5 text-sm font-bold text-gray-600 hover:text-[#09BF44] hover:border-[#09BF44]/50 border border-gray-200 rounded-lg"
                             >
                                 <X className="w-4 h-4" /> Clear
                             </button>

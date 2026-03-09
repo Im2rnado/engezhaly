@@ -27,7 +27,10 @@ const {
     getAllTransactions,
     getTopFreelancers,
     sendAdminMessage,
-    getEmailLogs
+    getEmailLogs,
+    getWithdrawals,
+    completeWithdrawal,
+    rejectWithdrawal
 } = require('../controllers/adminController');
 
 router.get('/freelancers/pending', [authVerified, adminAuth], getPendingFreelancers);
@@ -59,6 +62,9 @@ router.get('/orders', [authVerified, adminAuth], getAllOrders);
 router.put('/orders/:id', [authVerified, adminAuth], updateOrder);
 
 router.get('/transactions', [authVerified, adminAuth], getAllTransactions);
+router.get('/withdrawals', [authVerified, adminAuth], getWithdrawals);
+router.patch('/withdrawals/:id/complete', [authVerified, adminAuth], completeWithdrawal);
+router.patch('/withdrawals/:id/reject', [authVerified, adminAuth], rejectWithdrawal);
 router.get('/top-freelancers', [authVerified, adminAuth], getTopFreelancers);
 router.get('/email-logs', [authVerified, adminAuth], getEmailLogs);
 

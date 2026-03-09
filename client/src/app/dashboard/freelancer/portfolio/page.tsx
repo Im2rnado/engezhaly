@@ -357,7 +357,7 @@ export default function PortfolioPage() {
                                         </button>
                                         <button
                                             onClick={() => { setShowAddForm(false); setNewItem({ title: '', description: '', imageUrl: '', link: '', subCategory: '' }); }}
-                                            className="px-6 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200"
+                                            className="px-6 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-[#09BF44]/20 hover:text-[#09BF44]"
                                         >
                                             Cancel
                                         </button>

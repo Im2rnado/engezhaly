@@ -120,7 +120,7 @@ export default function ProfileEditModal({ isOpen, onClose, onSave, profile, mai
                 {/* Header */}
                 <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
                     <h2 className="text-xl font-black text-gray-900">Edit Profile</h2>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                    <button onClick={onClose} className="p-2 hover:bg-[#09BF44]/10 rounded-xl transition-colors">
                         <X className="w-5 h-5 text-gray-500" />
                     </button>
                 </div>
@@ -324,10 +324,10 @@ export default function ProfileEditModal({ isOpen, onClose, onSave, profile, mai
 
                     {/* Actions */}
                     <div className="flex gap-3 pt-2 border-t border-gray-100">
-                        <button type="button" onClick={onClose} className="flex-1 py-3 rounded-xl font-bold border-2 border-gray-200 text-gray-700 hover:bg-gray-50">
+                        <button type="button" onClick={onClose} className="flex-1 py-3 rounded-xl font-bold border-2 border-gray-200 text-gray-700 hover:bg-[#09BF44]/10 hover:border-[#09BF44]/30 hover:text-[#09BF44]">
                             Cancel
                         </button>
-                        <button type="submit" className="flex-1 py-3 rounded-xl font-bold bg-black text-white hover:bg-gray-800">
+                        <button type="submit" className="flex-1 py-3 rounded-xl font-bold bg-[#09BF44] text-white hover:bg-[#07a63a]">
                             Save Changes
                         </button>
                     </div>
