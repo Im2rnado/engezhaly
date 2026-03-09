@@ -4,7 +4,7 @@ const UserSchema = new mongoose.Schema({
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
     username: { type: String, required: true, unique: true },
-    email: { type: String, required: true, unique: true },
+    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true, select: false },
     phoneNumber: { type: String, select: false }, // Hidden by default
     dateOfBirth: { type: Date, select: false }, // Optional, for freelancers
@@ -26,6 +26,7 @@ const UserSchema = new mongoose.Schema({
     freelancerProfile: {
         status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
         isBusy: { type: Boolean, default: false },
+        adminStarred: { type: Boolean, default: false }, // Admin marked for later review
         isEmployeeOfMonth: { type: Boolean, default: false },
         profilePicture: { type: String }, // URL or base64 data URL
         bio: { type: String }, // Describe self
@@ -55,7 +56,12 @@ const UserSchema = new mongoose.Schema({
         skills: [String],
         surveyResponses: {
             isFullTime: Boolean,
-            speedQualityCommitment: String, // Yes/Maybe/No
+            speedQualityCommitment: String, // Yes/Maybe/No - legacy
+            disagreementHandling: String,  // 1) What happens if you have a disagreement with the client?
+            hoursPerDay: String,           // 2) On average, how many hours per day can you dedicate?
+            clientUpdates: String,         // 3) How do you keep clients updated?
+            biggestChallenge: String,     // 4) What's the biggest challenge you could face?
+            discoverySource: String       // 5) Where did you find out about Engezhaly?
         },
         starterPricing: {
             basic: { price: Number, days: Number, description: String },

@@ -45,11 +45,39 @@ const approveFreelancer = async (req, res) => {
 };
 
 const rejectFreelancer = async (req, res) => {
-    try {
-        const user = await User.findById(req.params.id);
+        try {
+            const user = await User.findById(req.params.id);
         if (!user) return res.status(404).json({ msg: 'User not found' });
         await User.findByIdAndDelete(req.params.id);
         res.json({ msg: 'Freelancer rejected and deleted' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+const starFreelancer = async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+        if (!user) return res.status(404).json({ msg: 'User not found' });
+        if (user.role !== 'freelancer') return res.status(400).json({ msg: 'Not a freelancer' });
+        user.freelancerProfile.adminStarred = true;
+        await user.save();
+        res.json(user);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+const unstarFreelancer = async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+        if (!user) return res.status(404).json({ msg: 'User not found' });
+        if (!user.freelancerProfile) user.freelancerProfile = {};
+        user.freelancerProfile.adminStarred = false;
+        await user.save();
+        res.json(user);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
@@ -588,6 +616,8 @@ module.exports = {
     getPendingFreelancers,
     approveFreelancer,
     rejectFreelancer,
+    starFreelancer,
+    unstarFreelancer,
     getActiveChats,
     freezeChat,
     unfreezeChat,

@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { Clock, RotateCcw, Check, ArrowRight, Edit, MessageSquare, Phone, ChevronDown, Loader2, ChevronUp } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import Image from 'next/image';
 import { api } from '@/lib/api';
 import { useModal } from '@/context/ModalContext';
@@ -156,6 +155,7 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
     const seller = sellerData;
     const freelancerName = seller ? `${seller.firstName || ''} ${seller.lastName || ''}`.trim() : 'Freelancer';
     const freelancerProfilePicture = seller?.freelancerProfile?.profilePicture;
+    const sellerIsBusy = !!seller?.freelancerProfile?.isBusy;
     const projectMainImage = project.images && project.images.length > 0 ? project.images[0] : null;
     const isBundle = variant === 'bundle';
 
@@ -182,10 +182,7 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                     ) : (
                         <div className="absolute inset-0 bg-gradient-to-br from-[#09BF44]/20 via-[#09BF44]/10 to-transparent rounded-t-3xl"></div>
                     )}
-                    <Link
-                        href={initialSellerId ? `/freelancer/${initialSellerId}` : '#'}
-                        className="relative h-full flex items-center gap-3 md:gap-4 px-4 md:px-6 hover:opacity-90 transition-opacity"
-                    >
+                    <div className="relative h-full flex items-center gap-3 md:gap-4 px-4 md:px-6">
                         <div className="relative">
                             <div className="absolute inset-0 flex items-center justify-center -z-10">
                                 <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#09BF44]/30 via-[#09BF44]/15 to-transparent blur-md"></div>
@@ -208,8 +205,11 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                         </div>
                         <div>
                             <h4 className="font-bold text-gray-900 text-sm md:text-lg line-clamp-1">{freelancerName}</h4>
+                            {sellerIsBusy && (
+                                <span className="inline-block mt-1 px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-bold rounded-full">FREELANCER BUSY</span>
+                            )}
                         </div>
-                    </Link>
+                    </div>
                 </div>
             )}
 
@@ -285,12 +285,15 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
 
             {/* Package Content */}
             <div className={`p-4 md:p-6 ${isBundle ? 'md:p-8' : ''}`} style={{ overflow: 'visible' }}>
-                {/* Bundle: Price first, prominent */}
+                {/* Bundle: Price first, prominent + BUSY aligned right */}
                 {isBundle && (
-                    <div className="mb-4">
+                    <div className="mb-4 flex items-center justify-between gap-4">
                         <div className="text-3xl md:text-4xl font-bold text-gray-900">
                             {currentPackage.price || 0} <span className="text-lg font-normal text-gray-600">EGP</span>
                         </div>
+                        {sellerIsBusy && (
+                            <span className="px-2 py-1 bg-amber-100 text-amber-700 text-lg font-bold rounded-full shrink-0">FREELANCER BUSY</span>
+                        )}
                     </div>
                 )}
 

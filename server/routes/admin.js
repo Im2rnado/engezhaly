@@ -6,6 +6,8 @@ const {
     getPendingFreelancers,
     approveFreelancer,
     rejectFreelancer,
+    starFreelancer,
+    unstarFreelancer,
     getActiveChats,
     freezeChat,
     unfreezeChat,
@@ -36,6 +38,8 @@ const {
 router.get('/freelancers/pending', [authVerified, adminAuth], getPendingFreelancers);
 router.put('/freelancers/:id/approve', [authVerified, adminAuth], approveFreelancer);
 router.delete('/freelancers/:id/reject', [authVerified, adminAuth], rejectFreelancer);
+router.patch('/freelancers/:id/star', [authVerified, adminAuth], starFreelancer);
+router.patch('/freelancers/:id/unstar', [authVerified, adminAuth], unstarFreelancer);
 router.get('/chats', [authVerified, adminAuth], getActiveChats);
 router.put('/chats/:id/freeze', [authVerified, adminAuth], freezeChat);
 router.put('/chats/:id/unfreeze', [authVerified, adminAuth], unfreezeChat);

@@ -100,6 +100,9 @@ export default function FreelancerProfilePage() {
                                 <h1 className="text-2xl md:text-3xl font-black text-gray-900">
                                     {freelancer.firstName} {freelancer.lastName}
                                 </h1>
+                                {profile?.isBusy && (
+                                    <span className="px-3 py-1 bg-amber-100 text-amber-700 text-base font-bold rounded-full">FREELANCER BUSY</span>
+                                )}
                                 {profile?.isEmployeeOfMonth && (
                                     <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
                                         <Award className="w-3 h-3" />

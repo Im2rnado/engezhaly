@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import Image from 'next/image';
 import { Check, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -19,6 +18,7 @@ export default function ProjectCardCompact({ project }: ProjectCardCompactProps)
     const bannerImage = images[0] || null;
     const seller = project.sellerId;
     const freelancerName = seller ? `${seller.firstName || ''} ${seller.lastName || ''}`.trim() : 'Freelancer';
+    const sellerIsBusy = !!seller?.freelancerProfile?.isBusy;
     const profilePicture = seller?.freelancerProfile?.profilePicture;
     const packages = project.packages || [];
     const lowestPrice = packages.length > 0
@@ -34,6 +34,11 @@ export default function ProjectCardCompact({ project }: ProjectCardCompactProps)
         >
             {/* Image carousel */}
             <div className="relative h-32 md:h-40 bg-gradient-to-br from-[#09BF44]/20 to-transparent overflow-hidden">
+                {sellerIsBusy && (
+                    <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                        <span className="px-3 py-1.5 bg-amber-100 text-amber-700 text-lg font-bold rounded-full shadow-sm">FREELANCER BUSY</span>
+                    </div>
+                )}
                 {bannerImage ? (
                     <>
                         <Image
@@ -78,11 +83,7 @@ export default function ProjectCardCompact({ project }: ProjectCardCompactProps)
             <div className="p-4 md:p-5 pb-2 md:pb-3">
                 {/* Profile pic (left) + Title (right) */}
                 <div className="flex items-start gap-3 mb-3">
-                    <Link
-                        href={seller?._id ? `/freelancer/${seller._id}` : '#'}
-                        onClick={(e) => e.stopPropagation()}
-                        className="relative w-12 h-12 md:w-14 md:h-14 rounded-full overflow-hidden border-2 border-white shadow-md shrink-0 bg-gray-200 hover:ring-2 hover:ring-[#09BF44] transition-all"
-                    >
+                    <div className="relative w-12 h-12 md:w-14 md:h-14 rounded-full overflow-hidden border-2 border-white shadow-md shrink-0 bg-gray-200">
                         {profilePicture ? (
                             <Image
                                 src={profilePicture}
@@ -96,18 +97,12 @@ export default function ProjectCardCompact({ project }: ProjectCardCompactProps)
                                 {freelancerName[0]?.toUpperCase() || 'F'}
                             </div>
                         )}
-                    </Link>
+                    </div>
                     <div className="flex-1 min-w-0">
                         <h3 className="font-bold text-gray-900 text-base md:text-lg line-clamp-2 group-hover:text-[#09BF44] transition-colors">
                             {project.title}
                         </h3>
-                        <Link
-                            href={seller?._id ? `/freelancer/${seller._id}` : '#'}
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-xs text-gray-500 mt-0.5 hover:text-[#09BF44] transition-colors block"
-                        >
-                            {freelancerName}
-                        </Link>
+                        <span className="text-xs text-gray-500 mt-0.5 block">{freelancerName}</span>
                     </div>
                 </div>
 

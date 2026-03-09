@@ -163,6 +163,11 @@ export const api = {
             if (!res.ok) throw new Error('Failed to fetch freelancer profile');
             return res.json();
         },
+        getReviews: async (id: string) => {
+            const res = await fetch(`${API_URL}/freelancer/${id}/reviews`, { method: 'GET' });
+            if (!res.ok) return [];
+            return res.json();
+        },
         getMyOrders: async () => {
             const res = await fetch(`${API_URL}/freelancer/orders`, {
                 method: 'GET',
@@ -510,6 +515,22 @@ export const api = {
                 method: 'DELETE',
                 headers: getHeaders()
             });
+            return res.json();
+        },
+        starFreelancer: async (id: string) => {
+            const res = await fetch(`${API_URL}/admin/freelancers/${id}/star`, {
+                method: 'PATCH',
+                headers: getHeaders()
+            });
+            if (!res.ok) throw new Error('Failed to star');
+            return res.json();
+        },
+        unstarFreelancer: async (id: string) => {
+            const res = await fetch(`${API_URL}/admin/freelancers/${id}/unstar`, {
+                method: 'PATCH',
+                headers: getHeaders()
+            });
+            if (!res.ok) throw new Error('Failed to unstar');
             return res.json();
         },
         getActiveChats: async () => {

@@ -145,6 +145,31 @@ const getPublicProfile = async (req, res) => {
     }
 };
 
+const getReviews = async (req, res) => {
+    try {
+        const sellerId = req.params.id;
+        const orders = await Order.find({
+            sellerId,
+            status: 'completed',
+            rating: { $exists: true, $gte: 1, $lte: 5 }
+        })
+            .populate('buyerId', 'firstName')
+            .sort({ completedAt: -1 })
+            .limit(20)
+            .lean();
+        const reviews = orders.map(o => ({
+            rating: o.rating,
+            review: o.review,
+            buyerName: o.buyerId?.firstName ? `${o.buyerId.firstName}.` : 'Client', // Anonymized
+            completedAt: o.completedAt
+        }));
+        res.json(reviews);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
 const getTopFreelancers = async (req, res) => {
     try {
         // Get top freelancers by various metrics
@@ -377,6 +402,7 @@ module.exports = {
     updateProfile,
     getProfile,
     getPublicProfile,
+    getReviews,
     getTopFreelancers,
     getMyOrders,
     submitOrderWork,

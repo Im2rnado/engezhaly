@@ -8,9 +8,15 @@ const { verification: verificationTemplate, passwordReset: passwordResetTemplate
 
 const register = async (req, res) => {
     try {
-        const { firstName, lastName, username, email, password, role, phoneNumber, businessType, profilePicture, dateOfBirth, clientProfile, category, experienceYears, isStudent, certificates, certifications, universityId, skills, bio, idDocument, surveyResponses, starterPricing, city, languages, extraLanguages } = req.body;
+        const { firstName, lastName, username, email, password, role, phoneNumber, businessType, profilePicture, dateOfBirth, clientProfile, category, experienceYears, isStudent, certificates, certifications, universityId, skills, bio, idDocument, surveyResponses, starterPricing, city, languages, extraLanguages, withdrawalMethod } = req.body;
 
-        let user = await User.findOne({ $or: [{ email }, { username }] });
+        const emailNorm = (email || '').trim().toLowerCase();
+        if (!emailNorm) {
+            return res.status(400).json({ message: 'Email is required' });
+        }
+        // Case-insensitive duplicate check (handles legacy mixed-case emails)
+        const emailRegex = new RegExp(`^${(emailNorm || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+        let user = await User.findOne({ $or: [{ email: emailRegex }, { username }] });
         if (user) {
             return res.status(400).json({ message: 'User with this email or username already exists' });
         }
@@ -22,7 +28,7 @@ const register = async (req, res) => {
             firstName,
             lastName,
             username,
-            email,
+            email: emailNorm,
             password: hashedPassword,
             role,
             phoneNumber,
@@ -81,6 +87,31 @@ const register = async (req, res) => {
         user = new User(userData);
         await user.save();
 
+        // Create withdrawal method for freelancers if provided
+        if (role === 'freelancer' && withdrawalMethod && typeof withdrawalMethod === 'object') {
+            const { method, phoneNumber: wPhone, accountNumber: wAccount, bankName: wBank } = withdrawalMethod;
+            const validMethods = ['instapay', 'vodafone_cash', 'bank'];
+            if (method && validMethods.includes(method)) {
+                const hasPhone = (method === 'instapay' || method === 'vodafone_cash') && wPhone?.trim();
+                const hasBank = method === 'bank' && wAccount?.trim() && wBank?.trim();
+                if (hasPhone || hasBank) {
+                    try {
+                        const WithdrawalMethod = require('../models/WithdrawalMethod');
+                        await WithdrawalMethod.create({
+                            userId: user._id,
+                            method,
+                            phoneNumber: hasPhone ? wPhone.trim() : undefined,
+                            accountNumber: hasBank ? wAccount.trim() : undefined,
+                            bankName: hasBank ? wBank.trim() : undefined,
+                            isDefault: true
+                        });
+                    } catch (wmErr) {
+                        console.error('[Auth] Withdrawal method create failed:', wmErr.message);
+                    }
+                }
+            }
+        }
+
         // Generate verification token (24h expiry)
         const token = crypto.randomBytes(32).toString('hex');
         await VerificationToken.create({
@@ -92,7 +123,7 @@ const register = async (req, res) => {
 
         // Send verification email (async, don't block response)
         const { subject, html } = verificationTemplate(token);
-        sendAndLog(email, subject, html, 'verification', { userId: user._id }).catch(err => console.error('[Auth] Verification email failed:', err.message));
+        sendAndLog(emailNorm, subject, html, 'verification', { userId: user._id }).catch(err => console.error('[Auth] Verification email failed:', err.message));
 
         // Create JWT
         const payload = { user: { id: user.id, role: user.role } };
@@ -131,13 +162,17 @@ const login = async (req, res) => {
             return res.status(400).json({ message: 'Invalid Credentials' });
         }
 
-        let user = await User.findOne({
-            $or: [
-                { email: identifier },
-                { username: identifier },
-                { phoneNumber: identifier }
-            ]
-        }).select('+password');
+        const identifierStr = String(identifier).trim();
+        const isLikelyEmail = identifierStr.includes('@');
+        const orConditions = [
+            { username: identifierStr },
+            { phoneNumber: identifierStr }
+        ];
+        if (isLikelyEmail) {
+            const emailRegex = new RegExp(`^${identifierStr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+            orConditions.unshift({ email: emailRegex });
+        }
+        let user = await User.findOne({ $or: orConditions }).select('+password');
 
         if (!user) {
             return res.status(400).json({ message: 'Invalid Credentials' });

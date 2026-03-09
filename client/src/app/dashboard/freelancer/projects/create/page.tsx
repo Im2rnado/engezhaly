@@ -80,6 +80,12 @@ export default function CreateProjectPage() {
         setProjectData({ ...projectData, packages: newPackages });
     };
 
+    const handleFeaturesChange = (index: number, features: string[]) => {
+        const newPackages = [...projectData.packages];
+        newPackages[index] = { ...newPackages[index], features };
+        setProjectData({ ...projectData, packages: newPackages });
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -109,7 +115,8 @@ export default function CreateProjectPage() {
                     ...p,
                     price: Number(p.price),
                     days: Number(p.days),
-                    revisions: Number(p.revisions)
+                    revisions: Number(p.revisions),
+                    features: Array.isArray(p.features) ? p.features.filter((f: string) => f && String(f).trim()) : []
                 }))
             });
             showModal({ title: 'Success', message: 'Offer Created Successfully!', type: 'success' });
@@ -342,11 +349,40 @@ export default function CreateProjectPage() {
                                                     </div>
 
                                                     <div>
-                                                        <label className="text-xs font-bold text-gray-500">Features</label>
-                                                        <textarea
-                                                            placeholder="What's included..."
-                                                            className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm h-20 resize-none"
-                                                        />
+                                                        <label className="text-xs font-bold text-gray-500">Services included</label>
+                                                        <div className="space-y-2">
+                                                            {((Array.isArray(pkg.features) && pkg.features.length > 0) ? pkg.features : ['']).map((f, fi) => (
+                                                                <div key={fi} className="flex gap-2">
+                                                                    <input
+                                                                        value={f}
+                                                                        onChange={(e) => {
+                                                                            const arr = [...(pkg.features || [''])];
+                                                                            arr[fi] = e.target.value;
+                                                                            handleFeaturesChange(idx, arr.filter(Boolean).length ? arr : ['']);
+                                                                        }}
+                                                                        placeholder="Service or feature"
+                                                                        className="flex-1 p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm"
+                                                                    />
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                        const next = (pkg.features || []).filter((_: string, i: number) => i !== fi);
+                                                                        handleFeaturesChange(idx, next.length > 0 ? next : ['']);
+                                                                    }}
+                                                                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                                                                    >
+                                                                        <XIcon className="w-4 h-4" />
+                                                                    </button>
+                                                                </div>
+                                                            ))}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleFeaturesChange(idx, [...(pkg.features || []), ''])}
+                                                                className="text-sm font-bold text-[#09BF44] hover:underline"
+                                                            >
+                                                                + Add service
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>

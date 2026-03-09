@@ -372,16 +372,40 @@ export default function EditProjectPage() {
                                                     </div>
 
                                                     <div>
-                                                        <label className="text-xs font-bold text-gray-500">Features (one per line)</label>
-                                                        <textarea
-                                                            placeholder="Feature 1&#10;Feature 2&#10;Feature 3"
-                                                            value={Array.isArray(pkg.features) ? pkg.features.join('\n') : pkg.features || ''}
-                                                            onChange={(e) => {
-                                                                const features = e.target.value.split('\n').filter(f => f.trim());
-                                                                handleFeaturesChange(idx, features);
-                                                            }}
-                                                            className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm h-20 resize-none"
-                                                        />
+                                                        <label className="text-xs font-bold text-gray-500">Services included</label>
+                                                        <div className="space-y-2">
+                                                            {((Array.isArray(pkg.features) && pkg.features.length > 0) ? pkg.features : ['']).map((f, fi) => (
+                                                                <div key={fi} className="flex gap-2">
+                                                                    <input
+                                                                        value={f}
+                                                                        onChange={(e) => {
+                                                                            const arr = [...(pkg.features || [''])];
+                                                                            arr[fi] = e.target.value;
+                                                                            handleFeaturesChange(idx, arr.filter(Boolean).length ? arr : ['']);
+                                                                        }}
+                                                                        placeholder="Service or feature"
+                                                                        className="flex-1 p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm"
+                                                                    />
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                        const next = (pkg.features || []).filter((_: string, i: number) => i !== fi);
+                                                                        handleFeaturesChange(idx, next.length > 0 ? next : ['']);
+                                                                    }}
+                                                                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                                                                    >
+                                                                        <XIcon className="w-4 h-4" />
+                                                                    </button>
+                                                                </div>
+                                                            ))}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleFeaturesChange(idx, [...(pkg.features || []), ''])}
+                                                                className="text-sm font-bold text-[#09BF44] hover:underline"
+                                                            >
+                                                                + Add service
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>

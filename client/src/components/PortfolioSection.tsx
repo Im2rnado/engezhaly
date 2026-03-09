@@ -240,9 +240,9 @@ export default function PortfolioSection({ profile, onProfileUpdate }: Portfolio
                     <p className="text-gray-500 mb-4">Add your best projects to show clients what you can do.</p>
                     <button
                         onClick={() => setShowAddForm(true)}
-                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#09BF44] text-white font-bold rounded-xl hover:bg-[#07a63a] transition-colors"
+                        className="inline-flex items-center gap-3 px-8 py-4 bg-[#09BF44] text-white font-bold text-lg rounded-xl hover:bg-[#07a63a] transition-colors shadow-lg shadow-[#09BF44]/25"
                     >
-                        <Plus className="w-4 h-4" /> Add first project
+                        <Plus className="w-6 h-6" /> Add first project
                     </button>
                 </div>
             ) : (
@@ -286,9 +286,9 @@ export default function PortfolioSection({ profile, onProfileUpdate }: Portfolio
                             <button
                                 onClick={addItem}
                                 disabled={!newItem.title.trim()}
-                                className="px-6 py-3 bg-[#09BF44] text-white font-bold rounded-xl hover:bg-[#07a63a] disabled:opacity-50 flex items-center gap-2"
+                                className="px-8 py-4 bg-[#09BF44] text-white font-bold text-lg rounded-xl hover:bg-[#07a63a] disabled:opacity-50 flex items-center gap-3 shadow-lg shadow-[#09BF44]/25"
                             >
-                                <Plus className="w-5 h-5" /> Add to Portfolio
+                                <Plus className="w-6 h-6" /> Add to Portfolio
                             </button>
                             <button
                                 onClick={() => { setShowAddForm(false); setNewItem({ title: '', description: '', imageUrl: '', link: '', subCategory: '' }); }}
@@ -300,9 +300,9 @@ export default function PortfolioSection({ profile, onProfileUpdate }: Portfolio
                     ) : (
                         <button
                             onClick={() => setShowAddForm(true)}
-                            className="w-full py-3 border-2 border-dashed border-gray-200 rounded-xl text-gray-500 font-bold hover:border-[#09BF44] hover:text-[#09BF44] hover:bg-[#09BF44]/5 transition-all flex items-center justify-center gap-2"
+                                    className="w-full py-4 border-2 border-dashed border-[#07a63a] rounded-xl text-[#07a63a] font-bold text-lg hover:border-[#09BF44] hover:text-[#09BF44] hover:bg-[#09BF44]/10 transition-all flex items-center justify-center gap-3"
                         >
-                            <Plus className="w-5 h-5" /> Add another project
+                            <Plus className="w-6 h-6" /> Add another project
                         </button>
                     )}
                 </div>

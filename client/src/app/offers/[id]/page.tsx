@@ -17,6 +17,7 @@ export default function OfferDetailPage() {
     const [project, setProject] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<any>(null);
+    const [reviews, setReviews] = useState<any[]>([]);
     const [slideshowIndex, setSlideshowIndex] = useState(0);
     const raw = (project?.images || []).filter(Boolean) as string[];
     const images = [...new Set(raw)];
@@ -31,7 +32,13 @@ export default function OfferDetailPage() {
 
         if (projectId) {
             api.projects.getById(projectId)
-                .then(setProject)
+                .then((p) => {
+                    setProject(p);
+                    const sellerId = p?.sellerId?._id || p?.sellerId;
+                    if (sellerId) {
+                        api.freelancer.getReviews(typeof sellerId === 'string' ? sellerId : sellerId.toString()).then(setReviews).catch(() => setReviews([]));
+                    }
+                })
                 .catch(() => setProject(null))
                 .finally(() => setLoading(false));
         } else {
@@ -115,6 +122,9 @@ export default function OfferDetailPage() {
                             </Link>
                             <div className="flex-1 min-w-0">
                                 <h2 className="text-lg font-bold text-gray-900 mb-1">{freelancerName}</h2>
+                                {profile?.isBusy && (
+                                    <span className="inline-block mb-2 px-2 py-0.5 bg-amber-100 text-amber-700 text-sm font-bold rounded-full">FREELANCER BUSY</span>
+                                )}
                                 {profile?.bio && (
                                     <p className="text-gray-600 text-sm leading-relaxed line-clamp-2 mb-3">
                                         {profile.bio}
@@ -182,28 +192,13 @@ export default function OfferDetailPage() {
                             </div>
                         )}
 
-                        {/* About this gig */}
+                        {/* About this project */}
                         {project.description && (
                             <div>
-                                <h3 className="text-xl font-bold text-gray-900 mb-4">About this gig</h3>
+                                <h3 className="text-xl font-bold text-gray-900 mb-4">About this offer</h3>
                                 <div className="text-gray-600 leading-relaxed whitespace-pre-wrap">
                                     {project.description}
                                 </div>
-                            </div>
-                        )}
-
-                        {/* Service includes - from first package features */}
-                        {firstPackage?.features && firstPackage.features.length > 0 && (
-                            <div>
-                                <h3 className="text-xl font-bold text-gray-900 mb-4">Service includes</h3>
-                                <ul className="space-y-2">
-                                    {firstPackage.features.filter((f: any) => f?.trim()).map((f: string, idx: number) => (
-                                        <li key={idx} className="flex items-start gap-3 text-gray-700">
-                                            <span className="text-[#09BF44] mt-0.5">✓</span>
-                                            <span>{f}</span>
-                                        </li>
-                                    ))}
-                                </ul>
                             </div>
                         )}
 
@@ -241,6 +236,33 @@ export default function OfferDetailPage() {
                                 )}
                             </div>
                         )}
+
+                        {/* Reviews */}
+                        <div className="pt-8 border-t border-gray-200">
+                            <h3 className="text-xl font-bold text-gray-900 mb-4">Reviews</h3>
+                            {reviews.length > 0 ? (
+                                <div className="space-y-4">
+                                    {reviews.map((r: any, idx: number) => (
+                                        <div key={idx} className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <div className="flex gap-0.5">
+                                                    {[1, 2, 3, 4, 5].map((n) => (
+                                                        <Star key={n} className={`w-4 h-4 ${n <= (r.rating || 0) ? 'fill-amber-400 text-amber-500' : 'text-gray-300'}`} />
+                                                    ))}
+                                                </div>
+                                                <span className="text-xs text-gray-500">{r.buyerName}</span>
+                                                {r.completedAt && (
+                                                    <span className="text-xs text-gray-400">{new Date(r.completedAt).toLocaleDateString()}</span>
+                                                )}
+                                            </div>
+                                            {r.review && <p className="text-gray-700 text-sm">{r.review}</p>}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-gray-500 text-sm">No reviews yet.</p>
+                            )}
+                        </div>
                     </div>
 
                     {/* Right column - sticky pricing card */}

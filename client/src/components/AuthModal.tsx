@@ -14,7 +14,7 @@ interface AuthModalProps {
     initialStep?: 'role-selection' | 'client-auth' | 'freelancer-step-1' | 'login' | 'forgot-password';
 }
 
-type ModalStep = 'role-selection' | 'client-auth' | 'freelancer-step-1' | 'freelancer-step-2' | 'freelancer-step-3' | 'freelancer-step-4' | 'login' | 'forgot-password';
+type ModalStep = 'role-selection' | 'client-auth' | 'freelancer-step-1' | 'freelancer-step-2' | 'freelancer-step-3' | 'freelancer-step-3b' | 'freelancer-step-4' | 'login' | 'forgot-password';
 
 export default function AuthModal({ isOpen, onClose, initialStep = 'role-selection' }: AuthModalProps) {
     const router = useRouter();
@@ -30,6 +30,10 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             setStep(initialStep);
         }
     }, [isOpen, initialStep]);
+
+    useEffect(() => {
+        scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    }, [step, error]);
 
     // Form States
     const [formData, setFormData] = useState({
@@ -52,6 +56,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
     });
     const [profilePicture, setProfilePicture] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
 
     // Step 2: Professional Info
     const [professionalInfo, setProfessionalInfo] = useState({
@@ -71,13 +76,22 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
 
     // Step 3: Survey & Pricing
     const [survey, setSurvey] = useState({
-        isFullTime: false,
-        speedQualityCommitment: 'Yes'
+        disagreementHandling: '',
+        hoursPerDay: '',
+        clientUpdates: '',
+        biggestChallenge: '',
+        discoverySource: ''
     });
     const [pricing, setPricing] = useState({
         basic: { price: 500, days: 3, description: '' },
         standard: { price: 1000, days: 5, description: '' },
         premium: { price: 2000, days: 7, description: '' }
+    });
+    const [withdrawalMethod, setWithdrawalMethod] = useState<{ method: 'vodafone_cash' | 'instapay' | 'bank'; phoneNumber: string; accountNumber: string; bankName: string }>({
+        method: 'vodafone_cash',
+        phoneNumber: '',
+        accountNumber: '',
+        bankName: ''
     });
 
     // Reset state when modal opens/closes
@@ -110,7 +124,8 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             setDocumentUploadProgress(null);
             setDocumentUploadingLabel(null);
             setProfessionalInfo({ category: '', experienceYears: '', skills: '', bio: '', isStudent: false, certifications: [], universityIdUrl: '', idDocumentUrl: '', city: '', english: '', arabic: '', extraLanguages: '' });
-            setSurvey({ isFullTime: false, speedQualityCommitment: 'Yes' });
+            setSurvey({ disagreementHandling: '', hoursPerDay: '', clientUpdates: '', biggestChallenge: '', discoverySource: '' });
+            setWithdrawalMethod({ method: 'vodafone_cash', phoneNumber: '', accountNumber: '', bankName: '' });
             setPricing({ basic: { price: 500, days: 3, description: '' }, standard: { price: 1000, days: 5, description: '' }, premium: { price: 2000, days: 7, description: '' } });
         }
     }, [isOpen]);
@@ -336,7 +351,13 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             skills: professionalInfo.skills.trim().split(/\s+/).filter(Boolean),
             bio: professionalInfo.bio,
             idDocument: professionalInfo.idDocumentUrl || undefined,
-            surveyResponses: { isFullTime: survey.isFullTime, speedQualityCommitment: survey.speedQualityCommitment },
+            surveyResponses: {
+                disagreementHandling: survey.disagreementHandling?.trim() || undefined,
+                hoursPerDay: survey.hoursPerDay?.trim() || undefined,
+                clientUpdates: survey.clientUpdates?.trim() || undefined,
+                biggestChallenge: survey.biggestChallenge?.trim() || undefined,
+                discoverySource: survey.discoverySource?.trim() || undefined
+            },
             starterPricing: pricing
         };
         if (professionalInfo.city) profilePayload.city = professionalInfo.city;
@@ -350,7 +371,16 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
         try {
             if (token) {
                 await api.freelancer.updateProfile(profilePayload);
-                // Clear token so header doesn't show Dashboard until approved
+                if (withdrawalMethod.method && ((withdrawalMethod.method !== 'bank' && withdrawalMethod.phoneNumber?.trim()) || (withdrawalMethod.method === 'bank' && withdrawalMethod.accountNumber?.trim() && withdrawalMethod.bankName?.trim()))) {
+                    try {
+                        await api.withdrawalMethods.add({
+                            method: withdrawalMethod.method,
+                            phoneNumber: withdrawalMethod.method !== 'bank' ? withdrawalMethod.phoneNumber?.trim() : undefined,
+                            accountNumber: withdrawalMethod.method === 'bank' ? withdrawalMethod.accountNumber?.trim() : undefined,
+                            bankName: withdrawalMethod.method === 'bank' ? withdrawalMethod.bankName?.trim() : undefined
+                        });
+                    } catch { /* ignore */ }
+                }
                 const updated = await api.freelancer.getProfile();
                 if (updated?.freelancerProfile?.status === 'pending') {
                     localStorage.removeItem('token');
@@ -369,6 +399,14 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                 };
                 if (formData.dob) registerData.dateOfBirth = formData.dob;
                 if (profilePicture) registerData.profilePicture = profilePicture;
+                if (withdrawalMethod.method && ((withdrawalMethod.method !== 'bank' && withdrawalMethod.phoneNumber?.trim()) || (withdrawalMethod.method === 'bank' && withdrawalMethod.accountNumber?.trim() && withdrawalMethod.bankName?.trim()))) {
+                    registerData.withdrawalMethod = {
+                        method: withdrawalMethod.method,
+                        phoneNumber: withdrawalMethod.method !== 'bank' ? withdrawalMethod.phoneNumber?.trim() : undefined,
+                        accountNumber: withdrawalMethod.method === 'bank' ? withdrawalMethod.accountNumber?.trim() : undefined,
+                        bankName: withdrawalMethod.method === 'bank' ? withdrawalMethod.bankName?.trim() : undefined
+                    };
+                }
                 await api.auth.register(registerData);
                 // Don't save token/user - freelancer is pending. Header would show Dashboard but it doesn't work until approved.
             }
@@ -409,7 +447,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4">
             <div className="relative w-full max-w-2xl bg-white rounded-2xl md:rounded-3xl shadow-2xl max-h-[92vh] md:max-h-[90vh] flex flex-col overflow-hidden">
-                <div className="overflow-y-auto flex-1 px-4 md:px-8 pb-6 md:pb-8 min-h-0 pt-2">
+                <div ref={scrollContainerRef} className="overflow-y-auto flex-1 px-4 md:px-8 pb-6 md:pb-8 min-h-0 pt-2">
 
                     {step === 'role-selection' && (
                         <div className="text-center py-2 md:py-4">
@@ -1240,22 +1278,34 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                             {error && <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center gap-2 text-sm mb-4"><div className="w-2 h-2 bg-red-500 rounded-full"></div>{error}</div>}
 
                             <div className="space-y-8">
-                                {/* Survey */}
-                                <div className="space-y-4">
-                                    <h4 className="text-lg font-bold text-gray-900">Availability & Commitment</h4>
-                                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-                                        <span className="font-medium text-gray-700">Are you working Full-time?</span>
-                                        <div className="flex gap-2">
-                                            <button type="button" onClick={() => setSurvey({ ...survey, isFullTime: true })} className={`px-4 py-1 text-sm rounded-lg font-bold border-2 transition-all ${survey.isFullTime ? 'bg-green-100 border-[#09BF44] text-[#09BF44]' : 'bg-gray-50 border-transparent hover:border-gray-200'}`}>Yes</button>
-                                            <button type="button" onClick={() => setSurvey({ ...survey, isFullTime: false })} className={`px-4 py-1 text-sm rounded-lg font-bold border-2 transition-all ${!survey.isFullTime ? 'bg-green-100 border-[#09BF44] text-[#09BF44]' : 'bg-gray-50 border-transparent hover:border-gray-200'}`}>No</button>
-                                        </div>
+                                {/* Survey - 5 questions */}
+                                <div className="space-y-6 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                                    <h4 className="text-lg font-bold text-gray-900">Survey <span className="text-[#09BF44]">(5 questions)</span></h4>
+                                    <div>
+                                        <label className="block font-medium text-gray-700 mb-1">1. What happens if you have a disagreement with the client?</label>
+                                        <input type="text" value={survey.disagreementHandling} onChange={(e) => setSurvey({ ...survey, disagreementHandling: e.target.value })} placeholder="Your answer..." className="w-full p-3 bg-white rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none" />
                                     </div>
                                     <div>
-                                        <span className="block font-medium text-gray-700 mb-2">Speed/Quality Commitment?</span>
-                                        <select value={survey.speedQualityCommitment} onChange={(e) => setSurvey({ ...survey, speedQualityCommitment: e.target.value })} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900">
-                                            <option value="Yes">Yes, I commit to high quality & speed</option>
-                                            <option value="Maybe">Maybe</option>
-                                            <option value="No">No</option>
+                                        <label className="block font-medium text-gray-700 mb-1">2. On average, how many hours per day can you dedicate to Engezhaly?</label>
+                                        <input type="text" value={survey.hoursPerDay} onChange={(e) => setSurvey({ ...survey, hoursPerDay: e.target.value })} placeholder="e.g. 4 hours" className="w-full p-3 bg-white rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="block font-medium text-gray-700 mb-1">3. How do you keep clients updated? Will you be able to update them through chats and online calls?</label>
+                                        <input type="text" value={survey.clientUpdates} onChange={(e) => setSurvey({ ...survey, clientUpdates: e.target.value })} placeholder="Your answer..." className="w-full p-3 bg-white rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="block font-medium text-gray-700 mb-1">4. What&apos;s the biggest challenge you could face in a project?</label>
+                                        <input type="text" value={survey.biggestChallenge} onChange={(e) => setSurvey({ ...survey, biggestChallenge: e.target.value })} placeholder="Your answer..." className="w-full p-3 bg-white rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="block font-medium text-gray-700 mb-1">5. Where did you find out about Engezhaly from?</label>
+                                        <select value={survey.discoverySource} onChange={(e) => setSurvey({ ...survey, discoverySource: e.target.value })} className="w-full p-3 bg-white rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none">
+                                            <option value="">Select...</option>
+                                            <option value="TikTok">TikTok</option>
+                                            <option value="Instagram">Instagram</option>
+                                            <option value="Google">Google</option>
+                                            <option value="Friends & Family">Friends & Family</option>
+                                            <option value="Other">Other</option>
                                         </select>
                                     </div>
                                 </div>
@@ -1295,11 +1345,73 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
 
                                 <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                                     <button onClick={() => setStep('freelancer-step-2')} className="flex-1 bg-gray-100 text-gray-600 font-bold p-4 rounded-xl hover:bg-gray-200 transition-all">Back</button>
-                                    <button onClick={handleFinalSubmit} disabled={loading} className="flex-1 bg-[#09BF44] text-white font-bold p-4 rounded-xl hover:bg-[#07a63a] transition-all flex items-center justify-center gap-2">
-                                        {loading && <Loader2 className="w-5 h-5 animate-spin" />}
-                                        Submit Application
+                                    <button onClick={() => setStep('freelancer-step-3b')} className="flex-1 bg-[#09BF44] text-white font-bold p-4 rounded-xl hover:bg-[#07a63a] transition-all flex items-center justify-center gap-2">
+                                        Next: Withdrawal Method <ChevronRight className="w-5 h-5" />
                                     </button>
                                 </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* FREELANCER STEP 3b: Withdrawal Method */}
+                    {step === 'freelancer-step-3b' && (
+                        <div className="py-3 md:py-4">
+                            <div className="flex items-center justify-between gap-3 mb-4">
+                                <Image src="/logos/logo-green.png" alt="Engezhaly" width={120} height={33} className="h-8 w-auto" priority />
+                                <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors shrink-0 -m-2 ml-auto">
+                                    <X className="w-5 h-5 text-gray-500" />
+                                </button>
+                            </div>
+                            <div className="bg-gray-100 h-2 w-full rounded-full mb-6">
+                                <div className="bg-[#09BF44] h-full rounded-full transition-all duration-500" style={{ width: '80%' }} />
+                            </div>
+                            <div className="flex items-center justify-center gap-2 mb-4 text-sm font-bold text-gray-400 uppercase tracking-wider">
+                                <span className="text-[#09BF44]">Step 4</span>
+                                <span>/</span>
+                                <span>4</span>
+                            </div>
+                            <h3 className="text-xl md:text-2xl font-bold text-center mb-2">Where would you like your money transferred?</h3>
+                            <p className="text-center text-gray-600 mb-6">Add Vodafone Cash, InstaPay, or bank account to receive withdrawals.</p>
+
+                            {error && <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center gap-2 text-sm mb-4"><div className="w-2 h-2 bg-red-500 rounded-full"></div>{error}</div>}
+
+                            <div className="space-y-6 mb-8">
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Type</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {(['vodafone_cash', 'instapay', 'bank'] as const).map(m => (
+                                            <button key={m} type="button" onClick={() => setWithdrawalMethod({ ...withdrawalMethod, method: m })} className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-colors ${withdrawalMethod.method === m ? 'bg-[#09BF44] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                                                {m.replace('_', ' ').toUpperCase()}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                {(withdrawalMethod.method === 'instapay' || withdrawalMethod.method === 'vodafone_cash') && (
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-1">Phone Number</label>
+                                        <input type="tel" value={withdrawalMethod.phoneNumber} onChange={(e) => setWithdrawalMethod({ ...withdrawalMethod, phoneNumber: e.target.value })} placeholder="01XXXXXXXXX" className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none" />
+                                    </div>
+                                )}
+                                {withdrawalMethod.method === 'bank' && (
+                                    <>
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-1">Account Number</label>
+                                            <input type="text" value={withdrawalMethod.accountNumber} onChange={(e) => setWithdrawalMethod({ ...withdrawalMethod, accountNumber: e.target.value })} placeholder="Account number" className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-1">Bank Name</label>
+                                            <input type="text" value={withdrawalMethod.bankName} onChange={(e) => setWithdrawalMethod({ ...withdrawalMethod, bankName: e.target.value })} placeholder="e.g. CIB, NBE" className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none" />
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                                <button onClick={() => setStep('freelancer-step-3')} className="flex-1 bg-gray-100 text-gray-600 font-bold p-4 rounded-xl hover:bg-gray-200 transition-all">Back</button>
+                                <button onClick={handleFinalSubmit} disabled={loading} className="flex-1 bg-[#09BF44] text-white font-bold p-4 rounded-xl hover:bg-[#07a63a] transition-all flex items-center justify-center gap-2">
+                                    {loading && <Loader2 className="w-5 h-5 animate-spin" />}
+                                    Submit Application
+                                </button>
                             </div>
                         </div>
                     )}

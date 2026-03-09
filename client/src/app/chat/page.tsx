@@ -940,10 +940,12 @@ function ChatPageContent() {
                                     {messages.map((msg, idx) => {
                                         const isAdmin = msg.isAdmin || msg.text?.includes('[Engezhaly Admin]');
                                         const isMeeting = msg.isMeeting || msg.messageType === 'meeting' || msg.text?.includes('[Engezhaly Meeting]');
-                                        const isCentered = isAdmin || isMeeting;
+                                        const isOrder = msg.messageType === 'order' || msg.text?.includes('[Engezhaly Order]');
+                                        const isCentered = isAdmin || isMeeting || isOrder;
                                         let content = msg.text || '';
                                         if (isAdmin) content = content.replace('[Engezhaly Admin]', '').trim();
                                         if (isMeeting) content = content.replace('[Engezhaly Meeting]', '').trim();
+                                        if (isOrder) content = content.replace('[Engezhaly Order]', '').trim();
                                         const linkMatch = content.match(/Join here: (https?:\/\/[^\s]+)/);
                                         const meetingLink = linkMatch ? linkMatch[1] : null;
 
@@ -953,10 +955,17 @@ function ChatPageContent() {
                                                         ? 'bg-yellow-100 border-2 border-yellow-300 text-gray-900'
                                                         : isMeeting
                                                             ? 'bg-green-50 border-2 border-[#09BF44]/40 text-gray-900'
-                                                            : msg.sender === 'me'
-                                                                ? 'bg-[#09BF44] text-white rounded-br-sm'
-                                                                : 'bg-white border border-gray-200 text-gray-900 rounded-bl-sm'
+                                                            : isOrder
+                                                                ? 'bg-blue-50 border-2 border-blue-200 text-gray-900'
+                                                                : msg.sender === 'me'
+                                                                    ? 'bg-[#09BF44] text-white rounded-br-sm'
+                                                                    : 'bg-white border border-gray-200 text-gray-900 rounded-bl-sm'
                                                     }`}>
+                                                    {isOrder && (
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <span className="text-xs font-bold text-blue-700">Order</span>
+                                                        </div>
+                                                    )}
                                                     {isAdmin && (
                                                         <div className="flex items-center gap-2 mb-1">
                                                             <Shield className="w-4 h-4 text-yellow-600" />
@@ -980,7 +989,7 @@ function ChatPageContent() {
                                                             <Video className="w-4 h-4" /> Join Meeting
                                                         </a>
                                                     )}
-                                                    <div className={`flex items-center justify-end mt-1 ${isAdmin ? 'text-yellow-700' : isMeeting ? 'text-[#09BF44]/80' : msg.sender === 'me' ? 'text-green-50' : 'text-gray-500'}`}>
+                                                    <div className={`flex items-center justify-end mt-1 ${isAdmin ? 'text-yellow-700' : isMeeting ? 'text-[#09BF44]/80' : isOrder ? 'text-blue-600/80' : msg.sender === 'me' ? 'text-green-50' : 'text-gray-500'}`}>
                                                         <span className="text-[10px]">
                                                             {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                         </span>
