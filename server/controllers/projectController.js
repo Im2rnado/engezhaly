@@ -34,6 +34,11 @@ const createProject = async (req, res) => {
             return res.status(400).json({ msg: 'Invalid subcategory for this category' });
         }
 
+        const existing = await Project.findOne({ sellerId: req.user.id, subCategory });
+        if (existing) {
+            return res.status(400).json({ msg: 'You already have an offer under this subcategory.' });
+        }
+
         const newProject = new Project({
             sellerId: req.user.id,
             title,
@@ -116,6 +121,12 @@ const updateProject = async (req, res) => {
             if (!isValidCategorySubCategory(cat, subCategory)) {
                 return res.status(400).json({ msg: 'Invalid subcategory for this category' });
             }
+            if (subCategory !== project.subCategory) {
+                const existing = await Project.findOne({ sellerId: req.user.id, subCategory, _id: { $ne: project._id } });
+                if (existing) {
+                    return res.status(400).json({ msg: 'You already have an offer under this subcategory.' });
+                }
+            }
             project.subCategory = subCategory;
         }
         if (images) project.images = images;
@@ -154,6 +165,11 @@ const createProjectOrder = async (req, res) => {
         const project = await Project.findById(projectId);
         if (!project || !project.isActive) {
             return res.status(404).json({ msg: 'Project not found' });
+        }
+
+        const freelancer = await User.findById(project.sellerId).select('freelancerProfile.isBusy');
+        if (freelancer?.freelancerProfile?.isBusy) {
+            return res.status(400).json({ msg: 'Freelancer is busy and not accepting orders.' });
         }
 
         const pkgIdx = Number(packageIndex);

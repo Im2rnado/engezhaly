@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState, useRef, useCallback } from 'react';
+import { Suspense, useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
 import { Send, Video, Paperclip, MoreVertical, FileText, CheckCircle, XCircle, MessageSquare, Shield, PanelLeft, ArrowLeft, Loader2 } from 'lucide-react';
@@ -298,9 +298,25 @@ function ChatPageContent() {
         }
     }, [activeChat, currentUser, resolveUserId]);
 
+    const mergedFeed = useMemo(() => {
+        const offerItems = (offers || []).map((o: any) => ({
+            type: 'offer' as const,
+            id: `offer-${o._id}`,
+            sortTime: o.createdAt ? new Date(o.createdAt).getTime() : 0,
+            data: o
+        }));
+        const msgItems = (messages || []).map((m: any, idx: number) => ({
+            type: 'message' as const,
+            id: m._id || `msg-${idx}`,
+            sortTime: m.timestamp ? new Date(m.timestamp).getTime() : 0,
+            data: m
+        }));
+        return [...offerItems, ...msgItems].sort((a, b) => a.sortTime - b.sortTime);
+    }, [offers, messages]);
+
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
+    }, [messages, offers]);
 
     const sendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -851,93 +867,93 @@ function ChatPageContent() {
                                     </div>
                                 </div>
 
-                                {/* Messages */}
+                                {/* Messages and offers (merged by timestamp) */}
                                 <div style={{ overflowY: 'auto', overflowX: 'hidden' }} className="flex-1 p-3 md:p-6 space-y-4 bg-gradient-to-b from-gray-50 to-white rounded-b-2xl md:rounded-b-3xl min-h-0">
-                                    {/* Display offers */}
-                                    {offers.map((offer: any) => {
-                                        const currentUserId = resolveUserId();
-                                        const isMyOffer =
-                                            String(offer.senderId?._id || offer.senderId) === String(currentUserId);
-                                        const canAccept = !isMyOffer && offer.status === 'pending';
+                                    {mergedFeed.map((item) => {
+                                        if (item.type === 'offer') {
+                                            const offer = item.data;
+                                            const currentUserId = resolveUserId();
+                                            const isMyOffer =
+                                                String(offer.senderId?._id || offer.senderId) === String(currentUserId);
+                                            const canAccept = !isMyOffer && offer.status === 'pending';
 
-                                        return (
-                                            <div key={offer._id} className={`flex ${isMyOffer ? 'justify-end' : 'justify-start'}`}>
-                                                <div className={`max-w-[88%] md:max-w-[75%] p-4 md:p-5 rounded-2xl md:rounded-3xl shadow-sm border-2 ${isMyOffer
-                                                    ? 'bg-[#09BF44] text-white border-[#09BF44]'
-                                                    : 'bg-white border-[#09BF44]/20'
-                                                    }`}>
-                                                    <div className="flex items-center gap-2 mb-3">
-                                                        <FileText className={`w-5 h-5 ${isMyOffer ? 'text-white' : 'text-[#09BF44]'}`} />
-                                                        <span className={`font-bold text-base ${isMyOffer ? 'text-white' : 'text-gray-900'}`}>
-                                                            Custom Offer
-                                                        </span>
+                                            return (
+                                                <div key={item.id} className={`flex ${isMyOffer ? 'justify-end' : 'justify-start'}`}>
+                                                    <div className={`max-w-[88%] md:max-w-[75%] p-4 md:p-5 rounded-2xl md:rounded-3xl shadow-sm border-2 ${isMyOffer
+                                                        ? 'bg-[#09BF44] text-white border-[#09BF44]'
+                                                        : 'bg-white border-[#09BF44]/20'
+                                                        }`}>
+                                                        <div className="flex items-center gap-2 mb-3">
+                                                            <FileText className={`w-5 h-5 ${isMyOffer ? 'text-white' : 'text-[#09BF44]'}`} />
+                                                            <span className={`font-bold text-base ${isMyOffer ? 'text-white' : 'text-gray-900'}`}>
+                                                                Custom Offer
+                                                            </span>
+                                                            {offer.status === 'accepted' && (
+                                                                <CheckCircle className={`w-5 h-5 ml-auto ${isMyOffer ? 'text-white' : 'text-green-600'}`} />
+                                                            )}
+                                                            {offer.status === 'rejected' && (
+                                                                <XCircle className={`w-5 h-5 ml-auto ${isMyOffer ? 'text-white' : 'text-red-600'}`} />
+                                                            )}
+                                                        </div>
+
+                                                        <div className={`space-y-3 mb-4 ${isMyOffer ? 'text-white/95' : 'text-gray-700'}`}>
+                                                            <div className="flex items-center justify-between bg-white/10 rounded-xl p-3">
+                                                                <span className="text-sm font-bold">Price:</span>
+                                                                <span className="text-lg font-black">{offer.price} EGP</span>
+                                                            </div>
+                                                            {canAccept && (
+                                                                <div className="text-xs opacity-90">
+                                                                    + 20 EGP fee = {offer.price + 20} EGP total to pay
+                                                                </div>
+                                                            )}
+                                                            <div className="flex items-center justify-between">
+                                                                <span className="text-sm font-bold">Delivery:</span>
+                                                                <span className="text-sm font-medium">
+                                                                    {offer.deliveryDate ? formatDateDDMMYYYY(offer.deliveryDate) : (offer.deliveryDays ? `${offer.deliveryDays} days` : '—')}
+                                                                </span>
+                                                            </div>
+                                                            <div className="pt-3 border-t border-white/20">
+                                                                <p className="text-sm font-bold mb-2">What&apos;s Included:</p>
+                                                                <p className="text-sm leading-relaxed">{offer.whatsIncluded}</p>
+                                                            </div>
+                                                            {offer.milestones && offer.milestones.length > 0 && (
+                                                                <div className="pt-3 border-t border-white/20">
+                                                                    <p className="text-sm font-bold mb-2">Milestones:</p>
+                                                                    {offer.milestones.map((milestone: any, idx: number) => (
+                                                                        <div key={idx} className="text-xs mb-1.5 flex items-center gap-2">
+                                                                            <div className="w-1.5 h-1.5 rounded-full bg-current opacity-60"></div>
+                                                                            {milestone.name}: {milestone.price} EGP
+                                                                            {milestone.dueDate && ` (Due: ${formatDateDDMMYYYY(milestone.dueDate)})`}
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        {canAccept && (
+                                                            <button
+                                                                onClick={() => handleAcceptOffer(offer)}
+                                                                className="w-full bg-white text-[#09BF44] font-bold py-3 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
+                                                            >
+                                                                Accept Offer
+                                                            </button>
+                                                        )}
                                                         {offer.status === 'accepted' && (
-                                                            <CheckCircle className={`w-5 h-5 ml-auto ${isMyOffer ? 'text-white' : 'text-green-600'}`} />
+                                                            <div className="text-center text-sm font-bold opacity-80 py-2">
+                                                                ✓ Offer Accepted
+                                                            </div>
                                                         )}
                                                         {offer.status === 'rejected' && (
-                                                            <XCircle className={`w-5 h-5 ml-auto ${isMyOffer ? 'text-white' : 'text-red-600'}`} />
-                                                        )}
-                                                    </div>
-
-                                                    <div className={`space-y-3 mb-4 ${isMyOffer ? 'text-white/95' : 'text-gray-700'}`}>
-                                                        <div className="flex items-center justify-between bg-white/10 rounded-xl p-3">
-                                                            <span className="text-sm font-bold">Price:</span>
-                                                            <span className="text-lg font-black">{offer.price} EGP</span>
-                                                        </div>
-                                                        {canAccept && (
-                                                            <div className="text-xs opacity-90">
-                                                                + 20 EGP fee = {offer.price + 20} EGP total to pay
-                                                            </div>
-                                                        )}
-                                                        <div className="flex items-center justify-between">
-                                                            <span className="text-sm font-bold">Delivery:</span>
-                                                            <span className="text-sm font-medium">
-                                                                {offer.deliveryDate ? formatDateDDMMYYYY(offer.deliveryDate) : (offer.deliveryDays ? `${offer.deliveryDays} days` : '—')}
-                                                            </span>
-                                                        </div>
-                                                        <div className="pt-3 border-t border-white/20">
-                                                            <p className="text-sm font-bold mb-2">What&apos;s Included:</p>
-                                                            <p className="text-sm leading-relaxed">{offer.whatsIncluded}</p>
-                                                        </div>
-                                                        {offer.milestones && offer.milestones.length > 0 && (
-                                                            <div className="pt-3 border-t border-white/20">
-                                                                <p className="text-sm font-bold mb-2">Milestones:</p>
-                                                                {offer.milestones.map((milestone: any, idx: number) => (
-                                                                    <div key={idx} className="text-xs mb-1.5 flex items-center gap-2">
-                                                                        <div className="w-1.5 h-1.5 rounded-full bg-current opacity-60"></div>
-                                                                        {milestone.name}: {milestone.price} EGP
-                                                                        {milestone.dueDate && ` (Due: ${formatDateDDMMYYYY(milestone.dueDate)})`}
-                                                                    </div>
-                                                                ))}
+                                                            <div className="text-center text-sm font-bold opacity-80 py-2">
+                                                                ✗ Offer Rejected
                                                             </div>
                                                         )}
                                                     </div>
-
-                                                    {canAccept && (
-                                                        <button
-                                                            onClick={() => handleAcceptOffer(offer)}
-                                                            className="w-full bg-white text-[#09BF44] font-bold py-3 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
-                                                        >
-                                                            Accept Offer
-                                                        </button>
-                                                    )}
-                                                    {offer.status === 'accepted' && (
-                                                        <div className="text-center text-sm font-bold opacity-80 py-2">
-                                                            ✓ Offer Accepted
-                                                        </div>
-                                                    )}
-                                                    {offer.status === 'rejected' && (
-                                                        <div className="text-center text-sm font-bold opacity-80 py-2">
-                                                            ✗ Offer Rejected
-                                                        </div>
-                                                    )}
                                                 </div>
-                                            </div>
-                                        );
-                                    })}
+                                            );
+                                        }
 
-                                    {/* Display messages */}
-                                    {messages.map((msg, idx) => {
+                                        const msg = item.data;
                                         const isAdmin = msg.isAdmin || msg.text?.includes('[Engezhaly Admin]');
                                         const isMeeting = msg.isMeeting || msg.messageType === 'meeting' || msg.text?.includes('[Engezhaly Meeting]');
                                         const isOrder = msg.messageType === 'order' || msg.text?.includes('[Engezhaly Order]');
@@ -950,7 +966,7 @@ function ChatPageContent() {
                                         const meetingLink = linkMatch ? linkMatch[1] : null;
 
                                         return (
-                                            <div key={msg._id || idx} className={`flex w-full ${isCentered ? 'justify-center' : msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
+                                            <div key={item.id} className={`flex w-full ${isCentered ? 'justify-center' : msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
                                                 <div className={`max-w-[88%] md:max-w-[70%] px-4 py-2 rounded-2xl shadow-sm ${isAdmin
                                                         ? 'bg-yellow-100 border-2 border-yellow-300 text-gray-900'
                                                         : isMeeting

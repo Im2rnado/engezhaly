@@ -143,6 +143,10 @@ export const api = {
                 headers: getHeaders(),
                 body: JSON.stringify(data),
             });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.msg || err.message || 'Failed to update profile');
+            }
             return res.json();
         },
         getProfile: async () => {
@@ -606,6 +610,14 @@ export const api = {
                 headers: getHeaders()
             });
             if (!res.ok && isUnauthorized(res)) throw new Error('Session expired. Please log in again.');
+            return res.json();
+        },
+        getUserById: async (id: string) => {
+            const res = await fetch(`${API_URL}/admin/users/${id}`, {
+                method: 'GET',
+                headers: getHeaders()
+            });
+            if (!res.ok) throw new Error('User not found');
             return res.json();
         },
         updateUser: async (id: string, data: any) => {

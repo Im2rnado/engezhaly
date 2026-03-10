@@ -17,6 +17,8 @@ const updateProfile = async (req, res) => {
             skills,
             surveyResponses,
             starterPricing,
+            starterOffer,
+            signupNotes,
             bio,
             idDocument,
             profilePicture,
@@ -54,6 +56,8 @@ const updateProfile = async (req, res) => {
         }
         if (surveyResponses) user.freelancerProfile.surveyResponses = surveyResponses;
         if (starterPricing) user.freelancerProfile.starterPricing = starterPricing;
+        if (starterOffer !== undefined && typeof starterOffer === 'object') user.freelancerProfile.starterOffer = starterOffer;
+        if (signupNotes !== undefined && typeof signupNotes === 'string') user.freelancerProfile.signupNotes = signupNotes.trim();
         if (bio !== undefined) user.freelancerProfile.bio = bio;
         if (idDocument) user.freelancerProfile.idDocument = idDocument;
         if (profilePicture !== undefined) user.freelancerProfile.profilePicture = profilePicture;

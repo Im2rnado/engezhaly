@@ -9,14 +9,24 @@ const Project = require('../models/Project');
 const Job = require('../models/Job');
 const Order = require('../models/Order');
 const WithdrawalRequest = require('../models/WithdrawalRequest');
+const WithdrawalMethod = require('../models/WithdrawalMethod');
 
 const getPendingFreelancers = async (req, res) => {
     try {
         const pending = await User.find({
             role: 'freelancer',
             'freelancerProfile.status': 'pending'
-        }).select('-password +phoneNumber +dateOfBirth +freelancerProfile.idDocument');
-        res.json(pending);
+        }).select('-password +phoneNumber +dateOfBirth +freelancerProfile.idDocument').lean();
+        const ids = pending.map(u => u._id);
+        const allMethods = await WithdrawalMethod.find({ userId: { $in: ids } }).sort({ isDefault: -1, createdAt: -1 }).lean();
+        const byUser = allMethods.reduce((acc, m) => {
+            const id = m.userId?.toString?.() || m.userId;
+            if (!acc[id]) acc[id] = [];
+            acc[id].push(m);
+            return acc;
+        }, {});
+        const result = pending.map(u => ({ ...u, withdrawalMethods: byUser[u._id?.toString?.() || u._id] || [] }));
+        res.json(result);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
@@ -288,6 +298,21 @@ const getAllUsers = async (req, res) => {
     try {
         const users = await User.find().select('-password').sort({ createdAt: -1 });
         res.json(users);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+const getUserById = async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id).select('-password +phoneNumber +dateOfBirth +freelancerProfile.idDocument').lean();
+        if (!user) return res.status(404).json({ msg: 'User not found' });
+        if (user.role === 'freelancer') {
+            const withdrawalMethods = await WithdrawalMethod.find({ userId: req.params.id }).sort({ isDefault: -1, createdAt: -1 }).lean();
+            user.withdrawalMethods = withdrawalMethods || [];
+        }
+        res.json(user);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
@@ -626,6 +651,7 @@ module.exports = {
     getInsights,
     searchUser,
     getAllUsers,
+    getUserById,
     updateUser,
     deleteUser,
     getAllProjects,

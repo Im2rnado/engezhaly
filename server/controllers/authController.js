@@ -8,7 +8,7 @@ const { verification: verificationTemplate, passwordReset: passwordResetTemplate
 
 const register = async (req, res) => {
     try {
-        const { firstName, lastName, username, email, password, role, phoneNumber, businessType, profilePicture, dateOfBirth, clientProfile, category, experienceYears, isStudent, certificates, certifications, universityId, skills, bio, idDocument, surveyResponses, starterPricing, city, languages, extraLanguages, withdrawalMethod } = req.body;
+        const { firstName, lastName, username, email, password, role, phoneNumber, businessType, profilePicture, dateOfBirth, clientProfile, category, experienceYears, isStudent, certificates, certifications, universityId, skills, bio, idDocument, surveyResponses, starterPricing, starterOffer, portfolio, signupNotes, city, languages, extraLanguages, withdrawalMethod } = req.body;
 
         const emailNorm = (email || '').trim().toLowerCase();
         if (!emailNorm) {
@@ -73,6 +73,9 @@ const register = async (req, res) => {
             if (idDocument) userData.freelancerProfile.idDocument = idDocument;
             if (surveyResponses && typeof surveyResponses === 'object') userData.freelancerProfile.surveyResponses = surveyResponses;
             if (starterPricing && typeof starterPricing === 'object') userData.freelancerProfile.starterPricing = starterPricing;
+            if (starterOffer && typeof starterOffer === 'object') userData.freelancerProfile.starterOffer = starterOffer;
+            if (portfolio && Array.isArray(portfolio)) userData.freelancerProfile.portfolio = portfolio;
+            if (signupNotes && typeof signupNotes === 'string') userData.freelancerProfile.signupNotes = signupNotes.trim();
             if (city) userData.freelancerProfile.city = city;
             if (languages && typeof languages === 'object') {
                 userData.freelancerProfile.languages = {};

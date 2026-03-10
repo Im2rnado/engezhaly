@@ -177,6 +177,11 @@ const acceptProposal = async (req, res) => {
             return res.status(404).json({ msg: 'Proposal not found' });
         }
 
+        const freelancer = await User.findById(proposal.freelancerId).select('freelancerProfile.isBusy');
+        if (freelancer?.freelancerProfile?.isBusy) {
+            return res.status(400).json({ msg: 'This freelancer is busy and not accepting new work.' });
+        }
+
         const amount = Number(proposal.price) || job.budgetRange?.min || 500;
         const clientFee = 20; // 20 EGP platform fee charged to client
         const totalClientPays = amount + clientFee;

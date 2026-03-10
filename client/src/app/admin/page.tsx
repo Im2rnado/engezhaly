@@ -11,6 +11,229 @@ import { useModal } from '@/context/ModalContext';
 import EditModal from '@/components/EditModal';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 
+function UserDetailPanel({ user, onBack, onEdit, onDelete }: { user: any; onBack: () => void; onEdit: () => void; onDelete: () => void }) {
+    const fp = user.freelancerProfile;
+    const cp = user.clientProfile;
+    const isFreelancer = user.role === 'freelancer';
+    const isClient = user.role === 'client';
+
+    return (
+        <div className="flex flex-col h-full">
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between shrink-0">
+                <button onClick={onBack} className="flex items-center gap-2 text-gray-600 hover:text-gray-900 font-bold">
+                    <ArrowLeft className="w-5 h-5" /> Back
+                </button>
+                <div className="flex gap-2">
+                    <button onClick={onEdit} className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl"><Edit className="w-5 h-5" /></button>
+                    <button onClick={onDelete} className="p-2 text-red-600 hover:bg-red-50 rounded-xl"><Trash2 className="w-5 h-5" /></button>
+                </div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 md:p-8">
+                <div className="flex items-center gap-6 mb-8">
+                    {fp?.profilePicture ? (
+                        <Image src={fp.profilePicture} alt="" width={96} height={96} className="w-24 h-24 rounded-full object-cover border-4 border-gray-100" />
+                    ) : (
+                        <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center text-3xl font-bold text-gray-500">
+                            {user.firstName?.[0]}
+                        </div>
+                    )}
+                    <div>
+                        <h2 className="text-2xl font-black text-gray-900">{user.firstName} {user.lastName}</h2>
+                        <p className="text-gray-500">@{user.username}</p>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                            <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${user.role === 'admin' ? 'bg-purple-100 text-purple-600' : user.role === 'freelancer' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>{user.role}</span>
+                            {fp?.category && <span className="px-3 py-1 bg-[#09BF44]/10 text-[#09BF44] text-sm font-bold rounded-full">{fp.category}</span>}
+                            {fp?.isStudent && <span className="px-3 py-1 bg-blue-100 text-blue-700 text-sm font-bold rounded-full">STUDENT</span>}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="space-y-8">
+                    <div>
+                        <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Personal Information</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="bg-gray-50 p-4 rounded-xl"><p className="text-xs font-bold text-gray-400 mb-1">Email</p><p className="font-medium text-gray-900">{user.email}</p></div>
+                            <div className="bg-gray-50 p-4 rounded-xl"><p className="text-xs font-bold text-gray-400 mb-1">Phone</p><p className="font-medium text-gray-900">{user.phoneNumber || 'Not provided'}</p></div>
+                            {(isFreelancer || user.dateOfBirth) && <div className="bg-gray-50 p-4 rounded-xl"><p className="text-xs font-bold text-gray-400 mb-1">Date of Birth</p><p className="font-medium text-gray-900">{user.dateOfBirth ? formatDateDDMMYYYY(user.dateOfBirth) : 'Not provided'}</p></div>}
+                            {fp?.city && <div className="bg-gray-50 p-4 rounded-xl"><p className="text-xs font-bold text-gray-400 mb-1">City</p><p className="font-medium text-gray-900">{fp.city}</p></div>}
+                            {(fp?.languages?.english || fp?.languages?.arabic) && (
+                                <div className="bg-gray-50 p-4 rounded-xl">
+                                    <p className="text-xs font-bold text-gray-400 mb-1">Languages</p>
+                                    <p className="font-medium text-gray-900">{[fp.languages.english && `English: ${fp.languages.english}`, fp.languages.arabic && `Arabic: ${fp.languages.arabic}`].filter(Boolean).join(' • ')}</p>
+                                </div>
+                            )}
+                            {fp?.extraLanguages?.length > 0 && <div className="bg-gray-50 p-4 rounded-xl md:col-span-2"><p className="text-xs font-bold text-gray-400 mb-1">Other Languages</p><p className="font-medium text-gray-900">{fp.extraLanguages.join(', ')}</p></div>}
+                            <div className="bg-gray-50 p-4 rounded-xl"><p className="text-xs font-bold text-gray-400 mb-1">Joined</p><p className="font-medium text-gray-900">{formatDateDDMMYYYY(user.createdAt)}</p></div>
+                            {user.role === 'freelancer' && <div className="bg-gray-50 p-4 rounded-xl"><p className="text-xs font-bold text-gray-400 mb-1">Status</p><p className="font-medium text-gray-900">{fp?.status === 'approved' ? 'Approved' : fp?.status === 'rejected' ? 'Rejected' : 'Pending'}</p></div>}
+                        </div>
+                    </div>
+
+                    {isClient && cp && (
+                        <div>
+                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Client Profile</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="bg-gray-50 p-4 rounded-xl"><p className="text-xs font-bold text-gray-400 mb-1">Business Type</p><p className="font-medium text-gray-900">{user.businessType || 'Not set'}</p></div>
+                                {cp.companyName && <div className="bg-gray-50 p-4 rounded-xl"><p className="text-xs font-bold text-gray-400 mb-1">Company</p><p className="font-medium text-gray-900">{cp.companyName}</p></div>}
+                                {cp.position && <div className="bg-gray-50 p-4 rounded-xl"><p className="text-xs font-bold text-gray-400 mb-1">Position</p><p className="font-medium text-gray-900">{cp.position}</p></div>}
+                                {cp.companyDescription && <div className="bg-gray-50 p-4 rounded-xl md:col-span-2"><p className="text-xs font-bold text-gray-400 mb-1">Description</p><p className="font-medium text-gray-900">{cp.companyDescription}</p></div>}
+                                {(cp.linkedIn || cp.instagram || cp.facebook || cp.tiktok) && (
+                                    <div className="bg-gray-50 p-4 rounded-xl md:col-span-2">
+                                        <p className="text-xs font-bold text-gray-400 mb-2">Social Links</p>
+                                        <div className="flex flex-wrap gap-3">
+                                            {cp.linkedIn && <a href={cp.linkedIn.startsWith('http') ? cp.linkedIn : `https://${cp.linkedIn}`} target="_blank" rel="noopener noreferrer" className="text-[#09BF44] hover:underline">LinkedIn</a>}
+                                            {cp.instagram && <a href={cp.instagram.startsWith('http') ? cp.instagram : `https://${cp.instagram}`} target="_blank" rel="noopener noreferrer" className="text-[#09BF44] hover:underline">Instagram</a>}
+                                            {cp.facebook && <a href={cp.facebook.startsWith('http') ? cp.facebook : `https://${cp.facebook}`} target="_blank" rel="noopener noreferrer" className="text-[#09BF44] hover:underline">Facebook</a>}
+                                            {cp.tiktok && <a href={cp.tiktok.startsWith('http') ? cp.tiktok : `https://${cp.tiktok}`} target="_blank" rel="noopener noreferrer" className="text-[#09BF44] hover:underline">TikTok</a>}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {isFreelancer && fp?.bio && (
+                        <div>
+                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Bio</h4>
+                            <p className="text-gray-700 bg-gray-50 p-4 rounded-xl leading-relaxed whitespace-pre-wrap">{fp.bio}</p>
+                        </div>
+                    )}
+
+                    {isFreelancer && (
+                        <>
+                            <div>
+                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Professional Details</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="bg-gray-50 p-4 rounded-xl"><p className="text-xs font-bold text-gray-400 mb-1">Experience</p><p className="font-medium text-gray-900">{fp?.experienceYears != null ? `${fp.experienceYears} years` : 'Not provided'}</p></div>
+                                    <div className="bg-gray-50 p-4 rounded-xl"><p className="text-xs font-bold text-gray-400 mb-1">Student</p><p className="font-medium text-gray-900">{fp?.isStudent ? 'Yes' : 'No'}</p></div>
+                                </div>
+                            </div>
+
+                            {fp?.surveyResponses && (fp.surveyResponses.disagreementHandling || fp.surveyResponses.hoursPerDay || fp.surveyResponses.clientUpdates || fp.surveyResponses.biggestChallenge || fp.surveyResponses.discoverySource) && (
+                                <div>
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Survey Responses</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        {fp.surveyResponses.disagreementHandling && <div className="bg-gray-50 p-4 rounded-xl"><p className="text-xs font-bold text-gray-400 mb-1">Disagreement handling</p><p className="font-medium text-gray-900">{fp.surveyResponses.disagreementHandling}</p></div>}
+                                        {fp.surveyResponses.hoursPerDay && <div className="bg-gray-50 p-4 rounded-xl"><p className="text-xs font-bold text-gray-400 mb-1">Hours per day</p><p className="font-medium text-gray-900">{fp.surveyResponses.hoursPerDay}</p></div>}
+                                        {fp.surveyResponses.clientUpdates && <div className="bg-gray-50 p-4 rounded-xl"><p className="text-xs font-bold text-gray-400 mb-1">Client updates</p><p className="font-medium text-gray-900">{fp.surveyResponses.clientUpdates}</p></div>}
+                                        {fp.surveyResponses.biggestChallenge && <div className="bg-gray-50 p-4 rounded-xl"><p className="text-xs font-bold text-gray-400 mb-1">Biggest challenge</p><p className="font-medium text-gray-900">{fp.surveyResponses.biggestChallenge}</p></div>}
+                                        {fp.surveyResponses.discoverySource && <div className="bg-gray-50 p-4 rounded-xl"><p className="text-xs font-bold text-gray-400 mb-1">Discovery source</p><p className="font-medium text-gray-900">{fp.surveyResponses.discoverySource}</p></div>}
+                                    </div>
+                                </div>
+                            )}
+
+                            {fp?.skills?.length > 0 && (
+                                <div>
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Skills</h4>
+                                    <div className="flex flex-wrap gap-2">{fp.skills.map((s: string) => <span key={s} className="px-3 py-1 bg-[#09BF44] text-white text-sm font-medium rounded-full">{s}</span>)}</div>
+                                </div>
+                            )}
+
+                            {fp?.starterOffer?.title && (
+                                <div>
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Starter Offer</h4>
+                                    <div className="bg-gray-50 p-4 rounded-xl mb-4">
+                                        <p className="font-bold text-gray-900 text-lg">{fp.starterOffer.title}</p>
+                                        {fp.starterOffer.subCategory && <span className="inline-block mt-1 px-2 py-0.5 bg-[#09BF44]/10 text-[#09BF44] text-xs font-bold rounded">{fp.starterOffer.subCategory}</span>}
+                                        {fp.starterOffer.description && <p className="text-gray-600 text-sm mt-2">{fp.starterOffer.description}</p>}
+                                    </div>
+                                    {fp.starterOffer.packages?.length > 0 && (
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            {fp.starterOffer.packages.map((pkg: any, i: number) => (
+                                                <div key={i} className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                                    <h5 className="font-bold text-[#09BF44] mb-2">{pkg.type}</h5>
+                                                    <p className="text-gray-900 font-bold">{pkg.price} EGP</p>
+                                                    <p className="text-gray-500 text-sm">{pkg.days} day delivery</p>
+                                                    {pkg.features?.filter((f: string) => f?.trim()).length > 0 && <ul className="mt-2 space-y-1 text-sm">{pkg.features.filter((f: string) => f?.trim()).map((f: string, j: number) => <li key={j} className="flex gap-1"><Check className="w-4 h-4 text-[#09BF44] shrink-0" /><span>{f}</span></li>)}</ul>}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {fp?.starterPricing && !fp?.starterOffer?.title && (
+                                <div>
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Starter Pricing</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        {(['basic', 'standard', 'premium'] as const).map((tier) => {
+                                            const pkg = fp.starterPricing[tier];
+                                            return pkg ? <div key={tier} className="bg-gray-50 p-4 rounded-xl"><h5 className="font-bold text-[#09BF44] capitalize">{tier}</h5><p className="font-bold">{pkg.price} EGP</p><p className="text-sm text-gray-500">{pkg.days} days</p></div> : null;
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            {fp?.portfolio?.length > 0 && (
+                                <div>
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Portfolio</h4>
+                                    <div className="space-y-3">
+                                        {fp.portfolio.filter((p: any) => p?.title?.trim()).map((item: any, i: number) => (
+                                            <div key={i} className="bg-gray-50 p-4 rounded-xl">
+                                                <p className="font-bold text-gray-900">{item.title}</p>
+                                                {item.subCategory && <span className="text-xs text-gray-500">{item.subCategory}</span>}
+                                                {item.description && <p className="text-sm text-gray-600 mt-1">{item.description}</p>}
+                                                {item.link && <a href={item.link.startsWith('http') ? item.link : `https://${item.link}`} target="_blank" rel="noopener noreferrer" className="text-sm text-[#09BF44] hover:underline">View →</a>}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                                    {fp?.signupNotes && (
+                                <div>
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Signup Notes</h4>
+                                    <p className="text-gray-700 bg-gray-50 p-4 rounded-xl whitespace-pre-wrap">{fp.signupNotes}</p>
+                                </div>
+                            )}
+
+                            {user.withdrawalMethods?.length > 0 && (
+                                <div>
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Withdrawal Methods</h4>
+                                    <div className="space-y-3">
+                                        {user.withdrawalMethods.map((wm: any, i: number) => (
+                                            <div key={i} className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                                <span className="inline-block px-2 py-0.5 bg-[#09BF44]/10 text-[#09BF44] text-xs font-bold rounded capitalize">{wm.method?.replace('_', ' ')}</span>
+                                                {(wm.method === 'vodafone_cash' || wm.method === 'instapay') && wm.phoneNumber && <p className="text-gray-900 font-medium mt-2">{wm.phoneNumber}</p>}
+                                                {wm.method === 'bank' && (wm.accountNumber || wm.bankName) && <p className="text-gray-900 font-medium mt-2">{wm.bankName}{wm.bankName && wm.accountNumber ? ' · ' : ''}{wm.accountNumber}</p>}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div>
+                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Documents</h4>
+                                <div className="space-y-4">
+                                    <div className="bg-gray-50 p-4 rounded-xl">
+                                        <p className="text-xs font-bold text-gray-400 mb-2">Government ID</p>
+                                        {fp?.idDocument ? <a href={fp.idDocument} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline"><FileText className="w-4 h-4" /> View</a> : <p className="text-sm text-gray-400">None</p>}
+                                    </div>
+                                    {fp?.isStudent && fp?.universityId && (
+                                        <div className="bg-gray-50 p-4 rounded-xl">
+                                            <p className="text-xs font-bold text-gray-400 mb-2">University ID</p>
+                                            <a href={fp.universityId} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline"><FileText className="w-4 h-4" /> View</a>
+                                        </div>
+                                    )}
+                                    {fp?.certifications?.length > 0 && (
+                                        <div className="space-y-2">
+                                            {fp.certifications.map((c: any, i: number) => (
+                                                <div key={i} className="bg-gray-50 p-4 rounded-xl flex justify-between items-center">
+                                                    <span className="font-bold">{c.name}</span>
+                                                    {c.documentUrl && <a href={c.documentUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline"><FileText className="w-4 h-4" /></a>}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function AdminDashboard() {
     const { showModal, hideModal } = useModal();
     const router = useRouter();
@@ -47,6 +270,10 @@ export default function AdminDashboard() {
     const [selectedFreelancer, setSelectedFreelancer] = useState<any>(null);
     const [approvalCategoryFilter, setApprovalCategoryFilter] = useState<string>('');
     const [approvalStarredOnly, setApprovalStarredOnly] = useState(false);
+
+    // Users tab - selected user for detail view
+    const [selectedUser, setSelectedUser] = useState<any>(null);
+    const [selectedUserLoading, setSelectedUserLoading] = useState(false);
 
     // Chats states
     const [selectedChat, setSelectedChat] = useState<any>(null);
@@ -285,6 +512,7 @@ export default function AdminDashboard() {
         try {
             await api.admin.addStrike(userId);
             showModal({ title: 'Success', message: 'Strike added successfully', type: 'success' });
+            if (searchQuery) handleSearchUser();
         } catch (err) {
             console.error(err);
             showModal({ title: 'Error', message: 'Failed to add strike', type: 'error' });
@@ -331,6 +559,19 @@ export default function AdminDashboard() {
                 }
             }
         });
+    };
+
+    const handleSelectUser = async (user: any) => {
+        setSelectedUserLoading(true);
+        setSelectedUser(null);
+        try {
+            const full = await api.admin.getUserById(user._id);
+            setSelectedUser(full);
+        } catch {
+            showModal({ title: 'Error', message: 'Failed to load user details', type: 'error' });
+        } finally {
+            setSelectedUserLoading(false);
+        }
     };
 
     const handleEditUser = (user: any) => {
@@ -642,14 +883,61 @@ export default function AdminDashboard() {
                     </div>
                 )}
 
-                {/* Management Tabs (Tables) */}
-                {(activeTab === 'users' || activeTab === 'projects' || activeTab === 'jobs' || activeTab === 'orders' || activeTab === 'finance') && (
+                {/* Users Tab - Split view with detail panel */}
+                {activeTab === 'users' && (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="lg:col-span-1 bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                            <div className="p-4 border-b border-gray-100">
+                                <h3 className="font-bold text-gray-900">All Users</h3>
+                                <p className="text-sm text-gray-500">{users.length} total</p>
+                            </div>
+                            <div className="overflow-y-auto max-h-[calc(100vh-16rem)]">
+                                {usersLoading ? (
+                                    <div className="p-8 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44]" /></div>
+                                ) : users.length === 0 ? (
+                                    <div className="p-8 text-center text-gray-500">No users yet.</div>
+                                ) : (
+                                    <div className="divide-y divide-gray-100">
+                                        {users.map(user => (
+                                            <div
+                                                key={user._id}
+                                                onClick={() => handleSelectUser(user)}
+                                                className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${selectedUser?._id === user._id ? 'bg-[#09BF44]/10 border-l-4 border-[#09BF44]' : ''}`}
+                                            >
+                                                <p className="font-bold text-gray-900">{user.firstName} {user.lastName}</p>
+                                                <p className="text-sm text-gray-500 truncate">{user.email}</p>
+                                                <span className={`inline-block mt-1 px-2 py-0.5 rounded text-xs font-bold ${user.role === 'admin' ? 'bg-purple-100 text-purple-600' : user.role === 'freelancer' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                                                    {user.role}{user.role === 'freelancer' && user.freelancerProfile?.category ? ` · ${user.freelancerProfile.category}` : ''}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <div className="lg:col-span-2 bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                            {selectedUserLoading ? (
+                                <div className="p-16 flex justify-center"><Loader2 className="w-12 h-12 animate-spin text-[#09BF44]" /></div>
+                            ) : selectedUser ? (
+                                <UserDetailPanel user={selectedUser} onBack={() => setSelectedUser(null)} onEdit={() => handleEditUser(selectedUser)} onDelete={() => handleDeleteUser(selectedUser._id)} />
+                            ) : (
+                                <div className="p-16 text-center text-gray-500">
+                                    <User className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                                    <p className="font-bold text-gray-700">Select a user to view details</p>
+                                    <p className="text-sm mt-1">Click on a user from the list</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Management Tabs (Tables) - projects, jobs, orders, finance */}
+                {(activeTab === 'projects' || activeTab === 'jobs' || activeTab === 'orders' || activeTab === 'finance') && (
                     <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm text-left">
                                 <thead className="bg-gray-50 text-gray-500 font-bold uppercase">
                                     <tr>
-                                        {activeTab === 'users' && <><th className="p-4">Name</th><th className="p-4">Email</th><th className="p-4">Role</th><th className="p-4">Actions</th></>}
                                         {activeTab === 'projects' && <><th className="p-4">Title</th><th className="p-4">Seller</th><th className="p-4">Price Range</th><th className="p-4">Actions</th></>}
                                         {activeTab === 'jobs' && <><th className="p-4">Title</th><th className="p-4">Client</th><th className="p-4">Budget</th><th className="p-4">Actions</th></>}
                                         {activeTab === 'orders' && <><th className="p-4">ID</th><th className="p-4">Project</th><th className="p-4">Buyer</th><th className="p-4">Seller</th><th className="p-4">Amount</th><th className="p-4">Status</th><th className="p-4">Actions</th></>}
@@ -657,23 +945,6 @@ export default function AdminDashboard() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
-                                    {activeTab === 'users' && usersLoading && (
-                                        <tr><td colSpan={4} className="p-8 text-center"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44] mx-auto" /></td></tr>
-                                    )}
-                                    {activeTab === 'users' && !usersLoading && users.length === 0 && (
-                                        <tr><td colSpan={4} className="p-8 text-center text-gray-500">No users yet.</td></tr>
-                                    )}
-                                    {activeTab === 'users' && !usersLoading && users.map(user => (
-                                        <tr key={user._id} className="hover:bg-gray-50">
-                                            <td className="p-4 font-bold">{user.firstName} {user.lastName}</td>
-                                            <td className="p-4 text-gray-600">{user.email}</td>
-                                            <td className="p-4"><span className={`px-2 py-1 rounded text-xs font-bold uppercase ${user.role === 'admin' ? 'bg-purple-100 text-purple-600' : user.role === 'freelancer' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>{user.role === 'freelancer' && user.freelancerProfile?.category ? `${user.role} - ${user.freelancerProfile.category}` : user.role}</span></td>
-                                            <td className="p-4 flex gap-2">
-                                                <button onClick={() => handleEditUser(user)} className="text-blue-500 hover:bg-blue-50 p-2 rounded"><Edit className="w-4 h-4" /></button>
-                                                <button onClick={() => handleDeleteUser(user._id)} className="text-red-500 hover:bg-red-50 p-2 rounded"><Trash2 className="w-4 h-4" /></button>
-                                            </td>
-                                        </tr>
-                                    ))}
                                     {activeTab === 'projects' && projectsLoading && (
                                         <tr><td colSpan={4} className="p-8 text-center"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44] mx-auto" /></td></tr>
                                     )}
@@ -1074,16 +1345,53 @@ export default function AdminDashboard() {
                                                 <p className="text-xs font-bold text-gray-400 mb-1">Student</p>
                                                 <p className="font-medium text-gray-900">{selectedFreelancer.freelancerProfile?.isStudent ? 'Yes' : 'No'}</p>
                                             </div>
-                                            <div className="bg-gray-50 p-4 rounded-xl">
-                                                <p className="text-xs font-bold text-gray-400 mb-1">Full-time</p>
-                                                <p className="font-medium text-gray-900">{selectedFreelancer.freelancerProfile?.surveyResponses?.isFullTime ? 'Yes' : 'No'}</p>
-                                            </div>
-                                            <div className="bg-gray-50 p-4 rounded-xl">
-                                                <p className="text-xs font-bold text-gray-400 mb-1">Speed / Quality Commitment</p>
-                                                <p className="font-medium text-gray-900">{selectedFreelancer.freelancerProfile?.surveyResponses?.speedQualityCommitment || 'Not provided'}</p>
-                                            </div>
+                                            {(selectedFreelancer.freelancerProfile?.extraLanguages?.length > 0) && (
+                                                <div className="bg-gray-50 p-4 rounded-xl md:col-span-2">
+                                                    <p className="text-xs font-bold text-gray-400 mb-1">Other Languages</p>
+                                                    <p className="font-medium text-gray-900">{selectedFreelancer.freelancerProfile.extraLanguages.join(', ')}</p>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
+
+                                    {/* Survey Responses (5 questions) */}
+                                    {(selectedFreelancer.freelancerProfile?.surveyResponses?.disagreementHandling || selectedFreelancer.freelancerProfile?.surveyResponses?.hoursPerDay || selectedFreelancer.freelancerProfile?.surveyResponses?.clientUpdates || selectedFreelancer.freelancerProfile?.surveyResponses?.biggestChallenge || selectedFreelancer.freelancerProfile?.surveyResponses?.discoverySource) && (
+                                        <div>
+                                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Survey Responses</h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                {selectedFreelancer.freelancerProfile.surveyResponses.disagreementHandling && (
+                                                    <div className="bg-gray-50 p-4 rounded-xl">
+                                                        <p className="text-xs font-bold text-gray-400 mb-1">Disagreement handling</p>
+                                                        <p className="font-medium text-gray-900">{selectedFreelancer.freelancerProfile.surveyResponses.disagreementHandling}</p>
+                                                    </div>
+                                                )}
+                                                {selectedFreelancer.freelancerProfile.surveyResponses.hoursPerDay && (
+                                                    <div className="bg-gray-50 p-4 rounded-xl">
+                                                        <p className="text-xs font-bold text-gray-400 mb-1">Hours per day</p>
+                                                        <p className="font-medium text-gray-900">{selectedFreelancer.freelancerProfile.surveyResponses.hoursPerDay}</p>
+                                                    </div>
+                                                )}
+                                                {selectedFreelancer.freelancerProfile.surveyResponses.clientUpdates && (
+                                                    <div className="bg-gray-50 p-4 rounded-xl">
+                                                        <p className="text-xs font-bold text-gray-400 mb-1">Client updates</p>
+                                                        <p className="font-medium text-gray-900">{selectedFreelancer.freelancerProfile.surveyResponses.clientUpdates}</p>
+                                                    </div>
+                                                )}
+                                                {selectedFreelancer.freelancerProfile.surveyResponses.biggestChallenge && (
+                                                    <div className="bg-gray-50 p-4 rounded-xl">
+                                                        <p className="text-xs font-bold text-gray-400 mb-1">Biggest challenge</p>
+                                                        <p className="font-medium text-gray-900">{selectedFreelancer.freelancerProfile.surveyResponses.biggestChallenge}</p>
+                                                    </div>
+                                                )}
+                                                {selectedFreelancer.freelancerProfile.surveyResponses.discoverySource && (
+                                                    <div className="bg-gray-50 p-4 rounded-xl">
+                                                        <p className="text-xs font-bold text-gray-400 mb-1">Discovery source</p>
+                                                        <p className="font-medium text-gray-900">{selectedFreelancer.freelancerProfile.surveyResponses.discoverySource}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {/* Skills */}
                                     {selectedFreelancer.freelancerProfile?.skills?.length > 0 && (
@@ -1097,8 +1405,43 @@ export default function AdminDashboard() {
                                         </div>
                                     )}
 
-                                    {/* Starter Pricing */}
-                                    {selectedFreelancer.freelancerProfile?.starterPricing && (
+                                    {/* Starter Offer */}
+                                    {selectedFreelancer.freelancerProfile?.starterOffer?.title && (
+                                        <div>
+                                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Starter Offer</h4>
+                                            <div className="bg-gray-50 p-4 rounded-xl mb-4">
+                                                <p className="font-bold text-gray-900 text-lg">{selectedFreelancer.freelancerProfile.starterOffer.title}</p>
+                                                {selectedFreelancer.freelancerProfile.starterOffer.subCategory && (
+                                                    <span className="inline-block mt-1 px-2 py-0.5 bg-[#09BF44]/10 text-[#09BF44] text-xs font-bold rounded">{selectedFreelancer.freelancerProfile.starterOffer.subCategory}</span>
+                                                )}
+                                                {selectedFreelancer.freelancerProfile.starterOffer.description && (
+                                                    <p className="text-gray-600 text-sm mt-2 leading-relaxed">{selectedFreelancer.freelancerProfile.starterOffer.description}</p>
+                                                )}
+                                            </div>
+                                            {selectedFreelancer.freelancerProfile.starterOffer.packages?.length > 0 && (
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                    {selectedFreelancer.freelancerProfile.starterOffer.packages.map((pkg: any, i: number) => (
+                                                        <div key={i} className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                                            <h5 className="font-bold text-[#09BF44] mb-2">{pkg.type || ['Basic', 'Standard', 'Premium'][i]}</h5>
+                                                            <p className="text-gray-900 font-bold text-lg">{pkg.price} EGP</p>
+                                                            <p className="text-gray-500 text-sm">{pkg.days} day delivery</p>
+                                                            {pkg.revisions != null && <p className="text-gray-500 text-sm">{pkg.revisions} revision(s)</p>}
+                                                            {pkg.features?.filter((f: string) => f?.trim()).length > 0 && (
+                                                                <ul className="mt-2 space-y-1 text-sm text-gray-600">
+                                                                    {pkg.features.filter((f: string) => f?.trim()).map((f: string, j: number) => (
+                                                                        <li key={j} className="flex items-start gap-1"><Check className="w-4 h-4 text-[#09BF44] shrink-0 mt-0.5" /><span>{f}</span></li>
+                                                                    ))}
+                                                                </ul>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Starter Pricing (legacy - if no starterOffer) */}
+                                    {!selectedFreelancer.freelancerProfile?.starterOffer?.title && selectedFreelancer.freelancerProfile?.starterPricing && (
                                         <div>
                                             <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Starter Pricing</h4>
                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1113,6 +1456,47 @@ export default function AdminDashboard() {
                                                         </div>
                                                     ) : null;
                                                 })}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Portfolio */}
+                                    {selectedFreelancer.freelancerProfile?.portfolio?.length > 0 && (
+                                        <div>
+                                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Portfolio</h4>
+                                            <div className="space-y-3">
+                                                {selectedFreelancer.freelancerProfile.portfolio.filter((p: any) => p?.title?.trim()).map((item: any, i: number) => (
+                                                    <div key={i} className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                                        <p className="font-bold text-gray-900">{item.title}</p>
+                                                        {item.subCategory && <span className="text-xs text-gray-500">{item.subCategory}</span>}
+                                                        {item.description && <p className="text-gray-600 text-sm mt-1">{item.description}</p>}
+                                                        {item.link && <a href={item.link.startsWith('http') ? item.link : `https://${item.link}`} target="_blank" rel="noopener noreferrer" className="text-sm text-[#09BF44] hover:underline mt-1 inline-block">View project →</a>}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Signup Notes */}
+                                    {selectedFreelancer.freelancerProfile?.signupNotes && (
+                                        <div>
+                                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Signup Notes</h4>
+                                            <p className="text-gray-700 bg-gray-50 p-4 rounded-xl leading-relaxed whitespace-pre-wrap">{selectedFreelancer.freelancerProfile.signupNotes}</p>
+                                        </div>
+                                    )}
+
+                                    {/* Withdrawal Methods */}
+                                    {selectedFreelancer.withdrawalMethods?.length > 0 && (
+                                        <div>
+                                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Withdrawal Methods</h4>
+                                            <div className="space-y-3">
+                                                {selectedFreelancer.withdrawalMethods.map((wm: any, i: number) => (
+                                                    <div key={i} className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                                        <span className="inline-block px-2 py-0.5 bg-[#09BF44]/10 text-[#09BF44] text-xs font-bold rounded capitalize">{wm.method?.replace('_', ' ')}</span>
+                                                        {(wm.method === 'vodafone_cash' || wm.method === 'instapay') && wm.phoneNumber && <p className="text-gray-900 font-medium mt-2">{wm.phoneNumber}</p>}
+                                                        {wm.method === 'bank' && (wm.accountNumber || wm.bankName) && <p className="text-gray-900 font-medium mt-2">{wm.bankName}{wm.bankName && wm.accountNumber ? ' · ' : ''}{wm.accountNumber}</p>}
+                                                    </div>
+                                                ))}
                                             </div>
                                         </div>
                                     )}
@@ -1209,7 +1593,7 @@ export default function AdminDashboard() {
 
                 {activeTab === 'rewards' && (
                     <div className="space-y-8">
-                        <div className="bg-linear-to-r from-yellow-500 to-amber-600 p-8 rounded-3xl text-white shadow-xl">
+                        <div className="bg-gradient-to-r from-[#09BF44] to-[#07a63a] p-8 rounded-3xl text-white shadow-xl border border-[#09BF44]/20">
                             <h2 className="text-2xl font-bold mb-2">Employee of the Month Recognition</h2>
                             <p className="opacity-90">Highlighting top talent based on real performance metrics.</p>
                         </div>

@@ -3,10 +3,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { X, User, Briefcase, ChevronRight, Loader2, Eye, EyeOff, Upload, X as XIcon, CheckCircle, Plus } from 'lucide-react';
+import { X, User, Briefcase, ChevronRight, Loader2, Eye, EyeOff, Upload, X as XIcon, CheckCircle, Plus, ImageIcon, Trash2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useModal } from '@/context/ModalContext';
-import { MAIN_CATEGORIES } from '@/lib/categories';
+import { MAIN_CATEGORIES, CATEGORIES } from '@/lib/categories';
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -14,7 +14,7 @@ interface AuthModalProps {
     initialStep?: 'role-selection' | 'client-auth' | 'freelancer-step-1' | 'login' | 'forgot-password';
 }
 
-type ModalStep = 'role-selection' | 'client-auth' | 'freelancer-step-1' | 'freelancer-step-2' | 'freelancer-step-3' | 'freelancer-step-3b' | 'freelancer-step-4' | 'login' | 'forgot-password';
+type ModalStep = 'role-selection' | 'client-auth' | 'freelancer-step-1' | 'freelancer-step-2' | 'freelancer-step-3-offer' | 'freelancer-step-3-survey' | 'freelancer-step-3a' | 'freelancer-step-3b' | 'freelancer-step-4' | 'login' | 'forgot-password';
 
 export default function AuthModal({ isOpen, onClose, initialStep = 'role-selection' }: AuthModalProps) {
     const router = useRouter();
@@ -69,8 +69,8 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
         universityIdUrl: '' as string, // for students
         idDocumentUrl: '' as string, // from file upload
         city: '',
-        english: '',
-        arabic: '',
+        english: 'Fluent',
+        arabic: 'Fluent',
         extraLanguages: '' // Other languages (space or Enter), no fluency
     });
 
@@ -82,17 +82,26 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
         biggestChallenge: '',
         discoverySource: ''
     });
-    const [pricing, setPricing] = useState({
-        basic: { price: 500, days: 3, description: '' },
-        standard: { price: 1000, days: 5, description: '' },
-        premium: { price: 2000, days: 7, description: '' }
-    });
     const [withdrawalMethod, setWithdrawalMethod] = useState<{ method: 'vodafone_cash' | 'instapay' | 'bank'; phoneNumber: string; accountNumber: string; bankName: string }>({
         method: 'vodafone_cash',
         phoneNumber: '',
         accountNumber: '',
         bankName: ''
     });
+    const [signupNotes, setSignupNotes] = useState('');
+    const [surveyStep, setSurveyStep] = useState(1);
+    const [starterOffer, setStarterOffer] = useState({
+        title: '',
+        description: '',
+        subCategory: '',
+        images: [] as string[],
+        packages: [
+            { type: 'Basic', price: 500, days: 3, revisions: 0, features: [''] },
+            { type: 'Standard', price: 1000, days: 5, revisions: 1, features: [''] },
+            { type: 'Premium', price: 2000, days: 7, revisions: 2, features: [''] }
+        ]
+    });
+    const [portfolioItems, setPortfolioItems] = useState<{ title: string; description: string; imageUrl: string; link: string; subCategory: string }[]>([{ title: '', description: '', imageUrl: '', link: '', subCategory: '' }]);
 
     // Reset state when modal opens/closes
     useEffect(() => {
@@ -123,10 +132,15 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             setProfilePictureProgress(0);
             setDocumentUploadProgress(null);
             setDocumentUploadingLabel(null);
-            setProfessionalInfo({ category: '', experienceYears: '', skills: '', bio: '', isStudent: false, certifications: [], universityIdUrl: '', idDocumentUrl: '', city: '', english: '', arabic: '', extraLanguages: '' });
+            setPortfolioImageUploading(null);
+            setPortfolioImageProgress(0);
+            setProfessionalInfo({ category: '', experienceYears: '', skills: '', bio: '', isStudent: false, certifications: [], universityIdUrl: '', idDocumentUrl: '', city: '', english: 'Fluent', arabic: 'Fluent', extraLanguages: '' });
             setSurvey({ disagreementHandling: '', hoursPerDay: '', clientUpdates: '', biggestChallenge: '', discoverySource: '' });
             setWithdrawalMethod({ method: 'vodafone_cash', phoneNumber: '', accountNumber: '', bankName: '' });
-            setPricing({ basic: { price: 500, days: 3, description: '' }, standard: { price: 1000, days: 5, description: '' }, premium: { price: 2000, days: 7, description: '' } });
+            setSignupNotes('');
+            setSurveyStep(1);
+            setStarterOffer({ title: '', description: '', subCategory: '', images: [], packages: [{ type: 'Basic', price: 500, days: 3, revisions: 0, features: [''] }, { type: 'Standard', price: 1000, days: 5, revisions: 1, features: [''] }, { type: 'Premium', price: 2000, days: 7, revisions: 2, features: [''] }] });
+            setPortfolioItems([{ title: '', description: '', imageUrl: '', link: '', subCategory: '' }]);
         }
     }, [isOpen]);
 
@@ -134,6 +148,8 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
     const [profilePictureProgress, setProfilePictureProgress] = useState(0);
     const [documentUploadProgress, setDocumentUploadProgress] = useState<number | null>(null);
     const [documentUploadingLabel, setDocumentUploadingLabel] = useState<string | null>(null);
+    const [portfolioImageUploading, setPortfolioImageUploading] = useState<number | null>(null);
+    const [portfolioImageProgress, setPortfolioImageProgress] = useState(0);
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -328,15 +344,54 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             return;
         }
         setError('');
-        setStep('freelancer-step-3');
+        setStep('freelancer-step-3a');
     };
 
-    const handlePricingChange = (tier: 'basic' | 'standard' | 'premium', field: 'price' | 'days' | 'description', value: string) => {
-        setPricing({
-            ...pricing,
-            [tier]: { ...pricing[tier], [field]: field === 'description' ? value : Number(value) }
-        });
+    const handleStarterOfferChange = (field: string, value: any) => {
+        setStarterOffer(prev => ({ ...prev, [field]: value }));
     };
+    const handleStarterOfferPackage = (idx: number, field: string, value: any) => {
+        const next = [...starterOffer.packages];
+        next[idx] = { ...next[idx], [field]: value };
+        setStarterOffer(prev => ({ ...prev, packages: next }));
+    };
+    const handleStarterOfferFeatures = (idx: number, features: string[]) => {
+        const next = [...starterOffer.packages];
+        next[idx] = { ...next[idx], features: features?.length ? features : [''] };
+        setStarterOffer(prev => ({ ...prev, packages: next }));
+    };
+
+    const handlePortfolioImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) {
+            showModal({ title: 'Error', message: 'Image must be under 5MB', type: 'error' });
+            return;
+        }
+        setPortfolioImageUploading(index);
+        setPortfolioImageProgress(0);
+        try {
+            const url = await api.upload.file(file, { forSignup: true, onProgress: (p) => setPortfolioImageProgress(p) });
+            setPortfolioItems(prev => {
+                const n = [...prev];
+                n[index] = { ...n[index], imageUrl: url };
+                return n;
+            });
+        } catch (err: any) {
+            showModal({ title: 'Upload Failed', message: err.message || 'Failed to upload', type: 'error' });
+        } finally {
+            setPortfolioImageUploading(null);
+            e.target.value = '';
+        }
+    };
+
+    const SURVEY_QUESTIONS: { key: keyof typeof survey; label: string; type: 'text' | 'select'; options?: string[] }[] = [
+        { key: 'disagreementHandling', label: 'What happens if you have a disagreement with the client?', type: 'text' },
+        { key: 'hoursPerDay', label: 'On average, how many hours per day can you dedicate to Engezhaly?', type: 'text' },
+        { key: 'clientUpdates', label: 'How do you keep clients updated? Will you be able to update them through chats and online calls?', type: 'text' },
+        { key: 'biggestChallenge', label: "What's the biggest challenge you could face in a project?", type: 'text' },
+        { key: 'discoverySource', label: 'Where did you find out about Engezhaly from?', type: 'select', options: ['TikTok', 'Instagram', 'Google', 'Friends & Family', 'Other'] }
+    ];
 
     const handleFinalSubmit = async () => {
         setLoading(true);
@@ -358,7 +413,21 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                 biggestChallenge: survey.biggestChallenge?.trim() || undefined,
                 discoverySource: survey.discoverySource?.trim() || undefined
             },
-            starterPricing: pricing
+            starterOffer: {
+                title: starterOffer.title?.trim() || undefined,
+                description: starterOffer.description?.trim() || undefined,
+                subCategory: starterOffer.subCategory || undefined,
+                images: starterOffer.images || [],
+                packages: starterOffer.packages.map(p => ({
+                    type: p.type,
+                    price: Number(p.price) || 500,
+                    days: Number(p.days) || 3,
+                    revisions: Number(p.revisions) || 0,
+                    features: Array.isArray(p.features) ? p.features.filter((f: string) => f?.trim()) : []
+                }))
+            },
+            portfolio: portfolioItems.filter(p => p.title?.trim()).map(p => ({ title: p.title.trim(), description: p.description?.trim() || '', imageUrl: p.imageUrl || '', link: p.link?.trim() || '', subCategory: p.subCategory || '' })),
+            signupNotes: signupNotes?.trim() || undefined
         };
         if (professionalInfo.city) profilePayload.city = professionalInfo.city;
         if (professionalInfo.english || professionalInfo.arabic) {
@@ -446,7 +515,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4">
-            <div className="relative w-full max-w-2xl bg-white rounded-2xl md:rounded-3xl shadow-2xl max-h-[92vh] md:max-h-[90vh] flex flex-col overflow-hidden">
+            <div className={`relative w-full bg-white rounded-2xl md:rounded-3xl shadow-2xl max-h-[92vh] md:max-h-[90vh] flex flex-col overflow-hidden ${step === 'freelancer-step-3-offer' ? 'max-w-4xl' : 'max-w-2xl'}`}>
                 <div ref={scrollContainerRef} className="overflow-y-auto flex-1 px-4 md:px-8 pb-6 md:pb-8 min-h-0 pt-2">
 
                     {step === 'role-selection' && (
@@ -740,12 +809,12 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                             </div>
                             {/* Progress Bar */}
                             <div className="bg-gray-100 h-2 w-full rounded-full mb-6">
-                                <div className="bg-[#09BF44] h-full rounded-full transition-all duration-500" style={{ width: '25%' }} />
+                                <div className="bg-[#09BF44] h-full rounded-full transition-all duration-500" style={{ width: '16.67%' }} />
                             </div>
                             <div className="flex items-center justify-center gap-2 mb-4 text-sm font-bold text-gray-400 uppercase tracking-wider">
                                 <span className="text-[#09BF44]">Step 1</span>
                                 <span>/</span>
-                                <span>4</span>
+                                <span>6</span>
                             </div>
                             <h3 className="text-xl md:text-2xl font-bold text-center mb-2">Personal Information</h3>
                             <p className="text-center text-gray-600 mb-8">Let&apos;s get your profile started.</p>
@@ -864,12 +933,12 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                             </div>
                             {/* Progress Bar */}
                             <div className="bg-gray-100 h-2 w-full rounded-full mb-6">
-                                <div className="bg-[#09BF44] h-full rounded-full transition-all duration-500" style={{ width: '50%' }} />
+                                <div className="bg-[#09BF44] h-full rounded-full transition-all duration-500" style={{ width: '33.33%' }} />
                             </div>
                             <div className="flex items-center justify-center gap-2 mb-4 text-sm font-bold text-gray-400 uppercase tracking-wider">
                                 <span className="text-[#09BF44]">Step 2</span>
                                 <span>/</span>
-                                <span>4</span>
+                                <span>6</span>
                             </div>
                             <h3 className="text-xl md:text-2xl font-bold text-center mb-2">Professional Info</h3>
                             <p className="text-center text-gray-600 mb-8">Tell us about your skills and experience.</p>
@@ -1248,14 +1317,14 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                 </div>
 
                                 <button type="submit" className="w-full bg-[#09BF44] hover:bg-[#07a63a] text-white font-bold text-base md:text-lg p-3 md:p-4 rounded-xl transition-all flex items-center justify-center gap-2">
-                                    Next: Survey & Pricing <ChevronRight className="w-5 h-5" />
+                                    Next: Portfolio <ChevronRight className="w-5 h-5" />
                                 </button>
                             </form>
                         </div>
                     )}
 
-                    {/* FREELANCER STEP 3: Survey & Pricing */}
-                    {step === 'freelancer-step-3' && (
+                    {/* FREELANCER STEP 5: Starter Offer */}
+                    {step === 'freelancer-step-3-offer' && (
                         <div className="py-3 md:py-4">
                             <div className="flex items-center justify-between gap-3 mb-4">
                                 <Image src="/logos/logo-green.png" alt="Engezhaly" width={120} height={33} className="h-8 w-auto" priority />
@@ -1263,97 +1332,234 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                     <X className="w-5 h-5 text-gray-500" />
                                 </button>
                             </div>
-                            {/* Progress Bar */}
                             <div className="bg-gray-100 h-2 w-full rounded-full mb-6">
-                                <div className="bg-[#09BF44] h-full rounded-full transition-all duration-500" style={{ width: '75%' }} />
+                                <div className="bg-[#09BF44] h-full rounded-full transition-all" style={{ width: '83.33%' }} />
                             </div>
                             <div className="flex items-center justify-center gap-2 mb-4 text-sm font-bold text-gray-400 uppercase tracking-wider">
-                                <span className="text-[#09BF44]">Step 3</span>
-                                <span>/</span>
-                                <span>4</span>
+                                <span className="text-[#09BF44]">Step 5</span><span>/</span><span>6</span>
                             </div>
-                            <h3 className="text-xl md:text-2xl font-bold text-center mb-2">Survey & Pricing</h3>
-                            <p className="text-center text-gray-600 mb-8">Set your commitment and base rates.</p>
+                            <h3 className="text-xl md:text-2xl font-bold text-center mb-2">Starter Offer</h3>
+                            <p className="text-center text-gray-600 mb-6">Create your first offer. It will be published once your account is verified and approved.</p>
 
                             {error && <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center gap-2 text-sm mb-4"><div className="w-2 h-2 bg-red-500 rounded-full"></div>{error}</div>}
 
-                            <div className="space-y-8">
-                                {/* Survey - 5 questions */}
-                                <div className="space-y-6 p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                                    <h4 className="text-lg font-bold text-gray-900">Survey <span className="text-[#09BF44]">(5 questions)</span></h4>
+                            <div className="space-y-6">
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Offer Title</label>
+                                    <input type="text" value={starterOffer.title} onChange={(e) => handleStarterOfferChange('title', e.target.value)} placeholder="I will design a professional logo..." className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">About this offer</label>
+                                    <textarea value={starterOffer.description} onChange={(e) => handleStarterOfferChange('description', e.target.value)} placeholder="Describe what you will deliver..." rows={3} className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none resize-none" />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block font-medium text-gray-700 mb-1">1. What happens if you have a disagreement with the client?</label>
-                                        <input type="text" value={survey.disagreementHandling} onChange={(e) => setSurvey({ ...survey, disagreementHandling: e.target.value })} placeholder="Your answer..." className="w-full p-3 bg-white rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none" />
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">Category</label>
+                                        <div className="w-full p-3 bg-gray-100 rounded-xl text-gray-700 font-medium">{professionalInfo.category || '—'}</div>
                                     </div>
                                     <div>
-                                        <label className="block font-medium text-gray-700 mb-1">2. On average, how many hours per day can you dedicate to Engezhaly?</label>
-                                        <input type="text" value={survey.hoursPerDay} onChange={(e) => setSurvey({ ...survey, hoursPerDay: e.target.value })} placeholder="e.g. 4 hours" className="w-full p-3 bg-white rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none" />
-                                    </div>
-                                    <div>
-                                        <label className="block font-medium text-gray-700 mb-1">3. How do you keep clients updated? Will you be able to update them through chats and online calls?</label>
-                                        <input type="text" value={survey.clientUpdates} onChange={(e) => setSurvey({ ...survey, clientUpdates: e.target.value })} placeholder="Your answer..." className="w-full p-3 bg-white rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none" />
-                                    </div>
-                                    <div>
-                                        <label className="block font-medium text-gray-700 mb-1">4. What&apos;s the biggest challenge you could face in a project?</label>
-                                        <input type="text" value={survey.biggestChallenge} onChange={(e) => setSurvey({ ...survey, biggestChallenge: e.target.value })} placeholder="Your answer..." className="w-full p-3 bg-white rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none" />
-                                    </div>
-                                    <div>
-                                        <label className="block font-medium text-gray-700 mb-1">5. Where did you find out about Engezhaly from?</label>
-                                        <select value={survey.discoverySource} onChange={(e) => setSurvey({ ...survey, discoverySource: e.target.value })} className="w-full p-3 bg-white rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none">
-                                            <option value="">Select...</option>
-                                            <option value="TikTok">TikTok</option>
-                                            <option value="Instagram">Instagram</option>
-                                            <option value="Google">Google</option>
-                                            <option value="Friends & Family">Friends & Family</option>
-                                            <option value="Other">Other</option>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">Sub Category</label>
+                                        <select value={starterOffer.subCategory} onChange={(e) => handleStarterOfferChange('subCategory', e.target.value)} className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none">
+                                            <option value="">Select subcategory</option>
+                                            {(() => {
+                                                const subs = professionalInfo.category ? (CATEGORIES as Record<string, readonly string[]>)[professionalInfo.category] : null;
+                                                return Array.isArray(subs) ? subs.map((sub: string) => <option key={sub} value={sub}>{sub}</option>) : null;
+                                            })()}
                                         </select>
                                     </div>
                                 </div>
-
-                                {/* Pricing Table */}
                                 <div>
-                                    <h4 className="text-lg font-bold text-gray-900 mb-2">Starter Pricing Guide</h4>
-                                    <p className="text-sm text-gray-500 mb-4">Set your base rates. These can be changed later on. Min 500 EGP.</p>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Packages (min 500 EGP)</label>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        {(['basic', 'standard', 'premium'] as const).map((tier) => (
-                                            <div key={tier} className="border-2 border-gray-100 p-4 rounded-xl">
-                                                <h5 className="font-bold text-lg capitalize mb-3 text-[#09BF44]">{tier}</h5>
-                                                <div className="space-y-3">
+                                        {starterOffer.packages.map((pkg, idx) => (
+                                            <div key={pkg.type} className="border-2 border-gray-100 p-4 rounded-xl">
+                                                <h5 className="font-bold text-sm text-[#09BF44] mb-3 uppercase">{pkg.type}</h5>
+                                                <div className="space-y-2">
+                                                    <input type="number" min={500} placeholder="Price" value={pkg.price || ''} onChange={(e) => handleStarterOfferPackage(idx, 'price', Number(e.target.value))} className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm" />
+                                                    <input type="number" min={1} placeholder="Days" value={pkg.days || ''} onChange={(e) => handleStarterOfferPackage(idx, 'days', Number(e.target.value))} className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm" />
+                                                    <input type="number" min={0} placeholder="Revisions" value={pkg.revisions ?? ''} onChange={(e) => handleStarterOfferPackage(idx, 'revisions', Number(e.target.value))} className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm" />
                                                     <div>
-                                                        <label className="text-xs font-bold text-gray-500">Price (EGP)</label>
-                                                        <input type="number" min="500" value={pricing[tier].price} onChange={(e) => handlePricingChange(tier, 'price', e.target.value)} className="w-full p-2 bg-gray-50 rounded-lg border-2 border-transparent focus:border-[#09BF44] outline-none transition-all" />
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-xs font-bold text-gray-500">Delivery (Days)</label>
-                                                        <input type="number" min="1" value={pricing[tier].days} onChange={(e) => handlePricingChange(tier, 'days', e.target.value)} className="w-full p-2 bg-gray-50 rounded-lg border-2 border-transparent focus:border-[#09BF44] outline-none transition-all" />
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-xs font-bold text-gray-500">Description</label>
-                                                        <textarea
-                                                            placeholder="e.g. Single page fix"
-                                                            value={pricing[tier].description ?? ''}
-                                                            onChange={(e) => handlePricingChange(tier, 'description', e.target.value)}
-                                                            className="w-full p-2 bg-gray-50 rounded-lg border-2 border-transparent focus:border-[#09BF44] outline-none transition-all resize-none min-h-[60px]"
-                                                            rows={2}
-                                                        />
-                                                    </div>
+                                                    <label className="text-xs font-bold text-gray-500">Features (press Enter for new line)</label>
+                                                    <textarea
+                                                        placeholder="Feature 1&#10;Feature 2&#10;Feature 3"
+                                                        value={(Array.isArray(pkg.features) ? pkg.features : ['']).join('\n')}
+                                                        onChange={(e) => {
+                                                            const arr = e.target.value.split('\n');
+                                                            handleStarterOfferFeatures(idx, arr.length ? arr : ['']);
+                                                        }}
+                                                        rows={2}
+                                                        className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm min-h-[72px] resize-y"
+                                                    />
+                                                    {Array.isArray(pkg.features) && pkg.features.filter(Boolean).length > 0 && (
+                                                        <div className="flex flex-wrap gap-2 mt-2">
+                                                            {pkg.features.filter(Boolean).map((f, i) => (
+                                                                <span key={i} className="inline-flex items-center gap-1 px-2 py-1 bg-[#09BF44]/10 text-[#09BF44] rounded-lg text-xs font-medium">{f}</span>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
                                                 </div>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
-
-                                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                                    <button onClick={() => setStep('freelancer-step-2')} className="flex-1 bg-gray-100 text-gray-600 font-bold p-4 rounded-xl hover:bg-gray-200 transition-all">Back</button>
-                                    <button onClick={() => setStep('freelancer-step-3b')} className="flex-1 bg-[#09BF44] text-white font-bold p-4 rounded-xl hover:bg-[#07a63a] transition-all flex items-center justify-center gap-2">
-                                        Next: Withdrawal Method <ChevronRight className="w-5 h-5" />
+                                <p className="text-xs text-gray-500">This will be published once your account is verified and approved.</p>
+                                <div className="flex flex-col sm:flex-row gap-3">
+                                    <button type="button" onClick={() => setStep('freelancer-step-3b')} className="flex-1 bg-gray-100 text-gray-600 font-bold p-4 rounded-xl hover:bg-gray-200">Back</button>
+                                    <button type="button" onClick={() => { setSurveyStep(1); setStep('freelancer-step-3-survey'); }} className="flex-1 bg-[#09BF44] text-white font-bold p-4 rounded-xl hover:bg-[#07a63a] flex items-center justify-center gap-2">
+                                        Next: Survey <ChevronRight className="w-5 h-5" />
                                     </button>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {/* FREELANCER STEP 3b: Withdrawal Method */}
+                    {/* FREELANCER STEP 6: Survey (last step) */}
+                    {step === 'freelancer-step-3-survey' && (
+                        <div className="py-3 md:py-4">
+                            <div className="flex items-center justify-between gap-3 mb-4">
+                                <Image src="/logos/logo-green.png" alt="Engezhaly" width={120} height={33} className="h-8 w-auto" priority />
+                                <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors shrink-0 -m-2 ml-auto">
+                                    <X className="w-5 h-5 text-gray-500" />
+                                </button>
+                            </div>
+                            <div className="bg-gray-100 h-2 w-full rounded-full mb-6">
+                                <div className="bg-[#09BF44] h-full rounded-full transition-all" style={{ width: '100%' }} />
+                            </div>
+                            <div className="flex items-center justify-center gap-2 mb-4 text-sm font-bold text-gray-400 uppercase tracking-wider">
+                                <span className="text-[#09BF44]">Step 6</span><span>/</span><span>6</span> · Question {surveyStep}/5
+                            </div>
+                            <h3 className="text-xl md:text-2xl font-bold text-center mb-2">Survey</h3>
+
+                            {error && <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center gap-2 text-sm mb-4"><div className="w-2 h-2 bg-red-500 rounded-full"></div>{error}</div>}
+
+                            <div className="space-y-6">
+                                {SURVEY_QUESTIONS.slice(surveyStep - 1, surveyStep).map((q) => (
+                                    <div key={q.key}>
+                                        <label className="block font-medium text-gray-700 mb-3">{q.label}</label>
+                                        {q.type === 'select' ? (
+                                            <select value={survey[q.key]} onChange={(e) => setSurvey({ ...survey, [q.key]: e.target.value })} className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none">
+                                                <option value="">Select...</option>
+                                                {q.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                            </select>
+                                        ) : (
+                                            <input type="text" value={survey[q.key]} onChange={(e) => setSurvey({ ...survey, [q.key]: e.target.value })} placeholder="Your answer..." className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none" />
+                                        )}
+                                    </div>
+                                ))}
+                                <div className="flex flex-col sm:flex-row gap-3">
+                                    <button type="button" onClick={() => surveyStep > 1 ? setSurveyStep(s => s - 1) : setStep('freelancer-step-3-offer')} className="flex-1 bg-gray-100 text-gray-600 font-bold p-4 rounded-xl hover:bg-gray-200">Back</button>
+                                    {surveyStep < 5 ? (
+                                        <button type="button" onClick={() => setSurveyStep(s => s + 1)} className="flex-1 bg-[#09BF44] text-white font-bold p-4 rounded-xl hover:bg-[#07a63a] flex items-center justify-center gap-2">
+                                            Next <ChevronRight className="w-5 h-5" />
+                                        </button>
+                                    ) : (
+                                        <button type="button" onClick={handleFinalSubmit} disabled={loading} className="flex-1 bg-[#09BF44] text-white font-bold p-4 rounded-xl hover:bg-[#07a63a] flex items-center justify-center gap-2">
+                                            {loading && <Loader2 className="w-5 h-5 animate-spin" />}
+                                            Submit Application
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* FREELANCER STEP 3: Portfolio */}
+                    {step === 'freelancer-step-3a' && (
+                        <div className="py-3 md:py-4">
+                            <div className="flex items-center justify-between gap-3 mb-4">
+                                <Image src="/logos/logo-green.png" alt="Engezhaly" width={120} height={33} className="h-8 w-auto" priority />
+                                <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors shrink-0 -m-2 ml-auto">
+                                    <X className="w-5 h-5 text-gray-500" />
+                                </button>
+                            </div>
+                            <div className="bg-gray-100 h-2 w-full rounded-full mb-6">
+                                <div className="bg-[#09BF44] h-full rounded-full transition-all" style={{ width: '50%' }} />
+                            </div>
+                            <div className="flex items-center justify-center gap-2 mb-4 text-sm font-bold text-gray-400 uppercase tracking-wider">
+                                <span className="text-[#09BF44]">Step 3</span><span>/</span><span>6</span>
+                            </div>
+                            <h3 className="text-xl md:text-2xl font-bold text-center mb-2">Portfolio</h3>
+                            <p className="text-center text-gray-600 mb-6">Add 1–3 projects to showcase your work. (Optional)</p>
+
+                            {error && <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center gap-2 text-sm mb-4"><div className="w-2 h-2 bg-red-500 rounded-full"></div>{error}</div>}
+
+                            {(() => {
+                                const subCategories: string[] = professionalInfo.category && (CATEGORIES as Record<string, readonly string[]>)[professionalInfo.category]
+                                    ? [...(CATEGORIES as Record<string, readonly string[]>)[professionalInfo.category]]
+                                    : [];
+                                return (
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            {portfolioItems.map((item, idx) => (
+                                                <div key={idx} className="group bg-white rounded-2xl border-2 border-gray-100 overflow-hidden hover:border-[#09BF44]/30 transition-all duration-200 shadow-sm hover:shadow-md">
+                                                    <div className="relative aspect-video bg-gray-100">
+                                                        {item.imageUrl ? (
+                                                            <>
+                                                                <Image src={item.imageUrl} alt={item.title || 'Portfolio'} fill className="object-cover" sizes="(max-width: 768px) 100vw, 400px" />
+                                                                <label className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                                                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handlePortfolioImageUpload(e, idx)} disabled={portfolioImageUploading !== null} />
+                                                                    <Upload className="w-8 h-8 text-white mb-1" />
+                                                                    <span className="text-xs font-bold text-white">Change</span>
+                                                                </label>
+                                                            </>
+                                                        ) : (
+                                                            <label className={`absolute inset-0 flex flex-col items-center justify-center cursor-pointer transition-colors ${portfolioImageUploading === idx ? 'bg-[#09BF44]/10' : 'hover:bg-gray-50'}`}>
+                                                                <input type="file" accept="image/*" className="hidden" onChange={(e) => handlePortfolioImageUpload(e, idx)} disabled={portfolioImageUploading !== null} />
+                                                                {portfolioImageUploading === idx ? (
+                                                                    <div className="text-center">
+                                                                        <Loader2 className="w-10 h-10 animate-spin text-[#09BF44] mx-auto" />
+                                                                        <span className="text-sm font-bold text-[#09BF44] block mt-2">{portfolioImageProgress}%</span>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="text-center text-gray-400">
+                                                                        <ImageIcon className="w-12 h-12 mx-auto mb-2" />
+                                                                        <span className="text-sm font-bold">Click to upload</span>
+                                                                    </div>
+                                                                )}
+                                                            </label>
+                                                        )}
+                                                        {item.subCategory && (
+                                                            <span className="absolute top-2 left-2 px-2 py-1 bg-black/60 text-white text-xs font-bold rounded-lg">{item.subCategory}</span>
+                                                        )}
+                                                        {portfolioItems.length > 1 && (
+                                                            <button type="button" onClick={() => setPortfolioItems(prev => prev.filter((_, i) => i !== idx))} className="absolute top-2 right-2 p-1.5 rounded-lg bg-red-500/90 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600" aria-label="Remove">
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                    <div className="p-4 space-y-3">
+                                                        <input value={item.title} onChange={(e) => setPortfolioItems(prev => { const n = [...prev]; n[idx] = { ...n[idx], title: e.target.value }; return n; })} placeholder="Project title" className="w-full px-3 py-2 rounded-xl border-2 border-transparent bg-gray-50 focus:bg-white focus:border-[#09BF44] outline-none font-bold text-gray-900 placeholder:text-gray-400 transition-colors" />
+                                                        {subCategories.length > 0 && (
+                                                            <select value={item.subCategory} onChange={(e) => setPortfolioItems(prev => { const n = [...prev]; n[idx] = { ...n[idx], subCategory: e.target.value }; return n; })} className="w-full px-3 py-2 rounded-xl border-2 border-transparent bg-gray-50 focus:bg-white focus:border-[#09BF44] outline-none text-sm text-gray-700">
+                                                                <option value="">Select subcategory</option>
+                                                                {subCategories.map((sub) => <option key={sub} value={sub}>{sub}</option>)}
+                                                            </select>
+                                                        )}
+                                                        <textarea value={item.description} onChange={(e) => setPortfolioItems(prev => { const n = [...prev]; n[idx] = { ...n[idx], description: e.target.value }; return n; })} placeholder="Brief description of this work..." rows={2} className="w-full px-3 py-2 rounded-xl border-2 border-transparent bg-gray-50 focus:bg-white focus:border-[#09BF44] outline-none text-sm text-gray-700 resize-none placeholder:text-gray-400" />
+                                                        <input value={item.link} onChange={(e) => setPortfolioItems(prev => { const n = [...prev]; n[idx] = { ...n[idx], link: e.target.value }; return n; })} placeholder="Project link (optional)" className="w-full px-3 py-2 rounded-xl border-2 border-transparent bg-gray-50 focus:bg-white focus:border-[#09BF44] outline-none text-sm text-gray-600 placeholder:text-gray-400" />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        {portfolioItems.length < 3 && (
+                                            <button type="button" onClick={() => setPortfolioItems(prev => [...prev, { title: '', description: '', imageUrl: '', link: '', subCategory: '' }])} className="w-full py-4 border-2 border-dashed border-[#07a63a] rounded-xl text-[#07a63a] font-bold text-lg hover:border-[#09BF44] hover:text-[#09BF44] hover:bg-[#09BF44]/10 transition-all flex items-center justify-center gap-3">
+                                                <Plus className="w-6 h-6" /> Add another project
+                                            </button>
+                                        )}
+                                        <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                                            <button type="button" onClick={() => setStep('freelancer-step-2')} className="flex-1 bg-gray-100 text-gray-600 font-bold p-4 rounded-xl hover:bg-gray-200">Back</button>
+                                            <button type="button" onClick={() => setStep('freelancer-step-3b')} className="flex-1 bg-[#09BF44] text-white font-bold p-4 rounded-xl hover:bg-[#07a63a] flex items-center justify-center gap-2">
+                                                Next: Withdrawal <ChevronRight className="w-5 h-5" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                    )}
+
+                    {/* FREELANCER STEP 4: Withdrawal Method */}
                     {step === 'freelancer-step-3b' && (
                         <div className="py-3 md:py-4">
                             <div className="flex items-center justify-between gap-3 mb-4">
@@ -1363,19 +1569,19 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                 </button>
                             </div>
                             <div className="bg-gray-100 h-2 w-full rounded-full mb-6">
-                                <div className="bg-[#09BF44] h-full rounded-full transition-all duration-500" style={{ width: '80%' }} />
+                                <div className="bg-[#09BF44] h-full rounded-full transition-all duration-500" style={{ width: '66.67%' }} />
                             </div>
                             <div className="flex items-center justify-center gap-2 mb-4 text-sm font-bold text-gray-400 uppercase tracking-wider">
                                 <span className="text-[#09BF44]">Step 4</span>
                                 <span>/</span>
-                                <span>4</span>
+                                <span>6</span>
                             </div>
                             <h3 className="text-xl md:text-2xl font-bold text-center mb-2">Where would you like your money transferred?</h3>
                             <p className="text-center text-gray-600 mb-6">Add Vodafone Cash, InstaPay, or bank account to receive withdrawals.</p>
 
                             {error && <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center gap-2 text-sm mb-4"><div className="w-2 h-2 bg-red-500 rounded-full"></div>{error}</div>}
 
-                            <div className="space-y-6 mb-8">
+                            <div className="space-y-6 mb-6">
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-2">Type</label>
                                     <div className="flex flex-wrap gap-2">
@@ -1404,13 +1610,16 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                         </div>
                                     </>
                                 )}
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-1">Do you have any notes? (optional)</label>
+                                    <textarea value={signupNotes} onChange={(e) => setSignupNotes(e.target.value)} placeholder="Anything else you'd like us to know..." rows={3} className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none resize-none" />
+                                </div>
                             </div>
 
                             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                                <button onClick={() => setStep('freelancer-step-3')} className="flex-1 bg-gray-100 text-gray-600 font-bold p-4 rounded-xl hover:bg-gray-200 transition-all">Back</button>
-                                <button onClick={handleFinalSubmit} disabled={loading} className="flex-1 bg-[#09BF44] text-white font-bold p-4 rounded-xl hover:bg-[#07a63a] transition-all flex items-center justify-center gap-2">
-                                    {loading && <Loader2 className="w-5 h-5 animate-spin" />}
-                                    Submit Application
+                                <button onClick={() => setStep('freelancer-step-3a')} className="flex-1 bg-gray-100 text-gray-600 font-bold p-4 rounded-xl hover:bg-gray-200 transition-all">Back</button>
+                                <button onClick={() => setStep('freelancer-step-3-offer')} className="flex-1 bg-[#09BF44] text-white font-bold p-4 rounded-xl hover:bg-[#07a63a] transition-all flex items-center justify-center gap-2">
+                                    Next: Starter Offer <ChevronRight className="w-5 h-5" />
                                 </button>
                             </div>
                         </div>

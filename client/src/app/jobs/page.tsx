@@ -22,6 +22,7 @@ function JobsPageContent() {
         status: 'open'
     });
     const [user, setUser] = useState<any>(null);
+    const [profile, setProfile] = useState<any>(null);
     const [applyJob, setApplyJob] = useState<any>(null);
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [proposal, setProposal] = useState({ price: '', days: '', message: '' });
@@ -30,9 +31,16 @@ function JobsPageContent() {
     const refreshUser = () => {
         const token = localStorage.getItem('token');
         if (token) {
-            setUser(JSON.parse(localStorage.getItem('user') || '{}'));
+            const stored = JSON.parse(localStorage.getItem('user') || '{}');
+            setUser(stored);
+            if (stored?.role === 'freelancer') {
+                api.freelancer.getProfile().then(setProfile).catch(() => setProfile(null));
+            } else {
+                setProfile(null);
+            }
         } else {
             setUser(null);
+            setProfile(null);
         }
     };
 
@@ -115,6 +123,10 @@ function JobsPageContent() {
             return;
         }
         if (user.role === 'freelancer') {
+            if (profile?.freelancerProfile?.isBusy) {
+                showModal({ title: 'Busy Status', message: 'You are set to busy and cannot apply to jobs.', type: 'error' });
+                return;
+            }
             setApplyJob(job);
             setProposal({ price: '', days: '', message: '' });
         }

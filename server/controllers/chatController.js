@@ -331,9 +331,13 @@ const acceptOffer = async (req, res) => {
         const { id } = req.params;
         const userId = req.user.id;
 
-        const offer = await Offer.findById(id).populate('conversationId');
+        const offer = await Offer.findById(id).populate('conversationId').populate('senderId', 'freelancerProfile.isBusy');
         if (!offer) {
             return res.status(404).json({ msg: 'Offer not found' });
+        }
+
+        if (offer.senderId?.freelancerProfile?.isBusy) {
+            return res.status(400).json({ msg: 'Freelancer is busy and not accepting orders.' });
         }
 
         if (offer.receiverId.toString() !== userId) {

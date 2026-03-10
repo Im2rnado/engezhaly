@@ -86,6 +86,11 @@ const applyToJob = async (req, res) => {
 
         if (job.status !== 'open') return res.status(400).json({ msg: 'Job is not open for applications' });
 
+        const freelancerUser = await User.findById(freelancerId).select('freelancerProfile.isBusy');
+        if (freelancerUser?.freelancerProfile?.isBusy) {
+            return res.status(400).json({ msg: 'You are set to busy and cannot apply to jobs.' });
+        }
+
         // Check if already applied
         if (job.proposals.some(p => p.freelancerId && p.freelancerId.toString() === freelancerId)) {
             // #region agent log

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
 import { Loader2, Upload, Plus, Trash2, ImageIcon, Save } from 'lucide-react';
@@ -147,6 +147,11 @@ export default function PortfolioSection({ profile, onProfileUpdate }: Portfolio
         ? [...CATEGORIES[lockedCategory as keyof typeof CATEGORIES]]
         : [];
 
+    useEffect(() => {
+        const next = (profile?.freelancerProfile?.portfolio || []).map((p: any) => ({ ...p, subCategory: p.subCategory || '' }));
+        setPortfolio(next);
+    }, [profile?.freelancerProfile?.portfolio]);
+
     const savePortfolio = useCallback(async (items: PortfolioItem[]) => {
         setSaving(true);
         try {
@@ -156,6 +161,7 @@ export default function PortfolioSection({ profile, onProfileUpdate }: Portfolio
             showModal({ title: 'Saved', message: 'Portfolio updated successfully.', type: 'success' });
         } catch (err: any) {
             showModal({ title: 'Error', message: err.message || 'Failed to save', type: 'error' });
+            throw err;
         } finally {
             setSaving(false);
         }
@@ -192,11 +198,18 @@ export default function PortfolioSection({ profile, onProfileUpdate }: Portfolio
             showModal({ title: 'Error', message: 'Title is required', type: 'error' });
             return;
         }
-        const updatedPortfolio = [...portfolio, { ...newItem }];
+        const itemToAdd = { ...newItem };
+        const updatedPortfolio = [...portfolio, itemToAdd];
         setPortfolio(updatedPortfolio);
         setNewItem({ title: '', description: '', imageUrl: '', link: '', subCategory: '' });
         setShowAddForm(false);
-        await savePortfolio(updatedPortfolio);
+        try {
+            await savePortfolio(updatedPortfolio);
+        } catch {
+            setPortfolio(portfolio);
+            setShowAddForm(true);
+            setNewItem(itemToAdd);
+        }
     };
 
     const updateItem = useCallback((index: number, field: keyof PortfolioItem, value: string) => {

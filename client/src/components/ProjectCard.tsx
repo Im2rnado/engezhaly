@@ -307,12 +307,12 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                     </div>
                 )}
 
-                {/* Package name & description - bundle only */}
+                {/* Package name & offer about - bundle only */}
                 {isBundle && (
                     <div className="mb-4">
                         <h3 className="text-lg font-bold text-gray-900 mb-1">{currentPackage.type || 'Basic'} package</h3>
-                        {currentPackage.features?.[0] && (
-                            <p className="text-gray-600 text-sm leading-relaxed">{currentPackage.features[0]}</p>
+                        {project.description && (
+                            <p className="text-gray-600 text-sm leading-relaxed">{project.description}</p>
                         )}
                     </div>
                 )}
@@ -390,16 +390,22 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                     ) : (
                         // Public view - Continue and Contact Me buttons
                         <>
-                            <button
-                                onClick={() => {
-                                    if (!checkClientAuth()) return;
-                                    setOrderDescription('');
-                                    setOrderModalStep('description');
-                                }}
-                                className="w-full font-bold py-3 rounded-xl transition-colors bg-[#09BF44] hover:bg-[#07a63a] text-white"
-                            >
-                                {isBundle ? 'Request to order' : 'Order'}
-                            </button>
+                            {sellerIsBusy ? (
+                                <div className="w-full py-3 rounded-xl bg-gray-100 text-gray-500 font-bold text-center text-sm">
+                                    Freelancer is busy — not accepting orders
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={() => {
+                                        if (!checkClientAuth()) return;
+                                        setOrderDescription('');
+                                        setOrderModalStep('description');
+                                    }}
+                                    className="w-full font-bold py-3 rounded-xl transition-colors bg-[#09BF44] hover:bg-[#07a63a] text-white"
+                                >
+                                    {isBundle ? 'Request to order' : 'Order'}
+                                </button>
+                            )}
                             {orderModalStep === 'description' && (
                                 <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4" onClick={() => setOrderModalStep(null)}>
                                     <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl" onClick={e => e.stopPropagation()}>

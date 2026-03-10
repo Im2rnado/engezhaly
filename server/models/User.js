@@ -68,6 +68,20 @@ const UserSchema = new mongoose.Schema({
             standard: { price: Number, days: Number, description: String },
             premium: { price: Number, days: Number, description: String }
         },
+        starterOffer: {
+            title: String,
+            description: String,
+            subCategory: String,
+            images: [String],
+            packages: [{
+                type: { type: String, enum: ['Basic', 'Standard', 'Premium'] },
+                price: Number,
+                days: Number,
+                revisions: Number,
+                features: [String]
+            }]
+        },
+        signupNotes: String,
         portfolio: [{
             title: { type: String },
             description: { type: String },

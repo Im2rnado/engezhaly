@@ -80,6 +80,12 @@ export default function CreateOfferPage() {
         setProjectData({ ...projectData, packages: newPackages });
     };
 
+    const handleFeaturesChange = (index: number, features: string[]) => {
+        const newPackages = [...projectData.packages];
+        newPackages[index] = { ...newPackages[index], features: features.length ? features : [''] };
+        setProjectData({ ...projectData, packages: newPackages });
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -109,7 +115,8 @@ export default function CreateOfferPage() {
                     ...p,
                     price: Number(p.price),
                     days: Number(p.days),
-                    revisions: Number(p.revisions)
+                    revisions: Number(p.revisions),
+                    features: Array.isArray(p.features) ? p.features.filter((f: string) => f?.trim()) : []
                 }))
             });
             showModal({ title: 'Success', message: 'Offer Created Successfully!', type: 'success' });
@@ -340,11 +347,25 @@ export default function CreateOfferPage() {
                                                     </div>
 
                                                     <div>
-                                                        <label className="text-xs font-bold text-gray-500">Features</label>
+                                                        <label className="text-xs font-bold text-gray-500">Features (press Enter for new line)</label>
                                                         <textarea
-                                                            placeholder="What's included..."
-                                                            className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm h-20 resize-none"
+                                                            placeholder="Feature 1&#10;Feature 2&#10;Feature 3"
+                                                            value={Array.isArray(pkg.features) ? pkg.features.filter(Boolean).join('\n') : (pkg.features || '')}
+                                                            onChange={(e) => {
+                                                                const features = e.target.value.split('\n').map(f => f.trim()).filter(Boolean);
+                                                                handleFeaturesChange(idx, features.length ? features : ['']);
+                                                            }}
+                                                            className="w-full p-3 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm min-h-28 resize-y"
                                                         />
+                                                        {Array.isArray(pkg.features) && pkg.features.filter(Boolean).length > 0 && (
+                                                            <div className="flex flex-wrap gap-2 mt-2">
+                                                                {pkg.features.filter(Boolean).map((f, i) => (
+                                                                    <span key={i} className="inline-flex items-center gap-1 px-2 py-1 bg-[#09BF44]/10 text-[#09BF44] rounded-lg text-xs font-medium">
+                                                                        {f}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>

@@ -16,6 +16,7 @@ const {
     getInsights,
     searchUser,
     getAllUsers,
+    getUserById,
     updateUser,
     deleteUser,
     getAllProjects,
@@ -51,6 +52,7 @@ router.get('/users/search', [authVerified, adminAuth], searchUser);
 
 // New Routes for Full Access
 router.get('/users', [authVerified, adminAuth], getAllUsers);
+router.get('/users/:id', [authVerified, adminAuth], getUserById);
 router.put('/users/:id', [authVerified, adminAuth], updateUser);
 router.delete('/users/:id', [authVerified, adminAuth], deleteUser);
 
