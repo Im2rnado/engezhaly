@@ -318,11 +318,11 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                 )}
 
                 {/* Project Description - default only */}
-                {!isBundle && project.description && (
+                {/* {!isBundle && project.description && (
                     <p className="text-gray-600 text-sm leading-relaxed mb-4">
                         {project.description}
                     </p>
-                )}
+                )} */}
 
                 {/* Delivery & Revisions - before features in bundle */}
                 <div className={`flex flex-wrap items-center gap-3 md:gap-6 ${isBundle ? 'mb-4' : 'mb-4 pb-4 border-b border-gray-100'}`}>
