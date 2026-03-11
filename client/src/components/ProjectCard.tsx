@@ -308,14 +308,14 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                 )}
 
                 {/* Package name & offer about - bundle only */}
-                {isBundle && (
+                {/* {isBundle && (
                     <div className="mb-4">
                         <h3 className="text-lg font-bold text-gray-900 mb-1">{currentPackage.type || 'Basic'} package</h3>
                         {project.description && (
                             <p className="text-gray-600 text-sm leading-relaxed">{project.description}</p>
                         )}
                     </div>
-                )}
+                )} */}
 
                 {/* Project Description - default only */}
                 {/* {!isBundle && project.description && (
