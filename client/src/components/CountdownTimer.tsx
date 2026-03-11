@@ -9,52 +9,32 @@ interface CountdownTimerProps {
     className?: string;
 }
 
+function calculateTimeLeft(deadline: Date | string) {
+    const deadlineDate = typeof deadline === 'string' ? new Date(deadline) : deadline;
+    const now = new Date();
+    const difference = deadlineDate.getTime() - now.getTime();
+
+    if (difference <= 0) {
+        return { days: 0, hours: 0, minutes: 0, seconds: 0, isOverdue: true };
+    }
+    return {
+        days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+        minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
+        seconds: Math.floor((difference % (1000 * 60)) / 1000),
+        isOverdue: false
+    };
+}
+
 export default function CountdownTimer({ deadline, variant = 'card', className = '' }: CountdownTimerProps) {
-    const [timeLeft, setTimeLeft] = useState<{
-        days: number;
-        hours: number;
-        minutes: number;
-        seconds: number;
-        isOverdue: boolean;
-    } | null>(null);
+    const [timeLeft, setTimeLeft] = useState(() => calculateTimeLeft(deadline));
 
     useEffect(() => {
-        const calculateTimeLeft = () => {
-            const deadlineDate = typeof deadline === 'string' ? new Date(deadline) : deadline;
-            const now = new Date();
-            const difference = deadlineDate.getTime() - now.getTime();
-
-            if (difference <= 0) {
-                return {
-                    days: 0,
-                    hours: 0,
-                    minutes: 0,
-                    seconds: 0,
-                    isOverdue: true
-                };
-            }
-
-            return {
-                days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-                hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-                minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
-                seconds: Math.floor((difference % (1000 * 60)) / 1000),
-                isOverdue: false
-            };
-        };
-
-        setTimeLeft(calculateTimeLeft());
-
         const interval = setInterval(() => {
-            setTimeLeft(calculateTimeLeft());
+            setTimeLeft(calculateTimeLeft(deadline));
         }, 1000);
-
         return () => clearInterval(interval);
     }, [deadline]);
-
-    if (!timeLeft) {
-        return null;
-    }
 
     if (variant === 'card') {
         // Compact card overlay version
@@ -75,8 +55,8 @@ export default function CountdownTimer({ deadline, variant = 'card', className =
 
     if (variant === 'inline') {
         return (
-            <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${timeLeft.isOverdue ? 'text-red-600' : 'text-[#09BF44]'} ${className}`}>
-                <Clock className="w-3.5 h-3.5" />
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold ${timeLeft.isOverdue ? 'bg-red-100 text-red-700' : 'bg-green-50 text-[#09BF44]'} ${className}`}>
+                <Clock className="w-3.5 h-3.5 shrink-0" />
                 {timeLeft.isOverdue ? 'Overdue' : (
                     <>{timeLeft.days > 0 ? `${timeLeft.days}d ` : ''}{timeLeft.hours}h {timeLeft.minutes}m</>
                 )}

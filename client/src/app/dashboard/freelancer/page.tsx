@@ -394,6 +394,11 @@ function FreelancerDashboardContent() {
                                                     <div>
                                                         <h4 className="font-bold text-gray-900">{order.projectId?.title || 'Offer'}</h4>
                                                         <p className="text-sm text-gray-500">Buyer: {order.buyerId?.firstName} {order.buyerId?.lastName}</p>
+                                                        {order.status === 'active' && order.deliveryDate && (
+                                                            <div className="mt-2">
+                                                                <CountdownTimer deadline={order.deliveryDate} variant="inline" />
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <div className="text-right">
                                                         <p className="font-black text-gray-900">{order.amount} EGP</p>
@@ -410,9 +415,6 @@ function FreelancerDashboardContent() {
                                                         <span className="text-xs text-gray-500 font-bold">
                                                             Delivery {formatDateDDMMYYYY(order.deliveryDate)}
                                                         </span>
-                                                    )}
-                                                    {order.status === 'active' && order.deliveryDate && (
-                                                        <CountdownTimer deadline={order.deliveryDate} variant="inline" />
                                                     )}
                                                 </div>
                                             </div>
@@ -495,6 +497,11 @@ function FreelancerDashboardContent() {
                                             </span>
                                         </div>
                                     </div>
+                                    {order.status === 'active' && order.deliveryDate && (
+                                        <div className="mb-3">
+                                            <CountdownTimer deadline={order.deliveryDate} variant="inline" />
+                                        </div>
+                                    )}
                                     <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-100">
                                         <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-bold">
                                             {order.packageType}
@@ -507,9 +514,6 @@ function FreelancerDashboardContent() {
                                             <span className="text-xs text-gray-500 font-bold">
                                                 Delivery {formatDateDDMMYYYY(order.deliveryDate)}
                                             </span>
-                                        )}
-                                        {order.status === 'active' && order.deliveryDate && (
-                                            <CountdownTimer deadline={order.deliveryDate} variant="inline" />
                                         )}
                                     </div>
                                     <div className="mt-4 pt-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">

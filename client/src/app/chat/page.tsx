@@ -40,6 +40,7 @@ function ChatPageContent() {
     const [settingMeeting, setSettingMeeting] = useState(false);
     const [checkoutIframeUrl, setCheckoutIframeUrl] = useState<string | null>(null);
     const [checkoutTitle, setCheckoutTitle] = useState('Complete Payment');
+    const [pendingOrderForChat, setPendingOrderForChat] = useState<any>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const resolveUserId = useCallback(() => {
         const storedUser = typeof window !== 'undefined'
@@ -223,6 +224,22 @@ function ChatPageContent() {
             socket.emit('leave_chat', conversationId);
         };
     }, [socket, conversationId]);
+
+    // Freelancer: fetch pending_approval order for this chat partner
+    useEffect(() => {
+        const stored = JSON.parse(localStorage.getItem('user') || '{}');
+        if (stored.role !== 'freelancer' || !activeChat?.partnerId || !conversationId) {
+            setPendingOrderForChat(null);
+            return;
+        }
+        const partnerId = String(activeChat.partnerId?._id ?? activeChat.partnerId);
+        api.freelancer.getMyOrders().then((orders: any[]) => {
+            const pending = orders.find(
+                (o) => o.status === 'pending_approval' && String(o.buyerId?._id ?? o.buyerId) === partnerId
+            );
+            setPendingOrderForChat(pending || null);
+        }).catch(() => setPendingOrderForChat(null));
+    }, [conversationId, activeChat?.partnerId, activeChat?.id]);
 
     // Listen for presence (online/offline)
 
@@ -866,6 +883,46 @@ function ChatPageContent() {
                                         </button>
                                     </div>
                                 </div>
+
+                                {/* Pending order - freelancer can approve/deny from chat */}
+                                {pendingOrderForChat && currentUser?.role === 'freelancer' && (
+                                    <div className="mx-3 md:mx-6 mt-3 p-4 rounded-xl bg-amber-50 border-2 border-amber-200">
+                                        <p className="text-sm font-bold text-amber-800 mb-2">Order pending your approval</p>
+                                        <p className="text-gray-700 text-sm mb-1">{pendingOrderForChat.projectId?.title || 'Offer'} • {pendingOrderForChat.amount} EGP</p>
+                                        {pendingOrderForChat.description && <p className="text-gray-600 text-xs mb-3 line-clamp-2">{pendingOrderForChat.description}</p>}
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={async () => {
+                                                    try {
+                                                        await api.freelancer.approveOrder(pendingOrderForChat._id);
+                                                        showModal({ title: 'Order Approved', message: 'The client has been notified to pay.', type: 'success' });
+                                                        setPendingOrderForChat(null);
+                                                    } catch (e: any) {
+                                                        showModal({ title: 'Error', message: e.message || 'Failed to approve', type: 'error' });
+                                                    }
+                                                }}
+                                                className="px-4 py-2 rounded-xl font-bold bg-[#09BF44] text-white hover:bg-[#07a63a] text-sm"
+                                            >
+                                                Approve
+                                            </button>
+                                            <button
+                                                onClick={async () => {
+                                                    if (!confirm('Deny this order? The client will be refunded.')) return;
+                                                    try {
+                                                        await api.freelancer.denyOrder(pendingOrderForChat._id);
+                                                        showModal({ title: 'Order Denied', message: 'The client has been refunded and notified.', type: 'success' });
+                                                        setPendingOrderForChat(null);
+                                                    } catch (e: any) {
+                                                        showModal({ title: 'Error', message: e.message || 'Failed to deny', type: 'error' });
+                                                    }
+                                                }}
+                                                className="px-4 py-2 rounded-xl font-bold bg-red-100 text-red-700 hover:bg-red-200 text-sm"
+                                            >
+                                                Deny
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Messages and offers (merged by timestamp) */}
                                 <div style={{ overflowY: 'auto', overflowX: 'hidden' }} className="flex-1 p-3 md:p-6 space-y-4 bg-gradient-to-b from-gray-50 to-white rounded-b-2xl md:rounded-b-3xl min-h-0">
