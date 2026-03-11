@@ -237,7 +237,7 @@ export default function CreateOfferPage() {
                                     )}
 
                                     <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-2">Banner Images (Up to 3)</label>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">Banner Images (Up to 7)</label>
                                         {projectData.images.length > 0 && (
                                             <div className="flex flex-wrap gap-3 mb-3">
                                                 {projectData.images.map((url, idx) => (
@@ -254,7 +254,7 @@ export default function CreateOfferPage() {
                                                 ))}
                                             </div>
                                         )}
-                                        {projectData.images.length < 3 && (
+                                        {projectData.images.length < 7 && (
                                             <label className={`block border-2 border-dashed rounded-xl p-6 text-center transition-colors cursor-pointer ${imageUploading ? 'border-[#09BF44] bg-green-50' : 'border-gray-200 hover:bg-gray-50'}`}>
                                                 <input
                                                     type="file"
@@ -263,7 +263,7 @@ export default function CreateOfferPage() {
                                                     className="hidden"
                                                     disabled={imageUploading}
                                                     onChange={async (e) => {
-                                                        const files = Array.from(e.target.files || []).slice(0, 3 - projectData.images.length);
+                                                        const files = Array.from(e.target.files || []).slice(0, 7 - projectData.images.length);
                                                         if (!files.length) return;
                                                         setImageUploading(true);
                                                         for (let i = 0; i < files.length; i++) {
@@ -291,7 +291,7 @@ export default function CreateOfferPage() {
                                                     <>
                                                         <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                                                         <p className="text-gray-500 font-bold">Click to Upload Images</p>
-                                                        <p className="text-xs text-gray-400 mt-1">Max 3 images. JPG, PNG, WebP</p>
+                                                        <p className="text-xs text-gray-400 mt-1">Max 7 images. JPG, PNG, WebP</p>
                                                     </>
                                                 )}
                                             </label>
@@ -350,12 +350,12 @@ export default function CreateOfferPage() {
                                                         <label className="text-xs font-bold text-gray-500">Features (press Enter for new line)</label>
                                                         <textarea
                                                             placeholder="Feature 1&#10;Feature 2&#10;Feature 3"
-                                                            value={Array.isArray(pkg.features) ? pkg.features.filter(Boolean).join('\n') : (pkg.features || '')}
+                                                            value={(Array.isArray(pkg.features) ? pkg.features : ['']).join('\n')}
                                                             onChange={(e) => {
-                                                                const features = e.target.value.split('\n').map(f => f.trim()).filter(Boolean);
-                                                                handleFeaturesChange(idx, features.length ? features : ['']);
+                                                                const arr = e.target.value.split('\n');
+                                                                handleFeaturesChange(idx, arr?.length ? arr : ['']);
                                                             }}
-                                                            className="w-full p-3 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm min-h-28 resize-y"
+                                                            className="w-full p-3 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm min-h-[88px] resize-y"
                                                         />
                                                         {Array.isArray(pkg.features) && pkg.features.filter(Boolean).length > 0 && (
                                                             <div className="flex flex-wrap gap-2 mt-2">

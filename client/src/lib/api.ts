@@ -302,6 +302,25 @@ export const api = {
             const result = await res.json();
             if (!res.ok) throw new Error(result.msg || 'Failed to raise dispute');
             return result;
+        },
+        approveDelivery: async (orderId: string) => {
+            const res = await fetch(`${API_URL}/client/orders/${orderId}/approve-delivery`, {
+                method: 'PATCH',
+                headers: getHeaders(),
+            });
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.msg || 'Failed to approve delivery');
+            return result;
+        },
+        submitReview: async (orderId: string, rating: number, review?: string) => {
+            const res = await fetch(`${API_URL}/client/orders/${orderId}/review`, {
+                method: 'PATCH',
+                headers: getHeaders(),
+                body: JSON.stringify({ rating, review: review || '' }),
+            });
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.msg || 'Failed to submit review');
+            return result;
         }
     },
     jobs: {

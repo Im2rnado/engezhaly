@@ -260,7 +260,7 @@ export default function EditOfferPage() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-2">Banner Images (Up to 3)</label>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">Banner Images (Up to 7)</label>
                                         {projectData.images.length > 0 && (
                                             <div className="flex flex-wrap gap-3 mb-3">
                                                 {projectData.images.map((url, idx) => (
@@ -277,7 +277,7 @@ export default function EditOfferPage() {
                                                 ))}
                                             </div>
                                         )}
-                                        {projectData.images.length < 3 && (
+                                        {projectData.images.length < 7 && (
                                             <label className={`block border-2 border-dashed rounded-xl p-6 text-center transition-colors cursor-pointer ${imageUploading ? 'border-[#09BF44] bg-green-50' : 'border-gray-200 hover:bg-gray-50'}`}>
                                                 <input
                                                     type="file"
@@ -286,7 +286,7 @@ export default function EditOfferPage() {
                                                     className="hidden"
                                                     disabled={imageUploading}
                                                     onChange={async (e) => {
-                                                        const files = Array.from(e.target.files || []).slice(0, 3 - projectData.images.length);
+                                                        const files = Array.from(e.target.files || []).slice(0, 7 - projectData.images.length);
                                                         if (!files.length) return;
                                                         setImageUploading(true);
                                                         for (let i = 0; i < files.length; i++) {
@@ -314,7 +314,7 @@ export default function EditOfferPage() {
                                                     <>
                                                         <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                                                         <p className="text-gray-500 font-bold">Click to Upload Images</p>
-                                                        <p className="text-xs text-gray-400 mt-1">Max 3 images. JPG, PNG, WebP</p>
+                                                        <p className="text-xs text-gray-400 mt-1">Max 7 images. JPG, PNG, WebP</p>
                                                     </>
                                                 )}
                                             </label>
@@ -370,34 +370,28 @@ export default function EditOfferPage() {
                                                     </div>
 
                                                     <div>
-                                                        <label className="text-xs font-bold text-gray-500">Features (one per line)</label>
+                                                        <label className="text-xs font-bold text-gray-500">Features (press Enter for new line)</label>
                                                         <textarea
                                                             placeholder="Feature 1&#10;Feature 2&#10;Feature 3"
-                                                            value={Array.isArray(pkg.features) ? pkg.features.join('\n') : pkg.features || ''}
+                                                            value={(Array.isArray(pkg.features) ? pkg.features : ['']).join('\n')}
                                                             onChange={(e) => {
-                                                                const features = e.target.value.split('\n').filter(f => f.trim());
-                                                                handleFeaturesChange(idx, features);
+                                                                const arr = e.target.value.split('\n');
+                                                                handleFeaturesChange(idx, arr?.length ? arr : ['']);
                                                             }}
-                                                            className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm h-20 resize-none"
+                                                            className="w-full p-3 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm min-h-[88px] resize-y"
                                                         />
+                                                        {Array.isArray(pkg.features) && pkg.features.filter(Boolean).length > 0 && (
+                                                            <div className="flex flex-wrap gap-2 mt-2">
+                                                                {pkg.features.filter(Boolean).map((f, i) => (
+                                                                    <span key={i} className="inline-flex items-center gap-1 px-2 py-1 bg-[#09BF44]/10 text-[#09BF44] rounded-lg text-xs font-medium">{f}</span>
+                                                                ))}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
                                         ))}
                                     </div>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <h2 className="text-xl font-bold text-gray-900">Status</h2>
-                                    <label className="flex items-center gap-3 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={projectData.isActive}
-                                            onChange={(e) => setProjectData({ ...projectData, isActive: e.target.checked })}
-                                            className="w-5 h-5 rounded border-gray-300 text-[#09BF44] focus:ring-[#09BF44]"
-                                        />
-                                        <span className="text-sm font-bold text-gray-700">Active (Offer is visible to clients)</span>
-                                    </label>
                                 </div>
 
                                 <div className="flex justify-end gap-4 pt-4 border-t border-gray-100">

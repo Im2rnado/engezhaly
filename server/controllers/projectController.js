@@ -230,7 +230,7 @@ const createProjectOrder = async (req, res) => {
             conversationId: conversation._id,
             senderId: buyerId,
             receiverId: project.sellerId,
-            content: `[Engezhaly Order] Order #${order._id}\n\n${description.trim()}\n\nPlease as a client inform the freelancer what you need in chat.`,
+            content: `[Engezhaly Order] Order #${order._id}\n\n${description.trim()}`,
             messageType: 'order'
         });
         await orderMsg.save();

@@ -12,7 +12,9 @@ const {
     getMyOrders,
     getActiveOrderForProject,
     getAllActiveOrders,
-    raiseDispute
+    raiseDispute,
+    approveDelivery,
+    submitReview
 } = require('../controllers/clientController');
 
 // @route   GET api/client/profile
@@ -65,5 +67,7 @@ router.get('/orders/project/:projectId/active', authVerified, getActiveOrderForP
 // @access  Private
 router.get('/orders/active', authVerified, getAllActiveOrders);
 router.post('/orders/:id/dispute', authVerified, raiseDispute);
+router.patch('/orders/:id/approve-delivery', authVerified, approveDelivery);
+router.patch('/orders/:id/review', authVerified, submitReview);
 
 module.exports = router;

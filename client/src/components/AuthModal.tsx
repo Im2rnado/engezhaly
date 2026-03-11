@@ -7,6 +7,7 @@ import { X, User, Briefcase, ChevronRight, Loader2, Eye, EyeOff, Upload, X as XI
 import { api } from '@/lib/api';
 import { useModal } from '@/context/ModalContext';
 import { MAIN_CATEGORIES, CATEGORIES } from '@/lib/categories';
+import { PHONE_COUNTRIES, validatePhone, formatPhoneE164, getFlagEmoji } from '@/lib/phoneUtils';
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -42,6 +43,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
         email: '',
         password: '',
         phoneNumber: '',
+        phoneCountryCode: 'EG' as string,
         dob: '', // date of birth YYYY-MM-DD
         username: '',
         identifier: '', // for login
@@ -113,6 +115,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                 email: '',
                 password: '',
                 phoneNumber: '',
+                phoneCountryCode: 'EG',
                 dob: '',
                 username: '',
                 identifier: '',
@@ -189,10 +192,6 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
 
     if (!isOpen) return null;
 
-    const validatePhoneEG = (phone: string) => {
-        const cleaned = (phone || '').replace(/\s/g, '').replace(/^\+20/, '0');
-        return /^0?1[0-9]{9}$/.test(cleaned);
-    };
     const validateUsername = (u: string) => !(u || '').includes(' ');
     const validatePassword = (p: string) => (p || '').length >= 6;
 
@@ -248,8 +247,8 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
 
     const handleClientSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!validatePhoneEG(formData.phoneNumber)) {
-            setError('Please enter a valid Egyptian phone number (e.g. 01XXXXXXXXX)');
+        if (!validatePhone(formData.phoneNumber, formData.phoneCountryCode as import('libphonenumber-js').CountryCode)) {
+            setError('Please enter a valid phone number for the selected country');
             return;
         }
         if (!validateUsername(formData.username)) {
@@ -267,6 +266,12 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
         setLoading(true);
         setError('');
         try {
+            const phoneE164 = formatPhoneE164(formData.phoneNumber, formData.phoneCountryCode as import('libphonenumber-js').CountryCode);
+            if (!phoneE164) {
+                setError('Please enter a valid phone number');
+                setLoading(false);
+                return;
+            }
             const payload: any = {
                 firstName: formData.firstName,
                 lastName: formData.lastName,
@@ -275,7 +280,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                 password: formData.password,
                 role: 'client',
                 businessType: formData.businessType,
-                phoneNumber: formData.phoneNumber
+                phoneNumber: phoneE164
             };
             if (formData.businessType === 'company') {
                 payload.clientProfile = {
@@ -308,8 +313,8 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
 
     const handleFreelancerStep1Submit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!validatePhoneEG(formData.phoneNumber)) {
-            setError('Please enter a valid Egyptian phone number (e.g. 01XXXXXXXXX)');
+        if (!validatePhone(formData.phoneNumber, formData.phoneCountryCode as import('libphonenumber-js').CountryCode)) {
+            setError('Please enter a valid phone number for the selected country');
             return;
         }
         if (!validateUsername(formData.username)) {
@@ -456,6 +461,12 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                     localStorage.removeItem('user');
                 }
             } else {
+                const phoneE164 = formatPhoneE164(formData.phoneNumber, formData.phoneCountryCode as import('libphonenumber-js').CountryCode);
+                if (!phoneE164) {
+                    setError('Please enter a valid phone number');
+                    setLoading(false);
+                    return;
+                }
                 const registerData: any = {
                     firstName: formData.firstName,
                     lastName: formData.lastName,
@@ -463,7 +474,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                     email: formData.email,
                     password: formData.password,
                     role: 'freelancer',
-                    phoneNumber: formData.phoneNumber,
+                    phoneNumber: phoneE164,
                     ...profilePayload
                 };
                 if (formData.dob) registerData.dateOfBirth = formData.dob;
@@ -735,7 +746,14 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                 </div>
                                 <input name="username" placeholder="Username" required onChange={handleChange} value={formData.username} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
                                 <input name="email" type="email" placeholder="Email Address" required onChange={handleChange} value={formData.email} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
-                                <input name="phoneNumber" placeholder="Phone (01XXXXXXXX)" required onChange={handleChange} value={formData.phoneNumber} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
+                                <div className="flex gap-2">
+                                    <select name="phoneCountryCode" onChange={handleChange} value={formData.phoneCountryCode} className="w-24 shrink-0 p-2 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 text-sm">
+                                        {PHONE_COUNTRIES.map((c) => (
+                                            <option key={c.code} value={c.code}>{getFlagEmoji(c.code)} +{c.callingCode}</option>
+                                        ))}
+                                    </select>
+                                    <input name="phoneNumber" type="tel" placeholder="Phone number" required onChange={handleChange} value={formData.phoneNumber} className="flex-1 min-w-0 p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
+                                </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="relative">
                                         <input name="password" type={showPassword ? "text" : "password"} placeholder="Password (min 6 chars)" required minLength={6} onChange={handleChange} value={formData.password} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400 pr-12" />
@@ -833,7 +851,14 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                     </div>
                                     <div>
                                         <label className="block text-sm font-bold text-gray-700 mb-1">Phone Number</label>
-                                        <input name="phoneNumber" placeholder="01XXXXXXXX" required onChange={handleChange} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
+                                        <div className="flex gap-2">
+                                            <select name="phoneCountryCode" onChange={handleChange} value={formData.phoneCountryCode} className="w-24 shrink-0 p-2 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 text-sm">
+                                                {PHONE_COUNTRIES.map((c) => (
+                                                    <option key={c.code} value={c.code}>{getFlagEmoji(c.code)} +{c.callingCode}</option>
+                                                ))}
+                                            </select>
+                                            <input name="phoneNumber" type="tel" placeholder="Number" required onChange={handleChange} value={formData.phoneNumber} className="flex-1 min-w-0 p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="relative">

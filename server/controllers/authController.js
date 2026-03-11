@@ -1,7 +1,20 @@
 const crypto = require('crypto');
+const dns = require('dns').promises;
 const User = require('../models/User');
 const VerificationToken = require('../models/VerificationToken');
 const bcrypt = require('bcryptjs');
+
+/** MX lookup: returns true if domain has mail servers */
+async function hasValidEmailDomain(email) {
+    const domain = (email || '').split('@')[1];
+    if (!domain || domain.length < 3) return false;
+    try {
+        const mx = await dns.resolveMx(domain);
+        return mx && mx.length > 0;
+    } catch {
+        return false;
+    }
+}
 const jwt = require('jsonwebtoken');
 const { sendAndLog } = require('../services/mailgunService');
 const { verification: verificationTemplate, passwordReset: passwordResetTemplate } = require('../templates/emailTemplates');
@@ -13,6 +26,10 @@ const register = async (req, res) => {
         const emailNorm = (email || '').trim().toLowerCase();
         if (!emailNorm) {
             return res.status(400).json({ message: 'Email is required' });
+        }
+        const hasMX = await hasValidEmailDomain(emailNorm);
+        if (!hasMX) {
+            return res.status(400).json({ message: 'Email domain does not appear to accept mail. Please use a valid email address.' });
         }
         // Case-insensitive duplicate check (handles legacy mixed-case emails)
         const emailRegex = new RegExp(`^${(emailNorm || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');

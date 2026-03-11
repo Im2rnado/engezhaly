@@ -4,6 +4,8 @@ const Transaction = require('../models/Transaction');
 const User = require('../models/User');
 const Order = require('../models/Order');
 const Job = require('../models/Job');
+const Chat = require('../models/Chat');
+const Conversation = require('../models/Conversation');
 const ConsultationPayment = require('../models/ConsultationPayment');
 const { verifyWebhookHmac } = require('../services/paymobService');
 
@@ -105,6 +107,23 @@ const fulfillCharge = async (pendingCharge) => {
                 deliveryDate: orderDeliveryDate
             });
             await order.save();
+
+            // Add order message to chat - custom offers: prompt client to inform freelancer
+            const convId = offer.conversationId?._id || offer.conversationId;
+            if (convId) {
+                const buyerId = String(pendingCharge.userId);
+                const sellerId = String(offer.senderId._id || offer.senderId);
+                const orderContent = `[Engezhaly Order] Order #${order._id}\n\nCustom offer accepted (${offer.price} EGP).\n\nPlease as a client inform the freelancer what you need in chat.`;
+                const orderChat = new Chat({
+                    conversationId: convId,
+                    senderId: buyerId,
+                    receiverId: sellerId,
+                    content: orderContent,
+                    messageType: 'order'
+                });
+                await orderChat.save();
+                await Conversation.findByIdAndUpdate(convId, { lastMessage: orderContent, lastMessageId: orderChat._id });
+            }
 
             offer.status = 'accepted';
             offer.acceptedAt = new Date();

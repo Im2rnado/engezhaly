@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Briefcase, Clock, PlusCircle, ShoppingBag, CreditCard, Edit, Loader2, X, Eye, PanelLeft, Flag } from 'lucide-react';
+import { Briefcase, Clock, PlusCircle, ShoppingBag, CreditCard, Edit, Loader2, X, Eye, PanelLeft, Flag, Star, CheckCircle } from 'lucide-react';
 import { api } from '@/lib/api';
 import { formatStatus, formatDateDDMMYYYY } from '@/lib/utils';
 import { useModal } from '@/context/ModalContext';
@@ -29,6 +29,11 @@ function ClientDashboardContent() {
     const [editJobModal, setEditJobModal] = useState<any>(null);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
     const [checkoutIframeUrl, setCheckoutIframeUrl] = useState<string | null>(null);
+    const [reviewModal, setReviewModal] = useState<{ order: any } | null>(null);
+    const [reviewRating, setReviewRating] = useState(5);
+    const [reviewText, setReviewText] = useState('');
+    const [reviewSubmitting, setReviewSubmitting] = useState(false);
+    const [expandedDelivery, setExpandedDelivery] = useState<string | null>(null);
 
     const fetchJobs = useCallback(async () => {
         setJobsLoading(true);
@@ -439,6 +444,42 @@ function ClientDashboardContent() {
                                             </span>
                                         </div>
                                     </div>
+                                    {order.status === 'active' && order.workSubmission && (order.workSubmission.message || (order.workSubmission.links?.length > 0) || (order.workSubmission.files?.length > 0)) && (
+                                        <div className="mt-4 p-4 rounded-xl bg-gray-50 border border-gray-200">
+                                            <button
+                                                onClick={() => setExpandedDelivery(expandedDelivery === order._id ? null : order._id)}
+                                                className="flex items-center gap-2 text-sm font-bold text-gray-700 hover:text-[#09BF44] transition-colors"
+                                            >
+                                                <CheckCircle className="w-4 h-4 text-[#09BF44]" />
+                                                Work delivered {expandedDelivery === order._id ? '− hide' : '+ view'}
+                                            </button>
+                                            {expandedDelivery === order._id && (
+                                                <div className="mt-3 space-y-2 text-sm text-gray-600">
+                                                    {order.workSubmission.message && <p className="whitespace-pre-wrap">{order.workSubmission.message}</p>}
+                                                    {Array.isArray(order.workSubmission.links) && order.workSubmission.links.length > 0 && (
+                                                        <div>
+                                                            <span className="font-semibold">Links:</span>
+                                                            <ul className="list-disc list-inside mt-1">
+                                                                {order.workSubmission.links.map((link: string, i: number) => (
+                                                                    <li key={i}><a href={link} target="_blank" rel="noopener noreferrer" className="text-[#09BF44] hover:underline">{link}</a></li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
+                                                    )}
+                                                    {Array.isArray(order.workSubmission.files) && order.workSubmission.files.length > 0 && (
+                                                        <div>
+                                                            <span className="font-semibold">Files:</span>
+                                                            <ul className="list-disc list-inside mt-1">
+                                                                {order.workSubmission.files.map((url: string, i: number) => (
+                                                                    <li key={i}><a href={url} target="_blank" rel="noopener noreferrer" className="text-[#09BF44] hover:underline">File {i + 1}</a></li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                     <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-gray-100">
                                         <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-bold">
                                             {order.packageType}
@@ -473,20 +514,51 @@ function ClientDashboardContent() {
                                             </button>
                                         )}
                                         {order.status === 'active' && (
+                                            <>
+                                                {order.workSubmission && (order.workSubmission.message || (order.workSubmission.links?.length > 0) || (order.workSubmission.files?.length > 0)) && (
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (!confirm('Approve the delivered work and mark this order as completed?')) return;
+                                                            try {
+                                                                await api.client.approveDelivery(order._id);
+                                                                showModal({ title: 'Order Completed', message: 'Thank you! You can now leave a review.', type: 'success' });
+                                                                fetchOrders();
+                                                            } catch (e: any) {
+                                                                showModal({ title: 'Error', message: e.message || 'Failed to approve delivery', type: 'error' });
+                                                            }
+                                                        }}
+                                                        className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2"
+                                                    >
+                                                        <CheckCircle className="w-4 h-4" /> Approve & Complete
+                                                    </button>
+                                                )}
+                                                <button
+                                                    onClick={async () => {
+                                                        if (!confirm('Raise a dispute? Our team will review and resolve it.')) return;
+                                                        try {
+                                                            await api.client.raiseDispute(order._id);
+                                                            showModal({ title: 'Dispute Raised', message: 'Our team will review and resolve it shortly.', type: 'success' });
+                                                            fetchOrders();
+                                                        } catch (e: any) {
+                                                            showModal({ title: 'Error', message: e.message || 'Failed to raise dispute', type: 'error' });
+                                                        }
+                                                    }}
+                                                    className="text-amber-600 hover:text-amber-700 text-xs font-bold flex items-center gap-1"
+                                                >
+                                                    <Flag className="w-3.5 h-3.5" /> Raise Dispute
+                                                </button>
+                                            </>
+                                        )}
+                                        {order.status === 'completed' && order.rating == null && (
                                             <button
-                                                onClick={async () => {
-                                                    if (!confirm('Raise a dispute? Our team will review and resolve it.')) return;
-                                                    try {
-                                                        await api.client.raiseDispute(order._id);
-                                                        showModal({ title: 'Dispute Raised', message: 'Our team will review and resolve it shortly.', type: 'success' });
-                                                        fetchOrders();
-                                                    } catch (e: any) {
-                                                        showModal({ title: 'Error', message: e.message || 'Failed to raise dispute', type: 'error' });
-                                                    }
+                                                onClick={() => {
+                                                    setReviewModal({ order });
+                                                    setReviewRating(5);
+                                                    setReviewText('');
                                                 }}
-                                                className="text-amber-600 hover:text-amber-700 text-xs font-bold flex items-center gap-1"
+                                                className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2"
                                             >
-                                                <Flag className="w-3.5 h-3.5" /> Raise Dispute
+                                                <Star className="w-4 h-4" /> Leave Review
                                             </button>
                                         )}
                                     </div>
@@ -528,6 +600,57 @@ function ClientDashboardContent() {
                         fetchOrders();
                     }}
                 />
+
+                {reviewModal && (
+                    <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4" onClick={() => setReviewModal(null)}>
+                        <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl" onClick={e => e.stopPropagation()}>
+                            <h3 className="text-lg font-bold mb-2">Leave a Review</h3>
+                            <p className="text-sm text-gray-600 mb-4">How was your experience with {reviewModal.order.sellerId?.firstName} {reviewModal.order.sellerId?.lastName}?</p>
+                            <div className="flex gap-1 mb-4">
+                                {[1, 2, 3, 4, 5].map((n) => (
+                                    <button
+                                        key={n}
+                                        type="button"
+                                        onClick={() => setReviewRating(n)}
+                                        className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                                    >
+                                        <Star className={`w-8 h-8 ${n <= reviewRating ? 'fill-amber-400 text-amber-500' : 'text-gray-300'}`} />
+                                    </button>
+                                ))}
+                            </div>
+                            <textarea
+                                value={reviewText}
+                                onChange={(e) => setReviewText(e.target.value)}
+                                placeholder="Write your review (optional)..."
+                                rows={4}
+                                className="w-full p-3 rounded-xl border-2 border-gray-200 focus:border-[#09BF44] outline-none resize-none mb-4"
+                            />
+                            <div className="flex gap-2 justify-end">
+                                <button onClick={() => setReviewModal(null)} className="px-4 py-2 rounded-xl font-bold text-gray-600 hover:bg-gray-100">Cancel</button>
+                                <button
+                                    disabled={reviewSubmitting}
+                                    onClick={async () => {
+                                        setReviewSubmitting(true);
+                                        try {
+                                            await api.client.submitReview(reviewModal.order._id, reviewRating, reviewText);
+                                            showModal({ title: 'Thank You!', message: 'Your review has been submitted.', type: 'success' });
+                                            setReviewModal(null);
+                                            fetchOrders();
+                                        } catch (e: any) {
+                                            showModal({ title: 'Error', message: e.message || 'Failed to submit review', type: 'error' });
+                                        } finally {
+                                            setReviewSubmitting(false);
+                                        }
+                                    }}
+                                    className="px-4 py-2 bg-[#09BF44] text-white rounded-xl font-bold disabled:opacity-70 flex items-center gap-2"
+                                >
+                                    {reviewSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                                    Submit Review
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {activeTab === 'profile' && (
                     <div className="space-y-6">

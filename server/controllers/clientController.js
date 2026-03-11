@@ -326,6 +326,74 @@ const raiseDispute = async (req, res) => {
     }
 };
 
+const approveDelivery = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const orderId = req.params.id;
+
+        const order = await Order.findById(orderId)
+            .populate('projectId', 'title packages')
+            .populate('sellerId', 'firstName lastName');
+
+        if (!order) return res.status(404).json({ msg: 'Order not found' });
+        if (order.buyerId.toString() !== userId) {
+            return res.status(403).json({ msg: 'Only the buyer can approve delivery' });
+        }
+        if (order.status !== 'active') {
+            return res.status(400).json({ msg: 'Can only approve delivery for active orders' });
+        }
+        if (!order.workSubmission || (!order.workSubmission.message && (!order.workSubmission.links || order.workSubmission.links.length === 0) && (!order.workSubmission.files || order.workSubmission.files.length === 0))) {
+            return res.status(400).json({ msg: 'Freelancer has not submitted work yet' });
+        }
+
+        order.status = 'completed';
+        order.completedAt = new Date();
+        await order.save();
+
+        res.json({ msg: 'Delivery approved. Order completed.', order });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+};
+
+const submitReview = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const orderId = req.params.id;
+        const { rating, review } = req.body;
+
+        const order = await Order.findById(orderId)
+            .populate('projectId', 'title packages')
+            .populate('sellerId', 'firstName lastName');
+
+        if (!order) return res.status(404).json({ msg: 'Order not found' });
+        if (order.buyerId.toString() !== userId) {
+            return res.status(403).json({ msg: 'Only the buyer can submit a review' });
+        }
+        if (order.status !== 'completed') {
+            return res.status(400).json({ msg: 'Can only review completed orders' });
+        }
+        if (order.rating != null) {
+            return res.status(400).json({ msg: 'You have already submitted a review for this order' });
+        }
+
+        const r = Number(rating);
+        if (!Number.isFinite(r) || r < 1 || r > 5) {
+            return res.status(400).json({ msg: 'Rating must be between 1 and 5' });
+        }
+
+        order.rating = Math.round(r);
+        if (typeof review === 'string') order.review = review.trim();
+        await order.save();
+
+        res.json({ msg: 'Review submitted. Thank you!', order });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+};
+
 module.exports = {
     getProfile,
     updateProfile,
@@ -337,5 +405,7 @@ module.exports = {
     getMyOrders,
     getActiveOrderForProject,
     getAllActiveOrders,
-    raiseDispute
+    raiseDispute,
+    approveDelivery,
+    submitReview
 };

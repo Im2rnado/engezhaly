@@ -18,6 +18,7 @@ export default function ProjectDetailPage() {
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<any>(null);
     const [slideshowIndex, setSlideshowIndex] = useState(0);
+    const [reviews, setReviews] = useState<any[]>([]);
     const images = project?.images || [];
     const hasMultipleImages = images.length > 1;
 
@@ -30,7 +31,13 @@ export default function ProjectDetailPage() {
 
         if (projectId) {
             api.projects.getById(projectId)
-                .then(setProject)
+                .then((p) => {
+                    setProject(p);
+                    const sellerId = p?.sellerId?._id || p?.sellerId;
+                    if (sellerId) {
+                        api.freelancer.getReviews(typeof sellerId === 'string' ? sellerId : sellerId.toString()).then(setReviews).catch(() => setReviews([]));
+                    }
+                })
                 .catch(() => setProject(null))
                 .finally(() => setLoading(false));
         } else {
@@ -106,7 +113,11 @@ export default function ProjectDetailPage() {
                                 <p className="font-bold text-gray-900">{freelancerName}</p>
                                 <div className="flex items-center gap-2 text-amber-500">
                                     <Star className="w-4 h-4 fill-amber-400" />
-                                    <span className="text-sm font-bold text-gray-700">New seller</span>
+                                    <span className="text-sm font-bold text-gray-700">
+                                        {reviews.length > 0
+                                            ? `${(reviews.reduce((s: number, r: any) => s + (r.rating || 0), 0) / reviews.length).toFixed(1)} (${reviews.length} review${reviews.length === 1 ? '' : 's'})`
+                                            : 'New seller'}
+                                    </span>
                                 </div>
                             </div>
                         </Link>
@@ -165,6 +176,35 @@ export default function ProjectDetailPage() {
                             <div className="prose prose-gray max-w-none">
                                 <h3 className="text-lg font-bold text-gray-900 mb-2">About This Offer</h3>
                                 <p className="text-gray-600 whitespace-pre-wrap">{project.description}</p>
+                            </div>
+                        )}
+
+                        {/* Reviews */}
+                        {(reviews.length > 0 || seller?._id) && (
+                            <div className="pt-8 border-t border-gray-200">
+                                <h3 className="text-xl font-bold text-gray-900 mb-4">Reviews</h3>
+                                {reviews.length > 0 ? (
+                                    <div className="space-y-4">
+                                        {reviews.map((r: any, idx: number) => (
+                                            <div key={idx} className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <div className="flex gap-0.5">
+                                                        {[1, 2, 3, 4, 5].map((n) => (
+                                                            <Star key={n} className={`w-4 h-4 ${n <= (r.rating || 0) ? 'fill-amber-400 text-amber-500' : 'text-gray-300'}`} />
+                                                        ))}
+                                                    </div>
+                                                    <span className="text-xs text-gray-500">{r.buyerName}</span>
+                                                    {r.completedAt && (
+                                                        <span className="text-xs text-gray-400">{new Date(r.completedAt).toLocaleDateString()}</span>
+                                                    )}
+                                                </div>
+                                                {r.review && <p className="text-gray-700 text-sm">{r.review}</p>}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-gray-500 text-sm">No reviews yet.</p>
+                                )}
                             </div>
                         )}
                     </div>

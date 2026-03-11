@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Loader2, Award, Clock, CheckCircle, Calendar, MapPin, Globe } from 'lucide-react';
+import { Loader2, Award, Clock, CheckCircle, Calendar, MapPin, Globe, Star } from 'lucide-react';
 import { api } from '@/lib/api';
 import { formatDateDDMMYYYY } from '@/lib/utils';
 import ProjectCard from '@/components/ProjectCard';
@@ -16,6 +16,7 @@ export default function FreelancerProfilePage() {
     const [user, setUser] = useState<any>(null);
     const [freelancer, setFreelancer] = useState<any>(null);
     const [projects, setProjects] = useState<any[]>([]);
+    const [reviews, setReviews] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -38,6 +39,8 @@ export default function FreelancerProfilePage() {
                     project.sellerId?._id === freelancerId || project.sellerId === freelancerId
                 );
                 setProjects(freelancerProjects);
+                // Fetch reviews (from completed orders with client ratings)
+                api.freelancer.getReviews(freelancerId).then(setReviews).catch(() => setReviews([]));
             } catch (err: any) {
                 console.error(err);
             } finally {
@@ -184,6 +187,30 @@ export default function FreelancerProfilePage() {
                                     </li>
                                 ))}
                             </ul>
+                        </div>
+                    )}
+
+                    {reviews.length > 0 && (
+                        <div className="mt-6 pt-6 border-t border-gray-100">
+                            <h3 className="text-sm font-bold text-gray-500 mb-3">Reviews ({reviews.length})</h3>
+                            <div className="space-y-3 max-h-64 overflow-y-auto">
+                                {reviews.map((r: any, idx: number) => (
+                                    <div key={idx} className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <div className="flex gap-0.5">
+                                                {[1, 2, 3, 4, 5].map((n) => (
+                                                    <Star key={n} className={`w-4 h-4 ${n <= (r.rating || 0) ? 'fill-amber-400 text-amber-500' : 'text-gray-300'}`} />
+                                                ))}
+                                            </div>
+                                            <span className="text-xs text-gray-500">{r.buyerName}</span>
+                                            {r.completedAt && (
+                                                <span className="text-xs text-gray-400">{new Date(r.completedAt).toLocaleDateString()}</span>
+                                            )}
+                                        </div>
+                                        {r.review && <p className="text-gray-700 text-sm">{r.review}</p>}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )}
 

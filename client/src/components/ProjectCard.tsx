@@ -408,9 +408,28 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                             )}
                             {orderModalStep === 'description' && (
                                 <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4" onClick={() => setOrderModalStep(null)}>
-                                    <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl" onClick={e => e.stopPropagation()}>
+                                    <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                                         <h3 className="text-lg font-bold mb-2">Order Description</h3>
                                         <p className="text-sm text-gray-600 mb-4">Describe what you need. The freelancer will see this and must approve before work starts.</p>
+                                        {currentPackage?.type && (
+                                            <div className="mb-4 p-4 rounded-xl bg-gray-50 border border-gray-200">
+                                                <p className="text-sm font-bold text-gray-700 mb-2">Selected bundle: <span className="text-[#09BF44]">{currentPackage.type}</span></p>
+                                                <div className="space-y-1.5 text-sm text-gray-600">
+                                                    <p><span className="font-semibold">Delivery:</span> {currentPackage.days ?? '—'} days</p>
+                                                    <p><span className="font-semibold">Revisions:</span> {currentPackage.revisions ?? 0}</p>
+                                                    {Array.isArray(currentPackage.features) && currentPackage.features.length > 0 && (
+                                                        <div>
+                                                            <span className="font-semibold">Features:</span>
+                                                            <ul className="list-disc list-inside mt-1 ml-1">
+                                                                {currentPackage.features.map((f: string, i: number) => (
+                                                                    <li key={i}>{f}</li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
                                         <textarea
                                             value={orderDescription}
                                             onChange={e => setOrderDescription(e.target.value)}
@@ -436,8 +455,27 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                             )}
                             {orderModalStep === 'confirm' && (
                                 <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4" onClick={() => setOrderModalStep(null)}>
-                                    <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl" onClick={e => e.stopPropagation()}>
+                                    <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                                         <h3 className="text-lg font-bold mb-2">Confirm Order</h3>
+                                        {currentPackage?.type && (
+                                            <div className="mb-3 p-3 rounded-xl bg-[#09BF44]/5 border border-[#09BF44]/20">
+                                                <p className="text-sm font-bold text-gray-800 mb-2">Bundle: <span className="text-[#09BF44]">{currentPackage.type}</span></p>
+                                                <div className="space-y-1 text-sm text-gray-600">
+                                                    <p><span className="font-semibold">Delivery:</span> {currentPackage.days ?? '—'} days</p>
+                                                    <p><span className="font-semibold">Revisions:</span> {currentPackage.revisions ?? 0}</p>
+                                                    {Array.isArray(currentPackage.features) && currentPackage.features.length > 0 && (
+                                                        <div>
+                                                            <span className="font-semibold">Features:</span>
+                                                            <ul className="list-disc list-inside mt-1 ml-1">
+                                                                {currentPackage.features.map((f: string, i: number) => (
+                                                                    <li key={i}>{f}</li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
                                         <p className="text-sm text-gray-600 mb-2">Total: <strong>{Number(currentPackage.price || 0)} EGP</strong></p>
                                         <p className="text-xs text-gray-500 mb-4">Platform fee: 20 EGP. The freelancer must approve before work starts.</p>
                                         <div className="flex gap-2 justify-end">
@@ -448,7 +486,18 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                                                         await api.projects.createOrder(project._id, selectedPackage, orderDescription.trim());
                                                         setOrderModalStep(null);
                                                         showModal({ title: 'Order Created', message: 'Your order was submitted. The freelancer will approve or decline shortly.', type: 'success' });
-                                                        router.push('/dashboard/client?tab=orders');
+                                                        const sellerId = await resolveSellerId();
+                                                        if (sellerId) {
+                                                            const conversations = await api.chat.getConversations();
+                                                            const conv = findConversationWithSeller(conversations, sellerId);
+                                                            if (conv?.id) {
+                                                                router.push(`/chat?conversation=${conv.id}`);
+                                                            } else {
+                                                                router.push('/dashboard/client?tab=orders');
+                                                            }
+                                                        } else {
+                                                            router.push('/dashboard/client?tab=orders');
+                                                        }
                                                     } catch (err: any) {
                                                         showModal({ title: 'Error', message: err.message || 'Failed to create order', type: 'error' });
                                                     }
