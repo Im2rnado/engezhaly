@@ -191,9 +191,9 @@ const sendMessage = async (req, res) => {
             return res.status(403).json({ msg: 'This chat is frozen due to policy violations.' });
         }
 
-        // 4. Phone Number Detection (Freeze Logic)
+        // 4. Phone Number Detection (Freeze Logic) - skip for voice messages (content is a URL)
         const phoneRegex = /(\d{11})|(\d{3}\s\d{4}\s\d{4})/;
-        const hasPhone = phoneRegex.test(content);
+        const hasPhone = messageType !== 'voice' && phoneRegex.test(content);
 
         let finalContent = content;
         let isChatFrozen = false;
@@ -205,9 +205,13 @@ const sendMessage = async (req, res) => {
             // TODO: Notify Admin (Socket event or DB flag monitoring)
         }
 
-        // 5. Curse Word Filtering
-        const { filteredText, isBlurred } = filterCurseWords(finalContent);
-        finalContent = filteredText;
+        // 5. Curse Word Filtering - skip for voice messages (content is audio URL)
+        let isBlurred = false;
+        if (messageType !== 'voice') {
+            const { filteredText, isBlurred: blurred } = filterCurseWords(finalContent);
+            finalContent = filteredText;
+            isBlurred = blurred;
+        }
 
         // 6. Create Message
         const newMsg = new Chat({
@@ -223,7 +227,7 @@ const sendMessage = async (req, res) => {
         await newMsg.save();
 
         // 7. Update Conversation Metadata
-        conversation.lastMessage = finalContent;
+        conversation.lastMessage = messageType === 'voice' ? 'Voice message' : finalContent;
         conversation.lastMessageId = newMsg._id;
         await conversation.save();
 

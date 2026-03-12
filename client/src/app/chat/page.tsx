@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
-import { Send, Video, Paperclip, MoreVertical, FileText, CheckCircle, XCircle, MessageSquare, Shield, PanelLeft, ArrowLeft, Loader2 } from 'lucide-react';
+import { Send, Video, Paperclip, MoreVertical, FileText, CheckCircle, XCircle, MessageSquare, Shield, PanelLeft, ArrowLeft, Loader2, Mic, Square, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
 import { formatDateDDMMYYYY } from '@/lib/utils';
@@ -41,7 +41,18 @@ function ChatPageContent() {
     const [checkoutIframeUrl, setCheckoutIframeUrl] = useState<string | null>(null);
     const [checkoutTitle, setCheckoutTitle] = useState('Complete Payment');
     const [pendingOrderForChat, setPendingOrderForChat] = useState<any>(null);
+    const [isRecording, setIsRecording] = useState(false);
+    const [recordingSeconds, setRecordingSeconds] = useState(0);
+    const [pendingVoiceRecording, setPendingVoiceRecording] = useState<{ blob: Blob; file: File; durationSeconds: number; objectUrl: string } | null>(null);
+    const [sendingVoice, setSendingVoice] = useState(false);
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const recordingChunksRef = useRef<Blob[]>([]);
+    const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const stopVoiceRecordingRef = useRef<() => void | Promise<void>>(() => {});
+    const pendingVoiceUrlRef = useRef<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const VOICE_MAX_DURATION_SEC = 120; // 2 minutes
     const resolveUserId = useCallback(() => {
         const storedUser = typeof window !== 'undefined'
             ? JSON.parse(localStorage.getItem('user') || '{}')
@@ -334,6 +345,152 @@ function ChatPageContent() {
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, offers]);
+
+    const startVoiceRecording = useCallback(async () => {
+        if (!activeChat || activeChat.isFrozen) return;
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
+            const recorder = new MediaRecorder(stream, { mimeType });
+            recordingChunksRef.current = [];
+            recorder.ondataavailable = (e) => { if (e.data.size) recordingChunksRef.current.push(e.data); };
+            recorder.onstop = () => stream.getTracks().forEach((t) => t.stop());
+            recorder.start(500);
+            mediaRecorderRef.current = recorder;
+            setIsRecording(true);
+            setRecordingSeconds(0);
+            const startAt = Date.now();
+            const timer = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - startAt) / 1000);
+                setRecordingSeconds(elapsed);
+                if (elapsed >= VOICE_MAX_DURATION_SEC) {
+                    clearInterval(timer);
+                    recordingTimerRef.current = null;
+                    stopVoiceRecordingRef.current();
+                }
+            }, 1000);
+            recordingTimerRef.current = timer;
+        } catch (err: any) {
+            showModal({ title: 'Microphone Error', message: err.message || 'Could not access microphone.', type: 'error' });
+        }
+    }, [activeChat]);
+
+    const stopVoiceRecording = useCallback(() => {
+        const recorder = mediaRecorderRef.current;
+        if (!recorder || recorder.state === 'inactive') return;
+        recorder.stop();
+        mediaRecorderRef.current = null;
+        if (recordingTimerRef.current) {
+            clearInterval(recordingTimerRef.current);
+            recordingTimerRef.current = null;
+        }
+        const duration = recordingSeconds;
+        setIsRecording(false);
+        setRecordingSeconds(0);
+
+        const chunks = recordingChunksRef.current;
+        if (chunks.length === 0) return;
+
+        const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
+        const ext = (recorder.mimeType || '').includes('webm') ? 'webm' : 'mp4';
+        const file = new File([blob], `voice-${Date.now()}.${ext}`, { type: blob.type });
+        const objectUrl = URL.createObjectURL(blob);
+        pendingVoiceUrlRef.current = objectUrl;
+        setPendingVoiceRecording({ blob, file, durationSeconds: duration, objectUrl });
+    }, [recordingSeconds]);
+
+    const discardVoiceRecording = useCallback(() => {
+        setPendingVoiceRecording((prev) => {
+            if (prev) {
+                URL.revokeObjectURL(prev.objectUrl);
+                pendingVoiceUrlRef.current = null;
+            }
+            return null;
+        });
+    }, []);
+
+    const sendVoiceMessage = useCallback(async () => {
+        const pending = pendingVoiceRecording;
+        if (!pending || !activeChat) return;
+
+        const receiverId = activeChat.partnerId?._id ?? activeChat.partnerId;
+        const userId = resolveUserId();
+        if (!receiverId) {
+            showModal({ title: 'Error', message: 'Cannot send voice: no recipient selected.', type: 'error' });
+            return;
+        }
+
+        setSendingVoice(true);
+
+        const optimisticMsg = {
+            _id: `temp-voice-${Date.now()}`,
+            text: URL.createObjectURL(pending.blob),
+            sender: 'me' as const,
+            senderId: userId,
+            timestamp: new Date(),
+            messageType: 'voice',
+            isRead: false
+        };
+        setMessages((prev) => [...prev, optimisticMsg]);
+        setPendingVoiceRecording((prev) => {
+            if (prev) {
+                URL.revokeObjectURL(prev.objectUrl);
+                pendingVoiceUrlRef.current = null;
+            }
+            return null;
+        });
+
+        try {
+            const url = await api.upload.file(pending.file);
+            await api.chat.sendMessage({ receiverId, content: url, messageType: 'voice' });
+            const data = await api.chat.getMessages(activeChat.id);
+            const formatted = data.map((m: any) => {
+                const senderId = m.senderId?._id || m.senderId;
+                const isAdmin = m.isAdmin || m.content?.includes('[Engezhaly Admin]');
+                const isMeeting = m.messageType === 'meeting' || m.content?.includes('[Engezhaly Meeting]');
+                return {
+                    _id: m._id,
+                    text: m.content,
+                    sender: String(senderId) === String(userId) ? 'me' : 'them',
+                    senderId: senderId,
+                    timestamp: m.createdAt,
+                    messageType: m.messageType,
+                    isRead: !!m.isRead,
+                    isAdmin: isAdmin,
+                    isMeeting: isMeeting,
+                    isBlurred: !!m.isBlurred
+                };
+            });
+            setMessages(formatted);
+        } catch (err: any) {
+            setMessages((prev) => prev.filter((m) => m._id !== optimisticMsg._id));
+            showModal({ title: 'Error', message: err.message || 'Failed to send voice message', type: 'error' });
+        } finally {
+            setSendingVoice(false);
+        }
+    }, [activeChat, pendingVoiceRecording, resolveUserId]);
+
+    useEffect(() => {
+        stopVoiceRecordingRef.current = stopVoiceRecording;
+    }, [stopVoiceRecording]);
+
+    useEffect(() => {
+        return () => {
+            if (recordingTimerRef.current) {
+                clearInterval(recordingTimerRef.current);
+                recordingTimerRef.current = null;
+            }
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                mediaRecorderRef.current.stop();
+                mediaRecorderRef.current = null;
+            }
+            setIsRecording(false);
+            if (pendingVoiceUrlRef.current) {
+                URL.revokeObjectURL(pendingVoiceUrlRef.current);
+                pendingVoiceUrlRef.current = null;
+            }
+        };
+    }, []);
 
     const sendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -1011,6 +1168,7 @@ function ChatPageContent() {
                                         }
 
                                         const msg = item.data;
+                                        const isVoice = msg.messageType === 'voice';
                                         const isAdmin = msg.isAdmin || msg.text?.includes('[Engezhaly Admin]');
                                         const isMeeting = msg.isMeeting || msg.messageType === 'meeting' || msg.text?.includes('[Engezhaly Meeting]');
                                         const isOrder = msg.messageType === 'order' || msg.text?.includes('[Engezhaly Order]');
@@ -1051,7 +1209,11 @@ function ChatPageContent() {
                                                             <span className="text-xs font-bold text-[#09BF44]">Video Meeting</span>
                                                         </div>
                                                     )}
-                                                    <p className={`text-sm leading-relaxed whitespace-pre-wrap break-words ${msg.isBlurred ? 'blur-sm select-none' : ''}`}>{content}</p>
+                                                    {isVoice ? (
+                                                        <audio controls src={msg.text} className="max-w-full min-w-[200px] h-10 rounded-lg" />
+                                                    ) : (
+                                                        <p className={`text-sm leading-relaxed whitespace-pre-wrap break-words ${msg.isBlurred ? 'blur-sm select-none' : ''}`}>{content}</p>
+                                                    )}
                                                     {meetingLink && (
                                                         <a
                                                             href={meetingLink}
@@ -1094,22 +1256,72 @@ function ChatPageContent() {
                                                 Custom Offer
                                             </button>
                                         )}
-                                        <form onSubmit={sendMessage} className="flex items-center gap-2 md:gap-3 bg-gray-50 p-2 rounded-2xl border-2 border-gray-200 focus-within:border-[#09BF44] focus-within:ring-2 focus-within:ring-[#09BF44]/20 transition-all flex-1 min-w-0">
-                                            <button type="button" disabled={activeChat.isFrozen} className="p-2.5 text-gray-400 hover:text-[#09BF44] hover:bg-white rounded-xl transition-all flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed">
-                                                <Paperclip className="w-5 h-5" />
-                                            </button>
-                                            <input
-                                                type="text"
-                                                value={input}
-                                                onChange={(e) => setInput(e.target.value)}
-                                                placeholder={activeChat.isFrozen ? "Conversation is frozen..." : "Type a message..."}
-                                                disabled={activeChat.isFrozen}
-                                                className="flex-1 bg-transparent border-none outline-none text-gray-700 placeholder-gray-400 text-sm min-w-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                                            />
-                                            <button type="submit" disabled={activeChat.isFrozen} className="p-3 bg-[#09BF44] text-white rounded-xl hover:bg-[#07a63a] transition-all shadow-md shadow-[#09BF44]/20 hover:shadow-lg hover:shadow-[#09BF44]/30 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed">
-                                                <Send className="w-4 h-4" />
-                                            </button>
-                                        </form>
+                                        {isRecording ? (
+                                            <div className="flex items-center gap-2 md:gap-3 bg-red-50 p-3 rounded-2xl border-2 border-red-200 flex-1 min-w-0">
+                                                <div className="w-2 h-2 md:w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
+                                                <span className="text-sm font-bold text-red-700 flex-1">
+                                                    Recording… {Math.floor(recordingSeconds / 60)}:{(recordingSeconds % 60).toString().padStart(2, '0')} / 2:00
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={stopVoiceRecording}
+                                                    className="p-2.5 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all flex-shrink-0"
+                                                    aria-label="Stop recording"
+                                                >
+                                                    <Square className="w-4 h-4 fill-current" />
+                                                </button>
+                                            </div>
+                                        ) : pendingVoiceRecording ? (
+                                            <div className="flex items-center gap-2 md:gap-3 bg-gray-50 p-3 rounded-2xl border-2 border-gray-200 flex-1 min-w-0">
+                                                <audio controls src={pendingVoiceRecording.objectUrl} className="flex-1 min-w-0 h-10 max-h-10" />
+                                                <span className="text-xs text-gray-500 shrink-0">
+                                                    {Math.floor(pendingVoiceRecording.durationSeconds / 60)}:{(pendingVoiceRecording.durationSeconds % 60).toString().padStart(2, '0')}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={discardVoiceRecording}
+                                                    className="p-2.5 text-red-600 hover:bg-red-50 rounded-xl transition-all shrink-0"
+                                                    aria-label="Delete recording"
+                                                >
+                                                    <Trash2 className="w-5 h-5" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={sendVoiceMessage}
+                                                    disabled={sendingVoice}
+                                                    className="p-2.5 bg-[#09BF44] text-white rounded-xl hover:bg-[#07a63a] transition-all shrink-0 disabled:opacity-70 flex items-center justify-center"
+                                                    aria-label="Send voice message"
+                                                >
+                                                    {sendingVoice ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <form onSubmit={sendMessage} className="flex items-center gap-2 md:gap-3 bg-gray-50 p-2 rounded-2xl border-2 border-gray-200 focus-within:border-[#09BF44] focus-within:ring-2 focus-within:ring-[#09BF44]/20 transition-all flex-1 min-w-0">
+                                                <button type="button" disabled={activeChat.isFrozen} className="p-2.5 text-gray-400 hover:text-[#09BF44] hover:bg-white rounded-xl transition-all flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                    <Paperclip className="w-5 h-5" />
+                                                </button>
+                                                <input
+                                                    type="text"
+                                                    value={input}
+                                                    onChange={(e) => setInput(e.target.value)}
+                                                    placeholder={activeChat.isFrozen ? "Conversation is frozen..." : "Type a message..."}
+                                                    disabled={activeChat.isFrozen}
+                                                    className="flex-1 bg-transparent border-none outline-none text-gray-700 placeholder-gray-400 text-sm min-w-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={startVoiceRecording}
+                                                    disabled={activeChat.isFrozen}
+                                                    className="p-2.5 text-gray-400 hover:text-[#09BF44] hover:bg-white rounded-xl transition-all flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    aria-label="Record voice message"
+                                                >
+                                                    <Mic className="w-5 h-5" />
+                                                </button>
+                                                <button type="submit" disabled={activeChat.isFrozen} className="p-3 bg-[#09BF44] text-white rounded-xl hover:bg-[#07a63a] transition-all shadow-md shadow-[#09BF44]/20 hover:shadow-lg hover:shadow-[#09BF44]/30 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                    <Send className="w-4 h-4" />
+                                                </button>
+                                            </form>
+                                        )}
                                     </div>
                                 </div>
                             </>

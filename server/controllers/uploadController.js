@@ -40,7 +40,9 @@ const uploadFile = async (req, res) => {
                 return res.status(400).json({ message: 'Failed to process image. Please ensure it is a valid image file.' });
             }
         } else {
-            const ext = path.extname(req.file.originalname) || '.pdf';
+            const isAudio = req.file.mimetype.startsWith('audio/');
+            const fallbackExt = isAudio ? '.webm' : '.pdf';
+            const ext = path.extname(req.file.originalname) || fallbackExt;
             const base = path.basename(req.file.originalname, ext);
             filename = `${sanitizeBase(base)}-${timestamp}${ext}`;
             const filepath = path.join(UPLOAD_DIR, filename);

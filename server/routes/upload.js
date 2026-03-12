@@ -11,9 +11,16 @@ const upload = multer({
             /\.(jpg|jpeg|png|gif|webp|pdf)$/i.test(file.originalname) ||
             file.mimetype.startsWith('image/') ||
             file.mimetype === 'application/pdf' ||
-            file.mimetype === 'application/x-pdf';
+            file.mimetype === 'application/x-pdf' ||
+            file.mimetype.startsWith('audio/') ||
+            file.mimetype === 'audio/mpeg' ||
+            file.mimetype === 'audio/mp3' ||
+            file.mimetype === 'audio/webm' ||
+            file.mimetype === 'audio/ogg' ||
+            file.mimetype === 'audio/wav' ||
+            file.mimetype === 'audio/mp4';
         if (allowed) cb(null, true);
-        else cb(new Error('Only images and PDFs are allowed'));
+        else cb(new Error('Only images, PDFs, and audio files are allowed'));
     }
 });
 
