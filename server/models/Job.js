@@ -12,6 +12,11 @@ const JobSchema = new mongoose.Schema({
         max: { type: Number, required: true }
     },
     deadline: { type: String }, // e.g., "1 week", "Urgent"
+    milestones: [{
+        name: { type: String, required: true },
+        price: { type: Number, required: true },
+        dueDate: { type: Date }
+    }],
     status: { type: String, enum: ['open', 'in_progress', 'completed', 'closed'], default: 'open' },
     proposals: [{
         freelancerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

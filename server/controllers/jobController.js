@@ -15,7 +15,7 @@ const { isValidCategorySubCategory } = require('../config/categories');
 
 const createJob = async (req, res) => {
     try {
-        const { title, description, skills, budgetMin, budgetMax, deadline, category, subCategory } = req.body;
+        const { title, description, skills, budgetMin, budgetMax, deadline, category, subCategory, milestones } = req.body;
 
         // Validation: Min budget 500
         if (budgetMin < 500) {
@@ -29,6 +29,16 @@ const createJob = async (req, res) => {
             return res.status(400).json({ msg: 'Invalid subcategory for this category' });
         }
 
+        const parsedMilestones = Array.isArray(milestones)
+            ? milestones
+                .filter((m) => m && m.name && Number(m.price) > 0)
+                .map((m) => ({
+                    name: String(m.name).trim(),
+                    price: Number(m.price),
+                    dueDate: m.dueDate ? new Date(m.dueDate) : undefined
+                }))
+            : [];
+
         const newJob = new Job({
             clientId: req.user.id,
             title,
@@ -37,7 +47,8 @@ const createJob = async (req, res) => {
             category,
             subCategory,
             budgetRange: { min: budgetMin, max: budgetMax },
-            deadline
+            deadline,
+            milestones: parsedMilestones
         });
 
         await newJob.save();

@@ -239,6 +239,28 @@ export default function JobDetailPage() {
                                 </div>
                             </div>
                         )}
+
+                        {job.milestones && job.milestones.length > 0 && (
+                            <div>
+                                <h3 className="text-sm font-bold text-gray-500 mb-2">Payment Milestones</h3>
+                                <div className="space-y-2">
+                                    {job.milestones.map((m: any, idx: number) => (
+                                        <div key={idx} className="flex flex-wrap items-center justify-between gap-2 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                                            <span className="font-bold text-gray-900">{m.name}</span>
+                                            <div className="flex items-center gap-3">
+                                                {m.dueDate && (
+                                                    <span className="text-sm text-gray-500">Due: {formatDateDDMMYYYY(m.dueDate)}</span>
+                                                )}
+                                                <span className="font-black text-[#09BF44]">{m.price} EGP</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <p className="text-sm font-bold text-gray-700">
+                                        Total: {job.milestones.reduce((s: number, m: any) => s + (Number(m.price) || 0), 0)} EGP
+                                    </p>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 

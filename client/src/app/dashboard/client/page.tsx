@@ -394,7 +394,7 @@ function ClientDashboardContent() {
                                     <div className="flex items-center gap-2 pt-4 border-t border-gray-100">
                                         {job.status === 'open' && (
                                             <button
-                                                onClick={() => setEditJobModal(job)}
+                                                onClick={() => router.push(`/dashboard/client/jobs/${job._id}/edit`)}
                                                 className="bg-gray-100 text-gray-700 font-bold px-4 py-2 rounded-xl hover:bg-[#09BF44]/10 hover:text-[#09BF44] transition-colors flex items-center gap-2"
                                                 title="Edit"
                                             >

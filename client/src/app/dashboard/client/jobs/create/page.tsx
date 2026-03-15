@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
-import { Loader2, PanelLeft } from 'lucide-react';
+import { Loader2, PanelLeft, Plus, Trash2 } from 'lucide-react';
 import { MAIN_CATEGORIES, CATEGORIES } from '@/lib/categories';
 import { useModal } from '@/context/ModalContext';
 import ClientSidebar from '@/components/ClientSidebar';
@@ -39,6 +39,16 @@ export default function PostJobPage() {
         budgetMax: 1000,
         deadline: '' // YYYY-MM-DD date
     });
+    const [showMilestones, setShowMilestones] = useState(false);
+    const [milestones, setMilestones] = useState<Array<{ name: string; price: string; dueDate: string }>>([]);
+
+    const addMilestone = () => setMilestones([...milestones, { name: '', price: '', dueDate: '' }]);
+    const removeMilestone = (index: number) => setMilestones(milestones.filter((_, i) => i !== index));
+    const updateMilestone = (index: number, field: 'name' | 'price' | 'dueDate', value: string) => {
+        const updated = [...milestones];
+        updated[index] = { ...updated[index], [field]: value };
+        setMilestones(updated);
+    };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -67,13 +77,21 @@ export default function PostJobPage() {
         }
 
         try {
+            const milestonesPayload = showMilestones && milestones.length > 0
+                ? milestones.filter((m) => m.name.trim() && Number(m.price) > 0).map((m) => ({
+                    name: m.name.trim(),
+                    price: Number(m.price),
+                    dueDate: m.dueDate || undefined
+                }))
+                : [];
             await api.jobs.create({
                 ...jobData,
                 budgetMin: Number(jobData.budgetMin),
                 budgetMax: Number(jobData.budgetMax),
                 skills: jobData.skills.trim().split(/\s+/).filter(Boolean),
                 category: jobData.category,
-                subCategory: jobData.subCategory
+                subCategory: jobData.subCategory,
+                milestones: milestonesPayload
             });
             showModal({ title: 'Success', message: 'Job Posted Successfully!', type: 'success' });
             router.push('/dashboard/client');
@@ -257,6 +275,76 @@ export default function PostJobPage() {
                                     min={new Date().toISOString().split('T')[0]}
                                     className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none"
                                 />
+                            </div>
+
+                            {/* Payment Milestones */}
+                            <div className="p-4 rounded-xl border-2 border-gray-100 bg-gray-50/50">
+                                <div className="flex items-center justify-between flex-wrap gap-3 mb-2">
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-900">Payment Milestones</label>
+                                        <p className="text-xs text-gray-600">Optionally split payment across milestones (e.g., Design Phase, Development)</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setShowMilestones(!showMilestones);
+                                            if (!showMilestones) setMilestones([]);
+                                        }}
+                                        className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${showMilestones ? 'bg-[#09BF44] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                                    >
+                                        {showMilestones ? 'Enabled' : 'Enable'}
+                                    </button>
+                                </div>
+                                {showMilestones && (
+                                    <div className="mt-4 space-y-3">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm font-bold text-gray-700">Milestones</span>
+                                            <button type="button" onClick={addMilestone} className="flex items-center gap-2 px-3 py-1.5 bg-[#09BF44] text-white text-sm font-bold rounded-lg hover:bg-[#07a63a]">
+                                                <Plus className="w-4 h-4" /> Add
+                                            </button>
+                                        </div>
+                                        {milestones.length === 0 ? (
+                                            <p className="text-sm text-gray-500 py-4 text-center border-2 border-dashed border-gray-200 rounded-xl">Click &quot;Add&quot; to create payment milestones.</p>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                {milestones.map((m, idx) => (
+                                                    <div key={idx} className="p-3 bg-white rounded-xl border border-gray-200 flex flex-col sm:flex-row gap-3">
+                                                        <input
+                                                            type="text"
+                                                            value={m.name}
+                                                            onChange={(e) => updateMilestone(idx, 'name', e.target.value)}
+                                                            placeholder="e.g. Design Phase"
+                                                            className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:border-[#09BF44] outline-none"
+                                                        />
+                                                        <input
+                                                            type="number"
+                                                            value={m.price}
+                                                            onChange={(e) => updateMilestone(idx, 'price', e.target.value)}
+                                                            placeholder="EGP"
+                                                            min="0"
+                                                            className="w-24 px-3 py-2 border border-gray-200 rounded-lg focus:border-[#09BF44] outline-none"
+                                                        />
+                                                        <input
+                                                            type="date"
+                                                            value={m.dueDate}
+                                                            onChange={(e) => updateMilestone(idx, 'dueDate', e.target.value)}
+                                                            min={new Date().toISOString().split('T')[0]}
+                                                            className="w-36 px-3 py-2 border border-gray-200 rounded-lg focus:border-[#09BF44] outline-none"
+                                                        />
+                                                        <button type="button" onClick={() => removeMilestone(idx)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg">
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                                {milestones.length > 0 && (
+                                                    <p className="text-sm font-bold text-gray-700">
+                                                        Total: {milestones.reduce((s, m) => s + (Number(m.price) || 0), 0)} EGP
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4 pt-4 border-t border-gray-100">

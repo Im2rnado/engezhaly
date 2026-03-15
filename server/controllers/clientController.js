@@ -114,6 +114,20 @@ const updateJob = async (req, res) => {
         if (deadline !== undefined) job.deadline = deadline;
         if (status !== undefined) job.status = status;
 
+        if (job.status === 'open' && req.body.milestones !== undefined) {
+            const milestones = req.body.milestones;
+            const parsed = Array.isArray(milestones)
+                ? milestones
+                    .filter((m) => m && m.name && Number(m.price) > 0)
+                    .map((m) => ({
+                        name: String(m.name).trim(),
+                        price: Number(m.price),
+                        dueDate: m.dueDate ? new Date(m.dueDate) : undefined
+                    }))
+                : [];
+            job.milestones = parsed;
+        }
+
         await job.save();
         res.json(job);
     } catch (err) {
