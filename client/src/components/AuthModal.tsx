@@ -78,10 +78,14 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
     });
 
     // Step 3: Survey & Pricing
-    const [survey, setSurvey] = useState({
+    const [survey, setSurvey] = useState<{
+        disagreementHandling: string;
+        hoursPerDay: string;
+        discoverySource: string[];
+    }>({
         disagreementHandling: '',
         hoursPerDay: '',
-        discoverySource: ''
+        discoverySource: []
     });
     const [cvUrl, setCvUrl] = useState('');
     const [cvUploading, setCvUploading] = useState(false);
@@ -140,7 +144,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             setPortfolioImageUploading(null);
             setPortfolioImageProgress(0);
             setProfessionalInfo({ category: '', experienceYears: '', technicalSkills: '', softSkills: '', bio: '', isStudent: false, certifications: [], universityIdUrl: '', idDocumentUrl: '', city: '', english: 'Fluent', arabic: 'Fluent', extraLanguages: '' });
-            setSurvey({ disagreementHandling: '', hoursPerDay: '', discoverySource: '' });
+            setSurvey({ disagreementHandling: '', hoursPerDay: '', discoverySource: [] });
             setCvUrl('');
             setWithdrawalMethod({ method: 'vodafone_cash', phoneNumber: '', accountNumber: '', bankName: '' });
             setSignupNotes('');
@@ -267,6 +271,10 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             setError('Company name is required for company accounts');
             return;
         }
+        if (!profilePicture) {
+            setError('Profile picture is required. Please upload a photo that clearly shows your face.');
+            return;
+        }
         if (!acceptedTerms) {
             setError('You must agree to the Terms and Conditions and Privacy Policy to create an account');
             return;
@@ -298,8 +306,11 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                     linkedIn: formData.linkedIn?.trim() || undefined,
                     instagram: formData.instagram?.trim() || undefined,
                     facebook: formData.facebook?.trim() || undefined,
-                    tiktok: formData.tiktok?.trim() || undefined
+                    tiktok: formData.tiktok?.trim() || undefined,
+                    profilePicture
                 };
+            } else {
+                payload.clientProfile = { profilePicture };
             }
             const data = await api.auth.register(payload);
             localStorage.setItem('token', data.token);
@@ -331,6 +342,10 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
         }
         if (!validatePassword(formData.password)) {
             setError('Password must be at least 6 characters');
+            return;
+        }
+        if (!profilePicture) {
+            setError('Profile picture is required. Please upload a photo that clearly shows your face.');
             return;
         }
         setError('');
@@ -404,10 +419,10 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
         }
     };
 
-    const SURVEY_QUESTIONS: { key: keyof typeof survey; label: string; type: 'text' | 'select' | 'radio'; options?: string[] }[] = [
+    const SURVEY_QUESTIONS: { key: keyof typeof survey; label: string; type: 'text' | 'select' | 'radio' | 'multi-select'; options?: string[] }[] = [
         { key: 'disagreementHandling', label: 'What happens if you have a disagreement with the client?', type: 'text' },
         { key: 'hoursPerDay', label: 'On average, how many hours per day can you dedicate to Engezhaly?', type: 'radio', options: ['Less than 1', '1–2', '2–4', '4–6', '6+', 'Other'] },
-        { key: 'discoverySource', label: 'Where did you find out about Engezhaly from?', type: 'select', options: ['TikTok', 'Instagram', 'Facebook', 'X', 'Friend/Referral', 'Google/Search', 'Other'] }
+        { key: 'discoverySource', label: 'Where did you find out about Engezhaly from? (Select all that apply)', type: 'multi-select', options: ['TikTok', 'Instagram', 'Facebook', 'X', 'Friend/Referral', 'Google/Search', 'Other'] }
     ];
 
     const handleFinalSubmit = async () => {
@@ -431,7 +446,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             surveyResponses: {
                 disagreementHandling: survey.disagreementHandling?.trim() || undefined,
                 hoursPerDay: survey.hoursPerDay?.trim() || undefined,
-                discoverySource: survey.discoverySource?.trim() || undefined
+                discoverySource: Array.isArray(survey.discoverySource) && survey.discoverySource.length > 0 ? survey.discoverySource.join(', ') : undefined
             },
             cvUrl: cvUrl?.trim() || undefined,
             starterOffer: {
@@ -760,6 +775,40 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                     <input name="firstName" placeholder="First Name" required onChange={handleChange} value={formData.firstName} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
                                     <input name="lastName" placeholder="Last Name" required onChange={handleChange} value={formData.lastName} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
                                 </div>
+                                {/* Profile Picture Upload */}
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Profile Picture *</label>
+                                    <p className="text-xs text-gray-500 mb-2">Please show your face properly.</p>
+                                    {profilePicture ? (
+                                        <div className="relative inline-block">
+                                            <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-[#09BF44] bg-gray-100">
+                                                <Image src={profilePicture} alt="Profile" width={96} height={96} className="w-full h-full object-cover" unoptimized />
+                                            </div>
+                                            <button type="button" onClick={removeProfilePicture} className="absolute -top-1 -right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors">
+                                                <XIcon className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div
+                                            onClick={() => !profilePictureUploading && fileInputRef.current?.click()}
+                                            className={`relative p-4 border-2 border-dashed rounded-xl text-center transition-colors ${profilePictureUploading ? 'border-[#09BF44] bg-green-50 cursor-wait' : 'border-gray-200 text-gray-500 hover:border-[#09BF44] hover:bg-green-50 cursor-pointer'}`}
+                                        >
+                                            {profilePictureUploading ? (
+                                                <>
+                                                    <Loader2 className="w-6 h-6 mx-auto mb-2 text-[#09BF44] animate-spin" />
+                                                    <p className="text-sm font-bold text-[#09BF44]">Uploading... {profilePictureProgress}%</p>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Upload className="w-6 h-6 mx-auto mb-2 text-gray-400" />
+                                                    <p className="text-sm font-bold">Click to upload profile photo</p>
+                                                    <p className="text-xs text-gray-400 mt-1">Max 5MB</p>
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
+                                    <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                                </div>
                                 <input name="username" placeholder="Username" required onChange={handleChange} value={formData.username} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
                                 <input name="email" type="email" placeholder="Email Address" required onChange={handleChange} value={formData.email} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
                                 <div className="flex gap-2">
@@ -896,7 +945,8 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
 
                                 {/* Profile Picture Upload */}
                                 <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Profile Picture (Optional)</label>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Profile Picture *</label>
+                                    <p className="text-xs text-gray-500 mb-2">Please show your face properly.</p>
                                     {profilePicture ? (
                                         <div className="relative">
                                             <div className="w-32 h-32 mx-auto rounded-full overflow-hidden border-4 border-[#09BF44] bg-gray-100">
@@ -1520,7 +1570,31 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                 {surveyStep <= 3 && SURVEY_QUESTIONS.slice(surveyStep - 1, surveyStep).map((q) => (
                                     <div key={q.key}>
                                         <label className="block font-medium text-gray-700 mb-3">{q.label}</label>
-                                        {q.type === 'select' ? (
+                                        {q.type === 'multi-select' ? (
+                                            <div className="flex flex-wrap gap-2">
+                                                {q.options?.map((opt) => {
+                                                    const selected = (survey.discoverySource as string[]).includes(opt);
+                                                    return (
+                                                        <button
+                                                            key={opt}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const current = survey.discoverySource as string[];
+                                                                const next = selected ? current.filter((s) => s !== opt) : [...current, opt];
+                                                                setSurvey({ ...survey, discoverySource: next });
+                                                            }}
+                                                            className={`px-4 py-2.5 rounded-xl font-medium text-sm transition-all ${
+                                                                selected
+                                                                    ? 'bg-[#09BF44] text-white border-2 border-[#09BF44]'
+                                                                    : 'bg-gray-50 text-gray-700 border-2 border-gray-200 hover:border-[#09BF44]/50 hover:bg-[#09BF44]/5'
+                                                            }`}
+                                                        >
+                                                            {opt}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        ) : q.type === 'select' ? (
                                             <select value={survey[q.key]} onChange={(e) => setSurvey({ ...survey, [q.key]: e.target.value })} className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none">
                                                 <option value="">Select...</option>
                                                 {q.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}

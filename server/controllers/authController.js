@@ -64,6 +64,7 @@ const register = async (req, res) => {
                 if (clientProfile.instagram) userData.clientProfile.instagram = clientProfile.instagram;
                 if (clientProfile.facebook) userData.clientProfile.facebook = clientProfile.facebook;
                 if (clientProfile.tiktok) userData.clientProfile.tiktok = clientProfile.tiktok;
+                if (clientProfile.profilePicture) userData.clientProfile.profilePicture = clientProfile.profilePicture;
             }
         }
 

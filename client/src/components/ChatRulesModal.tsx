@@ -14,6 +14,7 @@ const CHAT_RULES = [
     "Do not spam, harass, or send unsolicited messages.",
     "Keep conversations focused on work-related topics.",
     "Report any suspicious or inappropriate behavior to the support team.",
+    "You can submit your work using: a link to your project, a Google Drive or Dropbox link, or by uploading the deliverable directly.",
     "Violations may result in account suspension or termination.",
 ];
 

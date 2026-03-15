@@ -289,28 +289,6 @@ function FreelancerDashboardContent() {
                     </div>
                 </header>
 
-                {/* Busy status banner - visible in main dashboard area */}
-                {profile?.freelancerProfile?.status !== 'pending' && (
-                    <div className={`mb-6 rounded-2xl border-2 p-4 flex flex-wrap items-center justify-between gap-3 ${profile?.freelancerProfile?.isBusy ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
-                        <div className="flex items-center gap-3">
-                            <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-bold ${profile?.freelancerProfile?.isBusy ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                                {profile?.freelancerProfile?.isBusy ? 'Busy' : 'Available'}
-                            </span>
-                            <span className="text-sm text-gray-600">
-                                {profile?.freelancerProfile?.isBusy ? 'Clients cannot place new orders.' : 'You are accepting orders.'}
-                            </span>
-                        </div>
-                        {profile?.freelancerProfile?.isBusy && (
-                            <button
-                                onClick={toggleBusy}
-                                className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-colors bg-red-500 text-white hover:bg-red-600"
-                            >
-                                Switch to Available
-                            </button>
-                        )}
-                    </div>
-                )}
-
                 {activeTab === 'dashboard' && (
                     <div className="space-y-8">
                         {/* Stats Cards */}

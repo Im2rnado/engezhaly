@@ -530,7 +530,7 @@ function ChatPageContent() {
 
         const messageContent = input;
         setInput(''); // Clear input immediately for better UX
-
+        
         try {
             const receiverId = activeChat.partnerId?._id ?? activeChat.partnerId;
             if (!receiverId) {
@@ -538,7 +538,7 @@ function ChatPageContent() {
                 return;
             }
             const userId = resolveUserId();
-
+            
             // Optimistically add the message to show it immediately
             const optimisticMessage = {
                 _id: `temp-${Date.now()}`,
@@ -550,7 +550,7 @@ function ChatPageContent() {
                 isRead: false
             };
             setMessages((prev) => [...prev, optimisticMessage]);
-
+            
             await api.chat.sendMessage({
                 receiverId,
                 content: messageContent,
@@ -577,7 +577,7 @@ function ChatPageContent() {
                 };
             });
             setMessages(formatted);
-
+            
             // Refresh conversations to update isFrozen status if it changed
             api.chat.getConversations().then((data: any) => {
                 if (Array.isArray(data)) {
@@ -686,10 +686,10 @@ function ChatPageContent() {
                             conversationId: conversationId || undefined
                         });
                     } else {
-                        if (conversationId) {
-                            const offersData = await api.chat.getOffers(conversationId);
-                            setOffers(offersData || []);
-                        }
+                    if (conversationId) {
+                        const offersData = await api.chat.getOffers(conversationId);
+                        setOffers(offersData || []);
+                    }
                         showModal({ title: 'Success', message: 'Order created successfully! Payment processed.', type: 'success' });
                     }
                 } catch (err: any) {
@@ -716,8 +716,8 @@ function ChatPageContent() {
                 setMeetingDate('');
                 setMeetingTime('');
                 setShowMeetingModal(true);
-                return;
-            }
+            return;
+        }
 
             if (!isClient) {
                 showModal({
@@ -764,27 +764,27 @@ function ChatPageContent() {
             setShowMeetingModal(false);
             setConsultationStatus({ hasUnusedPayment: false });
             showModal({ title: 'Success', message: 'Meeting scheduled! The link has been sent in the chat.', type: 'success' });
-            const data = await api.chat.getMessages(conversationId);
+                            const data = await api.chat.getMessages(conversationId);
             const userId = resolveUserId();
-            const formatted = data.map((m: any) => {
-                const senderId = m.senderId?._id || m.senderId;
-                const isAdmin = m.isAdmin || m.content?.includes('[Engezhaly Admin]');
+                            const formatted = data.map((m: any) => {
+                                const senderId = m.senderId?._id || m.senderId;
+                                const isAdmin = m.isAdmin || m.content?.includes('[Engezhaly Admin]');
                 const isMeeting = m.messageType === 'meeting' || m.content?.includes('[Engezhaly Meeting]');
-                return {
-                    _id: m._id,
-                    text: m.content,
-                    sender: String(senderId) === String(userId) ? 'me' : 'them',
-                    senderId: senderId,
-                    timestamp: m.createdAt,
-                    messageType: m.messageType,
+                                return {
+                                    _id: m._id,
+                                    text: m.content,
+                                    sender: String(senderId) === String(userId) ? 'me' : 'them',
+                                    senderId: senderId,
+                                    timestamp: m.createdAt,
+                                    messageType: m.messageType,
                     isRead: !!m.isRead,
                     isAdmin: isAdmin,
                     isMeeting: isMeeting,
                     isBlurred: !!m.isBlurred
-                };
-            });
-            setMessages(formatted);
-        } catch (err: any) {
+                                };
+                            });
+                            setMessages(formatted);
+                    } catch (err: any) {
             showModal({ title: 'Error', message: (err as Error).message || 'Failed to create meeting', type: 'error' });
         } finally {
             setSettingMeeting(false);
@@ -914,8 +914,8 @@ function ChatPageContent() {
                                                 );
                                             }}
                                             className={`p-4 cursor-pointer flex items-center gap-4 border-b border-gray-100 transition-all ${isActive
-                                                ? 'bg-gradient-to-r from-[#09BF44]/10 to-[#09BF44]/5 border-l-4 border-l-[#09BF44]'
-                                                : 'hover:bg-gray-50'
+                                                    ? 'bg-gradient-to-r from-[#09BF44]/10 to-[#09BF44]/5 border-l-4 border-l-[#09BF44]'
+                                                    : 'hover:bg-gray-50'
                                                 }`}
                                         >
                                             {/* Profile Picture */}
@@ -982,7 +982,7 @@ function ChatPageContent() {
                                         </div>
                                     </div>
                                 )}
-
+                                
                                 {/* Header */}
                                 <div className="h-16 md:h-20 border-b border-gray-200 flex items-center justify-between px-3 md:px-8 bg-white rounded-t-2xl md:rounded-t-3xl shadow-sm flex-shrink-0">
                                     <div className="flex items-center gap-3 md:gap-4 min-w-0">
@@ -1187,82 +1187,82 @@ function ChatPageContent() {
                                             const currentUserId = resolveUserId();
                                             const isMyOffer =
                                                 String(offer.senderId?._id || offer.senderId) === String(currentUserId);
-                                            const canAccept = !isMyOffer && offer.status === 'pending';
+                                        const canAccept = !isMyOffer && offer.status === 'pending';
 
-                                            return (
+                                        return (
                                                 <div key={item.id} className={`flex ${isMyOffer ? 'justify-end' : 'justify-start'}`}>
                                                     <div className={`max-w-[88%] md:max-w-[75%] p-4 md:p-5 rounded-2xl md:rounded-3xl shadow-sm border-2 ${isMyOffer
                                                         ? 'bg-[#09BF44] text-white border-[#09BF44]'
                                                         : 'bg-white border-[#09BF44]/20'
-                                                        }`}>
-                                                        <div className="flex items-center gap-2 mb-3">
-                                                            <FileText className={`w-5 h-5 ${isMyOffer ? 'text-white' : 'text-[#09BF44]'}`} />
-                                                            <span className={`font-bold text-base ${isMyOffer ? 'text-white' : 'text-gray-900'}`}>
-                                                                Custom Offer
-                                                            </span>
-                                                            {offer.status === 'accepted' && (
-                                                                <CheckCircle className={`w-5 h-5 ml-auto ${isMyOffer ? 'text-white' : 'text-green-600'}`} />
-                                                            )}
-                                                            {offer.status === 'rejected' && (
-                                                                <XCircle className={`w-5 h-5 ml-auto ${isMyOffer ? 'text-white' : 'text-red-600'}`} />
-                                                            )}
-                                                        </div>
+                                                    }`}>
+                                                    <div className="flex items-center gap-2 mb-3">
+                                                        <FileText className={`w-5 h-5 ${isMyOffer ? 'text-white' : 'text-[#09BF44]'}`} />
+                                                        <span className={`font-bold text-base ${isMyOffer ? 'text-white' : 'text-gray-900'}`}>
+                                                            Custom Offer
+                                                        </span>
+                                                        {offer.status === 'accepted' && (
+                                                            <CheckCircle className={`w-5 h-5 ml-auto ${isMyOffer ? 'text-white' : 'text-green-600'}`} />
+                                                        )}
+                                                        {offer.status === 'rejected' && (
+                                                            <XCircle className={`w-5 h-5 ml-auto ${isMyOffer ? 'text-white' : 'text-red-600'}`} />
+                                                        )}
+                                                    </div>
 
-                                                        <div className={`space-y-3 mb-4 ${isMyOffer ? 'text-white/95' : 'text-gray-700'}`}>
-                                                            <div className="flex items-center justify-between bg-white/10 rounded-xl p-3">
-                                                                <span className="text-sm font-bold">Price:</span>
-                                                                <span className="text-lg font-black">{offer.price} EGP</span>
-                                                            </div>
+                                                    <div className={`space-y-3 mb-4 ${isMyOffer ? 'text-white/95' : 'text-gray-700'}`}>
+                                                        <div className="flex items-center justify-between bg-white/10 rounded-xl p-3">
+                                                            <span className="text-sm font-bold">Price:</span>
+                                                            <span className="text-lg font-black">{offer.price} EGP</span>
+                                                        </div>
                                                             {canAccept && (
                                                                 <div className="text-xs opacity-90">
                                                                     + 20 EGP fee = {offer.price + 20} EGP total to pay
                                                                 </div>
                                                             )}
-                                                            <div className="flex items-center justify-between">
-                                                                <span className="text-sm font-bold">Delivery:</span>
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-sm font-bold">Delivery:</span>
                                                                 <span className="text-sm font-medium">
                                                                     {offer.deliveryDate ? formatDateDDMMYYYY(offer.deliveryDate) : (offer.deliveryDays ? `${offer.deliveryDays} days` : '—')}
                                                                 </span>
-                                                            </div>
-                                                            <div className="pt-3 border-t border-white/20">
-                                                                <p className="text-sm font-bold mb-2">What&apos;s Included:</p>
-                                                                <p className="text-sm leading-relaxed">{offer.whatsIncluded}</p>
-                                                            </div>
-                                                            {offer.milestones && offer.milestones.length > 0 && (
-                                                                <div className="pt-3 border-t border-white/20">
-                                                                    <p className="text-sm font-bold mb-2">Milestones:</p>
-                                                                    {offer.milestones.map((milestone: any, idx: number) => (
-                                                                        <div key={idx} className="text-xs mb-1.5 flex items-center gap-2">
-                                                                            <div className="w-1.5 h-1.5 rounded-full bg-current opacity-60"></div>
-                                                                            {milestone.name}: {milestone.price} EGP
-                                                                            {milestone.dueDate && ` (Due: ${formatDateDDMMYYYY(milestone.dueDate)})`}
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            )}
                                                         </div>
-
-                                                        {canAccept && (
-                                                            <button
-                                                                onClick={() => handleAcceptOffer(offer)}
-                                                                className="w-full bg-white text-[#09BF44] font-bold py-3 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
-                                                            >
-                                                                Accept Offer
-                                                            </button>
-                                                        )}
-                                                        {offer.status === 'accepted' && (
-                                                            <div className="text-center text-sm font-bold opacity-80 py-2">
-                                                                ✓ Offer Accepted
-                                                            </div>
-                                                        )}
-                                                        {offer.status === 'rejected' && (
-                                                            <div className="text-center text-sm font-bold opacity-80 py-2">
-                                                                ✗ Offer Rejected
+                                                        <div className="pt-3 border-t border-white/20">
+                                                            <p className="text-sm font-bold mb-2">What&apos;s Included:</p>
+                                                            <p className="text-sm leading-relaxed">{offer.whatsIncluded}</p>
+                                                        </div>
+                                                        {offer.milestones && offer.milestones.length > 0 && (
+                                                            <div className="pt-3 border-t border-white/20">
+                                                                <p className="text-sm font-bold mb-2">Milestones:</p>
+                                                                {offer.milestones.map((milestone: any, idx: number) => (
+                                                                    <div key={idx} className="text-xs mb-1.5 flex items-center gap-2">
+                                                                        <div className="w-1.5 h-1.5 rounded-full bg-current opacity-60"></div>
+                                                                        {milestone.name}: {milestone.price} EGP
+                                                                            {milestone.dueDate && ` (Due: ${formatDateDDMMYYYY(milestone.dueDate)})`}
+                                                                    </div>
+                                                                ))}
                                                             </div>
                                                         )}
                                                     </div>
+
+                                                    {canAccept && (
+                                                        <button
+                                                                onClick={() => handleAcceptOffer(offer)}
+                                                            className="w-full bg-white text-[#09BF44] font-bold py-3 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
+                                                        >
+                                                            Accept Offer
+                                                        </button>
+                                                    )}
+                                                    {offer.status === 'accepted' && (
+                                                        <div className="text-center text-sm font-bold opacity-80 py-2">
+                                                            ✓ Offer Accepted
+                                                        </div>
+                                                    )}
+                                                    {offer.status === 'rejected' && (
+                                                        <div className="text-center text-sm font-bold opacity-80 py-2">
+                                                            ✗ Offer Rejected
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            );
+                                            </div>
+                                        );
                                         }
 
                                         const msg = item.data;
@@ -1277,7 +1277,7 @@ function ChatPageContent() {
                                         if (isOrder) content = content.replace('[Engezhaly Order]', '').trim();
                                         const linkMatch = content.match(/Join here: (https?:\/\/[^\s]+)/);
                                         const meetingLink = linkMatch ? linkMatch[1] : null;
-
+                                        
                                         return (
                                             <div key={item.id} className={`flex w-full ${isCentered ? 'justify-center' : msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
                                                 <div className={`max-w-[88%] md:max-w-[70%] px-4 py-2 rounded-2xl shadow-sm ${isAdmin
@@ -1286,10 +1286,10 @@ function ChatPageContent() {
                                                             ? 'bg-green-50 border-2 border-[#09BF44]/40 text-gray-900'
                                                             : isOrder
                                                                 ? 'bg-blue-50 border-2 border-blue-200 text-gray-900'
-                                                                : msg.sender === 'me'
-                                                                    ? 'bg-[#09BF44] text-white rounded-br-sm'
-                                                                    : 'bg-white border border-gray-200 text-gray-900 rounded-bl-sm'
-                                                    }`}>
+                                                        : msg.sender === 'me'
+                                                            ? 'bg-[#09BF44] text-white rounded-br-sm'
+                                                            : 'bg-white border border-gray-200 text-gray-900 rounded-bl-sm'
+                                                }`}>
                                                     {isOrder && (
                                                         <div className="flex items-center gap-2 mb-1">
                                                             <span className="text-xs font-bold text-blue-700">Order</span>
@@ -1344,15 +1344,15 @@ function ChatPageContent() {
                                     <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 md:gap-3">
                                         {/* Create Offer Button - freelancers only */}
                                         {currentUser?.role === 'freelancer' && (
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowOfferModal(true)}
-                                                disabled={activeChat.isFrozen}
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowOfferModal(true)}
+                                            disabled={activeChat.isFrozen}
                                                 className="flex items-center justify-center gap-2 px-3 md:px-4 py-2.5 bg-gradient-to-r from-[#09BF44]/10 to-[#09BF44]/5 hover:from-[#09BF44]/20 hover:to-[#09BF44]/10 border border-[#09BF44]/20 rounded-xl font-bold text-[#09BF44] transition-all text-sm whitespace-nowrap flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                                            >
+                                        >
                                                 <FileText className="w-4 h-5" />
-                                                Custom Offer
-                                            </button>
+                                            Custom Offer
+                                        </button>
                                         )}
                                         {isRecording ? (
                                             <div className="flex items-center gap-2 md:gap-3 bg-red-50 p-3 rounded-2xl border-2 border-red-200 flex-1 min-w-0">
@@ -1395,17 +1395,17 @@ function ChatPageContent() {
                                             </div>
                                         ) : (
                                             <form onSubmit={sendMessage} className="flex items-center gap-2 md:gap-3 bg-gray-50 p-2 rounded-2xl border-2 border-gray-200 focus-within:border-[#09BF44] focus-within:ring-2 focus-within:ring-[#09BF44]/20 transition-all flex-1 min-w-0">
-                                                <button type="button" disabled={activeChat.isFrozen} className="p-2.5 text-gray-400 hover:text-[#09BF44] hover:bg-white rounded-xl transition-all flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed">
-                                                    <Paperclip className="w-5 h-5" />
-                                                </button>
-                                                <input
-                                                    type="text"
-                                                    value={input}
-                                                    onChange={(e) => setInput(e.target.value)}
-                                                    placeholder={activeChat.isFrozen ? "Conversation is frozen..." : "Type a message..."}
-                                                    disabled={activeChat.isFrozen}
-                                                    className="flex-1 bg-transparent border-none outline-none text-gray-700 placeholder-gray-400 text-sm min-w-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                />
+                                            <button type="button" disabled={activeChat.isFrozen} className="p-2.5 text-gray-400 hover:text-[#09BF44] hover:bg-white rounded-xl transition-all flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                <Paperclip className="w-5 h-5" />
+                                            </button>
+                                            <input
+                                                type="text"
+                                                value={input}
+                                                onChange={(e) => setInput(e.target.value)}
+                                                placeholder={activeChat.isFrozen ? "Conversation is frozen..." : "Type a message..."}
+                                                disabled={activeChat.isFrozen}
+                                                className="flex-1 bg-transparent border-none outline-none text-gray-700 placeholder-gray-400 text-sm min-w-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            />
                                                 <button
                                                     type="button"
                                                     onClick={startVoiceRecording}
@@ -1415,10 +1415,10 @@ function ChatPageContent() {
                                                 >
                                                     <Mic className="w-5 h-5" />
                                                 </button>
-                                                <button type="submit" disabled={activeChat.isFrozen} className="p-3 bg-[#09BF44] text-white rounded-xl hover:bg-[#07a63a] transition-all shadow-md shadow-[#09BF44]/20 hover:shadow-lg hover:shadow-[#09BF44]/30 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed">
-                                                    <Send className="w-4 h-4" />
-                                                </button>
-                                            </form>
+                                            <button type="submit" disabled={activeChat.isFrozen} className="p-3 bg-[#09BF44] text-white rounded-xl hover:bg-[#07a63a] transition-all shadow-md shadow-[#09BF44]/20 hover:shadow-lg hover:shadow-[#09BF44]/30 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                <Send className="w-4 h-4" />
+                                            </button>
+                                        </form>
                                         )}
                                     </div>
                                 </div>
