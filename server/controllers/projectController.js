@@ -11,7 +11,7 @@ const { emitToUser, isUserOnline } = require('../services/notificationService');
 
 const createProject = async (req, res) => {
     try {
-        const { title, description, category, subCategory, images, packages } = req.body;
+        const { title, description, category, subCategory, images, packages, consultationPrice } = req.body;
 
         // Validation handled in frontend mostly, but double check min price
         if (packages.some(p => p.price < 500)) {
@@ -46,7 +46,8 @@ const createProject = async (req, res) => {
             category,
             subCategory,
             images,
-            packages
+            packages,
+            consultationPrice: consultationPrice != null && consultationPrice >= 0 ? Number(consultationPrice) : 100
         });
 
         await newProject.save();
@@ -92,7 +93,7 @@ const getProjectById = async (req, res) => {
 
 const updateProject = async (req, res) => {
     try {
-        const { title, description, category, subCategory, images, packages, isActive } = req.body;
+        const { title, description, category, subCategory, images, packages, isActive, consultationPrice } = req.body;
 
         const project = await Project.findById(req.params.id);
         if (!project) {
@@ -138,6 +139,7 @@ const updateProject = async (req, res) => {
             project.packages = packages;
         }
         if (isActive !== undefined) project.isActive = isActive;
+        if (consultationPrice !== undefined && consultationPrice >= 0) project.consultationPrice = Number(consultationPrice);
 
         await project.save();
         res.json(project);

@@ -16,7 +16,7 @@ const getPendingFreelancers = async (req, res) => {
         const pending = await User.find({
             role: 'freelancer',
             'freelancerProfile.status': 'pending'
-        }).select('-password +phoneNumber +dateOfBirth +freelancerProfile.idDocument').lean();
+        }).select('-password +phoneNumber +dateOfBirth +freelancerProfile.idDocument +freelancerProfile.cvUrl').lean();
         const ids = pending.map(u => u._id);
         const allMethods = await WithdrawalMethod.find({ userId: { $in: ids } }).sort({ isDefault: -1, createdAt: -1 }).lean();
         const byUser = allMethods.reduce((acc, m) => {
@@ -296,7 +296,7 @@ const searchUser = async (req, res) => {
 
 const getAllUsers = async (req, res) => {
     try {
-        const users = await User.find().select('-password').sort({ createdAt: -1 });
+        const users = await User.find().select('-password +freelancerProfile.cvUrl').sort({ createdAt: -1 });
         res.json(users);
     } catch (err) {
         console.error(err.message);
@@ -306,7 +306,7 @@ const getAllUsers = async (req, res) => {
 
 const getUserById = async (req, res) => {
     try {
-        const user = await User.findById(req.params.id).select('-password +phoneNumber +dateOfBirth +freelancerProfile.idDocument').lean();
+        const user = await User.findById(req.params.id).select('-password +phoneNumber +dateOfBirth +freelancerProfile.idDocument +freelancerProfile.cvUrl').lean();
         if (!user) return res.status(404).json({ msg: 'User not found' });
         if (user.role === 'freelancer') {
             const withdrawalMethods = await WithdrawalMethod.find({ userId: req.params.id }).sort({ isDefault: -1, createdAt: -1 }).lean();
@@ -326,6 +326,35 @@ const updateUser = async (req, res) => {
             firstName, lastName, email, role, walletBalance
         }, { new: true }).select('-password');
         res.json(user);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+const topUpUserBalance = async (req, res) => {
+    try {
+        const { amount } = req.body;
+        const amountNum = Number(amount);
+        if (!Number.isFinite(amountNum) || amountNum <= 0) {
+            return res.status(400).json({ msg: 'Amount must be a positive number' });
+        }
+        const user = await User.findById(req.params.id);
+        if (!user) return res.status(404).json({ msg: 'User not found' });
+        const prevBalance = user.walletBalance || 0;
+        user.walletBalance = prevBalance + amountNum;
+        await user.save();
+
+        await Transaction.create({
+            userId: user._id,
+            type: 'deposit',
+            amount: amountNum,
+            description: 'Admin top-up',
+            status: 'completed',
+            paymentMethod: 'wallet'
+        });
+
+        res.json({ user, balance: user.walletBalance });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
@@ -653,6 +682,7 @@ module.exports = {
     getAllUsers,
     getUserById,
     updateUser,
+    topUpUserBalance,
     deleteUser,
     getAllProjects,
     updateProject,

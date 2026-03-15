@@ -26,6 +26,19 @@ const isUnauthorized = (res: Response): boolean => {
     return false;
 };
 
+/** Network/connection errors (server unreachable, CORS, etc.) */
+const isNetworkError = (err: any): boolean =>
+    err?.message === 'Failed to fetch' || err?.name === 'TypeError';
+
+/** Clears session and redirects home silently (no error modal) - for network failures */
+const handleConnectionError = () => {
+    if (typeof window !== 'undefined') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/';
+    }
+};
+
 export const api = {
     auth: {
         register: async (data: any) => {
@@ -150,15 +163,23 @@ export const api = {
             return res.json();
         },
         getProfile: async () => {
-            const res = await fetch(`${API_URL}/freelancer/profile`, {
-                method: 'GET',
-                headers: getHeaders()
-            });
-            if (!res.ok) {
-                if (isUnauthorized(res)) throw new Error('Session expired. Please log in again.');
-                throw new Error('Failed to fetch profile');
+            try {
+                const res = await fetch(`${API_URL}/freelancer/profile`, {
+                    method: 'GET',
+                    headers: getHeaders()
+                });
+                if (!res.ok) {
+                    if (isUnauthorized(res)) throw new Error('Session expired. Please log in again.');
+                    throw new Error('Failed to fetch profile');
+                }
+                return res.json();
+            } catch (err: any) {
+                if (isNetworkError(err)) {
+                    handleConnectionError();
+                    throw err;
+                }
+                throw err;
             }
-            return res.json();
         },
         getPublicProfile: async (id: string) => {
             const res = await fetch(`${API_URL}/freelancer/${id}/public`, {
@@ -221,15 +242,23 @@ export const api = {
     },
     client: {
         getProfile: async () => {
-            const res = await fetch(`${API_URL}/client/profile`, {
-                method: 'GET',
-                headers: getHeaders()
-            });
-            if (!res.ok) {
-                if (isUnauthorized(res)) throw new Error('Session expired. Please log in again.');
-                throw new Error('Failed to fetch profile');
+            try {
+                const res = await fetch(`${API_URL}/client/profile`, {
+                    method: 'GET',
+                    headers: getHeaders()
+                });
+                if (!res.ok) {
+                    if (isUnauthorized(res)) throw new Error('Session expired. Please log in again.');
+                    throw new Error('Failed to fetch profile');
+                }
+                return res.json();
+            } catch (err: any) {
+                if (isNetworkError(err)) {
+                    handleConnectionError();
+                    throw err;
+                }
+                throw err;
             }
-            return res.json();
         },
         updateProfile: async (data: any) => {
             const res = await fetch(`${API_URL}/client/profile`, {
@@ -647,6 +676,16 @@ export const api = {
             });
             return res.json();
         },
+        topUpUserBalance: async (id: string, amount: number) => {
+            const res = await fetch(`${API_URL}/admin/users/${id}/topup`, {
+                method: 'PUT',
+                headers: getHeaders(),
+                body: JSON.stringify({ amount })
+            });
+            const result = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(result.msg || 'Failed to top up balance');
+            return result;
+        },
         deleteUser: async (id: string) => {
             const res = await fetch(`${API_URL}/admin/users/${id}`, {
                 method: 'DELETE',
@@ -765,6 +804,31 @@ export const api = {
             const result = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(result.msg || 'Failed to reject');
             return result;
+        },
+        getInstaPayPending: async () => {
+            const res = await fetch(`${API_URL}/admin/instapay-pending`, { method: 'GET', headers: getHeaders() });
+            if (!res.ok) throw new Error('Failed to fetch InstaPay pending');
+            return res.json();
+        },
+        approveInstaPay: async (id: string, notes?: string) => {
+            const res = await fetch(`${API_URL}/admin/instapay/${id}/approve`, {
+                method: 'PATCH',
+                headers: getHeaders(),
+                body: JSON.stringify({ notes })
+            });
+            const result = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(result.msg || 'Failed to approve');
+            return result;
+        },
+        denyInstaPay: async (id: string, notes?: string) => {
+            const res = await fetch(`${API_URL}/admin/instapay/${id}/deny`, {
+                method: 'PATCH',
+                headers: getHeaders(),
+                body: JSON.stringify({ notes })
+            });
+            const result = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(result.msg || 'Failed to deny');
+            return result;
         }
     },
     wallet: {
@@ -784,11 +848,11 @@ export const api = {
             if (!res.ok) throw new Error('Failed to fetch transactions');
             return res.json();
         },
-        payConsultation: async (conversationId: string) => {
+        payConsultation: async (conversationId: string, projectId?: string) => {
             const res = await fetch(`${API_URL}/wallet/consultation-pay`, {
                 method: 'POST',
                 headers: getHeaders(),
-                body: JSON.stringify({ conversationId })
+                body: JSON.stringify({ conversationId, projectId })
             });
             const result = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(result.msg || 'Failed to pay consultation');
@@ -866,7 +930,7 @@ export const api = {
             if (!res.ok) throw new Error('Failed to set default');
             return res.json();
         },
-        initCharge: async (data: { type: string; amountCents: number; callbackSuccessUrl?: string; [k: string]: any }) => {
+        initCharge: async (data: { type: string; amountCents: number; callbackSuccessUrl?: string;[k: string]: any }) => {
             const res = await fetch(`${API_URL}/payment-methods/init-charge`, {
                 method: 'POST',
                 headers: getHeaders(),
@@ -875,6 +939,68 @@ export const api = {
             const result = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(result.msg || 'Failed to init charge');
             return result;
+        }
+    },
+    payments: {
+        createInstaPay: async (data: { amountCents: number; type: string; orderId?: string; offerId?: string; jobId?: string; proposalId?: string; conversationId?: string }) => {
+            const res = await fetch(`${API_URL}/payments/instapay`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify(data)
+            });
+            const result = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(result.msg || result.message || 'Failed to create InstaPay');
+            return result;
+        },
+        uploadInstaPayScreenshot: async (id: string, screenshotUrl: string) => {
+            const res = await fetch(`${API_URL}/payments/instapay/${id}/upload-screenshot`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify({ screenshotUrl })
+            });
+            const result = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(result.msg || result.message || 'Failed to upload screenshot');
+            return result;
+        }
+    },
+    announcements: {
+        list: async () => {
+            const res = await fetch(`${API_URL}/announcements`, { method: 'GET', headers: getHeaders() });
+            if (isUnauthorized(res as any)) throw new Error('Session expired');
+            if (!res.ok) throw new Error('Failed to fetch announcements');
+            return res.json();
+        },
+        getUnreadCount: async () => {
+            const res = await fetch(`${API_URL}/announcements/unread-count`, { method: 'GET', headers: getHeaders() });
+            if (isUnauthorized(res as any)) throw new Error('Session expired');
+            if (!res.ok) return { unread: 0 };
+            const data = await res.json();
+            return { unread: data.unread ?? 0 };
+        },
+        markAllAsRead: async () => {
+            const res = await fetch(`${API_URL}/announcements/mark-read`, { method: 'POST', headers: getHeaders() });
+            if (isUnauthorized(res as any)) throw new Error('Session expired');
+            if (!res.ok) throw new Error('Failed to mark as read');
+            return res.json();
+        },
+        admin: {
+            list: async () => {
+                const res = await fetch(`${API_URL}/announcements/admin`, { method: 'GET', headers: getHeaders() });
+                if (isUnauthorized(res as any)) throw new Error('Session expired');
+                if (!res.ok) throw new Error('Failed to fetch announcements');
+                return res.json();
+            },
+            create: async (data: { content?: string; imageUrl?: string }) => {
+                const res = await fetch(`${API_URL}/announcements/admin`, {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json().catch(() => ({}));
+                if (isUnauthorized(res as any)) throw new Error('Session expired');
+                if (!res.ok) throw new Error(result.msg || result.message || 'Failed to create announcement');
+                return result;
+            }
         }
     }
 };

@@ -18,10 +18,12 @@ export default function ProfileEditModal({ isOpen, onClose, onSave, profile, mai
         bio: '',
         category: '',
         experienceYears: '',
-        skills: [] as string[],
+        technicalSkills: [] as string[],
+        softSkills: [] as string[],
         certifications: [] as { name: string; date: string; institute: string; documentUrl: string }[]
     });
-    const [skillInput, setSkillInput] = useState('');
+    const [technicalSkillInput, setTechnicalSkillInput] = useState('');
+    const [softSkillInput, setSoftSkillInput] = useState('');
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [profilePicture, setProfilePicture] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -31,11 +33,16 @@ export default function ProfileEditModal({ isOpen, onClose, onSave, profile, mai
         if (isOpen && !prevIsOpenRef.current && profile) {
             setTimeout(() => {
                 const certs = profile.freelancerProfile?.certifications || [];
+                const fp = profile.freelancerProfile;
+                const tech = fp?.technicalSkills;
+                const soft = fp?.softSkills;
+                const legacy = fp?.skills;
                 setFormData({
-                    bio: profile.freelancerProfile?.bio || '',
-                    category: profile.freelancerProfile?.category || '',
-                    experienceYears: String(profile.freelancerProfile?.experienceYears || 0),
-                    skills: profile.freelancerProfile?.skills || [],
+                    bio: fp?.bio || '',
+                    category: fp?.category || '',
+                    experienceYears: String(fp?.experienceYears || 0),
+                    technicalSkills: (Array.isArray(tech) && tech.length > 0) ? tech : (Array.isArray(legacy) ? legacy : []),
+                    softSkills: Array.isArray(soft) ? soft : [],
                     certifications: certs.map((c: any) => ({
                         name: c.name || '',
                         date: c.date ? (typeof c.date === 'string' ? c.date : c.date?.slice?.(0, 10)) : '',
@@ -43,8 +50,9 @@ export default function ProfileEditModal({ isOpen, onClose, onSave, profile, mai
                         documentUrl: c.documentUrl || ''
                     }))
                 });
-                setProfilePicture(profile.freelancerProfile?.profilePicture || null);
-                setSkillInput('');
+                setProfilePicture(fp?.profilePicture || null);
+                setTechnicalSkillInput('');
+                setSoftSkillInput('');
                 setErrors({});
             }, 0);
         }
@@ -61,17 +69,22 @@ export default function ProfileEditModal({ isOpen, onClose, onSave, profile, mai
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleAddSkill = () => {
-        const skill = skillInput.trim();
-        if (skill && !formData.skills.includes(skill)) {
-            setFormData({ ...formData, skills: [...formData.skills, skill] });
-            setSkillInput('');
+    const handleAddTechnicalSkill = () => {
+        const skill = technicalSkillInput.trim();
+        if (skill && !formData.technicalSkills.includes(skill)) {
+            setFormData({ ...formData, technicalSkills: [...formData.technicalSkills, skill] });
+            setTechnicalSkillInput('');
         }
     };
-
-    const handleRemoveSkill = (skillToRemove: string) => {
-        setFormData({ ...formData, skills: formData.skills.filter(s => s !== skillToRemove) });
+    const handleRemoveTechnicalSkill = (s: string) => setFormData({ ...formData, technicalSkills: formData.technicalSkills.filter(x => x !== s) });
+    const handleAddSoftSkill = () => {
+        const skill = softSkillInput.trim();
+        if (skill && !formData.softSkills.includes(skill)) {
+            setFormData({ ...formData, softSkills: [...formData.softSkills, skill] });
+            setSoftSkillInput('');
+        }
     };
+    const handleRemoveSoftSkill = (s: string) => setFormData({ ...formData, softSkills: formData.softSkills.filter(x => x !== s) });
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -105,7 +118,8 @@ export default function ProfileEditModal({ isOpen, onClose, onSave, profile, mai
             bio: formData.bio,
             category: formData.category || undefined,
             experienceYears: Number(formData.experienceYears),
-            skills: formData.skills,
+            technicalSkills: formData.technicalSkills,
+            softSkills: formData.softSkills,
             profilePicture: profilePicture || undefined,
             certifications: formData.certifications.filter(c => c.name?.trim())
         });
@@ -213,26 +227,54 @@ export default function ProfileEditModal({ isOpen, onClose, onSave, profile, mai
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 mb-1.5">Skills</label>
+                                <label className="block text-xs font-bold text-gray-500 mb-1.5">Technical Skills (e.g. React, Photoshop)</label>
                                 <div className="flex gap-2">
                                     <input
                                         type="text"
-                                        value={skillInput}
-                                        onChange={(e) => setSkillInput(e.target.value)}
-                                        onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSkill())}
+                                        value={technicalSkillInput}
+                                        onChange={(e) => setTechnicalSkillInput(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTechnicalSkill())}
                                         placeholder="Type and press Enter"
                                         className="flex-1 p-3 rounded-xl border-2 border-gray-100 focus:border-[#09BF44] bg-gray-50 outline-none text-gray-900 placeholder:text-gray-400"
                                     />
-                                    <button type="button" onClick={handleAddSkill} className="px-4 py-3 bg-[#09BF44] text-white rounded-xl font-bold hover:bg-[#07a63a] shrink-0">
+                                    <button type="button" onClick={handleAddTechnicalSkill} className="px-4 py-3 bg-[#09BF44] text-white rounded-xl font-bold hover:bg-[#07a63a] shrink-0">
                                         <Plus className="w-4 h-4" />
                                     </button>
                                 </div>
-                                {formData.skills.length > 0 && (
+                                {formData.technicalSkills.length > 0 && (
                                     <div className="flex flex-wrap gap-2 mt-2">
-                                        {formData.skills.map((skill, idx) => (
-                                            <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">
+                                        {formData.technicalSkills.map((skill, idx) => (
+                                            <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-800 rounded-full text-sm font-medium">
                                                 {skill}
-                                                <button type="button" onClick={() => handleRemoveSkill(skill)} className="hover:bg-gray-200 rounded-full p-0.5">
+                                                <button type="button" onClick={() => handleRemoveTechnicalSkill(skill)} className="hover:bg-green-200 rounded-full p-0.5">
+                                                    <XIcon className="w-3 h-3" />
+                                                </button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-1.5">Soft Skills (e.g. Communication, Time Management)</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={softSkillInput}
+                                        onChange={(e) => setSoftSkillInput(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSoftSkill())}
+                                        placeholder="Type and press Enter"
+                                        className="flex-1 p-3 rounded-xl border-2 border-gray-100 focus:border-[#09BF44] bg-gray-50 outline-none text-gray-900 placeholder:text-gray-400"
+                                    />
+                                    <button type="button" onClick={handleAddSoftSkill} className="px-4 py-3 bg-blue-500 text-white rounded-xl font-bold hover:bg-blue-600 shrink-0">
+                                        <Plus className="w-4 h-4" />
+                                    </button>
+                                </div>
+                                {formData.softSkills.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        {formData.softSkills.map((skill, idx) => (
+                                            <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                                                {skill}
+                                                <button type="button" onClick={() => handleRemoveSoftSkill(skill)} className="hover:bg-blue-200 rounded-full p-0.5">
                                                     <XIcon className="w-3 h-3" />
                                                 </button>
                                             </span>

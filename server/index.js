@@ -49,8 +49,10 @@ app.use('/api/chat', require('./routes/chat'));
 app.use('/api/wallet', require('./routes/wallet'));
 app.use('/api/webhooks', require('./routes/webhooks'));
 app.use('/api/payment-methods', require('./routes/paymentMethods'));
+app.use('/api/payments', require('./routes/payments'));
 app.use('/api/withdrawal-methods', require('./routes/withdrawalMethods'));
 app.use('/api/upload', require('./routes/upload'));
+app.use('/api/announcements', require('./routes/announcements'));
 
 app.get('/', (req, res) => {
     res.send('Engezhaly API is running');

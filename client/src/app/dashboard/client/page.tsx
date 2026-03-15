@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 import { Briefcase, Clock, PlusCircle, ShoppingBag, CreditCard, Edit, Loader2, X, Eye, PanelLeft, Flag, Star, CheckCircle } from 'lucide-react';
 import { api } from '@/lib/api';
 import { formatStatus, formatDateDDMMYYYY } from '@/lib/utils';
@@ -12,6 +13,7 @@ import EditModal from '@/components/EditModal';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 import CountdownTimer from '@/components/CountdownTimer';
 import PaymobCheckoutModal from '@/components/PaymobCheckoutModal';
+import PaymentChoiceModal from '@/components/PaymentChoiceModal';
 
 function ClientDashboardContent() {
     const { showModal } = useModal();
@@ -29,6 +31,7 @@ function ClientDashboardContent() {
     const [editJobModal, setEditJobModal] = useState<any>(null);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
     const [checkoutIframeUrl, setCheckoutIframeUrl] = useState<string | null>(null);
+    const [paymentChoiceConfig, setPaymentChoiceConfig] = useState<{ type: string; amountCents: number; callbackSuccessUrl?: string; orderId?: string; offerId?: string; jobId?: string; proposalId?: string; conversationId?: string } | null>(null);
     const [reviewModal, setReviewModal] = useState<{ order: any } | null>(null);
     const [reviewRating, setReviewRating] = useState(5);
     const [reviewText, setReviewText] = useState('');
@@ -123,7 +126,15 @@ function ClientDashboardContent() {
 
     const handleSaveProfile = async (formData: any) => {
         try {
-            const updated = await api.client.updateProfile(formData);
+            const payload = {
+                firstName: formData.firstName,
+                lastName: formData.lastName,
+                email: formData.email,
+                phoneNumber: formData.phoneNumber,
+                businessType: formData.businessType,
+                clientProfile: { profilePicture: formData.profilePicture || null }
+            };
+            const updated = await api.client.updateProfile(payload);
             setProfile(updated);
             setUser(updated);
             showModal({ title: 'Success', message: 'Profile updated successfully', type: 'success' });
@@ -489,24 +500,19 @@ function ClientDashboardContent() {
                                         </span>
                                         {order.status === 'pending_payment' && (
                                             <button
-                                                onClick={async () => {
-                                                    try {
-                                                        const clientFee = 20; // Platform fee charged to client
-                                                        const totalPays = (order.amount || 0) + clientFee;
-                                                        const amountCents = Math.round(totalPays * 100);
-                                                        const callbackUrl = typeof window !== 'undefined'
-                                                            ? `${window.location.origin}/dashboard/client?tab=orders&payment_success=1`
-                                                            : undefined;
-                                                        const charge = await api.paymentMethods.initCharge({
-                                                            type: 'project_order',
-                                                            amountCents,
-                                                            callbackSuccessUrl: callbackUrl,
-                                                            orderId: order._id
-                                                        });
-                                                        setCheckoutIframeUrl(charge.iframeUrl || null);
-                                                    } catch (e: any) {
-                                                        showModal({ title: 'Error', message: e.message || 'Failed to start payment', type: 'error' });
-                                                    }
+                                                onClick={() => {
+                                                    const clientFee = 20;
+                                                    const totalPays = (order.amount || 0) + clientFee;
+                                                    const amountCents = Math.round(totalPays * 100);
+                                                    const callbackUrl = typeof window !== 'undefined'
+                                                        ? `${window.location.origin}/dashboard/client?tab=orders&payment_success=1`
+                                                        : undefined;
+                                                    setPaymentChoiceConfig({
+                                                        type: 'project_order',
+                                                        amountCents,
+                                                        callbackSuccessUrl: callbackUrl,
+                                                        orderId: order._id
+                                                    });
                                                 }}
                                                 className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-4 py-2 rounded-xl text-sm font-bold"
                                             >
@@ -601,6 +607,27 @@ function ClientDashboardContent() {
                     }}
                 />
 
+                {paymentChoiceConfig && (
+                    <PaymentChoiceModal
+                        isOpen={!!paymentChoiceConfig}
+                        onClose={() => setPaymentChoiceConfig(null)}
+                        paymentConfig={paymentChoiceConfig}
+                        onCardPay={async () => {
+                            const charge = await api.paymentMethods.initCharge({
+                                type: paymentChoiceConfig.type,
+                                amountCents: paymentChoiceConfig.amountCents,
+                                callbackSuccessUrl: paymentChoiceConfig.callbackSuccessUrl,
+                                orderId: paymentChoiceConfig.orderId
+                            });
+                            setCheckoutIframeUrl(charge.iframeUrl || null);
+                        }}
+                        onInstaPayComplete={() => {
+                            fetchOrders();
+                            showModal({ title: 'Payment Submitted', message: 'Your payment screenshot has been submitted. We will verify and activate your order shortly.', type: 'success' });
+                        }}
+                    />
+                )}
+
                 {reviewModal && (
                     <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4" onClick={() => setReviewModal(null)}>
                         <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl" onClick={e => e.stopPropagation()}>
@@ -665,6 +692,19 @@ function ClientDashboardContent() {
                                 </button>
                             </div>
                             <div className="p-6 space-y-6">
+                                <div className="flex items-center gap-6 mb-6">
+                                    {profile.clientProfile?.profilePicture ? (
+                                        <Image src={profile.clientProfile.profilePicture} alt="Profile" width={80} height={80} className="w-20 h-20 rounded-full object-cover border-4 border-gray-100" />
+                                    ) : (
+                                        <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center text-2xl font-bold text-gray-400">
+                                            {profile.firstName?.[0]}
+                                        </div>
+                                    )}
+                                    <div>
+                                        <p className="text-gray-900 font-bold text-lg">{profile.firstName} {profile.lastName}</p>
+                                        <p className="text-sm text-gray-500">Client</p>
+                                    </div>
+                                </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
                                         <label className="text-sm font-bold text-gray-500 mb-2 block">Full Name</label>

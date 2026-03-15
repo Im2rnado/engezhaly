@@ -239,18 +239,6 @@ export default function FreelancerWalletPage() {
                     </div>
                 ) : (
                     <>
-                        {/* Prominent Add Payout Method callout - first thing freelancers see */}
-                        <div className="bg-gradient-to-r from-[#09BF44]/10 to-emerald-50 border-2 border-[#09BF44]/30 p-6 md:p-8 rounded-3xl mb-8">
-                            <h2 className="text-xl md:text-2xl font-black text-gray-900 mb-2">Receive your earnings</h2>
-                            <p className="text-gray-600 mb-6">Add a payout method (Vodafone Cash, InstaPay, or bank account) to get paid when you withdraw.</p>
-                            <button
-                                onClick={() => setShowAddMethodModal(true)}
-                                className="inline-flex items-center gap-2 px-6 py-3 bg-[#09BF44] hover:bg-[#07a63a] text-white font-bold rounded-xl transition-colors shadow-lg shadow-[#09BF44]/25"
-                            >
-                                <Plus className="w-5 h-5" /> Add payout method
-                            </button>
-                        </div>
-
                         {/* Withdrawal Methods - manage saved methods */}
                         <div className="bg-white p-5 md:p-8 rounded-3xl shadow-sm border border-gray-100 mb-8">
                             <h2 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">

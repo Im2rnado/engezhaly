@@ -21,7 +21,7 @@ const { verification: verificationTemplate, passwordReset: passwordResetTemplate
 
 const register = async (req, res) => {
     try {
-        const { firstName, lastName, username, email, password, role, phoneNumber, businessType, profilePicture, dateOfBirth, clientProfile, category, experienceYears, isStudent, certificates, certifications, universityId, skills, bio, idDocument, surveyResponses, starterPricing, starterOffer, portfolio, signupNotes, city, languages, extraLanguages, withdrawalMethod } = req.body;
+        const { firstName, lastName, username, email, password, role, phoneNumber, businessType, profilePicture, dateOfBirth, clientProfile, category, experienceYears, isStudent, certificates, certifications, universityId, skills, technicalSkills, softSkills, bio, idDocument, surveyResponses, cvUrl, starterPricing, starterOffer, portfolio, signupNotes, city, languages, extraLanguages, withdrawalMethod } = req.body;
 
         const emailNorm = (email || '').trim().toLowerCase();
         if (!emailNorm) {
@@ -85,10 +85,20 @@ const register = async (req, res) => {
                 }));
             }
             if (universityId) userData.freelancerProfile.universityId = universityId;
-            if (skills) userData.freelancerProfile.skills = Array.isArray(skills) ? skills : (typeof skills === 'string' ? skills.trim().split(/\s+/).filter(Boolean) : []);
+            // Prefer technicalSkills/softSkills; fallback to legacy skills
+            if (technicalSkills !== undefined) {
+                userData.freelancerProfile.technicalSkills = Array.isArray(technicalSkills) ? technicalSkills : (typeof technicalSkills === 'string' ? technicalSkills.trim().split(/\s+/).filter(Boolean) : []);
+            }
+            if (softSkills !== undefined) {
+                userData.freelancerProfile.softSkills = Array.isArray(softSkills) ? softSkills : (typeof softSkills === 'string' ? softSkills.trim().split(/\s+/).filter(Boolean) : []);
+            }
+            if (skills && !technicalSkills && !softSkills) {
+                userData.freelancerProfile.technicalSkills = Array.isArray(skills) ? skills : (typeof skills === 'string' ? skills.trim().split(/\s+/).filter(Boolean) : []);
+            }
             if (bio) userData.freelancerProfile.bio = bio;
             if (idDocument) userData.freelancerProfile.idDocument = idDocument;
             if (surveyResponses && typeof surveyResponses === 'object') userData.freelancerProfile.surveyResponses = surveyResponses;
+            if (cvUrl && typeof cvUrl === 'string') userData.freelancerProfile.cvUrl = cvUrl.trim();
             if (starterPricing && typeof starterPricing === 'object') userData.freelancerProfile.starterPricing = starterPricing;
             if (starterOffer && typeof starterOffer === 'object') userData.freelancerProfile.starterOffer = starterOffer;
             if (portfolio && Array.isArray(portfolio)) userData.freelancerProfile.portfolio = portfolio;
@@ -150,7 +160,7 @@ const register = async (req, res) => {
         jwt.sign(
             payload,
             process.env.JWT_SECRET || 'secret',
-            { expiresIn: '1d' },
+            { expiresIn: '30d' },
             (err, authToken) => {
                 if (err) throw err;
                 res.json({
@@ -218,7 +228,7 @@ const login = async (req, res) => {
         jwt.sign(
             payload,
             process.env.JWT_SECRET || 'secret',
-            { expiresIn: '1d' },
+            { expiresIn: '30d' },
             (err, token) => {
                 if (err) throw err;
                 res.json({

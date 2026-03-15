@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import LandingFooter from "./LandingFooter";
 
-const LANDING_PATHS = ["/", "/jobs", "/offers"];
+const LANDING_PATHS = ["/", "/jobs", "/offers", "/terms", "/privacy", "/refund", "/contact", "/help-and-rules"];
 const LANDING_PREFIX = "/freelancer/";
 
 export default function LandingFooterWrapper() {

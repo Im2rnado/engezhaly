@@ -296,6 +296,9 @@ export default function MyJobsPage() {
                             </div>
 
                             <form onSubmit={handleSubmitWork} className="space-y-4">
+                                <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                                    You can submit your work using: a link to your project, a Google Drive or Dropbox link, or by uploading the deliverable directly.
+                                </p>
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-2">Work Notes</label>
                                     <textarea

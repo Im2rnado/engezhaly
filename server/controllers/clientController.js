@@ -40,6 +40,7 @@ const updateProfile = async (req, res) => {
         if (businessType !== undefined) user.businessType = businessType;
         if (clientProfile && typeof clientProfile === 'object') {
             if (!user.clientProfile) user.clientProfile = {};
+            if (clientProfile.profilePicture !== undefined) user.clientProfile.profilePicture = clientProfile.profilePicture || null;
             if (clientProfile.companyName !== undefined) user.clientProfile.companyName = clientProfile.companyName;
             if (clientProfile.companyDescription !== undefined) user.clientProfile.companyDescription = clientProfile.companyDescription;
             if (clientProfile.position !== undefined) user.clientProfile.position = clientProfile.position;

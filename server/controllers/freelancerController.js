@@ -15,6 +15,8 @@ const updateProfile = async (req, res) => {
             isStudent,
             universityId,
             skills,
+            technicalSkills,
+            softSkills,
             surveyResponses,
             starterPricing,
             starterOffer,
@@ -26,7 +28,9 @@ const updateProfile = async (req, res) => {
             languages,
             extraLanguages,
             portfolio,
-            certifications
+            certifications,
+            consultationPrice,
+            cvUrl
         } = req.body;
 
         const user = await User.findById(userId);
@@ -51,16 +55,24 @@ const updateProfile = async (req, res) => {
         if (certificates) user.freelancerProfile.certificates = certificates;
         if (isStudent !== undefined) user.freelancerProfile.isStudent = isStudent;
         if (universityId !== undefined) user.freelancerProfile.universityId = universityId;
+        if (technicalSkills !== undefined) {
+            user.freelancerProfile.technicalSkills = Array.isArray(technicalSkills) ? technicalSkills : [];
+        }
+        if (softSkills !== undefined) {
+            user.freelancerProfile.softSkills = Array.isArray(softSkills) ? softSkills : [];
+        }
         if (skills !== undefined) {
             user.freelancerProfile.skills = Array.isArray(skills) ? skills : [];
         }
         if (surveyResponses) user.freelancerProfile.surveyResponses = surveyResponses;
+        if (cvUrl !== undefined) user.freelancerProfile.cvUrl = typeof cvUrl === 'string' ? cvUrl.trim() : null;
         if (starterPricing) user.freelancerProfile.starterPricing = starterPricing;
         if (starterOffer !== undefined && typeof starterOffer === 'object') user.freelancerProfile.starterOffer = starterOffer;
         if (signupNotes !== undefined && typeof signupNotes === 'string') user.freelancerProfile.signupNotes = signupNotes.trim();
         if (bio !== undefined) user.freelancerProfile.bio = bio;
         if (idDocument) user.freelancerProfile.idDocument = idDocument;
         if (profilePicture !== undefined) user.freelancerProfile.profilePicture = profilePicture;
+        if (consultationPrice !== undefined && consultationPrice >= 0) user.freelancerProfile.consultationPrice = Number(consultationPrice);
         if (city !== undefined) user.freelancerProfile.city = city;
         if (languages && typeof languages === 'object') {
             user.freelancerProfile.languages = user.freelancerProfile.languages || {};
@@ -108,7 +120,12 @@ const updateProfile = async (req, res) => {
 const getProfile = async (req, res) => {
     try {
         const user = await User.findById(req.user.id).select('-password');
-        res.json(user);
+        const obj = user?.toObject ? user.toObject() : user;
+        const fp = obj?.freelancerProfile;
+        if (fp && (!Array.isArray(fp.technicalSkills) || fp.technicalSkills.length === 0) && (!Array.isArray(fp.softSkills) || fp.softSkills.length === 0) && fp.skills?.length > 0) {
+            fp.technicalSkills = Array.isArray(fp.skills) ? fp.skills : [];
+        }
+        res.json(obj || user);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
@@ -141,6 +158,15 @@ const getPublicProfile = async (req, res) => {
                 const { documentUrl, ...rest } = c;
                 return rest;
             });
+        }
+        // Migration: if only legacy skills exists, treat as technicalSkills for backward compat
+        const fp = obj.freelancerProfile;
+        if (fp) {
+            if (!Array.isArray(fp.technicalSkills)) fp.technicalSkills = [];
+            if (!Array.isArray(fp.softSkills)) fp.softSkills = [];
+            if (fp.technicalSkills.length === 0 && fp.softSkills.length === 0 && fp.skills?.length > 0) {
+                fp.technicalSkills = Array.isArray(fp.skills) ? fp.skills : [];
+            }
         }
         res.json(obj);
     } catch (err) {

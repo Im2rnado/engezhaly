@@ -158,16 +158,32 @@ export default function FreelancerProfilePage() {
                         </div>
                     </div>
 
-                    {profile?.skills && profile.skills.length > 0 && (
-                        <div className="mt-6 pt-6 border-t border-gray-100">
-                            <h3 className="text-sm font-bold text-gray-500 mb-3">Skills</h3>
-                            <div className="flex flex-wrap gap-2">
-                                {profile.skills.map((skill: string, idx: number) => (
-                                    <span key={idx} className="bg-gray-100 text-gray-700 px-4 py-2 rounded-full text-sm font-bold">
-                                        {skill}
-                                    </span>
-                                ))}
-                            </div>
+                    {((profile?.technicalSkills && profile.technicalSkills.length > 0) || (profile?.softSkills && profile.softSkills.length > 0)) && (
+                        <div className="mt-6 pt-6 border-t border-gray-100 space-y-4">
+                            {profile?.technicalSkills && profile.technicalSkills.length > 0 && (
+                                <div>
+                                    <h3 className="text-sm font-bold text-gray-500 mb-2">Technical Skills</h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {profile.technicalSkills.map((skill: string, idx: number) => (
+                                            <span key={idx} className="bg-green-100 text-green-800 px-4 py-2 rounded-full text-sm font-bold">
+                                                {skill}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {profile?.softSkills && profile.softSkills.length > 0 && (
+                                <div>
+                                    <h3 className="text-sm font-bold text-gray-500 mb-2">Soft Skills</h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {profile.softSkills.map((skill: string, idx: number) => (
+                                            <span key={idx} className="bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-sm font-bold">
+                                                {skill}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 

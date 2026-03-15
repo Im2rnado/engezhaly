@@ -12,6 +12,7 @@ const UserSchema = new mongoose.Schema({
     emailVerified: { type: Boolean, default: false },
     businessType: { type: String, enum: ['personal', 'company'] }, // For Clients
     clientProfile: {
+        profilePicture: { type: String }, // URL - client avatar
         companyName: { type: String },
         companyDescription: { type: String },
         position: { type: String },
@@ -24,6 +25,7 @@ const UserSchema = new mongoose.Schema({
     strikes: { type: Number, default: 0, max: 3 },
     isFrozen: { type: Boolean, default: false },
     freelancerProfile: {
+        consultationPrice: { type: Number, default: 100 }, // EGP per video/voice consultation
         status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
         isBusy: { type: Boolean, default: false },
         adminStarred: { type: Boolean, default: false }, // Admin marked for later review
@@ -53,7 +55,9 @@ const UserSchema = new mongoose.Schema({
         },
         extraLanguages: [String], // Other languages (name only, no fluency level)
         certificates: [String], // URLs to uploaded files
-        skills: [String],
+        skills: [String], // Legacy - prefer technicalSkills/softSkills
+        technicalSkills: [String],
+        softSkills: [String],
         surveyResponses: {
             isFullTime: Boolean,
             speedQualityCommitment: String, // Yes/Maybe/No - legacy
@@ -82,6 +86,7 @@ const UserSchema = new mongoose.Schema({
             }]
         },
         signupNotes: String,
+        cvUrl: { type: String, select: false }, // CV upload - admin only, not public
         portfolio: [{
             title: { type: String },
             description: { type: String },

@@ -3,13 +3,15 @@
 import { Suspense, useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
-import { Send, Video, Paperclip, MoreVertical, FileText, CheckCircle, XCircle, MessageSquare, Shield, PanelLeft, ArrowLeft, Loader2, Mic, Square, Trash2 } from 'lucide-react';
+import { Send, Video, Paperclip, MoreVertical, FileText, CheckCircle, XCircle, MessageSquare, Shield, PanelLeft, ArrowLeft, Loader2, Mic, Square, Trash2, ScrollText } from 'lucide-react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
 import { formatDateDDMMYYYY } from '@/lib/utils';
 import { useModal } from '@/context/ModalContext';
 import CreateOfferModal from '@/components/CreateOfferModal';
 import PaymobCheckoutModal from '@/components/PaymobCheckoutModal';
+import PaymentChoiceModal from '@/components/PaymentChoiceModal';
+import ChatRulesModal from '@/components/ChatRulesModal';
 import ClientSidebar from '@/components/ClientSidebar';
 import FreelancerSidebar from '@/components/FreelancerSidebar';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
@@ -40,11 +42,13 @@ function ChatPageContent() {
     const [settingMeeting, setSettingMeeting] = useState(false);
     const [checkoutIframeUrl, setCheckoutIframeUrl] = useState<string | null>(null);
     const [checkoutTitle, setCheckoutTitle] = useState('Complete Payment');
+    const [paymentChoiceConfig, setPaymentChoiceConfig] = useState<{ type: string; amountCents: number; callbackSuccessUrl?: string; orderId?: string; offerId?: string; jobId?: string; proposalId?: string; conversationId?: string } | null>(null);
     const [pendingOrderForChat, setPendingOrderForChat] = useState<any>(null);
     const [isRecording, setIsRecording] = useState(false);
     const [recordingSeconds, setRecordingSeconds] = useState(0);
     const [pendingVoiceRecording, setPendingVoiceRecording] = useState<{ blob: Blob; file: File; durationSeconds: number; objectUrl: string } | null>(null);
     const [sendingVoice, setSendingVoice] = useState(false);
+    const [showRulesModal, setShowRulesModal] = useState(false);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const recordingChunksRef = useRef<Blob[]>([]);
     const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -649,26 +653,20 @@ function ChatPageContent() {
         const clientFee = 20;
         const totalYouPay = price + clientFee;
 
-        showModal({
-            title: 'Accept Offer',
-            message: `Offer price: ${price} EGP. You will pay ${clientFee} EGP fee (total: ${totalYouPay} EGP). Proceed to payment?`,
-            type: 'confirm',
-            onConfirm: async () => {
-                try {
+        try {
                     const result = await api.chat.acceptOffer(offer._id);
 
                     if (result?.requiresPayment && result?.type === 'custom_offer') {
                         const callbackUrl = typeof window !== 'undefined' && conversationId
                             ? `${window.location.origin}/chat?conversation=${conversationId}&payment_success=1`
                             : undefined;
-                        const charge = await api.paymentMethods.initCharge({
+                        setPaymentChoiceConfig({
                             type: 'custom_offer',
                             amountCents: result.amountCents,
                             callbackSuccessUrl: callbackUrl,
-                            ...result.meta
+                            offerId: result.meta?.offerId,
+                            conversationId: conversationId || undefined
                         });
-                        setCheckoutTitle('Pay for Custom Offer');
-                        setCheckoutIframeUrl(charge.iframeUrl || null);
                     } else {
                         if (conversationId) {
                             const offersData = await api.chat.getOffers(conversationId);
@@ -680,8 +678,6 @@ function ChatPageContent() {
                     console.error(err);
                     showModal({ title: 'Error', message: err.message || 'Failed to accept offer', type: 'error' });
                 }
-            }
-        });
     };
 
     const handleBookConsultation = async () => {
@@ -714,34 +710,23 @@ function ChatPageContent() {
                 return;
             }
 
-            showModal({
-                title: 'Pay for Video Consultation',
-                message: 'You will be charged 100 EGP via card. After payment, you can schedule a meeting date and time. Proceed?',
-                type: 'confirm',
-                onConfirm: async () => {
-                    try {
-                        const result = await api.wallet.payConsultation(conversationId);
-                        if (result?.requiresPayment && result?.type === 'consultation') {
-                            const callbackUrl = typeof window !== 'undefined' && conversationId
-                                ? `${window.location.origin}/chat?conversation=${conversationId}&payment_success=consultation`
-                                : undefined;
-                            const charge = await api.paymentMethods.initCharge({
-                                type: 'consultation',
-                                amountCents: result.amountCents,
-                                callbackSuccessUrl: callbackUrl,
-                                ...result.meta
-                            });
-                            setCheckoutTitle('Pay for Video Consultation');
-                            setCheckoutIframeUrl(charge.iframeUrl || null);
-                        } else {
-                            setConsultationStatus({ hasUnusedPayment: true });
-                            showModal({ title: 'Success', message: 'Payment successful! Click the video call button again to schedule.', type: 'success' });
-                        }
-                    } catch (err: any) {
-                        showModal({ title: 'Error', message: err.message || 'Payment failed', type: 'error' });
-                    }
-                }
-            });
+            const projectId = searchParams.get('projectId') || undefined;
+            const result = await api.wallet.payConsultation(conversationId, projectId);
+            if (result?.requiresPayment && result?.type === 'consultation') {
+                const callbackUrl = typeof window !== 'undefined' && conversationId
+                    ? `${window.location.origin}/chat?conversation=${conversationId}&payment_success=consultation`
+                    : undefined;
+                setPaymentChoiceConfig({
+                    type: 'consultation',
+                    amountCents: result.amountCents,
+                    callbackSuccessUrl: callbackUrl,
+                    conversationId: conversationId || undefined,
+                    ...result.meta
+                });
+            } else {
+                setConsultationStatus({ hasUnusedPayment: true });
+                showModal({ title: 'Success', message: 'Payment successful! Click the video call button again to schedule.', type: 'success' });
+            }
         } catch (err: any) {
             showModal({ title: 'Error', message: err.message || 'Failed to check status', type: 'error' });
         }
@@ -1028,6 +1013,13 @@ function ChatPageContent() {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2 md:gap-4 text-gray-400">
+                                        <button
+                                            onClick={() => setShowRulesModal(true)}
+                                            className="p-2 hover:bg-gray-100 rounded-xl transition-colors hover:text-[#09BF44]"
+                                            title="Chat Rules"
+                                        >
+                                            <ScrollText className="w-5 h-5" />
+                                        </button>
                                         <button
                                             onClick={handleBookConsultation}
                                             className="p-2 hover:bg-gray-100 rounded-xl transition-colors hover:text-[#09BF44]"
@@ -1410,6 +1402,48 @@ function ChatPageContent() {
                 iframeUrl={checkoutIframeUrl}
                 title={checkoutTitle}
                 onClose={closeCheckout}
+            />
+
+            {paymentChoiceConfig && (
+                <PaymentChoiceModal
+                    isOpen={!!paymentChoiceConfig}
+                    onClose={() => setPaymentChoiceConfig(null)}
+                    paymentConfig={paymentChoiceConfig}
+                    onCardPay={async () => {
+                        const charge = await api.paymentMethods.initCharge({
+                            type: paymentChoiceConfig.type,
+                            amountCents: paymentChoiceConfig.amountCents,
+                            callbackSuccessUrl: paymentChoiceConfig.callbackSuccessUrl,
+                            orderId: paymentChoiceConfig.orderId,
+                            offerId: paymentChoiceConfig.offerId,
+                            jobId: paymentChoiceConfig.jobId,
+                            proposalId: paymentChoiceConfig.proposalId,
+                            conversationId: paymentChoiceConfig.conversationId
+                        });
+                        setCheckoutTitle(paymentChoiceConfig.type === 'consultation' ? 'Pay for Video Consultation' : 'Complete Payment');
+                        setCheckoutIframeUrl(charge.iframeUrl || null);
+                    }}
+                    onInstaPayComplete={() => {
+                        closeCheckout();
+                        setPaymentChoiceConfig(null);
+                        if (paymentChoiceConfig.type === 'consultation') {
+                            showModal({ title: 'Payment Submitted', message: 'Your payment screenshot has been submitted. Once verified by our team, you can schedule your meeting.', type: 'success' });
+                            if (conversationId) {
+                                api.chat.getConsultationStatus(conversationId).then(setConsultationStatus).catch(() => {});
+                            }
+                        } else {
+                            showModal({ title: 'Payment Submitted', message: 'Your payment screenshot has been submitted. We will verify and activate your order shortly.', type: 'success' });
+                        }
+                        if (conversationId) {
+                            api.chat.getOffers(conversationId).then((o: any) => setOffers(o || [])).catch(() => {});
+                        }
+                    }}
+                />
+            )}
+
+            <ChatRulesModal
+                isOpen={showRulesModal}
+                onClose={() => setShowRulesModal(false)}
             />
         </div>
     );

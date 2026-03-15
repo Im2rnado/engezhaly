@@ -300,12 +300,14 @@ function FreelancerDashboardContent() {
                                 {profile?.freelancerProfile?.isBusy ? 'Clients cannot place new orders.' : 'You are accepting orders.'}
                             </span>
                         </div>
-                        <button
-                            onClick={toggleBusy}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-colors ${profile?.freelancerProfile?.isBusy ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-[#09BF44] text-white hover:bg-[#07a63a]'}`}
-                        >
-                            Switch to {profile?.freelancerProfile?.isBusy ? 'Available' : 'Busy'}
-                        </button>
+                        {profile?.freelancerProfile?.isBusy && (
+                            <button
+                                onClick={toggleBusy}
+                                className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-colors bg-red-500 text-white hover:bg-red-600"
+                            >
+                                Switch to Available
+                            </button>
+                        )}
                     </div>
                 )}
 
@@ -466,7 +468,7 @@ function FreelancerDashboardContent() {
                                     <p className="text-gray-500 mb-6">Start selling your services to clients.</p>
                                     {!isPending && (
                                         <button
-                                                onClick={() => router.push('/dashboard/freelancer/offers/create')}
+                                            onClick={() => router.push('/dashboard/freelancer/offers/create')}
                                             className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-colors mx-auto"
                                         >
                                             <PlusCircle className="w-5 h-5" /> Create your first Offer
@@ -577,21 +579,21 @@ function FreelancerDashboardContent() {
                                                         {order?.workSubmission?.updatedAt ? 'Update Submission' : 'Submit Work'}
                                                     </button>
                                                     {order.status === 'active' && (
-                                                <button
-                                                    onClick={async () => {
-                                                        if (!confirm('Raise a dispute? Our team will review and resolve it.')) return;
-                                                        try {
-                                                            await api.freelancer.raiseDispute(order._id);
-                                                            showModal({ title: 'Dispute Raised', message: 'Our team will review and resolve it shortly.', type: 'success' });
-                                                            fetchOrders();
-                                                        } catch (e: any) {
-                                                            showModal({ title: 'Error', message: e.message || 'Failed to raise dispute', type: 'error' });
-                                                        }
-                                                    }}
-                                                    className="text-amber-600 hover:text-amber-700 px-4 py-2 rounded-xl font-bold hover:bg-amber-50 transition-colors flex items-center gap-2"
-                                                >
-                                                    <Flag className="w-4 h-4" /> Raise Dispute
-                                                    </button>
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (!confirm('Raise a dispute? Our team will review and resolve it.')) return;
+                                                                try {
+                                                                    await api.freelancer.raiseDispute(order._id);
+                                                                    showModal({ title: 'Dispute Raised', message: 'Our team will review and resolve it shortly.', type: 'success' });
+                                                                    fetchOrders();
+                                                                } catch (e: any) {
+                                                                    showModal({ title: 'Error', message: e.message || 'Failed to raise dispute', type: 'error' });
+                                                                }
+                                                            }}
+                                                            className="text-amber-600 hover:text-amber-700 px-4 py-2 rounded-xl font-bold hover:bg-amber-50 transition-colors flex items-center gap-2"
+                                                        >
+                                                            <Flag className="w-4 h-4" /> Raise Dispute
+                                                        </button>
                                                     )}
                                                 </>
                                             )}
@@ -659,34 +661,55 @@ function FreelancerDashboardContent() {
                                         <p className="text-gray-700">{profile.freelancerProfile.bio}</p>
                                     </div>
                                 )}
-                                {profile.freelancerProfile?.skills && profile.freelancerProfile.skills.length > 0 && (
-                                    <div>
-                                        <label className="text-sm font-bold text-gray-500 mb-2 block">Skills</label>
-                                        <div className="flex flex-wrap gap-2">
-                                            {profile.freelancerProfile.skills.map((skill: string, idx: number) => (
-                                                <span key={idx} className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-bold">{skill}</span>
-                                            ))}
+                                {(() => {
+                                    const fp = profile.freelancerProfile;
+                                    const techSkills = (fp?.technicalSkills?.length > 0) ? fp.technicalSkills : (fp?.skills || []);
+                                    const softSkills = fp?.softSkills || [];
+                                    const hasSkills = techSkills.length > 0 || softSkills.length > 0;
+                                    if (!hasSkills && !(fp?.certifications?.filter((c: any) => c.name?.trim()).length)) return null;
+                                    return (
+                                        <div className="space-y-3">
+                                            {techSkills.length > 0 && (
+                                                <div>
+                                                    <label className="text-sm font-bold text-gray-500 mb-2 block">Technical Skills</label>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {techSkills.map((skill: string, idx: number) => (
+                                                            <span key={idx} className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-bold">{skill}</span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {softSkills.length > 0 && (
+                                                <div>
+                                                    <label className="text-sm font-bold text-gray-500 mb-2 block">Soft Skills</label>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {softSkills.map((skill: string, idx: number) => (
+                                                            <span key={idx} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">{skill}</span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {fp?.certifications && fp.certifications.filter((c: any) => c.name?.trim()).length > 0 && (
+                                                <div>
+                                                    <label className="text-sm font-bold text-gray-500 mb-2 block">Certifications</label>
+                                                    <ul className="space-y-2">
+                                                        {fp.certifications.map((c: any, idx: number) => (
+                                                            <li key={idx} className="bg-gray-50 px-4 py-3 rounded-xl">
+                                                                <span className="font-bold text-gray-900">{c.name}</span>
+                                                                {(c.institute || c.date) && (
+                                                                    <span className="text-gray-600 text-sm">
+                                                                        {c.institute && ` • ${c.institute}`}
+                                                                        {c.date && ` • ${formatDateDDMMYYYY(c.date)}`}
+                                                                    </span>
+                                                                )}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
                                         </div>
-                                    </div>
-                                )}
-                                {profile.freelancerProfile?.certifications && profile.freelancerProfile.certifications.length > 0 && (
-                                    <div>
-                                        <label className="text-sm font-bold text-gray-500 mb-2 block">Certifications</label>
-                                        <ul className="space-y-2">
-                                            {profile.freelancerProfile.certifications.map((c: any, idx: number) => (
-                                                <li key={idx} className="bg-gray-50 px-4 py-3 rounded-xl">
-                                                    <span className="font-bold text-gray-900">{c.name}</span>
-                                                    {(c.institute || c.date) && (
-                                                        <span className="text-gray-600 text-sm">
-                                                            {c.institute && ` • ${c.institute}`}
-                                                            {c.date && ` • ${formatDateDDMMYYYY(c.date)}`}
-                                                        </span>
-                                                    )}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                )}
+                                    );
+                                })()}
                             </div>
                         </div>
 
@@ -715,6 +738,9 @@ function FreelancerDashboardContent() {
                             </button>
                         </div>
                         <form onSubmit={handleSubmitOrderWork} className="space-y-4 p-6">
+                            <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                                You can submit your work using: a link to your project, a Google Drive or Dropbox link, or by uploading the deliverable directly.
+                            </p>
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-1">Message / Notes</label>
                                 <textarea

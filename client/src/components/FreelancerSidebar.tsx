@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, usePathname } from 'next/navigation';
-import { Briefcase, BarChart3, ShoppingBag, User, Clock, LogOut, MessageSquare, X, Wallet } from 'lucide-react';
+import { Briefcase, BarChart3, ShoppingBag, User, Clock, LogOut, MessageSquare, X, Wallet, Megaphone } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
@@ -25,6 +25,7 @@ export default function FreelancerSidebar({ user, profile, onToggleBusy, activeT
     const [orders, setOrders] = useState<any[]>([]);
     const [myJobsCount, setMyJobsCount] = useState(0);
     const [unreadChats, setUnreadChats] = useState(0);
+    const [unreadAnnouncements, setUnreadAnnouncements] = useState(0);
 
     useEffect(() => {
         const userId = user?._id || user?.id;
@@ -38,6 +39,9 @@ export default function FreelancerSidebar({ user, profile, onToggleBusy, activeT
                 const unread = (conversations || []).reduce((sum: number, c: any) => sum + Number(c.unreadCount || 0), 0);
                 setUnreadChats(unread);
             }).catch(() => setUnreadChats(0));
+            api.announcements.getUnreadCount()
+                .then((data) => setUnreadAnnouncements(data.unread ?? 0))
+                .catch(() => setUnreadAnnouncements(0));
         }
     }, [user?._id, user?.id]);
 
@@ -117,6 +121,20 @@ export default function FreelancerSidebar({ user, profile, onToggleBusy, activeT
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${isActive('/dashboard/freelancer/wallet') ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
                 >
                     <Wallet className="w-5 h-5" /> Wallet
+                </button>
+                <button
+                    onClick={() => {
+                        router.push('/dashboard/freelancer/announcements');
+                        onCloseMobile?.();
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${isActive('/dashboard/freelancer/announcements') ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
+                >
+                    <Megaphone className="w-5 h-5" /> Announcements
+                    {unreadAnnouncements > 0 && (
+                        <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                            {unreadAnnouncements > 99 ? '99+' : unreadAnnouncements}
+                        </span>
+                    )}
                 </button>
                 <button
                     onClick={() => {

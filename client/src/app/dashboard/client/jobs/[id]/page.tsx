@@ -10,6 +10,7 @@ import ClientSidebar from '@/components/ClientSidebar';
 import CountdownTimer from '@/components/CountdownTimer';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 import PaymobCheckoutModal from '@/components/PaymobCheckoutModal';
+import PaymentChoiceModal from '@/components/PaymentChoiceModal';
 
 export default function JobDetailPage() {
     const { showModal } = useModal();
@@ -24,6 +25,7 @@ export default function JobDetailPage() {
     const [jobDeadline, setJobDeadline] = useState<Date | null>(null);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
     const [checkoutIframeUrl, setCheckoutIframeUrl] = useState<string | null>(null);
+    const [paymentChoiceConfig, setPaymentChoiceConfig] = useState<{ type: string; amountCents: number; callbackSuccessUrl?: string; jobId?: string; proposalId?: string } | null>(null);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -104,38 +106,31 @@ export default function JobDetailPage() {
     }, [jobId]);
 
     const handleAcceptProposal = async (proposalId: string) => {
-        showModal({
-            title: 'Accept Proposal',
-            message: 'You will be charged via card to accept this proposal. Proceed to payment?',
-            type: 'confirm',
-            onConfirm: async () => {
-                try {
-                    const result = await api.client.acceptProposal(jobId, proposalId);
-                    if (result?.requiresPayment && result?.type === 'job_proposal') {
-                        const callbackUrl = typeof window !== 'undefined'
-                            ? `${window.location.origin}/dashboard/client/jobs/${jobId}?payment_success=1`
-                            : undefined;
-                        const charge = await api.paymentMethods.initCharge({
-                            type: 'job_proposal',
-                            amountCents: result.amountCents,
-                            callbackSuccessUrl: callbackUrl,
-                            ...result.meta
-                        });
-                        setCheckoutIframeUrl(charge.iframeUrl || null);
-                    } else {
-                        setJob(result);
-                        showModal({ title: 'Success', message: 'Proposal accepted!', type: 'success' });
-                    }
-                } catch (err: any) {
-                    console.error(err);
-                    showModal({
-                        title: 'Error',
-                        message: err.message || 'Failed to accept proposal',
-                        type: 'error'
-                    });
-                }
+        try {
+            const result = await api.client.acceptProposal(jobId, proposalId);
+            if (result?.requiresPayment && result?.type === 'job_proposal') {
+                const callbackUrl = typeof window !== 'undefined'
+                    ? `${window.location.origin}/dashboard/client/jobs/${jobId}?payment_success=1`
+                    : undefined;
+                setPaymentChoiceConfig({
+                    type: 'job_proposal',
+                    amountCents: result.amountCents,
+                    callbackSuccessUrl: callbackUrl,
+                    jobId: result.meta?.jobId,
+                    proposalId: result.meta?.proposalId
+                });
+            } else {
+                setJob(result);
+                showModal({ title: 'Success', message: 'Proposal accepted!', type: 'success' });
             }
-        });
+        } catch (err: any) {
+            console.error(err);
+            showModal({
+                title: 'Error',
+                message: err.message || 'Failed to accept proposal',
+                type: 'error'
+            });
+        }
     };
 
     const closeCheckout = () => {
@@ -431,6 +426,29 @@ export default function JobDetailPage() {
                 title="Pay to Accept Proposal"
                 onClose={closeCheckout}
             />
+
+            {paymentChoiceConfig && (
+                <PaymentChoiceModal
+                    isOpen={!!paymentChoiceConfig}
+                    onClose={() => setPaymentChoiceConfig(null)}
+                    paymentConfig={paymentChoiceConfig}
+                    onCardPay={async () => {
+                        const charge = await api.paymentMethods.initCharge({
+                            type: paymentChoiceConfig.type,
+                            amountCents: paymentChoiceConfig.amountCents,
+                            callbackSuccessUrl: paymentChoiceConfig.callbackSuccessUrl,
+                            jobId: paymentChoiceConfig.jobId,
+                            proposalId: paymentChoiceConfig.proposalId
+                        });
+                        setCheckoutIframeUrl(charge.iframeUrl || null);
+                    }}
+                    onInstaPayComplete={() => {
+                        setPaymentChoiceConfig(null);
+                        refreshJob();
+                        showModal({ title: 'Payment Submitted', message: 'Your payment screenshot has been submitted. We will verify and activate your job shortly.', type: 'success' });
+                    }}
+                />
+            )}
         </div>
     );
 }

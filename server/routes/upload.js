@@ -8,10 +8,11 @@ const upload = multer({
     limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
     fileFilter: (_req, file, cb) => {
         const allowed =
-            /\.(jpg|jpeg|png|gif|webp|pdf)$/i.test(file.originalname) ||
+            /\.(jpg|jpeg|png|gif|webp|pdf|doc|docx)$/i.test(file.originalname) ||
             file.mimetype.startsWith('image/') ||
             file.mimetype === 'application/pdf' ||
             file.mimetype === 'application/x-pdf' ||
+            (file.mimetype === 'application/msword' || file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') ||
             file.mimetype.startsWith('audio/') ||
             file.mimetype === 'audio/mpeg' ||
             file.mimetype === 'audio/mp3' ||
@@ -20,7 +21,7 @@ const upload = multer({
             file.mimetype === 'audio/wav' ||
             file.mimetype === 'audio/mp4';
         if (allowed) cb(null, true);
-        else cb(new Error('Only images, PDFs, and audio files are allowed'));
+        else cb(new Error('Only images, PDFs, DOC/DOCX, and audio files are allowed'));
     }
 });
 

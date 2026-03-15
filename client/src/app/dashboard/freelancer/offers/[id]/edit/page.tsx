@@ -30,6 +30,7 @@ export default function EditOfferPage() {
         description: '',
         category: '',
         subCategory: '',
+        consultationPrice: 100,
         images: [] as string[],
         packages: [
             { type: 'Basic', price: 500, days: 3, features: [''], revisions: 0 },
@@ -69,6 +70,7 @@ export default function EditOfferPage() {
                         description: projectData.description || '',
                         category: lockedCategory || projectData.category || '',
                         subCategory: projectData.subCategory || '',
+                        consultationPrice: projectData.consultationPrice ?? 100,
                         images: projectData.images || [],
                         packages: projectData.packages || [
                             { type: 'Basic', price: 500, days: 3, features: [''], revisions: 0 },
@@ -257,6 +259,18 @@ export default function EditOfferPage() {
                                                 ))}
                                             </select>
                                         </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">Consultation Price (EGP)</label>
+                                        <p className="text-xs text-gray-500 mb-1">Price for video/voice calls when clients book a consultation. This amount goes to your balance.</p>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={projectData.consultationPrice}
+                                            onChange={(e) => setProjectData({ ...projectData, consultationPrice: Number(e.target.value) || 100 })}
+                                            className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none max-w-xs"
+                                        />
                                     </div>
 
                                     <div>

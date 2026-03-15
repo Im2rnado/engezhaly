@@ -239,7 +239,7 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
 
                 {/* Main Header */}
                 <div className="hidden md:flex max-w-[95%] md:max-w-[90%] mx-auto px-3 sm:px-4 md:px-6 h-14 sm:h-16 md:h-20 items-center justify-between gap-3" style={{ overflow: 'visible' }}>
-                    <div className="flex items-center gap-4 md:gap-12 flex-1 min-w-0">
+                    <div className="flex items-center gap-4 md:gap-8 flex-1 min-w-0">
                         {/* Logo */}
                         <div
                             onClick={() => router.push('/')}
@@ -348,6 +348,12 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                             >
                                 Browse Jobs
                             </button>
+                            <button
+                                onClick={() => router.push('/help-and-rules')}
+                                className={`hover:text-[#09BF44] transition-colors ${pathname === '/help-and-rules' ? 'text-[#09BF44]' : ''}`}
+                            >
+                                Help and Rules
+                            </button>
                         </nav>
                         {user ? (
                             <div className="flex items-center gap-3">
@@ -418,6 +424,7 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                         <div className="max-w-[95%] mx-auto px-3 py-3 space-y-2">
                             <button onClick={() => { router.push('/offers'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-[#09BF44]/5">Find a Freelancer</button>
                             <button onClick={() => { router.push('/jobs'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-[#09BF44]/5">Browse Jobs</button>
+                            <button onClick={() => { router.push('/help-and-rules'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-[#09BF44]/5">Help and Rules</button>
                             {user?.role === 'client' && (
                                 <button onClick={() => { router.push('/dashboard/client/jobs/create'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-[#09BF44]/5">Post Job</button>
                             )}

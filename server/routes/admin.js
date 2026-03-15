@@ -18,6 +18,7 @@ const {
     getAllUsers,
     getUserById,
     updateUser,
+    topUpUserBalance,
     deleteUser,
     getAllProjects,
     updateProject,
@@ -35,6 +36,7 @@ const {
     completeWithdrawal,
     rejectWithdrawal
 } = require('../controllers/adminController');
+const { getPendingInstaPay, approveInstaPay, denyInstaPay } = require('../controllers/instaPayController');
 
 router.get('/freelancers/pending', [authVerified, adminAuth], getPendingFreelancers);
 router.put('/freelancers/:id/approve', [authVerified, adminAuth], approveFreelancer);
@@ -54,6 +56,7 @@ router.get('/users/search', [authVerified, adminAuth], searchUser);
 router.get('/users', [authVerified, adminAuth], getAllUsers);
 router.get('/users/:id', [authVerified, adminAuth], getUserById);
 router.put('/users/:id', [authVerified, adminAuth], updateUser);
+router.put('/users/:id/topup', [authVerified, adminAuth], topUpUserBalance);
 router.delete('/users/:id', [authVerified, adminAuth], deleteUser);
 
 router.get('/projects', [authVerified, adminAuth], getAllProjects);
@@ -73,5 +76,10 @@ router.patch('/withdrawals/:id/complete', [authVerified, adminAuth], completeWit
 router.patch('/withdrawals/:id/reject', [authVerified, adminAuth], rejectWithdrawal);
 router.get('/top-freelancers', [authVerified, adminAuth], getTopFreelancers);
 router.get('/email-logs', [authVerified, adminAuth], getEmailLogs);
+
+// InstaPay pending payments
+router.get('/instapay-pending', [authVerified, adminAuth], getPendingInstaPay);
+router.patch('/instapay/:id/approve', [authVerified, adminAuth], approveInstaPay);
+router.patch('/instapay/:id/deny', [authVerified, adminAuth], denyInstaPay);
 
 module.exports = router;

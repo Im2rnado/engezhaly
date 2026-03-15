@@ -138,19 +138,42 @@ const fulfillCharge = async (pendingCharge) => {
         case 'consultation': {
             const userId = pendingCharge.userId;
             const conversationId = meta.conversationId;
+            const amount = pendingCharge.amountCents / 100;
 
             const payment = new ConsultationPayment({
                 userId,
                 conversationId,
-                amount: 100,
+                amount,
                 used: false
             });
             await payment.save();
 
+            // Credit freelancer's wallet (money goes to freelancer balance)
+            const Conversation = require('../models/Conversation');
+            const conversation = await Conversation.findById(conversationId).select('participants');
+            if (conversation?.participants?.length >= 2) {
+                const freelancerId = conversation.participants.find(p => String(p) !== String(userId));
+                if (freelancerId) {
+                    const freelancer = await User.findById(freelancerId);
+                    if (freelancer) {
+                        freelancer.walletBalance = (freelancer.walletBalance || 0) + amount;
+                        await freelancer.save();
+                        await Transaction.create({
+                            userId: freelancerId,
+                            type: 'consultation',
+                            amount,
+                            description: 'Video consultation payment',
+                            status: 'completed',
+                            metadata: { conversationId, fromUserId: userId }
+                        });
+                    }
+                }
+            }
+
             await Transaction.create({
                 userId,
                 type: 'consultation',
-                amount: -100,
+                amount: -amount,
                 description: 'Video consultation payment',
                 status: 'completed',
                 metadata: { conversationId }

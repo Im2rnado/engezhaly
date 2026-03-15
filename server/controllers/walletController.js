@@ -1,11 +1,12 @@
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const ConsultationPayment = require('../models/ConsultationPayment');
+const Conversation = require('../models/Conversation');
 const WithdrawalRequest = require('../models/WithdrawalRequest');
 const { sendAndLog } = require('../services/mailgunService');
 const { depositReceipt } = require('../templates/emailTemplates');
 
-const CONSULTATION_AMOUNT = 100;
+const DEFAULT_CONSULTATION_AMOUNT = 100;
 const WITHDRAWAL_FEE = 20;
 
 // Mock Deposit (Top Up)
@@ -76,7 +77,7 @@ const getBalance = async (req, res) => {
 // Pay for consultation - returns payment params for frontend to call initCharge (Paymob)
 const payConsultation = async (req, res) => {
     try {
-        const { conversationId } = req.body;
+        const { conversationId, projectId } = req.body;
         const userId = req.user.id;
 
         if (!conversationId) return res.status(400).json({ msg: 'conversationId is required' });
@@ -86,7 +87,29 @@ const payConsultation = async (req, res) => {
             return res.status(403).json({ msg: 'Only clients can pay for consultations.' });
         }
 
-        const amountCents = CONSULTATION_AMOUNT * 100;
+        // Resolve consultation price: project's price if projectId provided, else freelancer's profile default
+        let amount = DEFAULT_CONSULTATION_AMOUNT;
+        if (projectId) {
+            const Project = require('../models/Project');
+            const project = await Project.findById(projectId).select('consultationPrice sellerId');
+            if (project && project.consultationPrice != null && project.consultationPrice > 0) {
+                amount = Number(project.consultationPrice);
+            }
+        }
+        if (amount === DEFAULT_CONSULTATION_AMOUNT) {
+            const conversation = await Conversation.findById(conversationId).select('participants');
+            if (conversation?.participants?.length >= 2) {
+                const freelancerId = conversation.participants.find(p => String(p) !== String(userId));
+                if (freelancerId) {
+                    const freelancer = await User.findById(freelancerId).select('freelancerProfile.consultationPrice');
+                    const fp = freelancer?.freelancerProfile;
+                    if (fp != null && fp.consultationPrice != null && fp.consultationPrice > 0) {
+                        amount = Number(fp.consultationPrice);
+                    }
+                }
+            }
+        }
+        const amountCents = Math.round(amount * 100);
 
         // Do NOT deduct from wallet - return payment params for frontend to call initCharge
         res.json({

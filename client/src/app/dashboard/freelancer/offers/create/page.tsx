@@ -26,6 +26,7 @@ export default function CreateOfferPage() {
         description: '',
         category: '',
         subCategory: '',
+        consultationPrice: 100,
         images: [] as string[],
         packages: [
             { type: 'Basic', price: 500, days: 3, features: [''], revisions: 0 },
@@ -111,6 +112,7 @@ export default function CreateOfferPage() {
         try {
             await api.projects.create({
                 ...projectData,
+                consultationPrice: Number(projectData.consultationPrice) || 100,
                 packages: projectData.packages.map(p => ({
                     ...p,
                     price: Number(p.price),
@@ -235,6 +237,18 @@ export default function CreateOfferPage() {
                                             You need to complete your profile with a category before creating offers. Go to Profile to add your category.
                                         </div>
                                     )}
+
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">Consultation Price (EGP)</label>
+                                        <p className="text-xs text-gray-500 mb-1">Price for video/voice calls when clients book a consultation. This amount goes to your balance.</p>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={projectData.consultationPrice}
+                                            onChange={(e) => setProjectData({ ...projectData, consultationPrice: Number(e.target.value) || 100 })}
+                                            className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none max-w-xs"
+                                        />
+                                    </div>
 
                                     <div>
                                         <label className="block text-sm font-bold text-gray-700 mb-2">Banner Images (Up to 7)</label>

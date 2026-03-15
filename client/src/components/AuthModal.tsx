@@ -64,7 +64,8 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
     const [professionalInfo, setProfessionalInfo] = useState({
         category: '',
         experienceYears: '',
-        skills: '', // space-separated, displayed as tags
+        technicalSkills: '', // e.g. React, Photoshop, SEO
+        softSkills: '',     // e.g. Communication, Time Management
         bio: '',
         isStudent: false,
         certifications: [] as { name: string; date: string; institute: string; documentUrl: string }[],
@@ -80,10 +81,10 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
     const [survey, setSurvey] = useState({
         disagreementHandling: '',
         hoursPerDay: '',
-        clientUpdates: '',
-        biggestChallenge: '',
         discoverySource: ''
     });
+    const [cvUrl, setCvUrl] = useState('');
+    const [cvUploading, setCvUploading] = useState(false);
     const [withdrawalMethod, setWithdrawalMethod] = useState<{ method: 'vodafone_cash' | 'instapay' | 'bank'; phoneNumber: string; accountNumber: string; bankName: string }>({
         method: 'vodafone_cash',
         phoneNumber: '',
@@ -91,6 +92,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
         bankName: ''
     });
     const [signupNotes, setSignupNotes] = useState('');
+    const [acceptedTerms, setAcceptedTerms] = useState(false);
     const [surveyStep, setSurveyStep] = useState(1);
     const [starterOffer, setStarterOffer] = useState({
         title: '',
@@ -137,13 +139,15 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             setDocumentUploadingLabel(null);
             setPortfolioImageUploading(null);
             setPortfolioImageProgress(0);
-            setProfessionalInfo({ category: '', experienceYears: '', skills: '', bio: '', isStudent: false, certifications: [], universityIdUrl: '', idDocumentUrl: '', city: '', english: 'Fluent', arabic: 'Fluent', extraLanguages: '' });
-            setSurvey({ disagreementHandling: '', hoursPerDay: '', clientUpdates: '', biggestChallenge: '', discoverySource: '' });
+            setProfessionalInfo({ category: '', experienceYears: '', technicalSkills: '', softSkills: '', bio: '', isStudent: false, certifications: [], universityIdUrl: '', idDocumentUrl: '', city: '', english: 'Fluent', arabic: 'Fluent', extraLanguages: '' });
+            setSurvey({ disagreementHandling: '', hoursPerDay: '', discoverySource: '' });
+            setCvUrl('');
             setWithdrawalMethod({ method: 'vodafone_cash', phoneNumber: '', accountNumber: '', bankName: '' });
             setSignupNotes('');
             setSurveyStep(1);
             setStarterOffer({ title: '', description: '', subCategory: '', images: [], packages: [{ type: 'Basic', price: 500, days: 3, revisions: 0, features: [''] }, { type: 'Standard', price: 1000, days: 5, revisions: 1, features: [''] }, { type: 'Premium', price: 2000, days: 7, revisions: 2, features: [''] }] });
             setPortfolioItems([{ title: '', description: '', imageUrl: '', link: '', subCategory: '' }]);
+            setAcceptedTerms(false);
         }
     }, [isOpen]);
 
@@ -263,6 +267,10 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             setError('Company name is required for company accounts');
             return;
         }
+        if (!acceptedTerms) {
+            setError('You must agree to the Terms and Conditions and Privacy Policy to create an account');
+            return;
+        }
         setLoading(true);
         setError('');
         try {
@@ -348,6 +356,12 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             setError('Please upload your Government ID');
             return;
         }
+        const techSkills = professionalInfo.technicalSkills.trim().split(/\s+/).filter(Boolean);
+        const softSkills = professionalInfo.softSkills.trim().split(/\s+/).filter(Boolean);
+        if (techSkills.length === 0 && softSkills.length === 0) {
+            setError('Please add at least one technical or soft skill');
+            return;
+        }
         setError('');
         setStep('freelancer-step-3a');
     };
@@ -390,15 +404,17 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
         }
     };
 
-    const SURVEY_QUESTIONS: { key: keyof typeof survey; label: string; type: 'text' | 'select'; options?: string[] }[] = [
+    const SURVEY_QUESTIONS: { key: keyof typeof survey; label: string; type: 'text' | 'select' | 'radio'; options?: string[] }[] = [
         { key: 'disagreementHandling', label: 'What happens if you have a disagreement with the client?', type: 'text' },
-        { key: 'hoursPerDay', label: 'On average, how many hours per day can you dedicate to Engezhaly?', type: 'text' },
-        { key: 'clientUpdates', label: 'How do you keep clients updated? Will you be able to update them through chats and online calls?', type: 'text' },
-        { key: 'biggestChallenge', label: "What's the biggest challenge you could face in a project?", type: 'text' },
-        { key: 'discoverySource', label: 'Where did you find out about Engezhaly from?', type: 'select', options: ['TikTok', 'Instagram', 'Google', 'Friends & Family', 'Other'] }
+        { key: 'hoursPerDay', label: 'On average, how many hours per day can you dedicate to Engezhaly?', type: 'radio', options: ['Less than 1', '1–2', '2–4', '4–6', '6+', 'Other'] },
+        { key: 'discoverySource', label: 'Where did you find out about Engezhaly from?', type: 'select', options: ['TikTok', 'Instagram', 'Facebook', 'X', 'Friend/Referral', 'Google/Search', 'Other'] }
     ];
 
     const handleFinalSubmit = async () => {
+        if (!acceptedTerms) {
+            setError('You must agree to the Terms and Conditions and Privacy Policy to create an account');
+            return;
+        }
         setLoading(true);
         setError('');
         const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -408,16 +424,16 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             isStudent: professionalInfo.isStudent,
             certifications: professionalInfo.isStudent ? [] : professionalInfo.certifications.filter(c => c.name?.trim()).map(c => ({ name: c.name.trim(), date: c.date || '', institute: c.institute || '', documentUrl: c.documentUrl || '' })),
             universityId: professionalInfo.isStudent ? professionalInfo.universityIdUrl || undefined : undefined,
-            skills: professionalInfo.skills.trim().split(/\s+/).filter(Boolean),
+            technicalSkills: professionalInfo.technicalSkills.trim().split(/\s+/).filter(Boolean),
+            softSkills: professionalInfo.softSkills.trim().split(/\s+/).filter(Boolean),
             bio: professionalInfo.bio,
             idDocument: professionalInfo.idDocumentUrl || undefined,
             surveyResponses: {
                 disagreementHandling: survey.disagreementHandling?.trim() || undefined,
                 hoursPerDay: survey.hoursPerDay?.trim() || undefined,
-                clientUpdates: survey.clientUpdates?.trim() || undefined,
-                biggestChallenge: survey.biggestChallenge?.trim() || undefined,
                 discoverySource: survey.discoverySource?.trim() || undefined
             },
+            cvUrl: cvUrl?.trim() || undefined,
             starterOffer: {
                 title: starterOffer.title?.trim() || undefined,
                 description: starterOffer.description?.trim() || undefined,
@@ -780,6 +796,16 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                     </div>
                                 )}
 
+                                <label className="flex items-start gap-3 cursor-pointer">
+                                    <input type="checkbox" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="mt-1 w-5 h-5 rounded border-2 border-gray-300 text-[#09BF44] focus:ring-[#09BF44]" />
+                                    <span className="text-sm text-gray-700">
+                                        I agree to the{' '}
+                                        <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-[#09BF44] font-bold hover:underline">Terms and Conditions</a>
+                                        {' '}and{' '}
+                                        <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#09BF44] font-bold hover:underline">Privacy Policy</a>
+                                    </span>
+                                </label>
+
                                 {error && (
                                     <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center gap-2 text-sm">
                                         <div className="w-2 h-2 bg-red-500 rounded-full"></div>
@@ -1085,9 +1111,9 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Skills (separate with space or Enter)</label>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Technical Skills (e.g. React, Photoshop, SEO)</label>
                                     {(() => {
-                                        const parts = professionalInfo.skills.split(/\s+/);
+                                        const parts = professionalInfo.technicalSkills.split(/\s+/);
                                         const completedTags = parts.slice(0, -1).filter(Boolean);
                                         const currentWord = parts.length > 0 ? (parts[parts.length - 1] ?? '') : '';
                                         const prefix = completedTags.length ? completedTags.join(' ') + ' ' : '';
@@ -1100,18 +1126,50 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                 ))}
                                                 <input
                                                     type="text"
-                                                    name="skills"
-                                                    required={professionalInfo.skills.trim().split(/\s+/).filter(Boolean).length === 0}
-                                                    placeholder={completedTags.length === 0 ? 'e.g. React Photoshop SEO (space or Enter between items)' : ''}
+                                                    placeholder={completedTags.length === 0 ? 'space or Enter between items' : ''}
                                                     value={currentWord}
-                                                    onChange={(e) => setProfessionalInfo({ ...professionalInfo, skills: prefix + e.target.value })}
+                                                    onChange={(e) => setProfessionalInfo({ ...professionalInfo, technicalSkills: prefix + e.target.value })}
                                                     onKeyDown={(e) => {
                                                         if (e.key === 'Enter') {
                                                             e.preventDefault();
-                                                            setProfessionalInfo({ ...professionalInfo, skills: (prefix + currentWord).trim() + ' ' });
+                                                            setProfessionalInfo({ ...professionalInfo, technicalSkills: (prefix + currentWord).trim() + ' ' });
                                                         } else if (e.key === 'Backspace' && !currentWord && completedTags.length > 0) {
                                                             e.preventDefault();
-                                                            setProfessionalInfo({ ...professionalInfo, skills: completedTags.slice(0, -1).join(' ') });
+                                                            setProfessionalInfo({ ...professionalInfo, technicalSkills: completedTags.slice(0, -1).join(' ') });
+                                                        }
+                                                    }}
+                                                    className="flex-1 min-w-[120px] py-1 bg-transparent border-0 outline-none placeholder:text-gray-400"
+                                                />
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Soft Skills (e.g. Communication, Time Management)</label>
+                                    {(() => {
+                                        const parts = professionalInfo.softSkills.split(/\s+/);
+                                        const completedTags = parts.slice(0, -1).filter(Boolean);
+                                        const currentWord = parts.length > 0 ? (parts[parts.length - 1] ?? '') : '';
+                                        const prefix = completedTags.length ? completedTags.join(' ') + ' ' : '';
+                                        return (
+                                            <div className="flex flex-wrap items-center gap-2 w-full p-3 py-2.5 min-h-[52px] bg-gray-50 rounded-xl border-2 border-transparent focus-within:border-[#09BF44] focus-within:bg-white outline-none transition-all font-medium text-gray-900">
+                                                {completedTags.map((tag) => (
+                                                    <span key={tag} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-500 text-white">
+                                                        {tag}
+                                                    </span>
+                                                ))}
+                                                <input
+                                                    type="text"
+                                                    placeholder={completedTags.length === 0 ? 'optional' : ''}
+                                                    value={currentWord}
+                                                    onChange={(e) => setProfessionalInfo({ ...professionalInfo, softSkills: prefix + e.target.value })}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            setProfessionalInfo({ ...professionalInfo, softSkills: (prefix + currentWord).trim() + ' ' });
+                                                        } else if (e.key === 'Backspace' && !currentWord && completedTags.length > 0) {
+                                                            e.preventDefault();
+                                                            setProfessionalInfo({ ...professionalInfo, softSkills: completedTags.slice(0, -1).join(' ') });
                                                         }
                                                     }}
                                                     className="flex-1 min-w-[120px] py-1 bg-transparent border-0 outline-none placeholder:text-gray-400"
@@ -1452,14 +1510,14 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                 <div className="bg-[#09BF44] h-full rounded-full transition-all" style={{ width: '100%' }} />
                             </div>
                             <div className="flex items-center justify-center gap-2 mb-4 text-sm font-bold text-gray-400 uppercase tracking-wider">
-                                <span className="text-[#09BF44]">Step 6</span><span>/</span><span>6</span> · Question {surveyStep}/5
+                                <span className="text-[#09BF44]">Step 6</span><span>/</span><span>6</span> · Question {surveyStep}/4
                             </div>
                             <h3 className="text-xl md:text-2xl font-bold text-center mb-2">Survey</h3>
 
                             {error && <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center gap-2 text-sm mb-4"><div className="w-2 h-2 bg-red-500 rounded-full"></div>{error}</div>}
 
                             <div className="space-y-6">
-                                {SURVEY_QUESTIONS.slice(surveyStep - 1, surveyStep).map((q) => (
+                                {surveyStep <= 3 && SURVEY_QUESTIONS.slice(surveyStep - 1, surveyStep).map((q) => (
                                     <div key={q.key}>
                                         <label className="block font-medium text-gray-700 mb-3">{q.label}</label>
                                         {q.type === 'select' ? (
@@ -1467,14 +1525,69 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                 <option value="">Select...</option>
                                                 {q.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                                             </select>
+                                        ) : q.type === 'radio' ? (
+                                            <div className="space-y-2">
+                                                {q.options?.map(opt => (
+                                                    <label key={opt} className="flex items-center gap-3 p-3 rounded-xl border-2 border-transparent hover:border-gray-200 has-[:checked]:border-[#09BF44] cursor-pointer">
+                                                        <input type="radio" name="hoursPerDay" value={opt} checked={survey[q.key] === opt} onChange={(e) => setSurvey({ ...survey, [q.key]: e.target.value })} className="w-4 h-4 text-[#09BF44]" />
+                                                        <span>{opt}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
                                         ) : (
                                             <input type="text" value={survey[q.key]} onChange={(e) => setSurvey({ ...survey, [q.key]: e.target.value })} placeholder="Your answer..." className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none" />
                                         )}
                                     </div>
                                 ))}
+                                {surveyStep === 4 && (
+                                    <div>
+                                        <label className="block font-medium text-gray-700 mb-2">Upload your CV (optional)</label>
+                                        <p className="text-sm text-gray-500 mb-3">Your CV is for admin review only and will not be shown publicly on your profile.</p>
+                                        <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#09BF44] transition-colors bg-gray-50">
+                                            <input type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={async (e) => {
+                                                const file = e.target.files?.[0];
+                                                if (!file) return;
+                                                setError('');
+                                                setCvUploading(true);
+                                                try {
+                                                    const url = await api.upload.file(file);
+                                                    setCvUrl(url);
+                                                } catch (err: any) {
+                                                    setError(err.message || 'CV upload failed');
+                                                } finally {
+                                                    setCvUploading(false);
+                                                    e.target.value = '';
+                                                }
+                                            }} />
+                                            {cvUploading ? (
+                                                <Loader2 className="w-8 h-8 text-[#09BF44] animate-spin" />
+                                            ) : cvUrl ? (
+                                                <div className="flex items-center gap-2 text-[#09BF44] font-medium"><CheckCircle className="w-5 h-5" /> CV uploaded</div>
+                                            ) : (
+                                                <div className="flex flex-col items-center gap-1 text-gray-500"><Upload className="w-6 h-6" /><span className="text-sm">PDF or DOC</span></div>
+                                            )}
+                                        </label>
+                                    </div>
+                                )}
+                                {surveyStep === 4 && (
+                                    <label className="flex items-start gap-3 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={acceptedTerms}
+                                            onChange={(e) => setAcceptedTerms(e.target.checked)}
+                                            className="mt-1 w-5 h-5 rounded border-2 border-gray-300 text-[#09BF44] focus:ring-[#09BF44]"
+                                        />
+                                        <span className="text-sm text-gray-700">
+                                            I agree to the{' '}
+                                            <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-[#09BF44] font-bold hover:underline">Terms and Conditions</a>
+                                            {' '}and{' '}
+                                            <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#09BF44] font-bold hover:underline">Privacy Policy</a>
+                                        </span>
+                                    </label>
+                                )}
                                 <div className="flex flex-col sm:flex-row gap-3">
                                     <button type="button" onClick={() => surveyStep > 1 ? setSurveyStep(s => s - 1) : setStep('freelancer-step-3-offer')} className="flex-1 bg-gray-100 text-gray-600 font-bold p-4 rounded-xl hover:bg-gray-200">Back</button>
-                                    {surveyStep < 5 ? (
+                                    {surveyStep < 4 ? (
                                         <button type="button" onClick={() => setSurveyStep(s => s + 1)} className="flex-1 bg-[#09BF44] text-white font-bold p-4 rounded-xl hover:bg-[#07a63a] flex items-center justify-center gap-2">
                                             Next <ChevronRight className="w-5 h-5" />
                                         </button>

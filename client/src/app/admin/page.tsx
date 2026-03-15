@@ -5,17 +5,40 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { api } from '@/lib/api';
 import { formatStatus, formatDateDDMMYYYY } from '@/lib/utils';
-import { Check, X, Ban, User, Flag, MessageSquare, Award, BarChart3, TrendingUp, Search, Loader2, Briefcase, FileText, ShoppingBag, CreditCard, Trash2, Star, Edit, LogOut, ArrowLeft, Send, Shield, PanelLeft, Mail, Video, ArrowDownToLine } from 'lucide-react';
+import { Check, X, Ban, User, Flag, MessageSquare, Award, BarChart3, TrendingUp, Search, Loader2, Briefcase, FileText, ShoppingBag, CreditCard, Trash2, Star, Edit, LogOut, ArrowLeft, Send, Shield, PanelLeft, Mail, Video, ArrowDownToLine, Smartphone, Megaphone, ImagePlus } from 'lucide-react';
 import { MAIN_CATEGORIES } from '@/lib/categories';
 import { useModal } from '@/context/ModalContext';
 import EditModal from '@/components/EditModal';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 
-function UserDetailPanel({ user, onBack, onEdit, onDelete }: { user: any; onBack: () => void; onEdit: () => void; onDelete: () => void }) {
+function UserDetailPanel({ user, onBack, onEdit, onDelete, onRefresh }: { user: any; onBack: () => void; onEdit: () => void; onDelete: () => void; onRefresh?: () => void }) {
+    const { showModal } = useModal();
+    const [topUpAmount, setTopUpAmount] = useState('');
+    const [topUpLoading, setTopUpLoading] = useState(false);
     const fp = user.freelancerProfile;
     const cp = user.clientProfile;
     const isFreelancer = user.role === 'freelancer';
     const isClient = user.role === 'client';
+    const balance = user.walletBalance ?? 0;
+
+    const handleTopUp = async () => {
+        const amount = Number(topUpAmount);
+        if (!Number.isFinite(amount) || amount <= 0) {
+            showModal({ title: 'Invalid Amount', message: 'Please enter a positive number.', type: 'error' });
+            return;
+        }
+        setTopUpLoading(true);
+        try {
+            await api.admin.topUpUserBalance(user._id, amount);
+            setTopUpAmount('');
+            showModal({ title: 'Success', message: `${amount} EGP added to wallet. New balance: ${balance + amount} EGP`, type: 'success' });
+            onRefresh?.();
+        } catch (err: any) {
+            showModal({ title: 'Error', message: err.message || 'Failed to top up', type: 'error' });
+        } finally {
+            setTopUpLoading(false);
+        }
+    };
 
     return (
         <div className="flex flex-col h-full">
@@ -68,6 +91,36 @@ function UserDetailPanel({ user, onBack, onEdit, onDelete }: { user: any; onBack
                         </div>
                     </div>
 
+                    <div>
+                        <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Wallet Balance</h4>
+                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                            <p className="text-xs font-bold text-gray-400 mb-1">Current balance</p>
+                            <p className="text-2xl font-black text-[#09BF44]">{balance} EGP</p>
+                            <div className="flex flex-wrap items-end gap-2 mt-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-1">Top up amount (EGP)</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        step="1"
+                                        value={topUpAmount}
+                                        onChange={(e) => setTopUpAmount(e.target.value)}
+                                        placeholder="e.g. 100"
+                                        className="w-32 p-2 rounded-lg border-2 border-gray-200 focus:border-[#09BF44] outline-none"
+                                    />
+                                </div>
+                                <button
+                                    onClick={handleTopUp}
+                                    disabled={topUpLoading}
+                                    className="px-4 py-2 bg-[#09BF44] hover:bg-[#07a63a] text-white font-bold rounded-lg disabled:opacity-70 flex items-center gap-2"
+                                >
+                                    {topUpLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                                    Top Up
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                     {isClient && cp && (
                         <div>
                             <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Client Profile</h4>
@@ -105,6 +158,14 @@ function UserDetailPanel({ user, onBack, onEdit, onDelete }: { user: any; onBack
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="bg-gray-50 p-4 rounded-xl"><p className="text-xs font-bold text-gray-400 mb-1">Experience</p><p className="font-medium text-gray-900">{fp?.experienceYears != null ? `${fp.experienceYears} years` : 'Not provided'}</p></div>
                                     <div className="bg-gray-50 p-4 rounded-xl"><p className="text-xs font-bold text-gray-400 mb-1">Student</p><p className="font-medium text-gray-900">{fp?.isStudent ? 'Yes' : 'No'}</p></div>
+                                    {fp?.cvUrl && (
+                                        <div className="bg-gray-50 p-4 rounded-xl md:col-span-2">
+                                            <p className="text-xs font-bold text-gray-400 mb-1">CV (admin only, not public)</p>
+                                            <a href={fp.cvUrl} target="_blank" rel="noopener noreferrer" className="text-[#09BF44] hover:underline font-medium flex items-center gap-1">
+                                                <FileText className="w-4 h-4" /> View CV
+                                            </a>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -121,10 +182,21 @@ function UserDetailPanel({ user, onBack, onEdit, onDelete }: { user: any; onBack
                                 </div>
                             )}
 
-                            {fp?.skills?.length > 0 && (
+                            {((fp?.technicalSkills?.length > 0) || (fp?.softSkills?.length > 0) || (fp?.skills?.length > 0)) && (
                                 <div>
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Skills</h4>
-                                    <div className="flex flex-wrap gap-2">{fp.skills.map((s: string) => <span key={s} className="px-3 py-1 bg-[#09BF44] text-white text-sm font-medium rounded-full">{s}</span>)}</div>
+                                    {fp?.technicalSkills?.length > 0 && (
+                                        <div className="mb-2">
+                                            <span className="text-xs font-bold text-gray-500 uppercase">Technical: </span>
+                                            <span className="flex flex-wrap gap-2">{fp.technicalSkills.map((s: string) => <span key={s} className="px-3 py-1 bg-green-600 text-white text-sm font-medium rounded-full">{s}</span>)}</span>
+                                        </div>
+                                    )}
+                                    {fp?.softSkills?.length > 0 && (
+                                        <div>
+                                            <span className="text-xs font-bold text-gray-500 uppercase">Soft: </span>
+                                            <span className="flex flex-wrap gap-2">{fp.softSkills.map((s: string) => <span key={s} className="px-3 py-1 bg-blue-600 text-white text-sm font-medium rounded-full">{s}</span>)}</span>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
@@ -237,7 +309,7 @@ function UserDetailPanel({ user, onBack, onEdit, onDelete }: { user: any; onBack
 export default function AdminDashboard() {
     const { showModal, hideModal } = useModal();
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'approvals' | 'users' | 'projects' | 'jobs' | 'orders' | 'finance' | 'withdrawals' | 'chats' | 'strikes' | 'rewards' | 'emails'>('dashboard');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'approvals' | 'users' | 'projects' | 'jobs' | 'orders' | 'finance' | 'withdrawals' | 'instapay' | 'chats' | 'strikes' | 'rewards' | 'emails' | 'announcements'>('dashboard');
 
     // Data States
     const [pendingFreelancers, setPendingFreelancers] = useState<any[]>([]);
@@ -251,6 +323,8 @@ export default function AdminDashboard() {
     const [topFreelancers, setTopFreelancers] = useState<any>(null);
     const [emailLogs, setEmailLogs] = useState<any[]>([]);
     const [withdrawals, setWithdrawals] = useState<any[]>([]);
+    const [instaPayPending, setInstaPayPending] = useState<any[]>([]);
+    const [announcements, setAnnouncements] = useState<any[]>([]);
 
     // Search & UI States
     const [searchQuery, setSearchQuery] = useState('');
@@ -263,7 +337,9 @@ export default function AdminDashboard() {
     const [financeLoading, setFinanceLoading] = useState(false);
     const [emailsLoading, setEmailsLoading] = useState(false);
     const [withdrawalsLoading, setWithdrawalsLoading] = useState(false);
+    const [instaPayLoading, setInstaPayLoading] = useState(false);
     const [chatsLoading, setChatsLoading] = useState(false);
+    const [announcementsLoading, setAnnouncementsLoading] = useState(false);
     const [editModal, setEditModal] = useState<{ isOpen: boolean; type: 'user' | 'project' | 'job' | null; data: any }>({ isOpen: false, type: null, data: null });
 
     // Approvals states
@@ -286,6 +362,11 @@ export default function AdminDashboard() {
     const [disputeOutcome, setDisputeOutcome] = useState('');
     const [disputeStatus, setDisputeStatus] = useState<'completed' | 'refunded'>('completed');
     const [resolvingDispute, setResolvingDispute] = useState(false);
+
+    // Announcements create form
+    const [announcementContent, setAnnouncementContent] = useState('');
+    const [announcementImageUrl, setAnnouncementImageUrl] = useState('');
+    const [creatingAnnouncement, setCreatingAnnouncement] = useState(false);
 
     // Fetch Functions
     const fetchPending = async () => {
@@ -461,6 +542,30 @@ export default function AdminDashboard() {
         }
     };
 
+    const fetchInstaPayPending = async () => {
+        setInstaPayLoading(true);
+        try {
+            const data = await api.admin.getInstaPayPending();
+            setInstaPayPending(data);
+        } catch (err) {
+            console.error('Failed to fetch InstaPay pending', err);
+        } finally {
+            setInstaPayLoading(false);
+        }
+    };
+
+    const fetchAnnouncements = async () => {
+        setAnnouncementsLoading(true);
+        try {
+            const data = await api.announcements.admin.list();
+            setAnnouncements(data || []);
+        } catch (err) {
+            console.error('Failed to fetch announcements', err);
+        } finally {
+            setAnnouncementsLoading(false);
+        }
+    };
+
     useEffect(() => {
         hideModal(); // Clear redirect loader when admin page loads
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -487,9 +592,11 @@ export default function AdminDashboard() {
         if (activeTab === 'orders') fetchOrders();
         if (activeTab === 'finance') fetchTransactions();
         if (activeTab === 'withdrawals') fetchWithdrawals();
+        if (activeTab === 'instapay') fetchInstaPayPending();
         if (activeTab === 'chats') fetchChats();
         if (activeTab === 'rewards') fetchTopFreelancers();
         if (activeTab === 'emails') fetchEmailLogs();
+        if (activeTab === 'announcements') fetchAnnouncements();
     }, [activeTab]);
 
     // Action Handlers
@@ -771,6 +878,10 @@ export default function AdminDashboard() {
                         <ArrowDownToLine className="w-5 h-5" /> Withdrawals
                         {withdrawals.filter((w: any) => w.status === 'pending').length > 0 && <span className="ml-auto bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">{withdrawals.filter((w: any) => w.status === 'pending').length}</span>}
                     </button>
+                    <button onClick={() => setActiveTab('instapay')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'instapay' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
+                        <Smartphone className="w-5 h-5" /> InstaPay Pending
+                        {instaPayPending.length > 0 && <span className="ml-auto bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">{instaPayPending.length}</span>}
+                    </button>
                     <div className="h-px bg-gray-100 my-2"></div>
                     <button onClick={() => setActiveTab('approvals')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'approvals' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <Check className="w-5 h-5" /> Approvals
@@ -779,6 +890,9 @@ export default function AdminDashboard() {
                     <button onClick={() => setActiveTab('chats')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'chats' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <MessageSquare className="w-5 h-5" /> Chats
                         {activeChats.length > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{activeChats.length}</span>}
+                    </button>
+                    <button onClick={() => setActiveTab('announcements')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'announcements' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
+                        <Megaphone className="w-5 h-5" /> Announcements
                     </button>
                     <button onClick={() => setActiveTab('strikes')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'strikes' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <Ban className="w-5 h-5" /> Strikes
@@ -919,7 +1033,7 @@ export default function AdminDashboard() {
                             {selectedUserLoading ? (
                                 <div className="p-16 flex justify-center"><Loader2 className="w-12 h-12 animate-spin text-[#09BF44]" /></div>
                             ) : selectedUser ? (
-                                <UserDetailPanel user={selectedUser} onBack={() => setSelectedUser(null)} onEdit={() => handleEditUser(selectedUser)} onDelete={() => handleDeleteUser(selectedUser._id)} />
+                                <UserDetailPanel user={selectedUser} onBack={() => setSelectedUser(null)} onEdit={() => handleEditUser(selectedUser)} onDelete={() => handleDeleteUser(selectedUser._id)} onRefresh={async () => { const full = await api.admin.getUserById(selectedUser._id); setSelectedUser(full); }} />
                             ) : (
                                 <div className="p-16 text-center text-gray-500">
                                     <User className="w-16 h-16 mx-auto mb-4 text-gray-300" />
@@ -1128,6 +1242,100 @@ export default function AdminDashboard() {
                     </div>
                 )}
 
+                {activeTab === 'instapay' && (
+                    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div className="p-6 border-b border-gray-100">
+                            <h2 className="text-xl font-bold text-gray-900">InstaPay Pending Payments</h2>
+                            <p className="text-sm text-gray-500 mt-1">Review and approve/deny InstaPay payment screenshots.</p>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-gray-50 text-gray-500 font-bold uppercase">
+                                    <tr>
+                                        <th className="p-4">User</th>
+                                        <th className="p-4">Amount</th>
+                                        <th className="p-4">Type</th>
+                                        <th className="p-4">Screenshot</th>
+                                        <th className="p-4">Date</th>
+                                        <th className="p-4">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {instaPayLoading ? (
+                                        <tr><td colSpan={6} className="p-8 text-center"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44] mx-auto" /></td></tr>
+                                    ) : instaPayPending.length === 0 ? (
+                                        <tr><td colSpan={6} className="p-8 text-center text-gray-500">No pending InstaPay payments.</td></tr>
+                                    ) : (
+                                        instaPayPending.map((p: any) => {
+                                            const user = p.userId || p.user;
+                                            return (
+                                                <tr key={p._id} className="hover:bg-gray-50">
+                                                    <td className="p-4">
+                                                        <span className="font-bold">{user?.firstName} {user?.lastName}</span>
+                                                        <span className="block text-xs text-gray-500">{user?.email}</span>
+                                                    </td>
+                                                    <td className="p-4 font-bold text-[#09BF44]">{p.amountEGP ?? (p.amountCents / 100)} EGP</td>
+                                                    <td className="p-4"><span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs capitalize">{p.meta?.type || 'payment'}</span></td>
+                                                    <td className="p-4">
+                                                        {p.screenshotUrl ? (
+                                                            <a href={p.screenshotUrl} target="_blank" rel="noopener noreferrer" className="text-[#09BF44] hover:underline font-bold">
+                                                                View
+                                                            </a>
+                                                        ) : (
+                                                            <span className="text-gray-400">—</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="p-4 text-gray-500">{formatDateDDMMYYYY(p.createdAt)}</td>
+                                                    <td className="p-4">
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={async () => {
+                                                                    try {
+                                                                        await api.admin.approveInstaPay(p._id);
+                                                                        showModal({ title: 'Approved', message: 'InstaPay payment approved.', type: 'success' });
+                                                                        fetchInstaPayPending();
+                                                                    } catch (e: any) {
+                                                                        showModal({ title: 'Error', message: e.message || 'Failed to approve', type: 'error' });
+                                                                    }
+                                                                }}
+                                                                className="text-green-600 hover:bg-green-50 px-3 py-1.5 rounded font-bold text-sm flex items-center gap-1"
+                                                            >
+                                                                <Check className="w-4 h-4" /> Approve
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    showModal({
+                                                                        title: 'Deny InstaPay Payment',
+                                                                        message: 'Deny this payment? The user will be notified.',
+                                                                        type: 'confirm',
+                                                                        confirmText: 'Deny',
+                                                                        onConfirm: async () => {
+                                                                            try {
+                                                                                await api.admin.denyInstaPay(p._id);
+                                                                                showModal({ title: 'Denied', message: 'InstaPay payment denied.', type: 'success' });
+                                                                                fetchInstaPayPending();
+                                                                            } catch (e: any) {
+                                                                                showModal({ title: 'Error', message: e.message || 'Failed to deny', type: 'error' });
+                                                                            }
+                                                                        }
+                                                                    });
+                                                                }}
+                                                                className="text-red-600 hover:bg-red-50 px-3 py-1.5 rounded font-bold text-sm flex items-center gap-1"
+                                                            >
+                                                                <X className="w-4 h-4" /> Deny
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
+
                 {activeTab === 'emails' && (
                     <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
                         <div className="overflow-x-auto">
@@ -1169,6 +1377,108 @@ export default function AdminDashboard() {
                                     )}
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'announcements' && (
+                    <div className="space-y-6">
+                        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+                            <h3 className="text-lg font-bold mb-4">Create Announcement</h3>
+                            <p className="text-sm text-gray-500 mb-4">Send a message to all freelancers. You can include text, a photo, or both.</p>
+                            <form
+                                onSubmit={async (e) => {
+                                    e.preventDefault();
+                                    if ((!announcementContent?.trim() && !announcementImageUrl?.trim())) {
+                                        showModal({ title: 'Required', message: 'Add at least some text or a photo.', type: 'error' });
+                                        return;
+                                    }
+                                    setCreatingAnnouncement(true);
+                                    try {
+                                        await api.announcements.admin.create({
+                                            content: announcementContent.trim() || undefined,
+                                            imageUrl: announcementImageUrl.trim() || undefined
+                                        });
+                                        setAnnouncementContent('');
+                                        setAnnouncementImageUrl('');
+                                        showModal({ title: 'Sent', message: 'Announcement published to freelancers.', type: 'success' });
+                                        fetchAnnouncements();
+                                    } catch (err: any) {
+                                        showModal({ title: 'Error', message: err.message || 'Failed to create', type: 'error' });
+                                    } finally {
+                                        setCreatingAnnouncement(false);
+                                    }
+                                }}
+                                className="space-y-4"
+                            >
+                                <textarea
+                                    value={announcementContent}
+                                    onChange={(e) => setAnnouncementContent(e.target.value)}
+                                    placeholder="Write your announcement (optional if you add a photo)"
+                                    rows={4}
+                                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-[#09BF44] outline-none resize-none"
+                                />
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Photo (optional)</label>
+                                    <div className="flex flex-wrap gap-3 items-center">
+                                        {announcementImageUrl ? (
+                                            <div className="relative">
+                                                <img src={announcementImageUrl} alt="" className="h-24 w-24 object-cover rounded-xl border" />
+                                                <button type="button" onClick={() => setAnnouncementImageUrl('')} className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs">×</button>
+                                            </div>
+                                        ) : (
+                                            <label className="cursor-pointer flex items-center gap-2 px-4 py-2 rounded-xl border-2 border-dashed border-gray-200 hover:border-[#09BF44] transition-colors">
+                                                <ImagePlus className="w-5 h-5 text-gray-400" />
+                                                <span className="text-sm font-bold text-gray-600">Upload image</span>
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    className="hidden"
+                                                    onChange={async (e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) {
+                                                            try {
+                                                                const url = await api.upload.file(file);
+                                                                setAnnouncementImageUrl(url);
+                                                            } catch (er: any) {
+                                                                showModal({ title: 'Upload Failed', message: er.message || 'Could not upload', type: 'error' });
+                                                            }
+                                                        }
+                                                    }}
+                                                />
+                                            </label>
+                                        )}
+                                    </div>
+                                </div>
+                                <button type="submit" disabled={creatingAnnouncement} className="px-6 py-3 bg-[#09BF44] text-white font-bold rounded-xl hover:opacity-90 disabled:opacity-50 flex items-center gap-2">
+                                    {creatingAnnouncement ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+                                    Publish Announcement
+                                </button>
+                            </form>
+                        </div>
+                        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                            <h3 className="p-6 font-bold text-lg border-b border-gray-100">Recent Announcements</h3>
+                            {announcementsLoading ? (
+                                <div className="p-12 text-center"><Loader2 className="w-10 h-10 animate-spin text-[#09BF44] mx-auto" /></div>
+                            ) : announcements.length === 0 ? (
+                                <div className="p-12 text-center text-gray-500">No announcements yet.</div>
+                            ) : (
+                                <div className="divide-y divide-gray-100">
+                                    {announcements.map((a: any) => (
+                                        <div key={a._id} className="p-6">
+                                            <div className="flex items-start gap-4">
+                                                {a.imageUrl && <img src={a.imageUrl} alt="" className="w-24 h-24 object-cover rounded-xl shrink-0" />}
+                                                <div className="min-w-0 flex-1">
+                                                    {a.content && <p className="text-gray-900 whitespace-pre-wrap">{a.content}</p>}
+                                                    <p className="text-xs text-gray-500 mt-2">
+                                                        {a.createdBy?.firstName} {a.createdBy?.lastName} • {a.createdAt ? new Date(a.createdAt).toLocaleString() : ''}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
@@ -1345,6 +1655,14 @@ export default function AdminDashboard() {
                                                 <p className="text-xs font-bold text-gray-400 mb-1">Student</p>
                                                 <p className="font-medium text-gray-900">{selectedFreelancer.freelancerProfile?.isStudent ? 'Yes' : 'No'}</p>
                                             </div>
+                                            {selectedFreelancer.freelancerProfile?.cvUrl && (
+                                                <div className="bg-gray-50 p-4 rounded-xl md:col-span-2">
+                                                    <p className="text-xs font-bold text-gray-400 mb-1">CV (admin only, not public)</p>
+                                                    <a href={selectedFreelancer.freelancerProfile.cvUrl} target="_blank" rel="noopener noreferrer" className="text-[#09BF44] hover:underline font-medium flex items-center gap-1">
+                                                        <FileText className="w-4 h-4" /> View CV
+                                                    </a>
+                                                </div>
+                                            )}
                                             {(selectedFreelancer.freelancerProfile?.extraLanguages?.length > 0) && (
                                                 <div className="bg-gray-50 p-4 rounded-xl md:col-span-2">
                                                     <p className="text-xs font-bold text-gray-400 mb-1">Other Languages</p>
@@ -1394,16 +1712,30 @@ export default function AdminDashboard() {
                                     )}
 
                                     {/* Skills */}
-                                    {selectedFreelancer.freelancerProfile?.skills?.length > 0 && (
-                                        <div>
-                                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Skills</h4>
-                                            <div className="flex flex-wrap gap-2">
-                                                {selectedFreelancer.freelancerProfile.skills.map((s: string) => (
-                                                    <span key={s} className="px-3 py-1 bg-[#09BF44] text-white text-sm font-medium rounded-full">{s}</span>
-                                                ))}
+                                    {(() => {
+                                        const fp = selectedFreelancer.freelancerProfile;
+                                        const tech = fp?.technicalSkills || (fp?.skills?.length > 0 && !fp?.technicalSkills?.length ? fp.skills : []);
+                                        const soft = fp?.softSkills || [];
+                                        const hasSkills = (Array.isArray(tech) && tech.length > 0) || (Array.isArray(soft) && soft.length > 0);
+                                        if (!hasSkills) return null;
+                                        return (
+                                            <div>
+                                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Skills</h4>
+                                                {tech?.length > 0 && (
+                                                    <div className="mb-2">
+                                                        <span className="text-xs font-bold text-gray-500 uppercase">Technical: </span>
+                                                        <div className="flex flex-wrap gap-2 mt-1">{tech.map((s: string) => <span key={s} className="px-3 py-1 bg-[#09BF44] text-white text-sm font-medium rounded-full">{s}</span>)}</div>
+                                                    </div>
+                                                )}
+                                                {soft?.length > 0 && (
+                                                    <div>
+                                                        <span className="text-xs font-bold text-gray-500 uppercase">Soft: </span>
+                                                        <div className="flex flex-wrap gap-2 mt-1">{soft.map((s: string) => <span key={s} className="px-3 py-1 bg-blue-600 text-white text-sm font-medium rounded-full">{s}</span>)}</div>
+                                                    </div>
+                                                )}
                                             </div>
-                                        </div>
-                                    )}
+                                        );
+                                    })()}
 
                                     {/* Starter Offer */}
                                     {selectedFreelancer.freelancerProfile?.starterOffer?.title && (

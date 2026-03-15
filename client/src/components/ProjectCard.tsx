@@ -76,7 +76,7 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
     const findConversationWithSeller = (conversations: any[], targetSellerId: string) =>
         conversations.find((c: any) => String(c.partnerId?._id ?? c.partnerId) === String(targetSellerId));
 
-    const handleOpenChat = async () => {
+    const handleOpenChat = async (projectId?: string) => {
         setShowContactDropdown(false);
 
         if (!checkClientAuth()) {
@@ -102,7 +102,9 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                 conversation = findConversationWithSeller(updatedConversations, sellerId);
             }
 
-            router.push(`/chat?conversation=${conversation?.id ?? sellerId}`);
+            const qs = new URLSearchParams({ conversation: conversation?.id ?? sellerId });
+            if (projectId) qs.set('projectId', projectId);
+            router.push(`/chat?${qs.toString()}`);
         } catch (err: any) {
             console.error(err);
             showModal({
@@ -134,10 +136,10 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
             });
             showModal({
                 title: 'Consultation Request Sent',
-                message: 'Chat opened. Click the video call button to pay 100 EGP and schedule your consultation.',
+                message: `Chat opened. Click the video call button to pay and schedule your consultation.`,
                 type: 'success'
             });
-            handleOpenChat();
+            handleOpenChat(project._id);
         } catch (err: any) {
             console.error(err);
             showModal({
@@ -254,7 +256,8 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                                 conversation = findConversationWithSeller(updatedConversations, sellerId);
                             }
 
-                            router.push(`/chat?conversation=${conversation?.id ?? sellerId}`);
+                            const url = `/chat?conversation=${conversation?.id ?? sellerId}`;
+            router.push(variant === 'default' && project?._id ? `${url}&projectId=${project._id}` : url);
                         } catch (err: any) {
                             console.error(err);
                             showModal({
@@ -530,7 +533,7 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                                             }}
                                         >
                                             <button
-                                                onClick={handleOpenChat}
+                                                onClick={() => handleOpenChat(project._id)}
                                                 className="w-full px-4 py-3 text-left hover:bg-[#09BF44]/5 flex items-center gap-3 transition-colors"
                                             >
                                                 <MessageSquare className="w-5 h-5 text-[#09BF44]" />
