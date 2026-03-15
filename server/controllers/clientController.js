@@ -204,6 +204,8 @@ const acceptProposal = async (req, res) => {
     }
 };
 
+const InstaPayPayment = require('../models/InstaPayPayment');
+
 const getMyOrders = async (req, res) => {
     try {
         const userId = req.user.id;
@@ -211,7 +213,20 @@ const getMyOrders = async (req, res) => {
             .populate('projectId', 'title packages')
             .populate('sellerId', 'firstName lastName')
             .sort({ createdAt: -1 });
-        res.json(orders);
+        const ordersArr = orders.map(o => o.toObject ? o.toObject() : o);
+        const pendingPaymentIds = ordersArr.filter(o => o.status === 'pending_payment').map(o => o._id?.toString()).filter(Boolean);
+        if (pendingPaymentIds.length > 0) {
+            const pendingInstaPay = await InstaPayPayment.find({
+                status: 'pending',
+                'meta.type': 'project_order',
+                'meta.orderId': { $in: pendingPaymentIds }
+            }).select('meta.orderId').lean();
+            const orderIdsWithPending = new Set(pendingInstaPay.map(p => String(p.meta?.orderId)).filter(Boolean));
+            ordersArr.forEach(o => {
+                o.hasPendingInstaPay = orderIdsWithPending.has(String(o._id));
+            });
+        }
+        res.json(ordersArr);
     } catch (err) {
         console.error(err);
         res.status(500).send('Server Error');

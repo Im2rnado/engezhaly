@@ -53,7 +53,13 @@ export default function FreelancerWalletPage() {
             setBalance(balanceRes.balance ?? 0);
             setTransactions(Array.isArray(txData) ? txData : []);
             setWithdrawals(Array.isArray(withdrawalsData) ? withdrawalsData : []);
-            setWithdrawalMethods(Array.isArray(methodsData) ? methodsData : []);
+            const methods = Array.isArray(methodsData) ? methodsData : [];
+            setWithdrawalMethods(methods);
+            // Use saved default method when available
+            const defaultMethod = methods.find((m: any) => m.isDefault) || methods[0];
+            if (defaultMethod?._id) {
+                setSelectedMethodId(defaultMethod._id);
+            }
         } catch (err) {
             console.error(err);
         } finally {
@@ -133,14 +139,18 @@ export default function FreelancerWalletPage() {
     }, [router, fetchData]);
 
     const handleWithdraw = async () => {
-        const amount = Number(withdrawAmount);
-        if (isNaN(amount) || amount < 50) {
-            showModal({ title: 'Invalid Amount', message: 'Minimum withdrawal is 50 EGP.', type: 'error' });
+        const grossAmount = Number(withdrawAmount);
+        const amountToReceive = grossAmount - WITHDRAWAL_FEE;
+        if (isNaN(grossAmount) || grossAmount < 70) {
+            showModal({ title: 'Invalid Amount', message: 'Enter at least 70 EGP (you will receive 50 EGP after fees).', type: 'error' });
             return;
         }
-        const totalNeeded = amount + WITHDRAWAL_FEE;
-        if (balance < totalNeeded) {
-            showModal({ title: 'Insufficient Balance', message: `You need ${totalNeeded} EGP (${amount} + ${WITHDRAWAL_FEE} EGP fee). Your balance: ${balance} EGP.`, type: 'error' });
+        if (amountToReceive < 50) {
+            showModal({ title: 'Invalid Amount', message: 'After the 20 EGP fee, you must receive at least 50 EGP.', type: 'error' });
+            return;
+        }
+        if (balance < grossAmount) {
+            showModal({ title: 'Insufficient Balance', message: `You need ${grossAmount} EGP. Your balance: ${balance} EGP.`, type: 'error' });
             return;
         }
 
@@ -172,14 +182,14 @@ export default function FreelancerWalletPage() {
         setSubmitting(true);
         try {
             await api.wallet.createWithdrawal({
-                amount,
+                amount: amountToReceive,
                 method,
                 phoneNumber,
                 accountNumber,
                 bankName,
                 notes: withdrawNotes.trim() || undefined
             });
-            showModal({ title: 'Withdrawal Requested', message: `Your request for ${amount} EGP has been submitted. Admin will process it shortly. (${WITHDRAWAL_FEE} EGP fee applied.)`, type: 'success' });
+            showModal({ title: 'Withdrawal Requested', message: `You will receive ${amountToReceive} EGP. Admin will process it shortly. (${WITHDRAWAL_FEE} EGP platform fee.)`, type: 'success' });
             setShowWithdrawModal(false);
             setWithdrawAmount('');
             setSelectedMethodId(null);
@@ -400,22 +410,22 @@ export default function FreelancerWalletPage() {
                 <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4" onClick={() => !submitting && setShowWithdrawModal(false)}>
                     <div className="bg-white rounded-2xl w-full max-w-md shadow-xl p-6" onClick={e => e.stopPropagation()}>
                         <h3 className="text-xl font-bold text-gray-900 mb-4">Request Withdrawal</h3>
-                        <p className="text-sm text-gray-500 mb-4">20 EGP fee will be deducted. Min: 50 EGP.</p>
+                        <p className="text-sm text-gray-500 mb-4">Enter the amount to withdraw. 20 EGP platform fee applies. Min: 70 EGP.</p>
 
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-1">Amount (EGP)</label>
                                 <input
                                     type="number"
-                                    min={50}
+                                    min={70}
                                     value={withdrawAmount}
                                     onChange={e => setWithdrawAmount(e.target.value)}
-                                    placeholder="50"
+                                    placeholder="70"
                                     className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-[#09BF44] outline-none"
                                 />
-                                {withdrawAmount && (
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        You will receive: {Number(withdrawAmount) || 0} EGP. Total deducted: {(Number(withdrawAmount) || 0) + WITHDRAWAL_FEE} EGP
+                                {withdrawAmount && Number(withdrawAmount) >= 70 && (
+                                    <p className="text-xs text-gray-600 mt-1 font-medium">
+                                        You will receive: {Math.max(0, (Number(withdrawAmount) || 0) - WITHDRAWAL_FEE)} EGP. Platform Fees: {WITHDRAWAL_FEE} EGP
                                     </p>
                                 )}
                             </div>

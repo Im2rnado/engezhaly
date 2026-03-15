@@ -28,22 +28,29 @@ export default function FreelancerAnnouncementsPage() {
             return;
         }
         api.freelancer.getProfile().then(setProfile).catch(() => {});
-    }, [router]);
 
-    useEffect(() => {
         const fetchData = async () => {
             try {
-                const data = await api.announcements.list();
+                const data = await Promise.race([
+                    api.announcements.list(),
+                    new Promise<never>((_, reject) =>
+                        setTimeout(() => reject(new Error('timeout')), 15000)
+                    )
+                ]);
                 setAnnouncements(data || []);
-                await api.announcements.markAllAsRead();
+                try {
+                    await api.announcements.markAllAsRead();
+                } catch {
+                    // Ignore mark-read errors
+                }
             } catch {
                 setAnnouncements([]);
             } finally {
                 setLoading(false);
             }
         };
-        if (user?._id) fetchData();
-    }, [user?._id]);
+        fetchData();
+    }, [router]);
 
     if (!user) {
         return (

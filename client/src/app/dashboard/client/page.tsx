@@ -499,25 +499,31 @@ function ClientDashboardContent() {
                                             Ordered {formatDateDDMMYYYY(order.createdAt)}
                                         </span>
                                         {order.status === 'pending_payment' && (
-                                            <button
-                                                onClick={() => {
-                                                    const clientFee = 20;
-                                                    const totalPays = (order.amount || 0) + clientFee;
-                                                    const amountCents = Math.round(totalPays * 100);
-                                                    const callbackUrl = typeof window !== 'undefined'
-                                                        ? `${window.location.origin}/dashboard/client?tab=orders&payment_success=1`
-                                                        : undefined;
-                                                    setPaymentChoiceConfig({
-                                                        type: 'project_order',
-                                                        amountCents,
-                                                        callbackSuccessUrl: callbackUrl,
-                                                        orderId: order._id
-                                                    });
-                                                }}
-                                                className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-4 py-2 rounded-xl text-sm font-bold"
-                                            >
-                                                Pay Now
-                                            </button>
+                                            order.hasPendingInstaPay ? (
+                                                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-amber-100 text-amber-800">
+                                                    <Clock className="w-4 h-4" /> Pending verification
+                                                </span>
+                                            ) : (
+                                                <button
+                                                    onClick={() => {
+                                                        const clientFee = 20;
+                                                        const totalPays = (order.amount || 0) + clientFee;
+                                                        const amountCents = Math.round(totalPays * 100);
+                                                        const callbackUrl = typeof window !== 'undefined'
+                                                            ? `${window.location.origin}/dashboard/client?tab=orders&payment_success=1`
+                                                            : undefined;
+                                                        setPaymentChoiceConfig({
+                                                            type: 'project_order',
+                                                            amountCents,
+                                                            callbackSuccessUrl: callbackUrl,
+                                                            orderId: order._id
+                                                        });
+                                                    }}
+                                                    className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-4 py-2 rounded-xl text-sm font-bold"
+                                                >
+                                                    Pay Now
+                                                </button>
+                                            )
                                         )}
                                         {order.status === 'active' && (
                                             <>
