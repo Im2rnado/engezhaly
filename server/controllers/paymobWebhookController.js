@@ -28,23 +28,23 @@ const fulfillCharge = async (pendingCharge) => {
             if (!proposal) return;
             const freelancerId = proposal.freelancerId;
             const totalClientPaid = pendingCharge.amountCents / 100;
-            const freelancerReceives = Number(proposal.price) || (totalClientPaid - CLIENT_PLATFORM_FEE);
 
-            const freelancer = await User.findById(freelancerId);
-            if (freelancer) {
-                freelancer.walletBalance = (freelancer.walletBalance || 0) + freelancerReceives;
-                await freelancer.save();
-            }
+            // ESCROW: Do NOT credit freelancer - money stays in escrow until client approves work
             job.proposals.forEach((p) => {
                 p.status = p._id.toString() === meta.proposalId ? 'accepted' : 'rejected';
             });
             job.status = 'in_progress';
             await job.save();
 
-            await Transaction.create([
-                { userId: pendingCharge.userId, type: 'payment', amount: -totalClientPaid, description: `Job: ${job.title}`, orderId: null, relatedUserId: freelancerId },
-                { userId: freelancerId, type: 'payment', amount: freelancerReceives, description: `Job: ${job.title}`, orderId: null, relatedUserId: pendingCharge.userId }
-            ]);
+            await Transaction.create({
+                userId: pendingCharge.userId,
+                type: 'payment',
+                amount: -totalClientPaid,
+                description: `Job: ${job.title} - held in escrow`,
+                orderId: null,
+                relatedUserId: freelancerId,
+                metadata: { jobId: meta.jobId, proposalId: meta.proposalId }
+            });
             break;
         }
         case 'project_order': {
@@ -54,22 +54,20 @@ const fulfillCharge = async (pendingCharge) => {
                 .populate('sellerId');
             if (!order || (order.status !== 'pending_approval' && order.status !== 'pending_payment')) return;
 
-            const seller = await User.findById(order.sellerId);
-            const freelancerReceives = order.amount; // Freelancer gets full amount
-            if (seller) {
-                seller.walletBalance = (seller.walletBalance || 0) + freelancerReceives;
-                await seller.save();
-            }
+            const totalClientPaid = pendingCharge.amountCents / 100;
+            const freelancerId = order.sellerId?._id || order.sellerId;
+
+            // ESCROW: Do NOT credit freelancer - money stays in escrow until client approves delivery
             order.status = 'active';
             await order.save();
 
             await Transaction.create({
-                userId: order.sellerId,
+                userId: order.buyerId?._id || order.buyerId,
                 type: 'payment',
-                amount: freelancerReceives,
-                description: `Order: ${order.projectId?.title || 'Project'}`,
+                amount: -totalClientPaid,
+                description: `Order: ${order.projectId?.title || 'Project'} - held in escrow`,
                 orderId: order._id,
-                relatedUserId: order.buyerId
+                relatedUserId: freelancerId
             });
             break;
         }
@@ -83,13 +81,6 @@ const fulfillCharge = async (pendingCharge) => {
 
             const totalClientPaid = pendingCharge.amountCents / 100;
             const clientFee = 20;
-            const freelancerReceives = offer.price; // Freelancer gets full amount (withdrawal fee on withdrawal)
-
-            const seller = await User.findById(offer.senderId);
-            if (seller) {
-                seller.walletBalance = (seller.walletBalance || 0) + freelancerReceives;
-                await seller.save();
-            }
 
             const orderDeliveryDate = offer.deliveryDate
                 ? new Date(offer.deliveryDate)
@@ -129,10 +120,16 @@ const fulfillCharge = async (pendingCharge) => {
             offer.acceptedAt = new Date();
             await offer.save();
 
-            await Transaction.create([
-                { userId: pendingCharge.userId, type: 'payment', amount: -totalClientPaid, description: `Custom Offer (incl. ${clientFee} EGP fee)`, orderId: order._id, relatedUserId: offer.senderId },
-                { userId: offer.senderId, type: 'payment', amount: freelancerReceives, description: 'Custom Offer', orderId: order._id, relatedUserId: pendingCharge.userId }
-            ]);
+            // ESCROW: Do NOT credit freelancer - money stays in escrow until client approves delivery
+            const sellerId = offer.senderId?._id || offer.senderId;
+            await Transaction.create({
+                userId: pendingCharge.userId,
+                type: 'payment',
+                amount: -totalClientPaid,
+                description: `Custom Offer (incl. ${clientFee} EGP fee) - held in escrow`,
+                orderId: order._id,
+                relatedUserId: sellerId
+            });
             break;
         }
         case 'consultation': {

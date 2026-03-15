@@ -54,6 +54,11 @@ function ClientDashboardContent() {
         try {
             const data = await api.client.getMyOrders();
             setOrders(data);
+            // Auto-expand first order with submitted work so client can see it
+            const withWork = data?.find((o: any) => o.status === 'active' && o.workSubmission && (o.workSubmission.message || (o.workSubmission.links?.length > 0) || (o.workSubmission.files?.length > 0)));
+            if (withWork?._id) {
+                setExpandedDelivery((prev) => prev || withWork._id);
+            }
         } catch (err) {
             console.error(err);
         }

@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Job = require('../models/Job');
 const Order = require('../models/Order');
+const Transaction = require('../models/Transaction');
 
 const getProfile = async (req, res) => {
     try {
@@ -349,7 +350,8 @@ const approveDelivery = async (req, res) => {
 
         const order = await Order.findById(orderId)
             .populate('projectId', 'title packages')
-            .populate('sellerId', 'firstName lastName');
+            .populate('sellerId', 'firstName lastName')
+            .populate('buyerId', '_id');
 
         if (!order) return res.status(404).json({ msg: 'Order not found' });
         if (order.buyerId.toString() !== userId) {
@@ -362,11 +364,127 @@ const approveDelivery = async (req, res) => {
             return res.status(400).json({ msg: 'Freelancer has not submitted work yet' });
         }
 
+        // Release escrow: credit freelancer
+        const freelancerId = String(order.sellerId?._id || order.sellerId);
+        const amount = order.amount;
+        const freelancer = await User.findById(freelancerId);
+        if (freelancer) {
+            freelancer.walletBalance = (freelancer.walletBalance || 0) + amount;
+            await freelancer.save();
+        }
+        await Transaction.create({
+            userId: freelancerId,
+            type: 'payment',
+            amount,
+            description: `Order: ${order.projectId?.title || 'Project'}`,
+            orderId: order._id,
+            relatedUserId: order.buyerId
+        });
+
         order.status = 'completed';
         order.completedAt = new Date();
         await order.save();
 
         res.json({ msg: 'Delivery approved. Order completed.', order });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+};
+
+/** Get order or job with submitted work awaiting client approval for a given partner (for chat) */
+const getPendingWorkToApprove = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const partnerId = req.params.partnerId;
+
+        if (!partnerId) return res.status(400).json({ msg: 'Partner ID required' });
+
+        const [order] = await Order.find({
+            buyerId: userId,
+            sellerId: partnerId,
+            status: 'active',
+            $or: [
+                { 'workSubmission.message': { $exists: true, $ne: '' } },
+                { 'workSubmission.links.0': { $exists: true } },
+                { 'workSubmission.files.0': { $exists: true } }
+            ]
+        })
+            .populate('projectId', 'title')
+            .populate('sellerId', 'firstName lastName')
+            .limit(1)
+            .lean();
+
+        const jobs = await Job.find({
+            clientId: userId,
+            status: 'in_progress',
+            'proposals.status': 'accepted',
+            'proposals.freelancerId': partnerId
+        })
+            .populate('proposals.freelancerId', 'firstName lastName')
+            .lean();
+
+        let job = null;
+        for (const j of jobs) {
+            const accepted = j.proposals?.find((p) => p.status === 'accepted' && String(p.freelancerId?._id || p.freelancerId) === partnerId);
+            if (accepted?.workSubmission && (accepted.workSubmission.message || (accepted.workSubmission.links?.length > 0) || (accepted.workSubmission.files?.length > 0))) {
+                job = { ...j, acceptedProposal: accepted };
+                break;
+            }
+        }
+
+        res.json({ order: order || null, job: job || null });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+};
+
+/** Client approves submitted work for a job - releases escrow to freelancer */
+const approveJobWork = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const jobId = req.params.id;
+
+        const job = await Job.findById(jobId).populate('clientId proposals.freelancerId');
+        if (!job) return res.status(404).json({ msg: 'Job not found' });
+        if (job.clientId.toString() !== userId) {
+            return res.status(403).json({ msg: 'Only the job owner can approve work' });
+        }
+        if (job.status !== 'in_progress') {
+            return res.status(400).json({ msg: 'Can only approve work for in-progress jobs' });
+        }
+
+        const acceptedProposal = job.proposals.find((p) => p.status === 'accepted');
+        if (!acceptedProposal) {
+            return res.status(400).json({ msg: 'No accepted proposal found' });
+        }
+        const ws = acceptedProposal.workSubmission;
+        if (!ws || (!ws.message && (!ws.links || ws.links.length === 0) && (!ws.files || ws.files.length === 0))) {
+            return res.status(400).json({ msg: 'Freelancer has not submitted work yet' });
+        }
+
+        const freelancerId = String(acceptedProposal.freelancerId?._id || acceptedProposal.freelancerId);
+        const amount = Number(acceptedProposal.price) || 0;
+
+        const freelancer = await User.findById(freelancerId);
+        if (freelancer && amount > 0) {
+            freelancer.walletBalance = (freelancer.walletBalance || 0) + amount;
+            await freelancer.save();
+        }
+        await Transaction.create({
+            userId: freelancerId,
+            type: 'payment',
+            amount,
+            description: `Job: ${job.title}`,
+            relatedUserId: userId,
+            metadata: { jobId: job._id }
+        });
+
+        job.status = 'completed';
+        await job.save();
+
+        res.json({ msg: 'Work approved. Job completed.', job });
     } catch (err) {
         console.error(err);
         res.status(500).send('Server Error');
@@ -423,5 +541,7 @@ module.exports = {
     getAllActiveOrders,
     raiseDispute,
     approveDelivery,
+    approveJobWork,
+    getPendingWorkToApprove,
     submitReview
 };

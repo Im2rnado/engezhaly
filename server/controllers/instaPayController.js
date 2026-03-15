@@ -164,17 +164,16 @@ const approveInstaPay = async (req, res) => {
                 offer.acceptedAt = new Date();
                 await offer.save();
 
+                // ESCROW: Do NOT credit freelancer - money stays in escrow until client approves delivery
                 const freelancerId = String(offer.senderId._id || offer.senderId);
-                const freelancer = await User.findById(freelancerId);
-                if (freelancer) {
-                    freelancer.walletBalance = (freelancer.walletBalance || 0) + freelancerReceivesOffer;
-                    await freelancer.save();
-                }
-
-                await Transaction.create([
-                    { userId: payment.userId, type: 'payment', amount: -totalClientPaidOffer, description: `Custom Offer (incl. ${CLIENT_FEE} EGP fee)`, orderId: newOrder._id, relatedUserId: freelancerId },
-                    { userId: freelancerId, type: 'payment', amount: freelancerReceivesOffer, description: 'Custom Offer', orderId: newOrder._id, relatedUserId: payment.userId }
-                ]);
+                await Transaction.create({
+                    userId: payment.userId,
+                    type: 'payment',
+                    amount: -totalClientPaidOffer,
+                    description: `Custom Offer (incl. ${CLIENT_FEE} EGP fee) - held in escrow`,
+                    orderId: newOrder._id,
+                    relatedUserId: freelancerId
+                });
             }
         } else if (type === 'consultation' && meta.conversationId) {
             const paymentRecord = new ConsultationPayment({
@@ -216,22 +215,20 @@ const approveInstaPay = async (req, res) => {
             const order = await Order.findById(meta.orderId);
             if (order && order.status === 'pending_payment') {
                 const totalPays = order.amount + clientFee;
-                const freelancerReceivesOrder = order.amount;
                 const freelancerId = String(order.sellerId);
 
-                const freelancer = await User.findById(freelancerId);
-                if (freelancer) {
-                    freelancer.walletBalance = (freelancer.walletBalance || 0) + freelancerReceivesOrder;
-                    await freelancer.save();
-                }
-
+                // ESCROW: Do NOT credit freelancer - money stays in escrow until client approves delivery
                 order.status = 'active';
                 await order.save();
 
-                await Transaction.create([
-                    { userId: payment.userId, type: 'payment', amount: -totalPays, description: `Project order`, orderId: order._id, relatedUserId: freelancerId },
-                    { userId: freelancerId, type: 'payment', amount: freelancerReceivesOrder, description: 'Project order', orderId: order._id, relatedUserId: payment.userId }
-                ]);
+                await Transaction.create({
+                    userId: payment.userId,
+                    type: 'payment',
+                    amount: -totalPays,
+                    description: `Project order - held in escrow`,
+                    orderId: order._id,
+                    relatedUserId: freelancerId
+                });
             }
         } else if (type === 'job_proposal' && meta.jobId && meta.proposalId) {
             const job = await Job.findById(meta.jobId);
@@ -241,22 +238,21 @@ const approveInstaPay = async (req, res) => {
                 const totalPays = proposalPrice + clientFee;
                 const freelancerId = String(proposal.freelancerId);
 
-                const freelancer = await User.findById(freelancerId);
-                if (freelancer) {
-                    freelancer.walletBalance = (freelancer.walletBalance || 0) + proposalPrice;
-                    await freelancer.save();
-                }
-
+                // ESCROW: Do NOT credit freelancer - money stays in escrow until client approves work
                 job.proposals.forEach((p) => {
                     p.status = p._id.toString() === meta.proposalId ? 'accepted' : 'rejected';
                 });
                 job.status = 'in_progress';
                 await job.save();
 
-                await Transaction.create([
-                    { userId: payment.userId, type: 'payment', amount: -totalPays, description: `Job: ${job.title}`, relatedUserId: freelancerId },
-                    { userId: freelancerId, type: 'payment', amount: proposalPrice, description: `Job: ${job.title}`, relatedUserId: payment.userId }
-                ]);
+                await Transaction.create({
+                    userId: payment.userId,
+                    type: 'payment',
+                    amount: -totalPays,
+                    description: `Job: ${job.title} - held in escrow`,
+                    relatedUserId: freelancerId,
+                    metadata: { jobId: meta.jobId, proposalId: meta.proposalId }
+                });
             }
         }
 

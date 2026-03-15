@@ -396,10 +396,30 @@ export default function JobDetailPage() {
                                             </button>
                                         )}
                                         {proposal.status === 'accepted' && (
-                                            <span className="flex-1 bg-green-100 text-green-700 font-bold py-2.5 rounded-xl text-center flex items-center justify-center gap-2">
-                                                <CheckCircle className="w-4 h-4" />
-                                                Accepted
-                                            </span>
+                                            <>
+                                                {job.status === 'in_progress' && proposal.workSubmission && (proposal.workSubmission.message || (proposal.workSubmission.links?.length > 0) || (proposal.workSubmission.files?.length > 0)) ? (
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (!confirm('Approve the submitted work and mark this job as completed?')) return;
+                                                            try {
+                                                                await api.client.approveJobWork(jobId);
+                                                                showModal({ title: 'Job Completed', message: 'Work approved! Payment released to freelancer.', type: 'success' });
+                                                                refreshJob();
+                                                            } catch (e: any) {
+                                                                showModal({ title: 'Error', message: e.message || 'Failed to approve work', type: 'error' });
+                                                            }
+                                                        }}
+                                                        className="flex-1 bg-[#09BF44] text-white font-bold py-2.5 rounded-xl hover:bg-[#07a63a] transition-colors flex items-center justify-center gap-2"
+                                                    >
+                                                        <CheckCircle className="w-4 h-4" /> Approve & Complete
+                                                    </button>
+                                                ) : (
+                                                    <span className="flex-1 bg-green-100 text-green-700 font-bold py-2.5 rounded-xl text-center flex items-center justify-center gap-2">
+                                                        <CheckCircle className="w-4 h-4" />
+                                                        Accepted
+                                                    </span>
+                                                )}
+                                            </>
                                         )}
                                         {proposal.status === 'rejected' && (
                                             <span className="flex-1 bg-red-100 text-red-700 font-bold py-2.5 rounded-xl text-center flex items-center justify-center gap-2">

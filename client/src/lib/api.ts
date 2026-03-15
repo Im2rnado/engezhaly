@@ -314,6 +314,23 @@ export const api = {
             }
             return res.json();
         },
+        approveJobWork: async (jobId: string) => {
+            const res = await fetch(`${API_URL}/client/jobs/${jobId}/approve-work`, {
+                method: 'PATCH',
+                headers: getHeaders(),
+            });
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.msg || 'Failed to approve work');
+            return result;
+        },
+        getPendingWorkToApprove: async (partnerId: string) => {
+            const res = await fetch(`${API_URL}/client/pending-work/${partnerId}`, {
+                method: 'GET',
+                headers: getHeaders(),
+            });
+            if (!res.ok) throw new Error('Failed to fetch');
+            return res.json();
+        },
         getMyOrders: async () => {
             const res = await fetch(`${API_URL}/client/orders`, {
                 method: 'GET',

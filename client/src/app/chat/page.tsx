@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
-import { Send, Video, Paperclip, MoreVertical, FileText, CheckCircle, XCircle, MessageSquare, Shield, PanelLeft, ArrowLeft, Loader2, Mic, Square, Trash2, ScrollText } from 'lucide-react';
+import { Send, Video, Paperclip, MoreVertical, FileText, CheckCircle, XCircle, MessageSquare, Shield, PanelLeft, ArrowLeft, Loader2, Mic, Square, Trash2, ScrollText, Link as LinkIcon } from 'lucide-react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
 import { formatDateDDMMYYYY } from '@/lib/utils';
@@ -44,6 +44,7 @@ function ChatPageContent() {
     const [checkoutTitle, setCheckoutTitle] = useState('Complete Payment');
     const [paymentChoiceConfig, setPaymentChoiceConfig] = useState<{ type: string; amountCents: number; callbackSuccessUrl?: string; orderId?: string; offerId?: string; jobId?: string; proposalId?: string; conversationId?: string } | null>(null);
     const [pendingOrderForChat, setPendingOrderForChat] = useState<any>(null);
+    const [pendingWorkToApprove, setPendingWorkToApprove] = useState<{ order?: any; job?: any } | null>(null);
     const [isRecording, setIsRecording] = useState(false);
     const [recordingSeconds, setRecordingSeconds] = useState(0);
     const [pendingVoiceRecording, setPendingVoiceRecording] = useState<{ blob: Blob; file: File; durationSeconds: number; objectUrl: string } | null>(null);
@@ -254,6 +255,23 @@ function ChatPageContent() {
             );
             setPendingOrderForChat(pending || null);
         }).catch(() => setPendingOrderForChat(null));
+    }, [conversationId, activeChat?.partnerId, activeChat?.id]);
+
+    // Client: fetch order/job with submitted work awaiting approval (for chat)
+    useEffect(() => {
+        const stored = JSON.parse(localStorage.getItem('user') || '{}');
+        if (stored.role !== 'client' || !activeChat?.partnerId) {
+            setPendingWorkToApprove(null);
+            return;
+        }
+        const partnerId = String(activeChat.partnerId?._id ?? activeChat.partnerId);
+        api.client.getPendingWorkToApprove(partnerId).then((data: any) => {
+            if (data?.order || data?.job) {
+                setPendingWorkToApprove({ order: data.order || null, job: data.job || null });
+            } else {
+                setPendingWorkToApprove(null);
+            }
+        }).catch(() => setPendingWorkToApprove(null));
     }, [conversationId, activeChat?.partnerId, activeChat?.id]);
 
     // Listen for presence (online/offline)
@@ -1070,6 +1088,94 @@ function ChatPageContent() {
                                                 Deny
                                             </button>
                                         </div>
+                                    </div>
+                                )}
+
+                                {/* Client: submitted work awaiting approval (order or job) */}
+                                {pendingWorkToApprove && currentUser?.role === 'client' && (pendingWorkToApprove.order || pendingWorkToApprove.job) && (
+                                    <div className="mx-3 md:mx-6 mt-3 space-y-3">
+                                        {pendingWorkToApprove.order && (
+                                            <div className="p-4 rounded-xl bg-green-50 border-2 border-green-200">
+                                                <p className="text-sm font-bold text-green-800 mb-2 flex items-center gap-2">
+                                                    <CheckCircle className="w-4 h-4" /> Work submitted — Order
+                                                </p>
+                                                <p className="text-gray-700 text-sm mb-2">{pendingWorkToApprove.order.projectId?.title || 'Offer'} • {pendingWorkToApprove.order.amount} EGP</p>
+                                                {pendingWorkToApprove.order.workSubmission?.message && (
+                                                    <p className="text-gray-600 text-xs mb-2 line-clamp-2">{pendingWorkToApprove.order.workSubmission.message}</p>
+                                                )}
+                                                <div className="flex flex-wrap gap-2 mb-3">
+                                                    {Array.isArray(pendingWorkToApprove.order.workSubmission?.links) && pendingWorkToApprove.order.workSubmission.links.slice(0, 2).map((link: string, i: number) => (
+                                                        <a key={i} href={link} target="_blank" rel="noreferrer" className="text-xs text-[#09BF44] hover:underline flex items-center gap-1">
+                                                            <LinkIcon className="w-3 h-3" /> Link
+                                                        </a>
+                                                    ))}
+                                                    {Array.isArray(pendingWorkToApprove.order.workSubmission?.files) && pendingWorkToApprove.order.workSubmission.files.length > 0 && (
+                                                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                                                            <Paperclip className="w-3 h-3" /> {pendingWorkToApprove.order.workSubmission.files.length} file(s)
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <button
+                                                    onClick={async () => {
+                                                        if (!confirm('Approve the delivered work and mark this order as completed?')) return;
+                                                        try {
+                                                            await api.client.approveDelivery(pendingWorkToApprove.order._id);
+                                                            showModal({ title: 'Order Completed', message: 'Thank you! You can now leave a review.', type: 'success' });
+                                                            setPendingWorkToApprove((p: any) => p ? { ...p, order: null } : null);
+                                                        } catch (e: any) {
+                                                            showModal({ title: 'Error', message: e.message || 'Failed to approve', type: 'error' });
+                                                        }
+                                                    }}
+                                                    className="px-4 py-2 rounded-xl font-bold bg-[#09BF44] text-white hover:bg-[#07a63a] text-sm"
+                                                >
+                                                    Approve & Complete
+                                                </button>
+                                            </div>
+                                        )}
+                                        {pendingWorkToApprove.job && (
+                                            <div className="p-4 rounded-xl bg-green-50 border-2 border-green-200">
+                                                <p className="text-sm font-bold text-green-800 mb-2 flex items-center gap-2">
+                                                    <CheckCircle className="w-4 h-4" /> Work submitted — Job
+                                                </p>
+                                                <p className="text-gray-700 text-sm mb-2">{pendingWorkToApprove.job.title}</p>
+                                                {(() => {
+                                                    const p = pendingWorkToApprove.job.proposals?.find((pr: any) => pr.status === 'accepted');
+                                                    const ws = p?.workSubmission;
+                                                    return ws && (
+                                                        <>
+                                                            {ws.message && <p className="text-gray-600 text-xs mb-2 line-clamp-2">{ws.message}</p>}
+                                                            <div className="flex flex-wrap gap-2 mb-3">
+                                                                {Array.isArray(ws.links) && ws.links.slice(0, 2).map((link: string, i: number) => (
+                                                                    <a key={i} href={link} target="_blank" rel="noreferrer" className="text-xs text-[#09BF44] hover:underline flex items-center gap-1">
+                                                                        <LinkIcon className="w-3 h-3" /> Link
+                                                                    </a>
+                                                                ))}
+                                                                {Array.isArray(ws.files) && ws.files.length > 0 && (
+                                                                    <span className="text-xs text-gray-500 flex items-center gap-1">
+                                                                        <Paperclip className="w-3 h-3" /> {ws.files.length} file(s)
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </>
+                                                    );
+                                                })()}
+                                                <button
+                                                    onClick={async () => {
+                                                        if (!confirm('Approve the submitted work and mark this job as completed?')) return;
+                                                        try {
+                                                            await api.client.approveJobWork(pendingWorkToApprove.job._id);
+                                                            showModal({ title: 'Job Completed', message: 'Work approved! Payment released to freelancer.', type: 'success' });
+                                                            setPendingWorkToApprove((p: any) => p ? { ...p, job: null } : null);
+                                                        } catch (e: any) {
+                                                            showModal({ title: 'Error', message: e.message || 'Failed to approve', type: 'error' });
+                                                        }
+                                                    }}
+                                                    className="px-4 py-2 rounded-xl font-bold bg-[#09BF44] text-white hover:bg-[#07a63a] text-sm"
+                                                >
+                                                    Approve & Complete
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 

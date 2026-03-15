@@ -14,6 +14,8 @@ const {
     getAllActiveOrders,
     raiseDispute,
     approveDelivery,
+    approveJobWork,
+    getPendingWorkToApprove,
     submitReview
 } = require('../controllers/clientController');
 
@@ -51,6 +53,15 @@ router.delete('/jobs/:id', authVerified, deleteJob);
 // @desc    Accept a proposal for a job
 // @access  Private (Client only, owner)
 router.post('/jobs/:id/accept-proposal', authVerified, acceptProposal);
+
+// @route   PATCH api/client/jobs/:id/approve-work
+// @desc    Approve submitted work for a job (releases escrow)
+// @access  Private (Client only, owner)
+router.patch('/jobs/:id/approve-work', authVerified, approveJobWork);
+
+// @route   GET api/client/pending-work/:partnerId
+// @desc    Get order/job with submitted work awaiting approval (for chat)
+router.get('/pending-work/:partnerId', authVerified, getPendingWorkToApprove);
 
 // @route   GET api/client/orders
 // @desc    Get client's orders
