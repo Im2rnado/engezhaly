@@ -382,7 +382,7 @@ function JobsPageContent() {
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Cover Letter</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Your Proposal</label>
                                 <textarea
                                     required
                                     value={proposal.message}
