@@ -38,6 +38,7 @@ export default function FreelancerWalletPage() {
     const [addMethodAccount, setAddMethodAccount] = useState('');
     const [addMethodBankName, setAddMethodBankName] = useState('');
     const [addingMethod, setAddingMethod] = useState(false);
+    const [hideManualTopUp, setHideManualTopUp] = useState(false);
 
     const formatMethodName = (key: string) =>
         key === 'vodafone_cash' ? 'Vodafone Cash' : key === 'instapay' ? 'Instapay' : key === 'bank' ? 'Bank' : key.replace('_', ' ');
@@ -46,7 +47,7 @@ export default function FreelancerWalletPage() {
         try {
             const [balanceRes, txData, withdrawalsData, methodsData] = await Promise.all([
                 api.wallet.getBalance().catch(() => ({ balance: 0 })),
-                api.wallet.getTransactions().catch(() => []),
+                api.wallet.getTransactions(hideManualTopUp).catch(() => []),
                 api.wallet.getWithdrawals().catch(() => []),
                 api.withdrawalMethods.list().catch(() => [])
             ]);
@@ -65,7 +66,7 @@ export default function FreelancerWalletPage() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [hideManualTopUp]);
 
     const handleAddMethod = async () => {
         if ((addMethodType === 'instapay' || addMethodType === 'vodafone_cash') && !addMethodPhone.trim()) {
@@ -329,8 +330,17 @@ export default function FreelancerWalletPage() {
                         </div>
 
                         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden mb-8">
-                            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                            <div className="p-6 border-b border-gray-100 flex items-center justify-between flex-wrap gap-3">
                                 <h2 className="text-xl font-bold text-gray-900">Transaction History</h2>
+                                <label className="flex items-center gap-2 text-sm font-medium text-gray-600 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={hideManualTopUp}
+                                        onChange={(e) => setHideManualTopUp(e.target.checked)}
+                                        className="rounded border-gray-300 text-[#09BF44] focus:ring-[#09BF44]"
+                                    />
+                                    Hide manual admin top-ups
+                                </label>
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full">
@@ -344,7 +354,12 @@ export default function FreelancerWalletPage() {
                                     <tbody>
                                         {transactions.map((tx: any) => (
                                             <tr key={tx._id} className="border-b border-gray-50 hover:bg-gray-50/50">
-                                                <td className="p-4 font-bold capitalize text-gray-700">{tx.type}</td>
+                                                <td className="p-4 font-bold capitalize text-gray-700">
+                                                    {tx.type}
+                                                    {tx.isManualAdminTopUp && (
+                                                        <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">Manual Admin Top-Up</span>
+                                                    )}
+                                                </td>
                                                 <td className={`p-4 font-black ${tx.amount >= 0 ? 'text-[#09BF44]' : 'text-red-500'}`}>
                                                     {tx.amount >= 0 ? '+' : ''}{tx.amount} EGP
                                                 </td>

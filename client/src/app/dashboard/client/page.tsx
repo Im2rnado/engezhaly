@@ -37,6 +37,7 @@ function ClientDashboardContent() {
     const [reviewText, setReviewText] = useState('');
     const [reviewSubmitting, setReviewSubmitting] = useState(false);
     const [expandedDelivery, setExpandedDelivery] = useState<string | null>(null);
+    const [actionLoadingOrderId, setActionLoadingOrderId] = useState<string | null>(null);
 
     const fetchJobs = useCallback(async () => {
         setJobsLoading(true);
@@ -536,33 +537,41 @@ function ClientDashboardContent() {
                                                     <button
                                                         onClick={async () => {
                                                             if (!confirm('Approve the delivered work and mark this order as completed?')) return;
+                                                            setActionLoadingOrderId(order._id);
                                                             try {
                                                                 await api.client.approveDelivery(order._id);
                                                                 showModal({ title: 'Order Completed', message: 'Thank you! You can now leave a review.', type: 'success' });
                                                                 fetchOrders();
                                                             } catch (e: any) {
                                                                 showModal({ title: 'Error', message: e.message || 'Failed to approve delivery', type: 'error' });
+                                                            } finally {
+                                                                setActionLoadingOrderId(null);
                                                             }
                                                         }}
-                                                        className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2"
+                                                        disabled={actionLoadingOrderId === order._id}
+                                                        className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                                                     >
-                                                        <CheckCircle className="w-4 h-4" /> Approve & Complete
+                                                        {actionLoadingOrderId === order._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />} Approve & Complete
                                                     </button>
                                                 )}
                                                 <button
                                                     onClick={async () => {
                                                         if (!confirm('Raise a dispute? Our team will review and resolve it.')) return;
+                                                        setActionLoadingOrderId(order._id);
                                                         try {
                                                             await api.client.raiseDispute(order._id);
                                                             showModal({ title: 'Dispute Raised', message: 'Our team will review and resolve it shortly.', type: 'success' });
                                                             fetchOrders();
                                                         } catch (e: any) {
                                                             showModal({ title: 'Error', message: e.message || 'Failed to raise dispute', type: 'error' });
+                                                        } finally {
+                                                            setActionLoadingOrderId(null);
                                                         }
                                                     }}
-                                                    className="text-amber-600 hover:text-amber-700 text-xs font-bold flex items-center gap-1"
+                                                    disabled={actionLoadingOrderId === order._id}
+                                                    className="text-amber-600 hover:text-amber-700 text-xs font-bold flex items-center gap-1 disabled:opacity-70 disabled:cursor-not-allowed"
                                                 >
-                                                    <Flag className="w-3.5 h-3.5" /> Raise Dispute
+                                                    {actionLoadingOrderId === order._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Flag className="w-3.5 h-3.5" />} Raise Dispute
                                                 </button>
                                             </>
                                         )}

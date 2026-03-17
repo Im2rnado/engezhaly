@@ -8,6 +8,7 @@ const Chat = require('../models/Chat');
 const Conversation = require('../models/Conversation');
 const ConsultationPayment = require('../models/ConsultationPayment');
 const { verifyWebhookHmac } = require('../services/paymobService');
+const { createMeetingLink } = require('../services/meetingService');
 
 const CLIENT_PLATFORM_FEE = 20; // 20 EGP charged to client on each payment
 // Freelancer receives full amount; 20 EGP withdrawal fee applied when they withdraw
@@ -16,7 +17,7 @@ const CLIENT_PLATFORM_FEE = 20; // 20 EGP charged to client on each payment
  * Fulfill a completed payment - credit freelancer, create records, etc.
  * Client pays +20 EGP fee; freelancer receives full amount (withdrawal fee applied on withdrawal).
  */
-const fulfillCharge = async (pendingCharge) => {
+const fulfillCharge = async (pendingCharge, app) => {
     const { meta } = pendingCharge;
     if (!meta || !meta.type) return;
 
@@ -141,9 +142,65 @@ const fulfillCharge = async (pendingCharge) => {
                 userId,
                 conversationId,
                 amount,
-                used: false
+                used: false,
+                durationMinutes: meta.durationMinutes || 30
             });
             await payment.save();
+
+            // If meeting date/time were pre-selected, create the meeting now
+            if (meta.meetingDate && meta.meetingTime) {
+                try {
+                    const [year, month, day] = String(meta.meetingDate).split('-').map(Number);
+                    const [hour, min] = String(meta.meetingTime).split(':').map(Number);
+                    const scheduledAt = new Date(year, month - 1, day, hour, min, 0);
+                    if (!isNaN(scheduledAt.getTime()) && scheduledAt >= new Date()) {
+                        const { link } = createMeetingLink(conversationId, scheduledAt);
+                        if (link) {
+                            payment.used = true;
+                            payment.meetingLink = link;
+                            payment.meetingDate = scheduledAt;
+                            payment.meetingScheduledAt = new Date();
+                            await payment.save();
+                            const conversation = await Conversation.findById(conversationId);
+                            if (conversation) {
+                                const receiverId = conversation.participants.find(p => String(p) !== String(userId));
+                                if (receiverId) {
+                                    const dateStr = scheduledAt.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+                                    const timeStr = scheduledAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                                    const meetingContent = `[Engezhaly Meeting] Video call scheduled for ${dateStr} at ${timeStr}. Join here: ${link}`;
+                                    const meetingMsg = new Chat({
+                                        conversationId: conversation._id,
+                                        senderId: userId,
+                                        receiverId,
+                                        content: meetingContent,
+                                        messageType: 'meeting',
+                                        isAdmin: false
+                                    });
+                                    await meetingMsg.save();
+                                    conversation.lastMessage = meetingContent;
+                                    conversation.lastMessageId = meetingMsg._id;
+                                    await conversation.save();
+                                    const io = app?.get?.('io');
+                                    if (io) {
+                                        io.to(`conversation:${conversation._id}`).emit('message', {
+                                            _id: meetingMsg._id,
+                                            conversationId: conversation._id,
+                                            senderId: meetingMsg.senderId,
+                                            content: meetingContent,
+                                            messageType: 'meeting',
+                                            createdAt: meetingMsg.createdAt,
+                                            isAdmin: false,
+                                            isRead: false
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error('[Paymob] Consultation meeting creation error:', err.message);
+                }
+            }
 
             // Credit freelancer's wallet (money goes to freelancer balance)
             const Conversation = require('../models/Conversation');
@@ -235,7 +292,7 @@ const handleWebhook = async (req, res) => {
                 });
                 await pm.save();
             } else {
-                await fulfillCharge(pendingCharge);
+                await fulfillCharge(pendingCharge, req.app);
             }
         }
 

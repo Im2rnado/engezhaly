@@ -13,7 +13,7 @@ export default function RefundPage() {
     }, []);
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gradient-to-br from-white to-[#09BF44]">
             <MainHeader user={user} showCategories={false} />
             <div className="max-w-3xl mx-auto px-4 py-12 md:py-16">
                 <Link href="/" className="text-[#09BF44] hover:text-[#07a63a] text-sm font-bold mb-6 inline-block">

@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
-import { Send, Video, Paperclip, MoreVertical, FileText, CheckCircle, XCircle, MessageSquare, Shield, PanelLeft, ArrowLeft, Loader2, Mic, Square, Trash2, ScrollText, Link as LinkIcon } from 'lucide-react';
+import { Send, Video, Paperclip, FileText, CheckCircle, XCircle, MessageSquare, Shield, PanelLeft, ArrowLeft, Loader2, Mic, Square, Trash2, ScrollText, Link as LinkIcon } from 'lucide-react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
 import { formatDateDDMMYYYY } from '@/lib/utils';
@@ -39,12 +39,17 @@ function ChatPageContent() {
     const [showMeetingModal, setShowMeetingModal] = useState(false);
     const [meetingDate, setMeetingDate] = useState('');
     const [meetingTime, setMeetingTime] = useState('');
+    const [meetingDuration, setMeetingDuration] = useState(30);
     const [settingMeeting, setSettingMeeting] = useState(false);
     const [checkoutIframeUrl, setCheckoutIframeUrl] = useState<string | null>(null);
     const [checkoutTitle, setCheckoutTitle] = useState('Complete Payment');
-    const [paymentChoiceConfig, setPaymentChoiceConfig] = useState<{ type: string; amountCents: number; callbackSuccessUrl?: string; orderId?: string; offerId?: string; jobId?: string; proposalId?: string; conversationId?: string } | null>(null);
+    const [paymentChoiceConfig, setPaymentChoiceConfig] = useState<{ type: string; amountCents: number; callbackSuccessUrl?: string; orderId?: string; offerId?: string; jobId?: string; proposalId?: string; conversationId?: string; durationMinutes?: number; meetingDate?: string; meetingTime?: string } | null>(null);
     const [pendingOrderForChat, setPendingOrderForChat] = useState<any>(null);
-    const [pendingWorkToApprove, setPendingWorkToApprove] = useState<{ order?: any; job?: any } | null>(null);
+    const [pendingPaymentOrder, setPendingPaymentOrder] = useState<any>(null);
+    const [pendingWorkToApprove, setPendingWorkToApprove] = useState<{ order?: any; job?: any; activeJobForNav?: any } | null>(null);
+    const [pendingOrderAction, setPendingOrderAction] = useState<'approve' | 'deny' | null>(null);
+    const [acceptingOfferId, setAcceptingOfferId] = useState<string | null>(null);
+    const [busyToggling, setBusyToggling] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
     const [recordingSeconds, setRecordingSeconds] = useState(0);
     const [pendingVoiceRecording, setPendingVoiceRecording] = useState<{ blob: Blob; file: File; durationSeconds: number; objectUrl: string } | null>(null);
@@ -163,6 +168,21 @@ function ChatPageContent() {
             api.chat.getConsultationStatus(conversationId).then(setConsultationStatus).catch(() => {});
             api.chat.getOffers(conversationId).then((o: any) => setOffers(o || [])).catch(() => {});
         }
+        if (success === '1') {
+            const stored = JSON.parse(localStorage.getItem('user') || '{}');
+            if (stored.role === 'client' && conv) {
+                api.chat.getConversations().then((convs: any[]) => {
+                    const c = convs.find((x: any) => x.id === conv || x.id === conversationId);
+                    const partnerId = c?.partnerId ? String(c.partnerId) : null;
+                    if (partnerId) {
+                        api.client.getMyOrders().then((orders: any[]) => {
+                            const pending = orders.find((o: any) => o.status === 'pending_payment' && String(o.sellerId?._id ?? o.sellerId) === partnerId);
+                            setPendingPaymentOrder(pending || null);
+                        }).catch(() => {});
+                    }
+                }).catch(() => {});
+            }
+        }
         showModal({
             title: 'Payment Successful',
             message: success === 'consultation'
@@ -266,12 +286,28 @@ function ChatPageContent() {
         }
         const partnerId = String(activeChat.partnerId?._id ?? activeChat.partnerId);
         api.client.getPendingWorkToApprove(partnerId).then((data: any) => {
-            if (data?.order || data?.job) {
-                setPendingWorkToApprove({ order: data.order || null, job: data.job || null });
+            if (data?.order || data?.job || data?.activeJobForNav) {
+                setPendingWorkToApprove({ order: data.order || null, job: data.job || null, activeJobForNav: data.activeJobForNav || null });
             } else {
                 setPendingWorkToApprove(null);
             }
         }).catch(() => setPendingWorkToApprove(null));
+    }, [conversationId, activeChat?.partnerId, activeChat?.id]);
+
+    // Client: fetch pending_payment order for this chat partner (awaiting payment)
+    useEffect(() => {
+        const stored = JSON.parse(localStorage.getItem('user') || '{}');
+        if (stored.role !== 'client' || !activeChat?.partnerId) {
+            setPendingPaymentOrder(null);
+            return;
+        }
+        const partnerId = String(activeChat.partnerId?._id ?? activeChat.partnerId);
+        api.client.getMyOrders().then((orders: any[]) => {
+            const pending = orders.find(
+                (o) => o.status === 'pending_payment' && String(o.sellerId?._id ?? o.sellerId) === partnerId
+            );
+            setPendingPaymentOrder(pending || null);
+        }).catch(() => setPendingPaymentOrder(null));
     }, [conversationId, activeChat?.partnerId, activeChat?.id]);
 
     // Listen for presence (online/offline)
@@ -527,6 +563,15 @@ function ChatPageContent() {
             });
             return;
         }
+        // Check if freelancer is busy (clients cannot message)
+        if (activeChat.partnerIsBusy && currentUser?.role === 'client') {
+            showModal({
+                title: 'Freelancer Busy',
+                message: 'This freelancer is currently busy and cannot receive messages. Try again when they are available.',
+                type: 'error'
+            });
+            return;
+        }
 
         const messageContent = input;
         setInput(''); // Clear input immediately for better UX
@@ -667,12 +712,9 @@ function ChatPageContent() {
     };
 
     const handleAcceptOffer = async (offer: { _id: string; price: number }) => {
-        const price = Number(offer.price || 0);
-        const clientFee = 20;
-        const totalYouPay = price + clientFee;
-
+        setAcceptingOfferId(offer._id);
         try {
-                    const result = await api.chat.acceptOffer(offer._id);
+            const result = await api.chat.acceptOffer(offer._id);
 
                     if (result?.requiresPayment && result?.type === 'custom_offer') {
                         const callbackUrl = typeof window !== 'undefined' && conversationId
@@ -692,13 +734,15 @@ function ChatPageContent() {
                     }
                         showModal({ title: 'Success', message: 'Order created successfully! Payment processed.', type: 'success' });
                     }
-                } catch (err: any) {
-                    console.error(err);
-                    showModal({ title: 'Error', message: err.message || 'Failed to accept offer', type: 'error' });
-                }
+        } catch (err: any) {
+            console.error(err);
+            showModal({ title: 'Error', message: err.message || 'Failed to accept offer', type: 'error' });
+        } finally {
+            setAcceptingOfferId(null);
+        }
     };
 
-    const handleBookConsultation = async () => {
+    const handleBookConsultation = () => {
         if (!activeChat || !conversationId) return;
 
         const token = localStorage.getItem('token');
@@ -710,27 +754,40 @@ function ChatPageContent() {
         const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
         const isClient = storedUser.role === 'client';
 
-        try {
-            // If we have unused payment, show date/time modal
-            if (consultationStatus?.hasUnusedPayment) {
-                setMeetingDate('');
-                setMeetingTime('');
-                setShowMeetingModal(true);
+        if (!isClient && !consultationStatus?.hasUnusedPayment) {
+            showModal({
+                title: 'Consultation Payment Required',
+                message: 'Ask the client to pay for a video consultation. Base price is for 30 minutes. Client can choose duration (30, 60, 90 min) when booking. Once paid, either party can schedule the meeting.',
+                type: 'info'
+            });
             return;
         }
 
-            if (!isClient) {
-                showModal({
-                    title: 'Consultation Payment Required',
-                    message: 'Ask the client to pay 100 EGP for a video consultation. Once paid, either party can schedule the meeting.',
-                    type: 'info'
-                });
-                return;
-            }
+        setMeetingDate('');
+        setMeetingTime('');
+        setMeetingDuration(30);
+        setShowMeetingModal(true);
+    };
 
+    const handleSetMeeting = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!conversationId || !meetingDate || !meetingTime || settingMeeting) return;
+
+        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const isClient = storedUser.role === 'client';
+
+        if (!isClient) {
+            showModal({ title: 'Info', message: 'Ask the client to pay and schedule. Once they pay, they can pick the date and time.', type: 'info' });
+            return;
+        }
+
+        setSettingMeeting(true);
+        try {
             const projectId = searchParams.get('projectId') || undefined;
-            const result = await api.wallet.payConsultation(conversationId, projectId);
+            const result = await api.wallet.payConsultation(conversationId, projectId, meetingDuration);
+
             if (result?.requiresPayment && result?.type === 'consultation') {
+                setShowMeetingModal(false);
                 const callbackUrl = typeof window !== 'undefined' && conversationId
                     ? `${window.location.origin}/chat?conversation=${conversationId}&payment_success=consultation`
                     : undefined;
@@ -739,52 +796,44 @@ function ChatPageContent() {
                     amountCents: result.amountCents,
                     callbackSuccessUrl: callbackUrl,
                     conversationId: conversationId || undefined,
+                    durationMinutes: meetingDuration,
+                    meetingDate,
+                    meetingTime,
                     ...result.meta
                 });
-            } else {
-                setConsultationStatus({ hasUnusedPayment: true });
-                showModal({ title: 'Success', message: 'Payment successful! Click the video call button again to schedule.', type: 'success' });
+                return;
             }
-        } catch (err: any) {
-            showModal({ title: 'Error', message: err.message || 'Failed to check status', type: 'error' });
-        }
-    };
 
-    const handleSetMeeting = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!conversationId || !meetingDate || !meetingTime || settingMeeting) return;
-
-        setSettingMeeting(true);
-        try {
-            await api.chat.createConsultationMeeting({
-                conversationId,
-                meetingDate,
-                meetingTime
-            });
+            await api.chat.createConsultationMeeting({ conversationId, meetingDate, meetingTime });
             setShowMeetingModal(false);
             setConsultationStatus({ hasUnusedPayment: false });
-            showModal({ title: 'Success', message: 'Meeting scheduled! The link has been sent in the chat.', type: 'success' });
-                            const data = await api.chat.getMessages(conversationId);
+            showModal({
+                title: 'Success',
+                message: result?.requiresPayment === false ? 'Consultation is free! Meeting scheduled.' : 'Meeting scheduled! The link has been sent in the chat.',
+                type: 'success'
+            });
+
+            const data = await api.chat.getMessages(conversationId);
             const userId = resolveUserId();
-                            const formatted = data.map((m: any) => {
-                                const senderId = m.senderId?._id || m.senderId;
-                                const isAdmin = m.isAdmin || m.content?.includes('[Engezhaly Admin]');
+            const formatted = data.map((m: any) => {
+                const senderId = m.senderId?._id || m.senderId;
+                const isAdmin = m.isAdmin || m.content?.includes('[Engezhaly Admin]');
                 const isMeeting = m.messageType === 'meeting' || m.content?.includes('[Engezhaly Meeting]');
-                                return {
-                                    _id: m._id,
-                                    text: m.content,
-                                    sender: String(senderId) === String(userId) ? 'me' : 'them',
-                                    senderId: senderId,
-                                    timestamp: m.createdAt,
-                                    messageType: m.messageType,
+                return {
+                    _id: m._id,
+                    text: m.content,
+                    sender: String(senderId) === String(userId) ? 'me' : 'them',
+                    senderId: senderId,
+                    timestamp: m.createdAt,
+                    messageType: m.messageType,
                     isRead: !!m.isRead,
                     isAdmin: isAdmin,
                     isMeeting: isMeeting,
                     isBlurred: !!m.isBlurred
-                                };
-                            });
-                            setMessages(formatted);
-                    } catch (err: any) {
+                };
+            });
+            setMessages(formatted);
+        } catch (err: any) {
             showModal({ title: 'Error', message: (err as Error).message || 'Failed to create meeting', type: 'error' });
         } finally {
             setSettingMeeting(false);
@@ -792,7 +841,8 @@ function ChatPageContent() {
     };
 
     const toggleBusy = async () => {
-        if (currentUser?.role !== 'freelancer' || !profile) return;
+        if (currentUser?.role !== 'freelancer' || !profile || busyToggling) return;
+        setBusyToggling(true);
         try {
             const newStatus = !profile?.freelancerProfile?.isBusy;
             const updated = await api.freelancer.updateProfile({ isBusy: newStatus });
@@ -809,6 +859,8 @@ function ChatPageContent() {
                 message: err.message || 'Failed to update status',
                 type: 'error'
             });
+        } finally {
+            setBusyToggling(false);
         }
     };
 
@@ -849,6 +901,7 @@ function ChatPageContent() {
                     user={currentUser}
                     profile={profile}
                     onToggleBusy={toggleBusy}
+                    toggleBusyDisabled={busyToggling}
                     mobileOpen={mobileSidebarOpen}
                     onCloseMobile={() => setMobileSidebarOpen(false)}
                 />
@@ -1045,11 +1098,42 @@ function ChatPageContent() {
                                         >
                                             <Video className="w-5 h-5" />
                                         </button>
-                                        <button className="p-2 hover:bg-gray-100 rounded-xl transition-colors hover:text-gray-600">
-                                            <MoreVertical className="w-5 h-5" />
-                                        </button>
                                     </div>
                                 </div>
+
+                                {/* Client: Awaiting Payment - freelancer approved, client needs to pay */}
+                                {pendingPaymentOrder && currentUser?.role === 'client' && (
+                                    <div className="mx-3 md:mx-6 mt-3 p-4 rounded-xl bg-amber-50 border-2 border-amber-200">
+                                        <p className="text-sm font-bold text-amber-800 mb-2">Awaiting Payment</p>
+                                        <p className="text-gray-700 text-sm mb-2">Freelancer has approved the offer. Make sure you have described everything you want in chat, in case a conflict occurs.</p>
+                                        <p className="text-gray-600 text-sm mb-3">{pendingPaymentOrder.projectId?.title || 'Offer'} • {pendingPaymentOrder.amount} EGP</p>
+                                        {pendingPaymentOrder.hasPendingInstaPay ? (
+                                            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-amber-100 text-amber-800">
+                                                <Loader2 className="w-4 h-4 animate-spin" /> Pending verification
+                                            </span>
+                                        ) : (
+                                            <button
+                                                onClick={() => {
+                                                    const clientFee = 20;
+                                                    const totalPays = (pendingPaymentOrder.amount || 0) + clientFee;
+                                                    const amountCents = Math.round(totalPays * 100);
+                                                    const callbackUrl = typeof window !== 'undefined'
+                                                        ? `${window.location.origin}/chat?conversation=${conversationId}&payment_success=1`
+                                                        : undefined;
+                                                    setPaymentChoiceConfig({
+                                                        type: 'project_order',
+                                                        amountCents,
+                                                        callbackSuccessUrl: callbackUrl,
+                                                        orderId: pendingPaymentOrder._id
+                                                    });
+                                                }}
+                                                className="px-4 py-2 rounded-xl font-bold bg-[#09BF44] text-white hover:bg-[#07a63a] text-sm"
+                                            >
+                                                Pay Now
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
 
                                 {/* Pending order - freelancer can approve/deny from chat */}
                                 {pendingOrderForChat && currentUser?.role === 'freelancer' && (
@@ -1060,34 +1144,62 @@ function ChatPageContent() {
                                         <div className="flex gap-2">
                                             <button
                                                 onClick={async () => {
+                                                    setPendingOrderAction('approve');
                                                     try {
                                                         await api.freelancer.approveOrder(pendingOrderForChat._id);
                                                         showModal({ title: 'Order Approved', message: 'The client has been notified to pay.', type: 'success' });
                                                         setPendingOrderForChat(null);
                                                     } catch (e: any) {
                                                         showModal({ title: 'Error', message: e.message || 'Failed to approve', type: 'error' });
+                                                    } finally {
+                                                        setPendingOrderAction(null);
                                                     }
                                                 }}
-                                                className="px-4 py-2 rounded-xl font-bold bg-[#09BF44] text-white hover:bg-[#07a63a] text-sm"
+                                                disabled={!!pendingOrderAction}
+                                                className="px-4 py-2 rounded-xl font-bold bg-[#09BF44] text-white hover:bg-[#07a63a] text-sm disabled:opacity-70 disabled:cursor-not-allowed"
                                             >
-                                                Approve
+                                                {pendingOrderAction === 'approve' ? <Loader2 className="w-4 h-4 animate-spin inline" /> : null} Approve
                                             </button>
                                             <button
                                                 onClick={async () => {
                                                     if (!confirm('Deny this order? The client will be refunded.')) return;
+                                                    setPendingOrderAction('deny');
                                                     try {
                                                         await api.freelancer.denyOrder(pendingOrderForChat._id);
                                                         showModal({ title: 'Order Denied', message: 'The client has been refunded and notified.', type: 'success' });
                                                         setPendingOrderForChat(null);
                                                     } catch (e: any) {
                                                         showModal({ title: 'Error', message: e.message || 'Failed to deny', type: 'error' });
+                                                    } finally {
+                                                        setPendingOrderAction(null);
                                                     }
                                                 }}
-                                                className="px-4 py-2 rounded-xl font-bold bg-red-100 text-red-700 hover:bg-red-200 text-sm"
+                                                disabled={!!pendingOrderAction}
+                                                className="px-4 py-2 rounded-xl font-bold bg-red-100 text-red-700 hover:bg-red-200 text-sm disabled:opacity-70 disabled:cursor-not-allowed"
                                             >
-                                                Deny
+                                                {pendingOrderAction === 'deny' ? <Loader2 className="w-4 h-4 animate-spin inline" /> : null} Deny
                                             </button>
                                         </div>
+                                    </div>
+                                )}
+
+                                {/* Client: active job with this freelancer - link to view */}
+                                {pendingWorkToApprove?.activeJobForNav && currentUser?.role === 'client' && (
+                                    <div className="mx-3 md:mx-6 mt-3 p-4 rounded-xl bg-blue-50 border-2 border-blue-200">
+                                        <p className="text-sm font-bold text-blue-800 mb-2">You have an active job with this freelancer</p>
+                                        <a
+                                            href={`/dashboard/client/jobs/${pendingWorkToApprove.activeJobForNav._id}`}
+                                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-bold bg-[#09BF44] text-white hover:bg-[#07a63a] text-sm"
+                                        >
+                                            View Job
+                                        </a>
+                                    </div>
+                                )}
+
+                                {/* Client: freelancer is busy - cannot send messages */}
+                                {activeChat?.partnerIsBusy && currentUser?.role === 'client' && (
+                                    <div className="mx-3 md:mx-6 mt-3 p-4 rounded-xl bg-red-50 border-2 border-red-200">
+                                        <p className="text-sm font-bold text-red-800">This freelancer is busy and cannot receive messages at the moment.</p>
                                     </div>
                                 )}
 
@@ -1245,7 +1357,8 @@ function ChatPageContent() {
                                                     {canAccept && (
                                                         <button
                                                                 onClick={() => handleAcceptOffer(offer)}
-                                                            className="w-full bg-white text-[#09BF44] font-bold py-3 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
+                                                            disabled={!!acceptingOfferId}
+                                                            className="w-full bg-white text-[#09BF44] font-bold py-3 rounded-xl hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
                                                         >
                                                             Accept Offer
                                                         </button>
@@ -1347,7 +1460,7 @@ function ChatPageContent() {
                                         <button
                                             type="button"
                                             onClick={() => setShowOfferModal(true)}
-                                            disabled={activeChat.isFrozen}
+                                            disabled={activeChat.isFrozen || (activeChat.partnerIsBusy && currentUser?.role === 'client')}
                                                 className="flex items-center justify-center gap-2 px-3 md:px-4 py-2.5 bg-gradient-to-r from-[#09BF44]/10 to-[#09BF44]/5 hover:from-[#09BF44]/20 hover:to-[#09BF44]/10 border border-[#09BF44]/20 rounded-xl font-bold text-[#09BF44] transition-all text-sm whitespace-nowrap flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                                 <FileText className="w-4 h-5" />
@@ -1395,27 +1508,27 @@ function ChatPageContent() {
                                             </div>
                                         ) : (
                                             <form onSubmit={sendMessage} className="flex items-center gap-2 md:gap-3 bg-gray-50 p-2 rounded-2xl border-2 border-gray-200 focus-within:border-[#09BF44] focus-within:ring-2 focus-within:ring-[#09BF44]/20 transition-all flex-1 min-w-0">
-                                            <button type="button" disabled={activeChat.isFrozen} className="p-2.5 text-gray-400 hover:text-[#09BF44] hover:bg-white rounded-xl transition-all flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed">
+                                            <button type="button" disabled={activeChat.isFrozen || (activeChat.partnerIsBusy && currentUser?.role === 'client')} className="p-2.5 text-gray-400 hover:text-[#09BF44] hover:bg-white rounded-xl transition-all flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed">
                                                 <Paperclip className="w-5 h-5" />
                                             </button>
                                             <input
                                                 type="text"
                                                 value={input}
                                                 onChange={(e) => setInput(e.target.value)}
-                                                placeholder={activeChat.isFrozen ? "Conversation is frozen..." : "Type a message..."}
-                                                disabled={activeChat.isFrozen}
+                                                placeholder={activeChat.isFrozen ? "Conversation is frozen..." : (activeChat.partnerIsBusy && currentUser?.role === 'client') ? "Freelancer is busy..." : "Type a message..."}
+                                                disabled={activeChat.isFrozen || (activeChat.partnerIsBusy && currentUser?.role === 'client')}
                                                 className="flex-1 bg-transparent border-none outline-none text-gray-700 placeholder-gray-400 text-sm min-w-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                             />
                                                 <button
                                                     type="button"
                                                     onClick={startVoiceRecording}
-                                                    disabled={activeChat.isFrozen}
+                                                    disabled={activeChat.isFrozen || (activeChat.partnerIsBusy && currentUser?.role === 'client')}
                                                     className="p-2.5 text-gray-400 hover:text-[#09BF44] hover:bg-white rounded-xl transition-all flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                                     aria-label="Record voice message"
                                                 >
                                                     <Mic className="w-5 h-5" />
                                                 </button>
-                                            <button type="submit" disabled={activeChat.isFrozen} className="p-3 bg-[#09BF44] text-white rounded-xl hover:bg-[#07a63a] transition-all shadow-md shadow-[#09BF44]/20 hover:shadow-lg hover:shadow-[#09BF44]/30 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed">
+                                            <button type="submit" disabled={activeChat.isFrozen || (activeChat.partnerIsBusy && currentUser?.role === 'client')} className="p-3 bg-[#09BF44] text-white rounded-xl hover:bg-[#07a63a] transition-all shadow-md shadow-[#09BF44]/20 hover:shadow-lg hover:shadow-[#09BF44]/30 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed">
                                                 <Send className="w-4 h-4" />
                                             </button>
                                         </form>
@@ -1473,6 +1586,19 @@ function ChatPageContent() {
                                     className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-[#09BF44] focus:ring-2 focus:ring-[#09BF44]/20 outline-none"
                                 />
                             </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Duration</label>
+                                <select
+                                    value={meetingDuration}
+                                    onChange={(e) => setMeetingDuration(Number(e.target.value))}
+                                    className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-[#09BF44] focus:ring-2 focus:ring-[#09BF44]/20 outline-none"
+                                >
+                                    <option value={30}>30 minutes</option>
+                                    <option value={60}>60 minutes</option>
+                                    <option value={90}>90 minutes</option>
+                                </select>
+                                <p className="text-xs text-gray-500 mt-1">Base price is for 30 min. Price scales with duration.</p>
+                            </div>
                             <div className="flex gap-3 pt-2">
                                 <button
                                     type="button"
@@ -1524,7 +1650,10 @@ function ChatPageContent() {
                             offerId: paymentChoiceConfig.offerId,
                             jobId: paymentChoiceConfig.jobId,
                             proposalId: paymentChoiceConfig.proposalId,
-                            conversationId: paymentChoiceConfig.conversationId
+                            conversationId: paymentChoiceConfig.conversationId,
+                            durationMinutes: paymentChoiceConfig.durationMinutes,
+                            meetingDate: paymentChoiceConfig.meetingDate,
+                            meetingTime: paymentChoiceConfig.meetingTime
                         });
                         setCheckoutTitle(paymentChoiceConfig.type === 'consultation' ? 'Pay for Video Consultation' : 'Complete Payment');
                         setCheckoutIframeUrl(charge.iframeUrl || null);
@@ -1533,7 +1662,7 @@ function ChatPageContent() {
                         closeCheckout();
                         setPaymentChoiceConfig(null);
                         if (paymentChoiceConfig.type === 'consultation') {
-                            showModal({ title: 'Payment Submitted', message: 'Your payment screenshot has been submitted. Once verified by our team, you can schedule your meeting.', type: 'success' });
+                            showModal({ title: 'Payment Submitted', message: 'Your payment screenshot has been submitted. Your meeting will be scheduled automatically once verified by our team.', type: 'success' });
                             if (conversationId) {
                                 api.chat.getConsultationStatus(conversationId).then(setConsultationStatus).catch(() => {});
                             }

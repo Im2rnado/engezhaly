@@ -338,6 +338,7 @@ export default function AdminDashboard() {
     const [emailsLoading, setEmailsLoading] = useState(false);
     const [withdrawalsLoading, setWithdrawalsLoading] = useState(false);
     const [instaPayLoading, setInstaPayLoading] = useState(false);
+    const [instaPayActionId, setInstaPayActionId] = useState<string | null>(null);
     const [chatsLoading, setChatsLoading] = useState(false);
     const [announcementsLoading, setAnnouncementsLoading] = useState(false);
     const [editModal, setEditModal] = useState<{ isOpen: boolean; type: 'user' | 'project' | 'job' | null; data: any }>({ isOpen: false, type: null, data: null });
@@ -356,6 +357,8 @@ export default function AdminDashboard() {
     const [chatMessages, setChatMessages] = useState<any[]>([]);
     const [adminMessageInput, setAdminMessageInput] = useState('');
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+    const [financeHideManualTopUp, setFinanceHideManualTopUp] = useState(false);
 
     // Dispute resolution
     const [disputeModal, setDisputeModal] = useState<{ isOpen: boolean; order: any | null }>({ isOpen: false, order: null });
@@ -500,7 +503,7 @@ export default function AdminDashboard() {
     const fetchTransactions = async () => {
         setFinanceLoading(true);
         try {
-            const data = await api.admin.getAllTransactions();
+            const data = await api.admin.getAllTransactions(financeHideManualTopUp);
             setTransactions(data);
         } catch (err) {
             console.error('Failed to fetch transactions', err);
@@ -597,7 +600,7 @@ export default function AdminDashboard() {
         if (activeTab === 'rewards') fetchTopFreelancers();
         if (activeTab === 'emails') fetchEmailLogs();
         if (activeTab === 'announcements') fetchAnnouncements();
-    }, [activeTab]);
+    }, [activeTab, financeHideManualTopUp]);
 
     // Action Handlers
     const handleSearchUser = async () => {
@@ -1048,6 +1051,20 @@ export default function AdminDashboard() {
                 {/* Management Tabs (Tables) - projects, jobs, orders, finance */}
                 {(activeTab === 'projects' || activeTab === 'jobs' || activeTab === 'orders' || activeTab === 'finance') && (
                     <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                        {activeTab === 'finance' && (
+                            <div className="p-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-3">
+                                <h2 className="text-lg font-bold text-gray-900">All Transactions</h2>
+                                <label className="flex items-center gap-2 text-sm font-medium text-gray-600 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={financeHideManualTopUp}
+                                        onChange={(e) => setFinanceHideManualTopUp(e.target.checked)}
+                                        className="rounded border-gray-300 text-[#09BF44] focus:ring-[#09BF44]"
+                                    />
+                                    Hide manual admin top-ups
+                                </label>
+                            </div>
+                        )}
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm text-left">
                                 <thead className="bg-gray-50 text-gray-500 font-bold uppercase">
@@ -1127,7 +1144,12 @@ export default function AdminDashboard() {
                                     )}
                                     {activeTab === 'finance' && !financeLoading && transactions.map(tx => (
                                         <tr key={tx._id} className="hover:bg-gray-50">
-                                            <td className="p-4 capitalize">{tx.type}</td>
+                                            <td className="p-4 capitalize">
+                                                {tx.type}
+                                                {tx.isManualAdminTopUp && (
+                                                    <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">Manual Admin Top-Up</span>
+                                                )}
+                                            </td>
                                             <td className="p-4">{tx.userId?.firstName} {tx.userId?.lastName}</td>
                                             <td className={`p-4 font-bold ${(tx.type === 'fee' || tx.amount > 0) ? 'text-green-600' : 'text-red-600'}`}>
                                                 {tx.type === 'fee' || tx.amount > 0 ? `+${Math.abs(tx.amount)}` : tx.amount} EGP
@@ -1290,17 +1312,21 @@ export default function AdminDashboard() {
                                                         <div className="flex gap-2">
                                                             <button
                                                                 onClick={async () => {
+                                                                    setInstaPayActionId(p._id);
                                                                     try {
                                                                         await api.admin.approveInstaPay(p._id);
                                                                         showModal({ title: 'Approved', message: 'InstaPay payment approved.', type: 'success' });
                                                                         fetchInstaPayPending();
                                                                     } catch (e: any) {
                                                                         showModal({ title: 'Error', message: e.message || 'Failed to approve', type: 'error' });
+                                                                    } finally {
+                                                                        setInstaPayActionId(null);
                                                                     }
                                                                 }}
-                                                                className="text-green-600 hover:bg-green-50 px-3 py-1.5 rounded font-bold text-sm flex items-center gap-1"
+                                                                disabled={!!instaPayActionId}
+                                                                className="text-green-600 hover:bg-green-50 px-3 py-1.5 rounded font-bold text-sm flex items-center gap-1 disabled:opacity-70 disabled:cursor-not-allowed"
                                                             >
-                                                                <Check className="w-4 h-4" /> Approve
+                                                                {instaPayActionId === p._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Approve
                                                             </button>
                                                             <button
                                                                 onClick={() => {
@@ -1310,19 +1336,23 @@ export default function AdminDashboard() {
                                                                         type: 'confirm',
                                                                         confirmText: 'Deny',
                                                                         onConfirm: async () => {
+                                                                            setInstaPayActionId(p._id);
                                                                             try {
                                                                                 await api.admin.denyInstaPay(p._id);
                                                                                 showModal({ title: 'Denied', message: 'InstaPay payment denied.', type: 'success' });
                                                                                 fetchInstaPayPending();
                                                                             } catch (e: any) {
                                                                                 showModal({ title: 'Error', message: e.message || 'Failed to deny', type: 'error' });
+                                                                            } finally {
+                                                                                setInstaPayActionId(null);
                                                                             }
                                                                         }
                                                                     });
                                                                 }}
-                                                                className="text-red-600 hover:bg-red-50 px-3 py-1.5 rounded font-bold text-sm flex items-center gap-1"
+                                                                disabled={!!instaPayActionId}
+                                                                className="text-red-600 hover:bg-red-50 px-3 py-1.5 rounded font-bold text-sm flex items-center gap-1 disabled:opacity-70 disabled:cursor-not-allowed"
                                                             >
-                                                                <X className="w-4 h-4" /> Deny
+                                                                {instaPayActionId === p._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />} Deny
                                                             </button>
                                                         </div>
                                                     </td>

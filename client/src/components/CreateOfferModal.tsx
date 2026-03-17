@@ -38,7 +38,8 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
             }))
         };
 
-        if (offerData.price < 500) {
+        const effectivePrice = showMilestones && milestones.length > 0 ? totalMilestonePrice : offerData.price;
+        if (effectivePrice < 500) {
             alert('Minimum price is 500 EGP');
             return;
         }

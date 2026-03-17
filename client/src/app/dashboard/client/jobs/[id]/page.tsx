@@ -26,6 +26,8 @@ export default function JobDetailPage() {
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
     const [checkoutIframeUrl, setCheckoutIframeUrl] = useState<string | null>(null);
     const [paymentChoiceConfig, setPaymentChoiceConfig] = useState<{ type: string; amountCents: number; callbackSuccessUrl?: string; jobId?: string; proposalId?: string } | null>(null);
+    const [acceptingProposalId, setAcceptingProposalId] = useState<string | null>(null);
+    const [approvingJob, setApprovingJob] = useState(false);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -106,6 +108,7 @@ export default function JobDetailPage() {
     }, [jobId]);
 
     const handleAcceptProposal = async (proposalId: string) => {
+        setAcceptingProposalId(proposalId);
         try {
             const result = await api.client.acceptProposal(jobId, proposalId);
             if (result?.requiresPayment && result?.type === 'job_proposal') {
@@ -130,6 +133,8 @@ export default function JobDetailPage() {
                 message: err.message || 'Failed to accept proposal',
                 type: 'error'
             });
+        } finally {
+            setAcceptingProposalId(null);
         }
     };
 
@@ -411,9 +416,10 @@ export default function JobDetailPage() {
                                         {job.status === 'open' && proposal.status === 'pending' && (
                                             <button
                                                 onClick={() => handleAcceptProposal(proposal._id)}
-                                                className="flex-1 bg-[#09BF44] text-white font-bold py-2.5 rounded-xl hover:bg-[#07a63a] transition-colors flex items-center justify-center gap-2"
+                                                disabled={!!acceptingProposalId}
+                                                className="flex-1 bg-[#09BF44] text-white font-bold py-2.5 rounded-xl hover:bg-[#07a63a] transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                                             >
-                                                <CheckCircle className="w-4 h-4" />
+                                                {acceptingProposalId === proposal._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
                                                 Accept Proposal
                                             </button>
                                         )}
@@ -423,17 +429,21 @@ export default function JobDetailPage() {
                                                     <button
                                                         onClick={async () => {
                                                             if (!confirm('Approve the submitted work and mark this job as completed?')) return;
+                                                            setApprovingJob(true);
                                                             try {
                                                                 await api.client.approveJobWork(jobId);
                                                                 showModal({ title: 'Job Completed', message: 'Work approved! Payment released to freelancer.', type: 'success' });
                                                                 refreshJob();
                                                             } catch (e: any) {
                                                                 showModal({ title: 'Error', message: e.message || 'Failed to approve work', type: 'error' });
+                                                            } finally {
+                                                                setApprovingJob(false);
                                                             }
                                                         }}
-                                                        className="flex-1 bg-[#09BF44] text-white font-bold py-2.5 rounded-xl hover:bg-[#07a63a] transition-colors flex items-center justify-center gap-2"
+                                                        disabled={approvingJob}
+                                                        className="flex-1 bg-[#09BF44] text-white font-bold py-2.5 rounded-xl hover:bg-[#07a63a] transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                                                     >
-                                                        <CheckCircle className="w-4 h-4" /> Approve & Complete
+                                                        {approvingJob ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />} Approve & Complete
                                                     </button>
                                                 ) : (
                                                     <span className="flex-1 bg-green-100 text-green-700 font-bold py-2.5 rounded-xl text-center flex items-center justify-center gap-2">
@@ -487,7 +497,8 @@ export default function JobDetailPage() {
                     onInstaPayComplete={() => {
                         setPaymentChoiceConfig(null);
                         refreshJob();
-                        showModal({ title: 'Payment Submitted', message: 'Your payment screenshot has been submitted. We will verify and activate your job shortly.', type: 'success' });
+                        showModal({ title: 'Payment Submitted', message: 'Your payment screenshot has been submitted. We will verify and activate your job shortly. You can track your job in Jobs Posted.', type: 'success' });
+                        router.push(`/dashboard/client/jobs/${jobId}`);
                     }}
                 />
             )}

@@ -9,7 +9,8 @@ const TransactionSchema = new mongoose.Schema({
     paymentMethod: { type: String, enum: ['card', 'wallet'], default: 'wallet' },
     referenceId: { type: String },
     orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Order' },
-    relatedUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' } // buyer or seller for order payments
+    relatedUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // buyer or seller for order payments
+    isManualAdminTopUp: { type: Boolean, default: false }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Transaction', TransactionSchema);

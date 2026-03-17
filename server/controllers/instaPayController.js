@@ -7,6 +7,7 @@ const Chat = require('../models/Chat');
 const Conversation = require('../models/Conversation');
 const Transaction = require('../models/Transaction');
 const ConsultationPayment = require('../models/ConsultationPayment');
+const { createMeetingLink } = require('../services/meetingService');
 
 const INSTAPAY_PHONE = process.env.INSTAPAY_PHONE || '+201234567890';
 const INSTAPAY_LINK = process.env.INSTAPAY_LINK || 'https://instapay.example.com';
@@ -19,7 +20,7 @@ const CLIENT_FEE = 20;
 const createInstaPayPayment = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { amountCents, type, orderId, offerId, jobId, proposalId, conversationId } = req.body;
+        const { amountCents, type, orderId, offerId, jobId, proposalId, conversationId, durationMinutes, meetingDate, meetingTime } = req.body;
 
         const amountNum = Number(amountCents);
         if (!Number.isFinite(amountNum) || amountNum <= 0) {
@@ -32,7 +33,7 @@ const createInstaPayPayment = async (req, res) => {
             userId,
             amountCents: amountNum,
             amountEGP,
-            meta: { type, orderId, offerId, jobId, proposalId, conversationId },
+            meta: { type, orderId, offerId, jobId, proposalId, conversationId, durationMinutes, meetingDate, meetingTime },
             status: 'pending'
         });
         await payment.save();
@@ -180,7 +181,8 @@ const approveInstaPay = async (req, res) => {
                 userId: payment.userId,
                 conversationId: meta.conversationId,
                 amount: amountEGP,
-                used: false
+                used: false,
+                durationMinutes: meta.durationMinutes || 30
             });
             await paymentRecord.save();
 
@@ -211,6 +213,61 @@ const approveInstaPay = async (req, res) => {
                 description: 'Video consultation payment',
                 status: 'completed'
             });
+
+            // If meeting date/time were pre-selected, create the meeting now
+            if (meta.meetingDate && meta.meetingTime) {
+                try {
+                    const [year, month, day] = String(meta.meetingDate).split('-').map(Number);
+                    const [hour, min] = String(meta.meetingTime).split(':').map(Number);
+                    const scheduledAt = new Date(year, month - 1, day, hour, min, 0);
+                    if (!isNaN(scheduledAt.getTime()) && scheduledAt >= new Date()) {
+                        const { link } = createMeetingLink(meta.conversationId, scheduledAt);
+                        if (link) {
+                            paymentRecord.used = true;
+                            paymentRecord.meetingLink = link;
+                            paymentRecord.meetingDate = scheduledAt;
+                            paymentRecord.meetingScheduledAt = new Date();
+                            await paymentRecord.save();
+                            const conversation = await Conversation.findById(meta.conversationId);
+                            if (conversation) {
+                                const receiverId = conversation.participants.find(p => String(p) !== String(payment.userId));
+                                if (receiverId) {
+                                    const dateStr = scheduledAt.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+                                    const timeStr = scheduledAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                                    const meetingContent = `[Engezhaly Meeting] Video call scheduled for ${dateStr} at ${timeStr}. Join here: ${link}`;
+                                    const meetingMsg = new Chat({
+                                        conversationId: conversation._id,
+                                        senderId: payment.userId,
+                                        receiverId,
+                                        content: meetingContent,
+                                        messageType: 'meeting',
+                                        isAdmin: false
+                                    });
+                                    await meetingMsg.save();
+                                    conversation.lastMessage = meetingContent;
+                                    conversation.lastMessageId = meetingMsg._id;
+                                    await conversation.save();
+                                    const io = req.app.get('io');
+                                    if (io) {
+                                        io.to(`conversation:${conversation._id}`).emit('message', {
+                                            _id: meetingMsg._id,
+                                            conversationId: conversation._id,
+                                            senderId: meetingMsg.senderId,
+                                            content: meetingContent,
+                                            messageType: 'meeting',
+                                            createdAt: meetingMsg.createdAt,
+                                            isAdmin: false,
+                                            isRead: false
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error('[InstaPay] Consultation meeting creation error:', err.message);
+                }
+            }
         } else if (type === 'project_order' && meta.orderId) {
             const order = await Order.findById(meta.orderId);
             if (order && order.status === 'pending_payment') {

@@ -247,7 +247,7 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
 
                             await api.chat.sendMessage({
                                 receiverId: sellerId,
-                                content: `Hi! I'm interested in a custom package for your project: ${project.title}. Let's discuss the details.`,
+                                content: `Hi, I'm interested in a custom package for your project: ${project.title}\nPlease inform the freelancer in chat what you want in your custom package.`,
                                 messageType: 'text'
                             });
 

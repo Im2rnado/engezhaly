@@ -11,13 +11,14 @@ interface FreelancerSidebarProps {
     user?: any;
     profile?: any;
     onToggleBusy?: () => void;
+    toggleBusyDisabled?: boolean;
     onTabChange?: (tab: 'dashboard' | 'offers' | 'orders' | 'portfolio' | 'profile') => void;
     activeTab?: 'dashboard' | 'offers' | 'orders' | 'portfolio' | 'profile';
     mobileOpen?: boolean;
     onCloseMobile?: () => void;
 }
 
-export default function FreelancerSidebar({ user, profile, onToggleBusy, activeTab, mobileOpen = false, onCloseMobile }: FreelancerSidebarProps) {
+export default function FreelancerSidebar({ user, profile, onToggleBusy, toggleBusyDisabled, activeTab, mobileOpen = false, onCloseMobile }: FreelancerSidebarProps) {
     const router = useRouter();
     const { showModal } = useModal();
     const pathname = usePathname();
@@ -178,7 +179,8 @@ export default function FreelancerSidebar({ user, profile, onToggleBusy, activeT
                         </div>
                         <button
                             onClick={onToggleBusy}
-                            className={`w-16 h-8 rounded-full p-1 transition-colors relative ${isBusy ? 'bg-red-500' : 'bg-[#09BF44]'}`}
+                            disabled={toggleBusyDisabled}
+                            className={`w-16 h-8 rounded-full p-1 transition-colors relative ${isBusy ? 'bg-red-500' : 'bg-[#09BF44]'} disabled:opacity-70 disabled:cursor-not-allowed`}
                         >
                             <div className={`w-6 h-6 bg-white rounded-full transition-transform shadow-sm ${isBusy ? 'translate-x-0' : 'translate-x-8'}`} />
                         </button>

@@ -72,6 +72,7 @@ const getConversations = async (req, res) => {
                 isRead: { $ne: true }
             });
 
+            const partnerIsBusy = !!(partner?.freelancerProfile?.isBusy);
             return {
                 id: conv._id,
                 partnerId: partnerId || undefined,
@@ -79,6 +80,7 @@ const getConversations = async (req, res) => {
                 profilePicture: partner?.freelancerProfile?.profilePicture || null,
                 lastMessage: conv.lastMessage,
                 isFrozen: conv.isFrozen,
+                partnerIsBusy,
                 unreadCount,
                 hasUnread: unreadCount > 0,
                 online: false
@@ -189,6 +191,12 @@ const sendMessage = async (req, res) => {
         // 3. Check Chat Specific Freeze
         if (conversation.isFrozen) {
             return res.status(403).json({ msg: 'This chat is frozen due to policy violations.' });
+        }
+
+        // 3b. Check if receiver (freelancer) is busy - clients cannot message busy freelancers
+        const receiver = await User.findById(receiverId).select('role freelancerProfile.isBusy');
+        if (receiver?.role === 'freelancer' && receiver?.freelancerProfile?.isBusy) {
+            return res.status(403).json({ msg: 'This freelancer is currently busy and cannot receive messages. Try again when they are available.' });
         }
 
         // 4. Phone Number Detection (Freeze Logic) - skip for voice messages (content is a URL)

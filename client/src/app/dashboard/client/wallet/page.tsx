@@ -20,12 +20,13 @@ export default function PaymentMethodsPage() {
     const [user, setUser] = useState<any>(null);
     const [profile, setProfile] = useState<any>(null);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+    const [hideManualTopUp, setHideManualTopUp] = useState(false);
 
     const fetchData = useCallback(async () => {
         try {
             const [methodsData, txData] = await Promise.all([
                 api.paymentMethods.list().catch(() => []),
-                api.wallet.getTransactions().catch(() => [])
+                api.wallet.getTransactions(hideManualTopUp).catch(() => [])
             ]);
             setMethods(Array.isArray(methodsData) ? methodsData : []);
             setTransactions(Array.isArray(txData) ? txData : []);
@@ -36,7 +37,7 @@ export default function PaymentMethodsPage() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [hideManualTopUp]);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -223,8 +224,17 @@ export default function PaymentMethodsPage() {
 
                             {/* Payment History */}
                             <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-                                <div className="p-6 border-b border-gray-100">
+                                <div className="p-6 border-b border-gray-100 flex items-center justify-between flex-wrap gap-3">
                                     <h2 className="text-xl font-bold text-gray-900">Payment History</h2>
+                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-600 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={hideManualTopUp}
+                                            onChange={(e) => setHideManualTopUp(e.target.checked)}
+                                            className="rounded border-gray-300 text-[#09BF44] focus:ring-[#09BF44]"
+                                        />
+                                        Hide manual admin top-ups
+                                    </label>
                                 </div>
                                 <div className="overflow-x-auto">
                                     <table className="w-full">
@@ -238,7 +248,12 @@ export default function PaymentMethodsPage() {
                                         <tbody>
                                             {transactions.map((tx: any) => (
                                                 <tr key={tx._id} className="border-b border-gray-50 hover:bg-gray-50/50">
-                                                    <td className="p-4 font-bold capitalize text-gray-700">{tx.type}</td>
+                                                    <td className="p-4 font-bold capitalize text-gray-700">
+                                                        {tx.type}
+                                                        {tx.isManualAdminTopUp && (
+                                                            <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">Manual Admin Top-Up</span>
+                                                        )}
+                                                    </td>
                                                     <td className={`p-4 font-black ${tx.amount >= 0 ? 'text-[#09BF44]' : 'text-red-500'}`}>
                                                         {tx.amount >= 0 ? '+' : ''}{tx.amount} EGP
                                                     </td>

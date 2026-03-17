@@ -772,8 +772,9 @@ export const api = {
             });
             return res.json();
         },
-        getAllTransactions: async () => {
-            const res = await fetch(`${API_URL}/admin/transactions`, {
+        getAllTransactions: async (excludeManualTopUp?: boolean) => {
+            const params = excludeManualTopUp ? '?excludeManualTopUp=true' : '';
+            const res = await fetch(`${API_URL}/admin/transactions${params}`, {
                 method: 'GET',
                 headers: getHeaders()
             });
@@ -857,19 +858,20 @@ export const api = {
             if (!res.ok) throw new Error('Failed to fetch balance');
             return res.json();
         },
-        getTransactions: async () => {
-            const res = await fetch(`${API_URL}/wallet/transactions`, {
+        getTransactions: async (excludeManualTopUp?: boolean) => {
+            const params = excludeManualTopUp ? '?excludeManualTopUp=true' : '';
+            const res = await fetch(`${API_URL}/wallet/transactions${params}`, {
                 method: 'GET',
                 headers: getHeaders()
             });
             if (!res.ok) throw new Error('Failed to fetch transactions');
             return res.json();
         },
-        payConsultation: async (conversationId: string, projectId?: string) => {
+        payConsultation: async (conversationId: string, projectId?: string, durationMinutes?: number) => {
             const res = await fetch(`${API_URL}/wallet/consultation-pay`, {
                 method: 'POST',
                 headers: getHeaders(),
-                body: JSON.stringify({ conversationId, projectId })
+                body: JSON.stringify({ conversationId, projectId, durationMinutes: durationMinutes || 30 })
             });
             const result = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(result.msg || 'Failed to pay consultation');
@@ -959,7 +961,7 @@ export const api = {
         }
     },
     payments: {
-        createInstaPay: async (data: { amountCents: number; type: string; orderId?: string; offerId?: string; jobId?: string; proposalId?: string; conversationId?: string }) => {
+        createInstaPay: async (data: { amountCents: number; type: string; orderId?: string; offerId?: string; jobId?: string; proposalId?: string; conversationId?: string; durationMinutes?: number; meetingDate?: string; meetingTime?: string }) => {
             const res = await fetch(`${API_URL}/payments/instapay`, {
                 method: 'POST',
                 headers: getHeaders(),

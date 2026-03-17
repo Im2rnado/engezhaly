@@ -13,6 +13,9 @@ export interface PaymentConfig {
     jobId?: string;
     proposalId?: string;
     conversationId?: string;
+    durationMinutes?: number;
+    meetingDate?: string;
+    meetingTime?: string;
 }
 
 interface PaymentChoiceModalProps {
@@ -62,7 +65,10 @@ export default function PaymentChoiceModal({
                 offerId: paymentConfig.offerId,
                 jobId: paymentConfig.jobId,
                 proposalId: paymentConfig.proposalId,
-                conversationId: paymentConfig.conversationId
+                conversationId: paymentConfig.conversationId,
+                durationMinutes: paymentConfig.durationMinutes,
+                meetingDate: paymentConfig.meetingDate,
+                meetingTime: paymentConfig.meetingTime
             });
             setInstaPayId(result.id);
             setInstructions(result.instructions);

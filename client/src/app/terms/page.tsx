@@ -13,7 +13,7 @@ export default function TermsPage() {
     }, []);
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gradient-to-br from-white to-[#09BF44]">
             <MainHeader user={user} showCategories={false} />
             <div className="max-w-3xl mx-auto px-4 py-12 md:py-16">
                 <Link href="/" className="text-[#09BF44] hover:text-[#07a63a] text-sm font-bold mb-6 inline-block">
@@ -27,6 +27,7 @@ export default function TermsPage() {
                         By using ENGEZHALY, you agree to:
                     </p>
                     <ul className="list-disc list-inside space-y-2 text-gray-600 mb-6">
+                        <li>If any conflict happens between client and freelancer, we will only be able to review the chat messages.</li>
                         <li>Be honest—no fake profiles, reviews, or scams.</li>
                         <li>Pay and deliver on time.</li>
                         <li>Money stays with us until both sides confirm the job&apos;s done.</li>

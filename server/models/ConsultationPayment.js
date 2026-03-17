@@ -8,6 +8,7 @@ const ConsultationPaymentSchema = new mongoose.Schema({
     meetingLink: { type: String },
     meetingDate: { type: Date },
     meetingScheduledAt: { type: Date },
+    durationMinutes: { type: Number, default: 30 },
 }, { timestamps: true });
 
 // One unused payment per user per conversation

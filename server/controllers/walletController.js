@@ -75,10 +75,12 @@ const getBalance = async (req, res) => {
 };
 
 // Pay for consultation - returns payment params for frontend to call initCharge (Paymob)
+// Base price is for 30 minutes. durationMinutes (30, 60, 90) multiplies the price.
 const payConsultation = async (req, res) => {
     try {
-        const { conversationId, projectId } = req.body;
+        const { conversationId, projectId, durationMinutes } = req.body;
         const userId = req.user.id;
+        const duration = Math.max(30, Math.min(120, Number(durationMinutes) || 30));
 
         if (!conversationId) return res.status(400).json({ msg: 'conversationId is required' });
 
@@ -87,36 +89,57 @@ const payConsultation = async (req, res) => {
             return res.status(403).json({ msg: 'Only clients can pay for consultations.' });
         }
 
-        // Resolve consultation price: project's price if projectId provided, else freelancer's profile default
-        let amount = DEFAULT_CONSULTATION_AMOUNT;
+        const conversation = await Conversation.findById(conversationId).select('participants');
+        if (!conversation || !conversation.participants || conversation.participants.length < 2) {
+            return res.status(400).json({ msg: 'Invalid conversation' });
+        }
+        const freelancerId = conversation.participants.find(p => String(p) !== String(userId));
+        if (!freelancerId) return res.status(400).json({ msg: 'Could not determine freelancer' });
+
+        // Check for ongoing order or job - consultation is FREE
+        const Order = require('../models/Order');
+        const Job = require('../models/Job');
+        const ongoingOrder = await Order.findOne({
+            $or: [
+                { buyerId: userId, sellerId: freelancerId },
+                { buyerId: freelancerId, sellerId: userId }
+            ],
+            status: { $in: ['active', 'pending_payment'] }
+        });
+        const ongoingJob = await Job.findOne({
+            clientId: userId,
+            'proposals.freelancerId': freelancerId,
+            'proposals.status': 'accepted',
+            status: 'in_progress'
+        });
+        if (ongoingOrder || ongoingJob) {
+            return res.json({ requiresPayment: false, freeReason: 'ongoing_work' });
+        }
+
+        // Resolve base price (for 30 min): project's price if projectId provided, else freelancer's profile default
+        let basePrice = DEFAULT_CONSULTATION_AMOUNT;
         if (projectId) {
             const Project = require('../models/Project');
             const project = await Project.findById(projectId).select('consultationPrice sellerId');
             if (project && project.consultationPrice != null && project.consultationPrice > 0) {
-                amount = Number(project.consultationPrice);
+                basePrice = Number(project.consultationPrice);
             }
         }
-        if (amount === DEFAULT_CONSULTATION_AMOUNT) {
-            const conversation = await Conversation.findById(conversationId).select('participants');
-            if (conversation?.participants?.length >= 2) {
-                const freelancerId = conversation.participants.find(p => String(p) !== String(userId));
-                if (freelancerId) {
-                    const freelancer = await User.findById(freelancerId).select('freelancerProfile.consultationPrice');
-                    const fp = freelancer?.freelancerProfile;
-                    if (fp != null && fp.consultationPrice != null && fp.consultationPrice > 0) {
-                        amount = Number(fp.consultationPrice);
-                    }
-                }
+        if (basePrice === DEFAULT_CONSULTATION_AMOUNT) {
+            const freelancer = await User.findById(freelancerId).select('freelancerProfile.consultationPrice');
+            const fp = freelancer?.freelancerProfile;
+            if (fp != null && fp.consultationPrice != null && fp.consultationPrice > 0) {
+                basePrice = Number(fp.consultationPrice);
             }
         }
+        const amount = Math.round(basePrice * (duration / 30) * 100) / 100;
         const amountCents = Math.round(amount * 100);
 
-        // Do NOT deduct from wallet - return payment params for frontend to call initCharge
         res.json({
             requiresPayment: true,
             type: 'consultation',
             amountCents,
-            meta: { conversationId }
+            meta: { conversationId, durationMinutes: duration }
         });
     } catch (err) {
         console.error(err.message);
@@ -126,7 +149,10 @@ const payConsultation = async (req, res) => {
 
 const getTransactions = async (req, res) => {
     try {
-        const transactions = await Transaction.find({ userId: req.user.id }).sort({ createdAt: -1 });
+        const excludeManualTopUp = req.query.excludeManualTopUp === 'true';
+        const query = { userId: req.user.id };
+        if (excludeManualTopUp) query.isManualAdminTopUp = { $ne: true };
+        const transactions = await Transaction.find(query).sort({ createdAt: -1 });
         res.json(transactions);
     } catch (err) {
         console.error(err.message);

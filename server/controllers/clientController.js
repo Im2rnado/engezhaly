@@ -439,15 +439,16 @@ const getPendingWorkToApprove = async (req, res) => {
             .lean();
 
         let job = null;
+        let activeJobForNav = null;
         for (const j of jobs) {
             const accepted = j.proposals?.find((p) => p.status === 'accepted' && String(p.freelancerId?._id || p.freelancerId) === partnerId);
+            if (!activeJobForNav) activeJobForNav = j;
             if (accepted?.workSubmission && (accepted.workSubmission.message || (accepted.workSubmission.links?.length > 0) || (accepted.workSubmission.files?.length > 0))) {
                 job = { ...j, acceptedProposal: accepted };
-                break;
             }
         }
 
-        res.json({ order: order || null, job: job || null });
+        res.json({ order: order || null, job: job || null, activeJobForNav: activeJobForNav || null });
     } catch (err) {
         console.error(err);
         res.status(500).send('Server Error');

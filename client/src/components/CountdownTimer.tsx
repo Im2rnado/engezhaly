@@ -45,8 +45,7 @@ export default function CountdownTimer({ deadline, variant = 'card', className =
                     <span className="text-xs font-bold">Overdue</span>
                 ) : (
                     <span className="text-xs font-bold">
-                        {timeLeft.days > 0 ? `${timeLeft.days}d ` : ''}
-                        {timeLeft.hours}h {timeLeft.minutes}m
+                        {timeLeft.days} {timeLeft.days === 1 ? 'DAY' : 'DAYS'}, {timeLeft.hours} {timeLeft.hours === 1 ? 'HOUR' : 'HOURS'}, {timeLeft.minutes} {timeLeft.minutes === 1 ? 'MINUTE' : 'MINUTES'}
                     </span>
                 )}
             </div>
@@ -58,7 +57,7 @@ export default function CountdownTimer({ deadline, variant = 'card', className =
             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold ${timeLeft.isOverdue ? 'bg-red-100 text-red-700' : 'bg-green-50 text-[#09BF44]'} ${className}`}>
                 <Clock className="w-3.5 h-3.5 shrink-0" />
                 {timeLeft.isOverdue ? 'Overdue' : (
-                    <>{timeLeft.days > 0 ? `${timeLeft.days}d ` : ''}{timeLeft.hours}h {timeLeft.minutes}m</>
+                    <>{timeLeft.days} {timeLeft.days === 1 ? 'DAY' : 'DAYS'}, {timeLeft.hours} {timeLeft.hours === 1 ? 'HOUR' : 'HOURS'}, {timeLeft.minutes} {timeLeft.minutes === 1 ? 'MINUTE' : 'MINUTES'}</>
                 )}
             </span>
         );

@@ -50,7 +50,7 @@ export default function HelpAndRulesPage() {
                     </div>
                     <div>
                         <h1 className="text-3xl md:text-4xl font-black text-gray-900">
-                            Help and Rules
+                            How it works
                         </h1>
                         <p className="text-gray-600 mt-1">How Engezhaly works and common questions</p>
                     </div>
@@ -67,6 +67,9 @@ export default function HelpAndRulesPage() {
                         </p>
                         <p>
                             All payments go through Engezhaly. Never pay or receive payment outside the platform — it protects both parties and ensures fair resolution of any issues.
+                        </p>
+                        <p>
+                            If any conflict happens between client and freelancer, we will only be able to review the chat messages.
                         </p>
                     </div>
                 </section>

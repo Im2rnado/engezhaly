@@ -18,7 +18,10 @@ const PendingChargeSchema = new mongoose.Schema({
         proposalId: String,
         orderId: mongoose.Schema.Types.ObjectId,
         offerId: mongoose.Schema.Types.ObjectId,
-        conversationId: String
+        conversationId: String,
+        durationMinutes: Number,
+        meetingDate: String,
+        meetingTime: String
     },
     createdAt: { type: Date, default: Date.now },
     completedAt: { type: Date }

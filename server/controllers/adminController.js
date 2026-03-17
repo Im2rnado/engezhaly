@@ -351,7 +351,8 @@ const topUpUserBalance = async (req, res) => {
             amount: amountNum,
             description: 'Admin top-up',
             status: 'completed',
-            paymentMethod: 'wallet'
+            paymentMethod: 'wallet',
+            isManualAdminTopUp: true
         });
 
         res.json({ user, balance: user.walletBalance });
@@ -492,7 +493,10 @@ const updateOrder = async (req, res) => {
 
 const getAllTransactions = async (req, res) => {
     try {
-        const transactions = await Transaction.find().populate('userId', 'firstName lastName');
+        const excludeManualTopUp = req.query.excludeManualTopUp === 'true';
+        const query = {};
+        if (excludeManualTopUp) query.isManualAdminTopUp = { $ne: true };
+        const transactions = await Transaction.find(query).populate('userId', 'firstName lastName');
         res.json(transactions);
     } catch (err) {
         console.error(err.message);

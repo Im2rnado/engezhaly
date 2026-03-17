@@ -352,7 +352,7 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                                 onClick={() => router.push('/help-and-rules')}
                                 className={`hover:text-[#09BF44] transition-colors ${pathname === '/help-and-rules' ? 'text-[#09BF44]' : ''}`}
                             >
-                                Help and Rules
+                                How it works
                             </button>
                         </nav>
                         {user ? (
@@ -424,7 +424,7 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                         <div className="max-w-[95%] mx-auto px-3 py-3 space-y-2">
                             <button onClick={() => { router.push('/offers'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-[#09BF44]/5">Find a Freelancer</button>
                             <button onClick={() => { router.push('/jobs'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-[#09BF44]/5">Browse Jobs</button>
-                            <button onClick={() => { router.push('/help-and-rules'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-[#09BF44]/5">Help and Rules</button>
+                            <button onClick={() => { router.push('/help-and-rules'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-[#09BF44]/5">How it works</button>
                             {user?.role === 'client' && (
                                 <button onClick={() => { router.push('/dashboard/client/jobs/create'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-[#09BF44]/5">Post Job</button>
                             )}
