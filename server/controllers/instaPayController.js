@@ -29,6 +29,28 @@ const createInstaPayPayment = async (req, res) => {
 
         const amountEGP = amountNum / 100;
 
+        // Prevent duplicate: return existing pending payment for same transaction
+        const existingQuery = { userId, status: 'pending', 'meta.type': type };
+        if (type === 'project_order' && orderId) existingQuery['meta.orderId'] = orderId;
+        else if (type === 'job_proposal' && jobId && proposalId) {
+            existingQuery['meta.jobId'] = jobId;
+            existingQuery['meta.proposalId'] = proposalId;
+        } else if (type === 'custom_offer' && offerId) existingQuery['meta.offerId'] = offerId;
+        else if (type === 'consultation' && conversationId) existingQuery['meta.conversationId'] = conversationId;
+
+        const existing = await InstaPayPayment.findOne(existingQuery);
+        if (existing) {
+            return res.json({
+                id: existing._id,
+                amountEGP: existing.amountEGP,
+                instructions: {
+                    phone: INSTAPAY_PHONE,
+                    link: INSTAPAY_LINK,
+                    amount: existing.amountEGP
+                }
+            });
+        }
+
         const payment = new InstaPayPayment({
             userId,
             amountCents: amountNum,
@@ -87,6 +109,8 @@ const uploadScreenshot = async (req, res) => {
 
 /**
  * GET /api/admin/instapay-pending
+ * Deduplicates by business key - when same user has multiple pending for same order/offer/job/conversation,
+ * keeps the one with screenshot (user completed upload) and drops the duplicate without screenshot.
  */
 const getPendingInstaPay = async (req, res) => {
     try {
@@ -94,7 +118,26 @@ const getPendingInstaPay = async (req, res) => {
             .populate('userId', 'firstName lastName email')
             .sort({ createdAt: -1 })
             .lean();
-        res.json(payments);
+        const key = (p) => {
+            const m = p.meta || {};
+            const t = m.type || '';
+            const uid = String(p.userId?._id || p.userId);
+            if (t === 'project_order' && m.orderId) return `${uid}:${t}:${m.orderId}`;
+            if (t === 'job_proposal' && m.jobId && m.proposalId) return `${uid}:${t}:${m.jobId}:${m.proposalId}`;
+            if (t === 'custom_offer' && m.offerId) return `${uid}:${t}:${m.offerId}`;
+            if (t === 'consultation' && m.conversationId) return `${uid}:${t}:${m.conversationId}`;
+            return `${uid}:${t}:${p._id}`;
+        };
+        const seen = new Map();
+        for (const p of payments) {
+            const k = key(p);
+            if (!seen.has(k)) seen.set(k, p);
+            else {
+                const existing = seen.get(k);
+                if (p.screenshotUrl && !existing.screenshotUrl) seen.set(k, p);
+            }
+        }
+        res.json([...seen.values()]);
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ msg: 'Server Error' });

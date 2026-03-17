@@ -41,6 +41,22 @@ const createAnnouncement = async (req, res) => {
     }
 };
 
+/** Admin: Delete announcement */
+const deleteAnnouncement = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const announcement = await Announcement.findByIdAndDelete(id);
+        if (!announcement) {
+            return res.status(404).json({ msg: 'Announcement not found' });
+        }
+        await AnnouncementRead.deleteMany({ announcementId: id });
+        res.json({ msg: 'Announcement deleted' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Server Error' });
+    }
+};
+
 /** Freelancer: Get announcements (for display) */
 const getAnnouncementsForFreelancer = async (req, res) => {
     try {
@@ -101,6 +117,7 @@ const markAllAsRead = async (req, res) => {
 module.exports = {
     getAnnouncements,
     createAnnouncement,
+    deleteAnnouncement,
     getAnnouncementsForFreelancer,
     getUnreadCount,
     markAllAsRead

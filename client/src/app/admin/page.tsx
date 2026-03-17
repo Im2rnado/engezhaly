@@ -1495,8 +1495,8 @@ export default function AdminDashboard() {
                             ) : (
                                 <div className="divide-y divide-gray-100">
                                     {announcements.map((a: any) => (
-                                        <div key={a._id} className="p-6">
-                                            <div className="flex items-start gap-4">
+                                        <div key={a._id} className="p-6 flex items-start justify-between gap-4">
+                                            <div className="flex items-start gap-4 min-w-0 flex-1">
                                                 {a.imageUrl && <img src={a.imageUrl} alt="" className="w-24 h-24 object-cover rounded-xl shrink-0" />}
                                                 <div className="min-w-0 flex-1">
                                                     {a.content && <p className="text-gray-900 whitespace-pre-wrap">{a.content}</p>}
@@ -1505,6 +1505,29 @@ export default function AdminDashboard() {
                                                     </p>
                                                 </div>
                                             </div>
+                                            <button
+                                                onClick={() => {
+                                                    showModal({
+                                                        title: 'Delete Announcement',
+                                                        message: 'Are you sure you want to delete this announcement?',
+                                                        type: 'confirm',
+                                                        confirmText: 'Delete',
+                                                        onConfirm: async () => {
+                                                            try {
+                                                                await api.announcements.admin.delete(a._id);
+                                                                showModal({ title: 'Deleted', message: 'Announcement deleted.', type: 'success' });
+                                                                fetchAnnouncements();
+                                                            } catch (e: any) {
+                                                                showModal({ title: 'Error', message: e.message || 'Failed to delete', type: 'error' });
+                                                            }
+                                                        }
+                                                    });
+                                                }}
+                                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg shrink-0"
+                                                aria-label="Delete announcement"
+                                            >
+                                                <Trash2 className="w-5 h-5" />
+                                            </button>
                                         </div>
                                     ))}
                                 </div>

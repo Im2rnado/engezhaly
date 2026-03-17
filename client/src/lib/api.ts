@@ -1019,6 +1019,16 @@ export const api = {
                 if (isUnauthorized(res as any)) throw new Error('Session expired');
                 if (!res.ok) throw new Error(result.msg || result.message || 'Failed to create announcement');
                 return result;
+            },
+            delete: async (id: string) => {
+                const res = await fetch(`${API_URL}/announcements/admin/${id}`, {
+                    method: 'DELETE',
+                    headers: getHeaders()
+                });
+                const result = await res.json().catch(() => ({}));
+                if (isUnauthorized(res as any)) throw new Error('Session expired');
+                if (!res.ok) throw new Error(result.msg || result.message || 'Failed to delete announcement');
+                return result;
             }
         }
     }

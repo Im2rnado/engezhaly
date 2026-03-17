@@ -5,6 +5,7 @@ const adminAuth = require('../middleware/adminAuth');
 const {
     getAnnouncements,
     createAnnouncement,
+    deleteAnnouncement,
     getAnnouncementsForFreelancer,
     getUnreadCount,
     markAllAsRead
@@ -13,6 +14,7 @@ const {
 // Admin only
 router.get('/admin', [authVerified, adminAuth], getAnnouncements);
 router.post('/admin', [authVerified, adminAuth], createAnnouncement);
+router.delete('/admin/:id', [authVerified, adminAuth], deleteAnnouncement);
 
 // Freelancer
 router.get('/', [authVerified], getAnnouncementsForFreelancer);

@@ -39,6 +39,7 @@ export default function PaymentChoiceModal({
     const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
     const [uploading, setUploading] = useState(false);
     const [cardLoading, setCardLoading] = useState(false);
+    const [instaPayCreating, setInstaPayCreating] = useState(false);
 
     if (!isOpen) return null;
 
@@ -57,6 +58,8 @@ export default function PaymentChoiceModal({
     };
 
     const handleInstaPayStart = async () => {
+        if (instaPayCreating) return;
+        setInstaPayCreating(true);
         try {
             const result = await api.payments.createInstaPay({
                 amountCents: paymentConfig.amountCents,
@@ -75,6 +78,8 @@ export default function PaymentChoiceModal({
             setStep("instapay_instructions");
         } catch (e: any) {
             alert(e.message || "Failed to create InstaPay payment");
+        } finally {
+            setInstaPayCreating(false);
         }
     };
 
@@ -143,9 +148,10 @@ export default function PaymentChoiceModal({
                             </button>
                             <button
                                 onClick={handleInstaPayStart}
-                                className="w-full flex items-center justify-center gap-3 p-4 rounded-xl border-2 border-gray-300 text-gray-700 font-bold hover:border-[#09BF44] hover:bg-[#09BF44]/5 transition-colors"
+                                disabled={instaPayCreating}
+                                className="w-full flex items-center justify-center gap-3 p-4 rounded-xl border-2 border-gray-300 text-gray-700 font-bold hover:border-[#09BF44] hover:bg-[#09BF44]/5 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                             >
-                                <Smartphone className="w-5 h-5" />
+                                {instaPayCreating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Smartphone className="w-5 h-5" />}
                                 Pay with InstaPay
                             </button>
                         </div>
