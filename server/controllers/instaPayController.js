@@ -9,8 +9,8 @@ const Transaction = require('../models/Transaction');
 const ConsultationPayment = require('../models/ConsultationPayment');
 const { createMeetingLink } = require('../services/meetingService');
 
-const INSTAPAY_PHONE = process.env.INSTAPAY_PHONE || '+201234567890';
-const INSTAPAY_LINK = process.env.INSTAPAY_LINK || 'https://instapay.example.com';
+const INSTAPAY_PHONE = process.env.INSTAPAY_PHONE || '+201098611731';
+const INSTAPAY_LINK = process.env.INSTAPAY_LINK || 'https://ipn.eg/S/Engezhaly/instapay/7xyz';
 const CLIENT_FEE = 20;
 
 /**

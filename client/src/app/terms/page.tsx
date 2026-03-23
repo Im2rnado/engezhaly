@@ -4,12 +4,80 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import MainHeader from "@/components/MainHeader";
 
+const SECTIONS = [
+    {
+        title: "1. General Rules",
+        items: [
+            "Be honest—no fake profiles, reviews, or scams.",
+            "Be respectful—treat everyone like you'd want to be treated.",
+            "Pay and deliver on time.",
+            "Adult content, spam, or any illegal activity is not allowed.",
+        ],
+    },
+    {
+        title: "2. Communication & Disputes",
+        items: [
+            "All communication must stay on the platform.",
+            "All chats and calls made through the platform may be recorded or monitored to ensure safety and fairness.",
+            "In case of any conflict, only communication and files shared on the platform will be reviewed.",
+            "No sharing personal information (phone numbers, emails, addresses) in chats.",
+        ],
+    },
+    {
+        title: "3. Payments & Protection",
+        items: [
+            "Money is held securely until both sides confirm the job is completed.",
+            "No job is considered done until both sides are satisfied.",
+        ],
+    },
+    {
+        title: "4. Fees",
+        items: [
+            "Engezhaly is completely free for both clients and freelancers.",
+            "We do not charge any platform fees.",
+            "Our goal is to keep the platform simple, fair, and accessible for everyone.",
+            "Engezhaly reserves the right to introduce or update fees in the future if needed.",
+        ],
+    },
+    {
+        title: "5. Payment Methods",
+        items: [
+            "InstaPay: No fees are charged by Engezhaly. Transfers are free and usually completed within 1 hour (may take up to 1 working day).",
+            "Card (via PayMob): Any additional fees are applied by the payment provider only, not by Engezhaly, and will be shown before payment.",
+        ],
+    },
+    {
+        title: "6. Account Actions",
+        intro: "We can freeze or ban accounts for:",
+        subItems: ["Rudeness", "Harassment", "Suspicion of cheating"],
+        footer: "If you break the rules, your account may be terminated without warning.",
+    },
+    {
+        title: "7. Updates",
+        items: [
+            "We may update these terms at any time.",
+            "By continuing to use Engezhaly, you automatically agree to any updates.",
+        ],
+    },
+    {
+        title: "8. Privacy",
+        items: [
+            "We collect only what's needed: name, email, phone, and payment details.",
+            "Your data is used only for your account, chats, and payments.",
+            "We do not sell or share your information.",
+            "Your data is stored securely.",
+        ],
+    },
+];
+
 export default function TermsPage() {
     const [user, setUser] = useState<any>(null);
 
     useEffect(() => {
         const stored = localStorage.getItem("user");
-        if (stored) setUser(JSON.parse(stored));
+        if (stored) {
+            queueMicrotask(() => setUser(JSON.parse(stored)));
+        }
     }, []);
 
     return (
@@ -22,37 +90,33 @@ export default function TermsPage() {
                 <h1 className="text-3xl md:text-4xl font-black text-gray-900 mb-6">
                     Terms and Conditions
                 </h1>
-                <div className="bg-white rounded-2xl border border-gray-200 p-6 md:p-10 shadow-sm prose prose-gray max-w-none">
-                    <p className="text-gray-600 mb-6">
-                        By using ENGEZHALY, you agree to:
+                <div className="bg-white rounded-2xl border border-gray-200 p-6 md:p-10 shadow-sm max-w-none space-y-8">
+                    <p className="text-gray-600">
+                        By using Engezhaly, you agree to the following terms and conditions.
                     </p>
-                    <ul className="list-disc list-inside space-y-2 text-gray-600 mb-6">
-                        <li>If any conflict happens between client and freelancer, we will only be able to review the chat messages.</li>
-                        <li>Be honest—no fake profiles, reviews, or scams.</li>
-                        <li>Pay and deliver on time.</li>
-                        <li>Money stays with us until both sides confirm the job&apos;s done.</li>
-                        <li>We can freeze or ban accounts for rudeness, harassment, or suspicion of cheating.</li>
-                        <li>No sharing personal info (phone numbers, emails, addresses) in chats—keep it professional.</li>
-                        <li>Be respectful—treat everyone like you&apos;d want to be treated.</li>
-                        <li>We don&apos;t allow adult content, spam, or illegal stuff.</li>
-                        <li>If you break these rules, we can end your account with no warning.</li>
-                    </ul>
-                    <p className="text-gray-600 mb-6">
-                        We may update these Terms anytime. By continuing to use Engezhaly after changes, you automatically agree to the new rules—no extra click needed.
-                    </p>
-                    <h2 className="text-xl font-bold text-gray-900 mt-8 mb-4">Fees</h2>
-                    <p className="text-gray-600 mb-4">
-                        ENGEZHALY charges a fixed <strong>20 EGP</strong> from the client upon payment, and <strong>20 EGP</strong> from the freelancer upon completion.
-                    </p>
-                    <p className="text-gray-600 mb-4">
-                        We hold your money securely until both sides confirm the job is done—no job is done until both sides are satisfied.
-                    </p>
-                    <p className="text-gray-600 mb-4">
-                        If you pay by card via PayMob, they add an estimated fee of 3% and a 3 EGP fixed fee—that&apos;s theirs, not ours. You&apos;ll see it up front.
-                    </p>
-                    <p className="text-gray-600 mb-4">
-                        <strong>If you pay through InstaPay, no extra fees</strong> will be deducted—only the Engezhaly fee. With InstaPay, money will be added within 1 working day (usually it will take 1 hour).
-                    </p>
+                    {SECTIONS.map((section) => (
+                        <section key={section.title}>
+                            <h2 className="text-xl font-bold text-gray-900 mb-4">{section.title}</h2>
+                            {"items" in section && section.items && (
+                                <ul className="list-disc list-inside space-y-2 text-gray-600">
+                                    {section.items.map((item, i) => (
+                                        <li key={i}>{item}</li>
+                                    ))}
+                                </ul>
+                            )}
+                            {"intro" in section && section.intro && (
+                                <div className="text-gray-600 space-y-2">
+                                    <p>{section.intro}</p>
+                                    <ul className="list-disc list-inside ml-4 space-y-1">
+                                        {section.subItems?.map((item, i) => (
+                                            <li key={i}>{item}</li>
+                                        ))}
+                                    </ul>
+                                    {section.footer && <p className="mt-3">{section.footer}</p>}
+                                </div>
+                            )}
+                        </section>
+                    ))}
                 </div>
             </div>
         </div>

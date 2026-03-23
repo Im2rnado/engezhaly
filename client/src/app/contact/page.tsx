@@ -36,6 +36,12 @@ export default function ContactPage() {
                         </a>
                     </section>
                     <section>
+                        <h2 className="text-lg font-bold text-gray-900 mb-2">Phone</h2>
+                        <a href="tel:+2001098611731" className="text-[#09BF44] hover:underline font-medium">
+                            +201098611731 
+                        </a>
+                    </section>
+                    <section>
                         <h2 className="text-lg font-bold text-gray-900 mb-3">Social Media</h2>
                         <div className="flex flex-col sm:flex-row gap-4">
                             <a
