@@ -1115,7 +1115,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                             const currentWord = parts.length > 0 ? (parts[parts.length - 1] ?? '') : '';
                                             const prefix = completedTags.length ? completedTags.join(' ') + ' ' : '';
                                             return (
-                                                <div className="flex flex-wrap items-center gap-2 w-full p-3 py-2.5 min-h-[44px] bg-gray-50 rounded-xl border-2 border-transparent focus-within:border-[#09BF44] focus-within:bg-white outline-none transition-all font-medium text-gray-900">
+                                                <div className="flex flex-wrap items-center gap-2 w-full p-3 py-2.5 min-h-11 bg-gray-50 rounded-xl border-2 border-transparent focus-within:border-[#09BF44] focus-within:bg-white outline-none transition-all font-medium text-gray-900">
                                                     {completedTags.map((tag) => (
                                                         <span key={tag} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-700">
                                                             {tag}
@@ -1135,7 +1135,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                                 setProfessionalInfo({ ...professionalInfo, extraLanguages: completedTags.slice(0, -1).join(' ') });
                                                             }
                                                         }}
-                                                        className="flex-1 min-w-[120px] py-1 bg-transparent border-0 outline-none placeholder:text-gray-400 text-sm"
+                                                        className="flex-1 min-w-30 py-1 bg-transparent border-0 outline-none placeholder:text-gray-400 text-sm"
                                                     />
                                                 </div>
                                             );
@@ -1168,7 +1168,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                         const currentWord = parts.length > 0 ? (parts[parts.length - 1] ?? '') : '';
                                         const prefix = completedTags.length ? completedTags.join(' ') + ' ' : '';
                                         return (
-                                            <div className="flex flex-wrap items-center gap-2 w-full p-3 py-2.5 min-h-[52px] bg-gray-50 rounded-xl border-2 border-transparent focus-within:border-[#09BF44] focus-within:bg-white outline-none transition-all font-medium text-gray-900">
+                                            <div className="flex flex-wrap items-center gap-2 w-full p-3 py-2.5 min-h-13 bg-gray-50 rounded-xl border-2 border-transparent focus-within:border-[#09BF44] focus-within:bg-white outline-none transition-all font-medium text-gray-900">
                                                 {completedTags.map((tag) => (
                                                     <span key={tag} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-[#09BF44] text-white">
                                                         {tag}
@@ -1188,7 +1188,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                             setProfessionalInfo({ ...professionalInfo, technicalSkills: completedTags.slice(0, -1).join(' ') });
                                                         }
                                                     }}
-                                                    className="flex-1 min-w-[120px] py-1 bg-transparent border-0 outline-none placeholder:text-gray-400"
+                                                    className="flex-1 min-w-30 py-1 bg-transparent border-0 outline-none placeholder:text-gray-400"
                                                 />
                                             </div>
                                         );
@@ -1202,7 +1202,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                         const currentWord = parts.length > 0 ? (parts[parts.length - 1] ?? '') : '';
                                         const prefix = completedTags.length ? completedTags.join(' ') + ' ' : '';
                                         return (
-                                            <div className="flex flex-wrap items-center gap-2 w-full p-3 py-2.5 min-h-[52px] bg-gray-50 rounded-xl border-2 border-transparent focus-within:border-[#09BF44] focus-within:bg-white outline-none transition-all font-medium text-gray-900">
+                                            <div className="flex flex-wrap items-center gap-2 w-full p-3 py-2.5 min-h-13 bg-gray-50 rounded-xl border-2 border-transparent focus-within:border-[#09BF44] focus-within:bg-white outline-none transition-all font-medium text-gray-900">
                                                 {completedTags.map((tag) => (
                                                     <span key={tag} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-500 text-white">
                                                         {tag}
@@ -1222,7 +1222,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                             setProfessionalInfo({ ...professionalInfo, softSkills: completedTags.slice(0, -1).join(' ') });
                                                         }
                                                     }}
-                                                    className="flex-1 min-w-[120px] py-1 bg-transparent border-0 outline-none placeholder:text-gray-400"
+                                                    className="flex-1 min-w-30 py-1 bg-transparent border-0 outline-none placeholder:text-gray-400"
                                                 />
                                             </div>
                                         );
@@ -1322,7 +1322,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                             setProfessionalInfo({ ...professionalInfo, certifications: next });
                                                         }}
                                                         placeholder="Certification name"
-                                                        className="flex-1 min-w-[120px] p-2 rounded-lg border border-gray-200 text-sm"
+                                                        className="flex-1 min-w-30 p-2 rounded-lg border border-gray-200 text-sm"
                                                     />
                                                     <input
                                                         type="date"
@@ -1343,7 +1343,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                             setProfessionalInfo({ ...professionalInfo, certifications: next });
                                                         }}
                                                         placeholder="Institute"
-                                                        className="flex-1 min-w-[120px] p-2 rounded-lg border border-gray-200 text-sm"
+                                                        className="flex-1 min-w-30 p-2 rounded-lg border border-gray-200 text-sm"
                                                     />
                                                     <label className="px-3 py-2 rounded-lg border border-gray-200 text-sm font-medium cursor-pointer hover:bg-gray-100">
                                                         <input
@@ -1521,7 +1521,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                             handleStarterOfferFeatures(idx, arr.length ? arr : ['']);
                                                         }}
                                                         rows={2}
-                                                        className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm min-h-[72px] resize-y"
+                                                        className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm min-h-18 resize-y"
                                                     />
                                                     {Array.isArray(pkg.features) && pkg.features.filter(Boolean).length > 0 && (
                                                         <div className="flex flex-wrap gap-2 mt-2">
@@ -1602,7 +1602,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                         ) : q.type === 'radio' ? (
                                             <div className="space-y-2">
                                                 {q.options?.map(opt => (
-                                                    <label key={opt} className="flex items-center gap-3 p-3 rounded-xl border-2 border-transparent hover:border-gray-200 has-[:checked]:border-[#09BF44] cursor-pointer">
+                                                    <label key={opt} className="flex items-center gap-3 p-3 rounded-xl border-2 border-transparent hover:border-gray-200 has-checked:border-[#09BF44] cursor-pointer">
                                                         <input type="radio" name="hoursPerDay" value={opt} checked={survey[q.key] === opt} onChange={(e) => setSurvey({ ...survey, [q.key]: e.target.value })} className="w-4 h-4 text-[#09BF44]" />
                                                         <span>{opt}</span>
                                                     </label>
@@ -1618,21 +1618,32 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                         <label className="block font-medium text-gray-700 mb-2">Upload your CV (optional)</label>
                                         <p className="text-sm text-gray-500 mb-3">Your CV is for admin review only and will not be shown publicly on your profile.</p>
                                         <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#09BF44] transition-colors bg-gray-50">
-                                            <input type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={async (e) => {
-                                                const file = e.target.files?.[0];
-                                                if (!file) return;
-                                                setError('');
-                                                setCvUploading(true);
-                                                try {
-                                                    const url = await api.upload.file(file);
-                                                    setCvUrl(url);
-                                                } catch (err: any) {
-                                                    setError(err.message || 'CV upload failed');
-                                                } finally {
-                                                    setCvUploading(false);
-                                                    e.target.value = '';
-                                                }
-                                            }} />
+                                            <input 
+                                                type="file" 
+                                                accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
+                                                className="hidden" 
+                                                onChange={async (e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (!file) return;
+                                                    
+                                                    if (file.size > 10 * 1024 * 1024) {
+                                                        setError('CV file size must be less than 10MB');
+                                                        return;
+                                                    }
+
+                                                    setError('');
+                                                    setCvUploading(true);
+                                                    try {
+                                                        const url = await api.upload.file(file, { forSignup: true });
+                                                        setCvUrl(url);
+                                                    } catch (err: any) {
+                                                        setError(err.message || 'CV upload failed');
+                                                    } finally {
+                                                        setCvUploading(false);
+                                                        e.target.value = '';
+                                                    }
+                                                }} 
+                                            />
                                             {cvUploading ? (
                                                 <Loader2 className="w-8 h-8 text-[#09BF44] animate-spin" />
                                             ) : cvUrl ? (

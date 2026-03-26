@@ -35,7 +35,7 @@ function ChatPageContent() {
     const [loading, setLoading] = useState(true);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
     const [partnerOnline, setPartnerOnline] = useState(false);
-    const [consultationStatus, setConsultationStatus] = useState<{ hasUnusedPayment: boolean; lastMeetingLink?: string | null } | null>(null);
+    const [consultationStatus, setConsultationStatus] = useState<{ hasUnusedPayment: boolean; lastMeetingLink?: string | null; isFree?: boolean } | null>(null);
     const [showMeetingModal, setShowMeetingModal] = useState(false);
     const [meetingDate, setMeetingDate] = useState('');
     const [meetingTime, setMeetingTime] = useState('');
@@ -190,7 +190,7 @@ function ChatPageContent() {
                 : 'Order created successfully! Payment processed.',
             type: 'success'
         });
-    }, [searchParams, conversationId]);
+    }, [searchParams, conversationId, showModal]);
 
     const closeCheckout = useCallback(() => {
         setCheckoutIframeUrl(null);
@@ -203,54 +203,65 @@ function ChatPageContent() {
     useEffect(() => {
         if (socket) {
             socket.on('message', (msg: any) => {
-                // Only append if it belongs to current chat
-                if (activeChat && conversationId && (msg.conversationId === conversationId || String(msg.conversationId) === String(conversationId))) {
-                    const userId = resolveUserId();
-                    const senderId = msg.senderId?._id || msg.senderId;
-                    const isMine = String(senderId) === String(userId);
+                const userId = resolveUserId();
+                const senderId = msg.senderId?._id || msg.senderId;
+                const isMine = String(senderId) === String(userId);
+                const targetConversationId = String(msg.conversationId);
+                const isActive = activeChat && (conversationId === targetConversationId || String(conversationId) === targetConversationId);
+
+                // 1. Update messages list if it belongs to current active chat
+                if (isActive) {
                     // Skip our own messages - we already have optimistic update and will refetch
-                    if (isMine) return;
-                    const isAdmin = msg.isAdmin || msg.content?.includes('[Engezhaly Admin]');
-                    const isMeeting = msg.messageType === 'meeting' || msg.content?.includes('[Engezhaly Meeting]');
-                    const formattedMsg = {
-                        _id: msg._id,
-                        text: msg.content,
-                        sender: 'them' as const,
-                        senderId: senderId,
-                        timestamp: msg.createdAt || new Date(),
-                        messageType: msg.messageType,
-                        isRead: !!msg.isRead,
-                        isAdmin: isAdmin,
-                        isMeeting: isMeeting,
-                        isBlurred: !!msg.isBlurred
-                    };
-                    setMessages((prev) => {
-                        const exists = prev.some(m => m._id === formattedMsg._id);
-                        if (exists) return prev;
-                        return [...prev, formattedMsg];
-                    });
-                } else {
-                    const userId = resolveUserId();
-                    const senderId = msg.senderId?._id || msg.senderId;
-                    const isMine = String(senderId) === String(userId);
-                    const targetConversationId = String(msg.conversationId);
-                    setChats((prev: any[]) => prev.map((c) => {
-                        if (String(c.id) !== targetConversationId) return c;
-                        const nextUnread = isMine ? Number(c.unreadCount || 0) : Number(c.unreadCount || 0) + 1;
-                        return {
-                            ...c,
-                            lastMessage: msg.content || c.lastMessage,
-                            unreadCount: nextUnread,
-                            hasUnread: nextUnread > 0
+                    if (!isMine) {
+                        const isAdmin = msg.isAdmin || msg.content?.includes('[Engezhaly Admin]');
+                        const isMeeting = msg.messageType === 'meeting' || msg.content?.includes('[Engezhaly Meeting]');
+                        const formattedMsg = {
+                            _id: msg._id,
+                            text: msg.content,
+                            sender: 'them' as const,
+                            senderId: senderId,
+                            timestamp: msg.createdAt || new Date(),
+                            messageType: msg.messageType,
+                            isRead: !!msg.isRead,
+                            isAdmin: isAdmin,
+                            isMeeting: isMeeting,
+                            isBlurred: !!msg.isBlurred
                         };
-                    }));
+                        setMessages((prev) => {
+                            if (prev.some(m => m._id === formattedMsg._id)) return prev;
+                            return [...prev, formattedMsg];
+                        });
+                    }
                 }
+
+                // 2. Update and re-order chats list (WhatsApp style)
+                setChats((prev: any[]) => {
+                    const chatIndex = prev.findIndex(c => String(c.id) === targetConversationId);
+                    if (chatIndex === -1) {
+                        // If chat not in list, we might want to fetch it, 
+                        // but for now let's just avoid re-ordering if we don't have it.
+                        // Ideally, we'd Trigger a refresh of conversations.
+                        api.chat.getConversations().then(setChats).catch(() => {});
+                        return prev;
+                    }
+
+                    const updatedChat = { ...prev[chatIndex] };
+                    if (!isActive && !isMine) {
+                        updatedChat.unreadCount = Number(updatedChat.unreadCount || 0) + 1;
+                        updatedChat.hasUnread = true;
+                    }
+                    updatedChat.lastMessage = msg.content || updatedChat.lastMessage;
+                    
+                    const newChats = [...prev];
+                    newChats.splice(chatIndex, 1);
+                    return [updatedChat, ...newChats];
+                });
             });
         }
         return () => {
             if (socket) socket.off('message');
         };
-    }, [socket, activeChat, conversationId, currentUser, resolveUserId]);
+    }, [socket, activeChat, conversationId, currentUser, resolveUserId, showModal]);
 
     // Join/leave socket room when conversation changes
     useEffect(() => {
@@ -431,7 +442,7 @@ function ChatPageContent() {
         } catch (err: any) {
             showModal({ title: 'Microphone Error', message: err.message || 'Could not access microphone.', type: 'error' });
         }
-    }, [activeChat]);
+    }, [activeChat, showModal]);
 
     const stopVoiceRecording = useCallback(() => {
         const recorder = mediaRecorderRef.current;
@@ -526,7 +537,7 @@ function ChatPageContent() {
         } finally {
             setSendingVoice(false);
         }
-    }, [activeChat, pendingVoiceRecording, resolveUserId]);
+    }, [activeChat, pendingVoiceRecording, resolveUserId, showModal]);
 
     useEffect(() => {
         stopVoiceRecordingRef.current = stopVoiceRecording;
@@ -754,10 +765,10 @@ function ChatPageContent() {
         const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
         const isClient = storedUser.role === 'client';
 
-        if (!isClient && !consultationStatus?.hasUnusedPayment) {
+        if (!isClient && !consultationStatus?.hasUnusedPayment && !consultationStatus?.isFree) {
             showModal({
                 title: 'Consultation Payment Required',
-                message: 'Ask the client to pay for a video consultation. Base price is for 30 minutes. Client can choose duration (30, 60, 90 min) when booking. Once paid, either party can schedule the meeting.',
+                message: 'Ask the client to pay for a video consultation or start an active job/order to get free calls. Once paid or with an active job, either party can schedule the meeting.',
                 type: 'info'
             });
             return;
@@ -776,14 +787,45 @@ function ChatPageContent() {
         const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
         const isClient = storedUser.role === 'client';
 
-        if (!isClient) {
-            showModal({ title: 'Info', message: 'Ask the client to pay and schedule. Once they pay, they can pick the date and time.', type: 'info' });
+        if (!isClient && !consultationStatus?.isFree && !consultationStatus?.hasUnusedPayment) {
+            showModal({ title: 'Info', message: 'Ask the client to pay for a video consultation or start an active job/order to get free calls.', type: 'info' });
             return;
         }
 
         setSettingMeeting(true);
         try {
             const projectId = searchParams.get('projectId') || undefined;
+            
+            // If it's already free or has unused payment, skip paying and just create the meeting
+            if (consultationStatus?.isFree || consultationStatus?.hasUnusedPayment) {
+                await api.chat.createConsultationMeeting({ conversationId, meetingDate, meetingTime });
+                setShowMeetingModal(false);
+                api.chat.getConsultationStatus(conversationId).then(setConsultationStatus).catch(() => {});
+                showModal({
+                    title: 'Success',
+                    message: 'Meeting scheduled! The link has been sent in the chat.',
+                    type: 'success'
+                });
+                const messagesResp = await api.chat.getMessages(conversationId);
+                const userId = resolveUserId();
+                setMessages(messagesResp.map((m: any) => {
+                    const sId = m.senderId?._id || m.senderId;
+                    return {
+                        _id: m._id,
+                        text: m.content,
+                        sender: String(sId) === String(userId) ? 'me' : 'them',
+                        senderId: sId,
+                        timestamp: m.createdAt,
+                        messageType: m.messageType,
+                        isRead: !!m.isRead,
+                        isAdmin: m.isAdmin || m.content?.includes('[Engezhaly Admin]'),
+                        isMeeting: m.messageType === 'meeting' || m.content?.includes('[Engezhaly Meeting]'),
+                        isBlurred: !!m.isBlurred
+                    };
+                }));
+                return;
+            }
+
             const result = await api.wallet.payConsultation(conversationId, projectId, meetingDuration);
 
             if (result?.requiresPayment && result?.type === 'consultation') {
@@ -887,7 +929,7 @@ function ChatPageContent() {
     }
 
     return (
-        <div className="bg-gray-50 flex font-sans text-gray-900 h-[100dvh] md:h-screen overflow-hidden">
+        <div className="flex h-dvh bg-slate-50 overflow-hidden font-sans antialiased text-slate-900">
             {/* Dashboard Sidebar */}
             {currentUser.role === 'client' ? (
                 <ClientSidebar
@@ -915,12 +957,12 @@ function ChatPageContent() {
             )}
 
             {/* Main Content Area */}
-            <div className="flex-1 md:ml-72 p-3 md:p-8 pt-3 md:pt-8 overflow-hidden h-[100dvh] md:h-screen flex flex-col">
+            <div className="flex-1 md:ml-64 lg:ml-72 p-0 overflow-hidden h-dvh flex flex-col">
                 <DashboardMobileTopStrip />
-                <div className="flex gap-3 md:gap-6 flex-1 min-h-0 overflow-hidden">
+                <div className="flex gap-0 flex-1 min-h-0 overflow-hidden">
                     {/* Conversations Sidebar */}
-                    <div className={`${activeChat ? 'hidden md:flex' : 'flex'} w-full md:w-80 bg-white rounded-2xl md:rounded-3xl border border-gray-200 flex-col shadow-sm overflow-hidden flex-shrink-0 h-full`}>
-                        <div className="p-4 md:p-6 border-b border-gray-200 bg-gradient-to-r from-white to-gray-50 rounded-t-2xl md:rounded-t-3xl flex-shrink-0">
+                    <div className={`${activeChat ? 'hidden md:flex' : 'flex'} w-full md:w-80 bg-white rounded-2xl md:rounded-3xl border border-gray-200 flex-col shadow-sm overflow-hidden shrink-0 h-full`}>
+                        <div className="p-4 md:p-6 border-b border-gray-200 bg-linear-to-r from-white to-gray-50 rounded-t-2xl md:rounded-t-3xl shrink-0">
                             <div className="flex items-center gap-3">
                                 <button
                                     onClick={() => setMobileSidebarOpen(true)}
@@ -967,7 +1009,7 @@ function ChatPageContent() {
                                                 );
                                             }}
                                             className={`p-4 cursor-pointer flex items-center gap-4 border-b border-gray-100 transition-all ${isActive
-                                                    ? 'bg-gradient-to-r from-[#09BF44]/10 to-[#09BF44]/5 border-l-4 border-l-[#09BF44]'
+                                                    ? 'bg-linear-to-r from-[#09BF44]/10 to-[#09BF44]/5 border-l-4 border-l-[#09BF44]'
                                                     : 'hover:bg-gray-50'
                                                 }`}
                                         >
@@ -975,7 +1017,7 @@ function ChatPageContent() {
                                             <div className="relative shrink-0">
                                                 {/* Gradient Background Blur */}
                                                 <div className="absolute inset-0 flex items-center justify-center -z-10">
-                                                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#09BF44]/30 via-[#09BF44]/15 to-transparent blur-md"></div>
+                                                    <div className="absolute inset-x-0 top-0 h-32 bg-linear-to-b from-black/40 to-transparent z-0"></div>
                                                 </div>
                                                 {/* Profile Picture Container */}
                                                 <div className="relative w-14 h-14 rounded-full overflow-hidden border-2 border-white shadow-md z-10 bg-gray-200">
@@ -988,7 +1030,7 @@ function ChatPageContent() {
                                                             className="w-full h-full object-cover rounded-full"
                                                         />
                                                     ) : (
-                                                        <div className="w-full h-full rounded-full bg-gradient-to-br from-[#09BF44] to-[#07a63a] flex items-center justify-center text-white font-black text-sm">
+                                                        <div className="w-full h-full rounded-full bg-linear-to-br from-[#09BF44] to-[#07a63a] flex items-center justify-center text-white font-black text-sm">
                                                             {partnerInitials}
                                                         </div>
                                                     )}
@@ -1022,7 +1064,7 @@ function ChatPageContent() {
                                 {/* Frozen Overlay */}
                                 {activeChat.isFrozen && (
                                     <div className="absolute inset-0 bg-white/80 backdrop-blur-md z-50 flex items-center justify-center rounded-3xl">
-                                        <div className="bg-white rounded-3xl p-8 shadow-2xl border-2 border-blue-200 max-w-md mx-4 text-center">
+                                        <div className="bg-white rounded-3xl p-8 shadow-2xl border-2 border-blue-200 max-w-md w-full mx-4 text-center">
                                             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                                 <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -1037,7 +1079,7 @@ function ChatPageContent() {
                                 )}
                                 
                                 {/* Header */}
-                                <div className="h-16 md:h-20 border-b border-gray-200 flex items-center justify-between px-3 md:px-8 bg-white rounded-t-2xl md:rounded-t-3xl shadow-sm flex-shrink-0">
+                                <div className="h-16 md:h-20 border-b border-gray-200 flex items-center justify-between px-3 md:px-8 bg-white rounded-t-2xl md:rounded-t-3xl shadow-sm shrink-0">
                                     <div className="flex items-center gap-3 md:gap-4 min-w-0">
                                         <button
                                             onClick={() => {
@@ -1053,7 +1095,7 @@ function ChatPageContent() {
                                         <div className="relative">
                                             {/* Gradient Background Blur */}
                                             <div className="absolute inset-0 flex items-center justify-center -z-10">
-                                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#09BF44]/30 via-[#09BF44]/15 to-transparent blur-md"></div>
+                                                <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-indigo-100 to-purple-100 flex items-center justify-center shrink-0 shadow-sm border border-white/50 group-hover:scale-105 transition-transform duration-300"></div>
                                             </div>
                                             {/* Profile Picture Container */}
                                             <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-md z-10 bg-gray-200">
@@ -1066,7 +1108,7 @@ function ChatPageContent() {
                                                         className="w-full h-full object-cover rounded-full"
                                                     />
                                                 ) : (
-                                                    <div className="w-full h-full rounded-full bg-gradient-to-br from-[#09BF44] to-[#07a63a] flex items-center justify-center text-white font-black text-sm">
+                                                    <div className="w-full h-full rounded-full bg-linear-to-br from-[#09BF44] to-[#07a63a] flex items-center justify-center text-white font-black text-sm">
                                                         {getInitials(activeChat.name)}
                                                     </div>
                                                 )}
@@ -1292,7 +1334,7 @@ function ChatPageContent() {
                                 )}
 
                                 {/* Messages and offers (merged by timestamp) */}
-                                <div style={{ overflowY: 'auto', overflowX: 'hidden' }} className="flex-1 p-3 md:p-6 space-y-4 bg-gradient-to-b from-gray-50 to-white rounded-b-2xl md:rounded-b-3xl min-h-0">
+                                <div style={{ overflowY: 'auto', overflowX: 'hidden' }} className="flex-1 p-3 md:p-6 space-y-4 bg-linear-to-b from-gray-50 to-white rounded-b-2xl md:rounded-b-3xl min-h-0">
                                     {mergedFeed.map((item) => {
                                         if (item.type === 'offer') {
                                             const offer = item.data;
@@ -1303,7 +1345,7 @@ function ChatPageContent() {
 
                                         return (
                                                 <div key={item.id} className={`flex ${isMyOffer ? 'justify-end' : 'justify-start'}`}>
-                                                    <div className={`max-w-[88%] md:max-w-[75%] p-4 md:p-5 rounded-2xl md:rounded-3xl shadow-sm border-2 ${isMyOffer
+                                                    <div className={`p-4 rounded-2xl md:rounded-3xl shadow-sm relative min-w-50 max-w-[85%] md:max-w-[70%] ${isMyOffer
                                                         ? 'bg-[#09BF44] text-white border-[#09BF44]'
                                                         : 'bg-white border-[#09BF44]/20'
                                                     }`}>
@@ -1326,7 +1368,7 @@ function ChatPageContent() {
                                                             <span className="text-lg font-black">{offer.price} EGP</span>
                                                         </div>
                                                             {canAccept && (
-                                                                <div className="text-xs opacity-90">
+                                                                <div className="relative group shrink-0">
                                                                     + 20 EGP fee = {offer.price + 20} EGP total to pay
                                                                 </div>
                                                             )}
@@ -1344,8 +1386,8 @@ function ChatPageContent() {
                                                             <div className="pt-3 border-t border-white/20">
                                                                 <p className="text-sm font-bold mb-2">Milestones:</p>
                                                                 {offer.milestones.map((milestone: any, idx: number) => (
-                                                                    <div key={idx} className="text-xs mb-1.5 flex items-center gap-2">
-                                                                        <div className="w-1.5 h-1.5 rounded-full bg-current opacity-60"></div>
+                                                                    <div key={idx} className="text-xs mb-1.5 flex items-center gap-1">
+                                                                        <div className="w-10 h-10 rounded-xl bg-linear-to-br from-indigo-500 to-purple-600 flex items-center justify-center shrink-0 shadow-indigo-100/50 shadow-lg border border-white/20"></div>
                                                                         {milestone.name}: {milestone.price} EGP
                                                                             {milestone.dueDate && ` (Due: ${formatDateDDMMYYYY(milestone.dueDate)})`}
                                                                     </div>
@@ -1423,7 +1465,7 @@ function ChatPageContent() {
                                                     {isVoice ? (
                                                         <audio controls src={msg.text} className="max-w-full min-w-[200px] h-10 rounded-lg" />
                                                     ) : (
-                                                        <p className={`text-sm leading-relaxed whitespace-pre-wrap break-words ${msg.isBlurred ? 'blur-sm select-none' : ''}`}>{content}</p>
+                                                        <p className={`text-sm md:text-base leading-relaxed break-words whitespace-pre-wrap ${msg.isBlurred ? 'blur-sm select-none' : ''}`}>{content}</p>
                                                     )}
                                                     {meetingLink && (
                                                         <a
@@ -1453,7 +1495,7 @@ function ChatPageContent() {
                                 </div>
 
                                 {/* Input */}
-                                <div className={`p-3 md:p-6 bg-white border-t border-gray-200 shadow-lg flex-shrink-0 ${activeChat.isFrozen ? 'opacity-50 pointer-events-none' : ''}`}>
+                                <div className={`p-3 md:p-6 bg-white border-t border-gray-200 shadow-lg shrink-0 ${activeChat.isFrozen ? 'opacity-50 pointer-events-none' : ''}`}>
                                     <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 md:gap-3">
                                         {/* Create Offer Button - freelancers only */}
                                         {currentUser?.role === 'freelancer' && (
@@ -1461,7 +1503,7 @@ function ChatPageContent() {
                                             type="button"
                                             onClick={() => setShowOfferModal(true)}
                                             disabled={activeChat.isFrozen || (activeChat.partnerIsBusy && currentUser?.role === 'client')}
-                                                className="flex items-center justify-center gap-2 px-3 md:px-4 py-2.5 bg-gradient-to-r from-[#09BF44]/10 to-[#09BF44]/5 hover:from-[#09BF44]/20 hover:to-[#09BF44]/10 border border-[#09BF44]/20 rounded-xl font-bold text-[#09BF44] transition-all text-sm whitespace-nowrap flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                className="flex items-center justify-center gap-2 px-3 md:px-4 py-2.5 bg-linear-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200 rounded-xl font-bold text-emerald-600 transition-all text-sm whitespace-nowrap shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                                 <FileText className="w-4 h-5" />
                                             Custom Offer
@@ -1469,14 +1511,14 @@ function ChatPageContent() {
                                         )}
                                         {isRecording ? (
                                             <div className="flex items-center gap-2 md:gap-3 bg-red-50 p-3 rounded-2xl border-2 border-red-200 flex-1 min-w-0">
-                                                <div className="w-2 h-2 md:w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
+                                                <div className="w-2 h-2 md:w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shrink-0" />
                                                 <span className="text-sm font-bold text-red-700 flex-1">
                                                     Recording… {Math.floor(recordingSeconds / 60)}:{(recordingSeconds % 60).toString().padStart(2, '0')} / 2:00
                                                 </span>
                                                 <button
                                                     type="button"
                                                     onClick={stopVoiceRecording}
-                                                    className="p-2.5 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all flex-shrink-0"
+                                                    className="p-2.5 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all shrink-0"
                                                     aria-label="Stop recording"
                                                 >
                                                     <Square className="w-4 h-4 fill-current" />
@@ -1500,7 +1542,7 @@ function ChatPageContent() {
                                                     type="button"
                                                     onClick={sendVoiceMessage}
                                                     disabled={sendingVoice}
-                                                    className="p-2.5 bg-[#09BF44] text-white rounded-xl hover:bg-[#07a63a] transition-all shrink-0 disabled:opacity-70 flex items-center justify-center"
+                                                    className="p-2.5 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-all shrink-0 disabled:opacity-70 flex items-center justify-center"
                                                     aria-label="Send voice message"
                                                 >
                                                     {sendingVoice ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
@@ -1508,7 +1550,7 @@ function ChatPageContent() {
                                             </div>
                                         ) : (
                                             <form onSubmit={sendMessage} className="flex items-center gap-2 md:gap-3 bg-gray-50 p-2 rounded-2xl border-2 border-gray-200 focus-within:border-[#09BF44] focus-within:ring-2 focus-within:ring-[#09BF44]/20 transition-all flex-1 min-w-0">
-                                            <button type="button" disabled={activeChat.isFrozen || (activeChat.partnerIsBusy && currentUser?.role === 'client')} className="p-2.5 text-gray-400 hover:text-[#09BF44] hover:bg-white rounded-xl transition-all flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed">
+                                            <button type="button" disabled={activeChat.isFrozen || (activeChat.partnerIsBusy && currentUser?.role === 'client')} className="p-2.5 text-gray-400 hover:text-[#09BF44] hover:bg-white rounded-xl transition-all shrink-0 disabled:opacity-50 disabled:cursor-not-allowed">
                                                 <Paperclip className="w-5 h-5" />
                                             </button>
                                             <input
@@ -1523,12 +1565,12 @@ function ChatPageContent() {
                                                     type="button"
                                                     onClick={startVoiceRecording}
                                                     disabled={activeChat.isFrozen || (activeChat.partnerIsBusy && currentUser?.role === 'client')}
-                                                    className="p-2.5 text-gray-400 hover:text-[#09BF44] hover:bg-white rounded-xl transition-all flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    className="p-2.5 text-gray-400 hover:text-[#09BF44] hover:bg-white rounded-xl transition-all shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                                     aria-label="Record voice message"
                                                 >
                                                     <Mic className="w-5 h-5" />
                                                 </button>
-                                            <button type="submit" disabled={activeChat.isFrozen || (activeChat.partnerIsBusy && currentUser?.role === 'client')} className="p-3 bg-[#09BF44] text-white rounded-xl hover:bg-[#07a63a] transition-all shadow-md shadow-[#09BF44]/20 hover:shadow-lg hover:shadow-[#09BF44]/30 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed">
+                                            <button type="submit" disabled={activeChat.isFrozen || (activeChat.partnerIsBusy && currentUser?.role === 'client')} className="p-3 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-all shadow-md shadow-emerald-100/50 hover:shadow-lg hover:shadow-emerald-200/50 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed">
                                                 <Send className="w-4 h-4" />
                                             </button>
                                         </form>
@@ -1537,13 +1579,13 @@ function ChatPageContent() {
                                 </div>
                             </>
                         ) : (
-                            <div className="flex-1 flex items-center justify-center flex-col text-gray-400 bg-gradient-to-br from-gray-50 to-white">
+                            <div className="flex-1 flex items-center justify-center flex-col text-gray-400 bg-linear-to-br from-gray-50 to-white">
                                 <div className="relative mb-6">
                                     {/* Gradient Background Blur */}
                                     <div className="absolute inset-0 flex items-center justify-center -z-10">
-                                        <div className="w-32 h-32 rounded-full bg-gradient-to-br from-[#09BF44]/20 via-[#09BF44]/10 to-transparent blur-2xl"></div>
+                                        <div className="w-32 h-32 rounded-full bg-linear-to-br from-[#09BF44]/20 via-[#09BF44]/10 to-transparent blur-2xl"></div>
                                     </div>
-                                    <div className="w-24 h-24 bg-gradient-to-br from-[#09BF44]/10 to-[#09BF44]/5 rounded-3xl flex items-center justify-center border-2 border-[#09BF44]/20">
+                                    <div className="w-24 h-24 bg-linear-to-br from-[#09BF44]/10 to-[#09BF44]/5 rounded-3xl flex items-center justify-center border-2 border-[#09BF44]/20">
                                         <MessageSquare className="w-12 h-12 text-[#09BF44] opacity-60" />
                                     </div>
                                 </div>

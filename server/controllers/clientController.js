@@ -2,6 +2,8 @@ const User = require('../models/User');
 const Job = require('../models/Job');
 const Order = require('../models/Order');
 const Transaction = require('../models/Transaction');
+const { sendAndLog } = require('../services/mailgunService');
+const emailTemplates = require('../templates/emailTemplates');
 
 const getProfile = async (req, res) => {
     try {
@@ -399,6 +401,13 @@ const approveDelivery = async (req, res) => {
         order.completedAt = new Date();
         await order.save();
 
+        // Email notification to freelancer
+        if (freelancer?.email) {
+            const clientName = (await User.findById(userId))?.firstName || 'A client';
+            const { subject, html } = emailTemplates.paymentReceiptFreelancer(clientName, order.amount, order.projectId?.title || 'Project', order._id);
+            sendAndLog(freelancer.email, subject, html, 'delivery_approved', { orderId: order._id });
+        }
+
         res.json({ msg: 'Delivery approved. Order completed.', order });
     } catch (err) {
         console.error(err);
@@ -498,6 +507,13 @@ const approveJobWork = async (req, res) => {
 
         job.status = 'completed';
         await job.save();
+
+        // Email notification to freelancer
+        if (freelancer?.email) {
+            const clientName = job.clientId?.firstName || 'A client';
+            const { subject, html } = emailTemplates.paymentReceiptFreelancer(clientName, amount, job.title, job._id);
+            sendAndLog(freelancer.email, subject, html, 'job_work_approved', { jobId: job._id });
+        }
 
         res.json({ msg: 'Work approved. Job completed.', job });
     } catch (err) {

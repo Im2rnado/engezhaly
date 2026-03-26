@@ -9,7 +9,15 @@ export default function ContactPage() {
 
     useEffect(() => {
         const stored = localStorage.getItem("user");
-        if (stored) setUser(JSON.parse(stored));
+        if (stored) {
+            queueMicrotask(() => {
+                try {
+                    setUser(JSON.parse(stored));
+                } catch (e) {
+                    console.error("Failed to parse user from localStorage", e);
+                }
+            });
+        }
     }, []);
 
     return (

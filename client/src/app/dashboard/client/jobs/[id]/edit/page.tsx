@@ -60,7 +60,7 @@ export default function EditJobPage() {
         }
         const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
         setUser(storedUser);
-        api.client.getProfile().then(setProfile).catch(() => {});
+        api.client.getProfile().then(setProfile).catch(() => { });
     }, [router]);
 
     useEffect(() => {
@@ -101,8 +101,8 @@ export default function EditJobPage() {
             return;
         }
 
-        if (!jobData.category || !jobData.subCategory) {
-            setError('Please select both category and subcategory.');
+        if (!jobData.category) {
+            setError('Please select a category.');
             setLoading(false);
             return;
         }
@@ -115,6 +115,7 @@ export default function EditJobPage() {
                     dueDate: m.dueDate || undefined
                 }))
                 : [];
+
             await api.client.updateJob(jobId, {
                 title: jobData.title,
                 description: jobData.description,
@@ -140,7 +141,7 @@ export default function EditJobPage() {
 
     return (
         <div className="min-h-screen bg-gray-50 flex font-sans text-gray-900">
-            <ClientSidebar user={user} profile={profile} onTabChange={() => {}} activeTab="jobs" mobileOpen={mobileSidebarOpen} onCloseMobile={() => setMobileSidebarOpen(false)} />
+            <ClientSidebar user={user} profile={profile} onTabChange={() => { }} activeTab="jobs" mobileOpen={mobileSidebarOpen} onCloseMobile={() => setMobileSidebarOpen(false)} />
             {mobileSidebarOpen && <button aria-label="Close sidebar overlay" onClick={() => setMobileSidebarOpen(false)} className="fixed inset-0 bg-black/40 z-30 md:hidden" />}
             <div className="flex-1 md:ml-72 px-4 sm:px-6 md:p-8 pt-3 md:pt-8 pb-8 overflow-y-auto min-h-screen">
                 <DashboardMobileTopStrip />
@@ -177,7 +178,7 @@ export default function EditJobPage() {
                                     </div>
                                     <div>
                                         <label className="block text-sm font-bold text-gray-700 mb-2">Subcategory</label>
-                                        <select name="subCategory" required value={jobData.subCategory} onChange={handleChange} disabled={!jobData.category} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none disabled:opacity-60">
+                                        <select name="subCategory" value={jobData.subCategory} onChange={handleChange} disabled={!jobData.category} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none disabled:opacity-60">
                                             <option value="">Select subcategory</option>
                                             {(CATEGORIES[jobData.category as keyof typeof CATEGORIES] || []).map((sub) => <option key={sub} value={sub}>{sub}</option>)}
                                         </select>

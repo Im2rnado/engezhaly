@@ -11,8 +11,7 @@ const CATEGORIES = {
     'Design & Creative': [
         'Graphic Designer (branding)',
         'Logo Designer',
-        'UI Designer',
-        'UX Designer',
+        'UI/UX Designer',
         'Clothing / Fashion Designer'
     ],
     'Digital Marketing': [
@@ -21,9 +20,8 @@ const CATEGORIES = {
         'Email Marketing'
     ],
     'Video Editor': [
-        'Video Editor',
-        'Video Commercials Ads',
-        'UGC (short-video editor)'
+        'Video Editor - (Long Content)',
+        'Video Editor - (Short Content)',
     ],
     'AI and Automations': [
         'AI Content Creation (photos or videos)',
@@ -38,7 +36,6 @@ const CATEGORIES = {
     'Voice Over': [
         'Voice Over (English)',
         'Voice Over (Arabic)',
-        'Commercial Voice Over'
     ]
 };
 

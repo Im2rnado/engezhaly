@@ -228,16 +228,16 @@ const createProjectOrder = async (req, res) => {
             });
             await conversation.save();
         }
-        const orderMsg = new Chat({
+        const orderChat = new Chat({
             conversationId: conversation._id,
             senderId: buyerId,
             receiverId: project.sellerId,
-            content: `[Engezhaly Order] Order #${order._id}\n\n${description.trim()}`,
+            content: `[Engezhaly Order] Order #${order.orderNumber || order._id}\nBundle: ${order.packageType}\n\n${description.trim()}`,
             messageType: 'order'
         });
-        await orderMsg.save();
-        conversation.lastMessage = orderMsg.content;
-        conversation.lastMessageId = orderMsg._id;
+        await orderChat.save();
+        conversation.lastMessage = orderChat.content;
+        conversation.lastMessageId = orderChat._id;
         await conversation.save();
 
         const populated = await Order.findById(order._id)

@@ -1,9 +1,7 @@
 const User = require('../models/User');
 const Order = require('../models/Order');
-const Transaction = require('../models/Transaction');
-const Project = require('../models/Project');
 const { sendAndLog } = require('../services/mailgunService');
-const { orderApproved, orderDenied } = require('../templates/emailTemplates');
+const { orderApproved, orderDenied, workSubmitted } = require('../templates/emailTemplates');
 
 const updateProfile = async (req, res) => {
     try {
@@ -340,6 +338,15 @@ const submitOrderWork = async (req, res) => {
             .populate('projectId', 'title packages subCategory')
             .populate('buyerId', 'firstName lastName email')
             .populate('sellerId', 'firstName lastName email');
+
+        // Email notification to client
+        if (populated.buyerId?.email) {
+            const clientName = populated.buyerId.firstName;
+            const freelancerName = populated.sellerId.firstName;
+            const title = populated.projectId?.title || 'Order Work';
+            const { subject, html } = workSubmitted(clientName, freelancerName, title, orderId);
+            sendAndLog(populated.buyerId.email, subject, html, 'work_submitted', { orderId });
+        }
 
         return res.json(populated);
     } catch (err) {

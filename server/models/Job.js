@@ -22,7 +22,13 @@ const JobSchema = new mongoose.Schema({
         freelancerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         price: Number,
         deliveryDays: Number,
+        revisions: { type: Number, default: 0 },
         message: String,
+        milestones: [{
+            name: { type: String, required: true },
+            price: { type: Number, required: true },
+            deliveryDays: { type: Number }
+        }],
         status: { type: String, enum: ['pending', 'accepted', 'rejected'], default: 'pending' },
         workSubmission: {
             message: { type: String, default: '' },

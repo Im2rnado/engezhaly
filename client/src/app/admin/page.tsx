@@ -2237,8 +2237,15 @@ export default function AdminDashboard() {
                                                             ? 'bg-green-50 border-2 border-[#09BF44]/40 text-gray-900'
                                                             : isFromParticipant1
                                                                 ? 'bg-white border border-gray-200 text-gray-900 rounded-bl-sm'
-                                                                : 'bg-[#09BF44] text-white rounded-br-sm'
+                                                                : 'bg-[#a7f3d0] text-gray-900 rounded-br-sm'
                                                     }`}>
+                                                    {!isAdmin && !isMeeting && (
+                                                        <div className="flex items-center gap-1 mb-1">
+                                                            <span className={`text-[10px] font-black uppercase ${isFromParticipant1 ? 'text-gray-400' : 'text-green-700'}`}>
+                                                                {isFromParticipant1 ? (selectedChat.participants?.[0]?.firstName || 'User 1') : (selectedChat.participants?.[1]?.firstName || 'User 2')} ({isFromParticipant1 ? (selectedChat.participants?.[0]?.role || 'client') : (selectedChat.participants?.[1]?.role || 'freelancer')})
+                                                            </span>
+                                                        </div>
+                                                    )}
                                                     {isAdmin && (
                                                         <div className="flex items-center gap-2 mb-1">
                                                             <Shield className="w-4 h-4 text-yellow-600" />

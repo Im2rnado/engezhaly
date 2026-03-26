@@ -8,7 +8,7 @@ interface ChatRulesModalProps {
 }
 
 const CHAT_RULES = [
-    "If any conflict happens between client and freelancer, we will only be able to review the chat messages.",
+    "If any conflict happens between client and freelancer, we will only be able to review the chat messages and calls done through Engezhaly.",
     "Be respectful and professional at all times.",
     "Do not share personal contact information (phone, email, social media) before completing a deal through Engezhaly.",
     "All payments must be processed through Engezhaly — do not accept or request payments outside the platform.",

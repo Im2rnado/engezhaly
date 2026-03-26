@@ -9,11 +9,19 @@ export default function PrivacyPage() {
 
     useEffect(() => {
         const stored = localStorage.getItem("user");
-        if (stored) setUser(JSON.parse(stored));
+        if (stored) {
+            queueMicrotask(() => {
+                try {
+                    setUser(JSON.parse(stored));
+                } catch (e) {
+                    console.error("Failed to parse user from localStorage", e);
+                }
+            });
+        }
     }, []);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-white to-[#09BF44]">
+        <div className="min-h-screen bg-linear-to-br from-white to-[#09BF44]">
             <MainHeader user={user} showCategories={false} />
             <div className="max-w-3xl mx-auto px-4 py-12 md:py-16">
                 <Link href="/" className="text-[#09BF44] hover:text-[#07a63a] text-sm font-bold mb-6 inline-block">

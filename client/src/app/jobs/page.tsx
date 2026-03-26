@@ -25,7 +25,9 @@ function JobsPageContent() {
     const [profile, setProfile] = useState<any>(null);
     const [applyJob, setApplyJob] = useState<any>(null);
     const [showAuthModal, setShowAuthModal] = useState(false);
-    const [proposal, setProposal] = useState({ price: '', days: '', message: '' });
+    const [proposal, setProposal] = useState({ price: '', days: '', revisions: '1', message: '' });
+    const [milestones, setMilestones] = useState<Array<{ name: string; price: string; deliveryDays: string }>>([]);
+    const [showMilestones, setShowMilestones] = useState(false);
     const [applyLoading, setApplyLoading] = useState(false);
 
     const refreshUser = () => {
@@ -128,7 +130,9 @@ function JobsPageContent() {
                 return;
             }
             setApplyJob(job);
-            setProposal({ price: '', days: '', message: '' });
+            setProposal({ price: '', days: '', revisions: '1', message: '' });
+            setMilestones([]);
+            setShowMilestones(false);
         }
     };
 
@@ -140,11 +144,19 @@ function JobsPageContent() {
             await api.jobs.apply(applyJob._id, {
                 price: Number(proposal.price),
                 deliveryDays: Number(proposal.days),
-                message: proposal.message
+                revisions: Number(proposal.revisions),
+                message: proposal.message,
+                milestones: showMilestones ? milestones.filter(m => m.name && Number(m.price) > 0).map(m => ({
+                    name: m.name,
+                    price: Number(m.price),
+                    deliveryDays: Number(m.deliveryDays)
+                })) : []
             });
             showModal({ title: 'Success', message: 'Application sent!', type: 'success' });
             setApplyJob(null);
-            setProposal({ price: '', days: '', message: '' });
+            setProposal({ price: '', days: '', revisions: '1', message: '' });
+            setMilestones([]);
+            setShowMilestones(false);
         } catch (err: any) {
             showModal({ title: 'Error', message: err.message || 'Failed to apply', type: 'error' });
         } finally {
@@ -350,16 +362,16 @@ function JobsPageContent() {
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-2xl font-bold text-gray-900">Apply to {applyJob.title}</h2>
                             <button
-                                onClick={() => { setApplyJob(null); setProposal({ price: '', days: '', message: '' }); }}
+                                onClick={() => { setApplyJob(null); setProposal({ price: '', days: '', revisions: '1', message: '' }); }}
                                 className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                             >
                                 <X className="w-5 h-5 text-gray-500" />
                             </button>
                         </div>
                         <form onSubmit={handleApplySubmit} className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                 <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Your Price (EGP)</label>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Price (EGP)</label>
                                     <input
                                         required
                                         type="number"
@@ -370,7 +382,7 @@ function JobsPageContent() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Delivery (Days)</label>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Days</label>
                                     <input
                                         required
                                         type="number"
@@ -380,6 +392,95 @@ function JobsPageContent() {
                                         className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none text-gray-900"
                                     />
                                 </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Revisions</label>
+                                    <input
+                                        required
+                                        type="number"
+                                        min="0"
+                                        value={proposal.revisions}
+                                        onChange={e => setProposal({ ...proposal, revisions: e.target.value })}
+                                        className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none text-gray-900"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Milestones Extension */}
+                            <div className="p-4 rounded-2xl border-2 border-gray-100 bg-gray-50/50">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-900">Milestones</label>
+                                        <p className="text-xs text-gray-600 font-medium">Split your proposal into milestones</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowMilestones(!showMilestones)}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${showMilestones ? 'bg-[#09BF44] text-white' : 'bg-gray-200 text-gray-700'}`}
+                                    >
+                                        {showMilestones ? 'Enabled' : 'Add Milestones'}
+                                    </button>
+                                </div>
+                                {showMilestones && (
+                                    <div className="space-y-3">
+                                        {milestones.map((m, idx) => (
+                                            <div key={idx} className="flex flex-col sm:flex-row gap-2 bg-white p-3 rounded-xl border border-gray-200">
+                                                <input
+                                                    placeholder="Task name"
+                                                    value={m.name}
+                                                    onChange={e => {
+                                                        const newMs = [...milestones];
+                                                        newMs[idx].name = e.target.value;
+                                                        setMilestones(newMs);
+                                                    }}
+                                                    className="flex-1 text-sm outline-none px-2"
+                                                />
+                                                <div className="flex gap-2">
+                                                    <input
+                                                        type="number"
+                                                        placeholder="EGP"
+                                                        value={m.price}
+                                                        onChange={e => {
+                                                            const newMs = [...milestones];
+                                                            newMs[idx].price = e.target.value;
+                                                            setMilestones(newMs);
+                                                        }}
+                                                        className="w-20 text-sm border rounded p-1"
+                                                    />
+                                                    <input
+                                                        type="number"
+                                                        placeholder="Days"
+                                                        value={m.deliveryDays}
+                                                        onChange={e => {
+                                                            const newMs = [...milestones];
+                                                            newMs[idx].deliveryDays = e.target.value;
+                                                            setMilestones(newMs);
+                                                        }}
+                                                        className="w-16 text-sm border rounded p-1"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setMilestones(milestones.filter((_, i) => i !== idx))}
+                                                        className="text-red-500 hover:bg-red-50 p-1 rounded"
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        <button
+                                            type="button"
+                                            onClick={() => setMilestones([...milestones, { name: '', price: '', deliveryDays: '' }])}
+                                            className="w-full py-2 border-2 border-dashed border-gray-300 rounded-xl text-sm font-bold text-gray-500 hover:border-[#09BF44] hover:text-[#09BF44] transition-all"
+                                        >
+                                            + Add Milestone
+                                        </button>
+                                        {milestones.length > 0 && (
+                                            <p className="text-xs font-bold text-[#09BF44] text-right">
+                                                Total: {milestones.reduce((sum, m) => sum + (Number(m.price) || 0), 0)} EGP
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-2">Your Proposal</label>
@@ -394,7 +495,7 @@ function JobsPageContent() {
                             <div className="flex gap-4 pt-4">
                                 <button
                                     type="button"
-                                    onClick={() => { setApplyJob(null); setProposal({ price: '', days: '', message: '' }); }}
+                                    onClick={() => { setApplyJob(null); setProposal({ price: '', days: '', revisions: '1', message: '' }); }}
                                     className="flex-1 bg-gray-100 text-gray-700 font-bold p-3 rounded-xl hover:bg-gray-200 transition-colors"
                                 >
                                     Cancel

@@ -8,9 +8,11 @@ const Conversation = require('../models/Conversation');
 const Transaction = require('../models/Transaction');
 const ConsultationPayment = require('../models/ConsultationPayment');
 const { createMeetingLink } = require('../services/meetingService');
+const { sendAndLog } = require('../services/mailgunService');
+const emailTemplates = require('../templates/emailTemplates');
 
 const INSTAPAY_PHONE = process.env.INSTAPAY_PHONE || '+201098611731';
-const INSTAPAY_LINK = process.env.INSTAPAY_LINK || 'https://ipn.eg/S/Engezhaly/instapay/7xyz';
+const INSTAPAY_LINK = process.env.INSTAPAY_LINK || 'https://ipn.eg/S/engezhaly/instapay/3mttQG';
 const CLIENT_FEE = 20;
 
 /**
@@ -218,6 +220,18 @@ const approveInstaPay = async (req, res) => {
                     orderId: newOrder._id,
                     relatedUserId: freelancerId
                 });
+
+                // Email notifications
+                const client = await User.findById(payment.userId);
+                const freelancer = offer.senderId;
+                if (client?.email) {
+                    const { subject, html } = emailTemplates.paymentConfirmed(client.firstName, totalClientPaidOffer, 'Custom Offer', offer.title);
+                    sendAndLog(client.email, subject, html, client._id);
+                }
+                if (freelancer?.email) {
+                    const { subject, html } = emailTemplates.offerPurchased(client?.firstName || 'A client', offer.title || 'Custom Offer', offer.price, newOrder._id);
+                    sendAndLog(freelancer.email, subject, html, freelancer._id);
+                }
             }
         } else if (type === 'consultation' && meta.conversationId) {
             const paymentRecord = new ConsultationPayment({
@@ -256,6 +270,19 @@ const approveInstaPay = async (req, res) => {
                 description: 'Video consultation payment',
                 status: 'completed'
             });
+
+            // Email notifications
+            const client = await User.findById(payment.userId);
+            if (client?.email) {
+                const { subject, html } = emailTemplates.paymentConfirmed(client.firstName, amountEGP, 'Consultation', 'Video Call');
+                sendAndLog(client.email, subject, html, client._id);
+            }
+            const conversationEmails = await Conversation.findById(meta.conversationId).populate('participants');
+            const freelancer = conversationEmails?.participants?.find(p => String(p._id) !== String(payment.userId));
+            if (freelancer?.email) {
+                const { subject, html } = emailTemplates.offerPurchased(client?.firstName || 'A client', 'Video Consultation', amountEGP, null);
+                sendAndLog(freelancer.email, subject, html, freelancer._id);
+            }
 
             // If meeting date/time were pre-selected, create the meeting now
             if (meta.meetingDate && meta.meetingTime) {
@@ -329,6 +356,19 @@ const approveInstaPay = async (req, res) => {
                     orderId: order._id,
                     relatedUserId: freelancerId
                 });
+
+                // Email notifications
+                const client = await User.findById(payment.userId);
+                const freelancer = await User.findById(order.sellerId);
+                const title = 'Project Order';
+                if (client?.email) {
+                    const { subject, html } = emailTemplates.paymentConfirmed(client.firstName, totalPays, 'Order Payment', title);
+                    sendAndLog(client.email, subject, html, client._id);
+                }
+                if (freelancer?.email) {
+                    const { subject, html } = emailTemplates.offerPurchased(client?.firstName || 'A client', title, order.amount, order._id);
+                    sendAndLog(freelancer.email, subject, html, freelancer._id);
+                }
             }
         } else if (type === 'job_proposal' && meta.jobId && meta.proposalId) {
             const job = await Job.findById(meta.jobId);
@@ -353,6 +393,18 @@ const approveInstaPay = async (req, res) => {
                     relatedUserId: freelancerId,
                     metadata: { jobId: meta.jobId, proposalId: meta.proposalId }
                 });
+
+                // Email notifications
+                const client = await User.findById(payment.userId);
+                const freelancer = await User.findById(proposal.freelancerId);
+                if (client?.email) {
+                    const { subject, html } = emailTemplates.paymentConfirmed(client.firstName, totalPays, 'Job Payment', job.title);
+                    sendAndLog(client.email, subject, html, client._id);
+                }
+                if (freelancer?.email) {
+                    const { subject, html } = emailTemplates.offerPurchased(client?.firstName || 'A client', job.title, proposal.price, null);
+                    sendAndLog(freelancer.email, subject, html, freelancer._id);
+                }
             }
         }
 
@@ -378,6 +430,13 @@ const denyInstaPay = async (req, res) => {
         payment.adminReviewedAt = new Date();
         payment.adminNotes = req.body.notes || '';
         await payment.save();
+
+        // Email notification to client
+        const client = await User.findById(payment.userId);
+        if (client?.email) {
+            const { subject, html } = emailTemplates.orderDenied(client.firstName, payment.meta?.type || 'Payment', payment.amountEGP, null);
+            sendAndLog(client.email, subject, html, client._id);
+        }
 
         res.json({ payment });
     } catch (err) {

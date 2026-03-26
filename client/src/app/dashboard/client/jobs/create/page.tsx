@@ -70,8 +70,8 @@ export default function PostJobPage() {
             return;
         }
 
-        if (!jobData.category || !jobData.subCategory) {
-            setError('Please select both category and subcategory.');
+        if (!jobData.category) {
+            setError('Please select a category.');
             setLoading(false);
             return;
         }
@@ -186,7 +186,6 @@ export default function PostJobPage() {
                                     <label className="block text-sm font-bold text-gray-700 mb-2">Subcategory</label>
                                     <select
                                         name="subCategory"
-                                        required
                                         value={jobData.subCategory}
                                         onChange={handleChange}
                                         disabled={!jobData.category}

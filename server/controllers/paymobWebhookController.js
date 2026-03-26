@@ -9,6 +9,8 @@ const Conversation = require('../models/Conversation');
 const ConsultationPayment = require('../models/ConsultationPayment');
 const { verifyWebhookHmac } = require('../services/paymobService');
 const { createMeetingLink } = require('../services/meetingService');
+const { sendAndLog } = require('../services/mailgunService');
+const emailTemplates = require('../templates/emailTemplates');
 
 const CLIENT_PLATFORM_FEE = 20; // 20 EGP charged to client on each payment
 // Freelancer receives full amount; 20 EGP withdrawal fee applied when they withdraw
@@ -46,6 +48,18 @@ const fulfillCharge = async (pendingCharge, app) => {
                 relatedUserId: freelancerId,
                 metadata: { jobId: meta.jobId, proposalId: meta.proposalId }
             });
+
+            // Email notifications
+            const client = job.clientId;
+            const freelancer = job.freelancerId;
+            if (client?.email) {
+                const { subject, html } = emailTemplates.paymentConfirmed(client.firstName, totalClientPaid, 'Job Payment', job.title);
+                sendAndLog(client.email, subject, html, client._id);
+            }
+            if (freelancer?.email) {
+                const { subject, html } = emailTemplates.offerPurchased(client?.firstName || 'A client', job.title, proposal.price, null);
+                sendAndLog(freelancer.email, subject, html, freelancer._id);
+            }
             break;
         }
         case 'project_order': {
@@ -70,6 +84,19 @@ const fulfillCharge = async (pendingCharge, app) => {
                 orderId: order._id,
                 relatedUserId: freelancerId
             });
+
+            // Email notifications
+            const client = order.buyerId;
+            const freelancer = order.sellerId;
+            const title = order.projectId?.title || 'Project Order';
+            if (client?.email) {
+                const { subject, html } = emailTemplates.paymentConfirmed(client.firstName, totalClientPaid, 'Order Payment', title);
+                sendAndLog(client.email, subject, html, client._id);
+            }
+            if (freelancer?.email) {
+                const { subject, html } = emailTemplates.offerPurchased(client?.firstName || 'A client', title, order.amount, order._id);
+                sendAndLog(freelancer.email, subject, html, freelancer._id);
+            }
             break;
         }
         case 'custom_offer': {
@@ -131,6 +158,18 @@ const fulfillCharge = async (pendingCharge, app) => {
                 orderId: order._id,
                 relatedUserId: sellerId
             });
+
+            // Email notifications
+            const client = await User.findById(pendingCharge.userId);
+            const freelancer = offer.senderId;
+            if (client?.email) {
+                const { subject, html } = emailTemplates.paymentConfirmed(client.firstName, totalClientPaid, 'Custom Offer', offer.title);
+                sendAndLog(client.email, subject, html, client._id);
+            }
+            if (freelancer?.email) {
+                const { subject, html } = emailTemplates.offerPurchased(client?.firstName || 'A client', offer.title || 'Custom Offer', offer.price, order._id);
+                sendAndLog(freelancer.email, subject, html, freelancer._id);
+            }
             break;
         }
         case 'consultation': {
@@ -232,6 +271,19 @@ const fulfillCharge = async (pendingCharge, app) => {
                 status: 'completed',
                 metadata: { conversationId }
             });
+
+            // Email notifications
+            const client = await User.findById(userId);
+            if (client?.email) {
+                const { subject, html } = emailTemplates.paymentConfirmed(client.firstName, amount, 'Consultation', 'Video Call');
+                sendAndLog(client.email, subject, html, client._id);
+            }
+            const conversationEmails = await Conversation.findById(conversationId).populate('participants');
+            const freelancer = conversationEmails?.participants?.find(p => String(p._id) !== String(userId));
+            if (freelancer?.email) {
+                const { subject, html } = emailTemplates.offerPurchased(client?.firstName || 'A client', 'Video Consultation', amount, null);
+                sendAndLog(freelancer.email, subject, html, freelancer._id);
+            }
             break;
         }
         case 'add_card':

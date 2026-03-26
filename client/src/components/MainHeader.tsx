@@ -250,7 +250,7 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                                 alt="Engezhaly"
                                 width={260}
                                 height={66}
-                                className="h-9 sm:h-10 md:h-20 w-auto"
+                                className="h-9 sm:h-10 md:h-18 w-auto"
                                 priority
                             />
                         </div>

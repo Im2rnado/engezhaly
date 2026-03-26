@@ -3,13 +3,6 @@ const User = require('../models/User');
 const { sendAndLog } = require('../services/mailgunService');
 const { jobApplication: jobApplicationTemplate } = require('../templates/emailTemplates');
 const { emitToUser, isUserOnline } = require('../services/notificationService');
-const fs = require('fs');
-
-const log = (data) => {
-    try {
-        fs.appendFileSync('c:\\Users\\DELL\\Desktop\\webicco\\engezhaly\\code\\.cursor\\debug.log', JSON.stringify(data) + '\n');
-    } catch (e) { }
-};
 
 const { isValidCategorySubCategory } = require('../config/categories');
 
@@ -22,10 +15,10 @@ const createJob = async (req, res) => {
             return res.status(400).json({ msg: 'Minimum budget must be 500 EGP' });
         }
 
-        if (!category || !subCategory) {
-            return res.status(400).json({ msg: 'Category and subcategory are required' });
+        if (!category) {
+            return res.status(400).json({ msg: 'Category is required' });
         }
-        if (!isValidCategorySubCategory(category, subCategory)) {
+        if (subCategory && !isValidCategorySubCategory(category, subCategory)) {
             return res.status(400).json({ msg: 'Invalid subcategory for this category' });
         }
 
@@ -84,13 +77,9 @@ const applyToJob = async (req, res) => {
         if (req.user.role !== 'freelancer') {
             return res.status(403).json({ msg: 'Only freelancers can apply to jobs' });
         }
-        const { price, deliveryDays, message } = req.body;
+        const { price, deliveryDays, revisions, message, milestones } = req.body;
         const jobId = req.params.id;
         const freelancerId = req.user.id;
-
-        // #region agent log
-        log({ location: 'server/controllers/jobController.js:46', message: 'Applying to job', data: { jobId, freelancerId, price }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: '5' });
-        // #endregion
 
         const job = await Job.findById(jobId).populate('clientId', 'email');
         if (!job) return res.status(404).json({ msg: 'Job not found' });
@@ -104,9 +93,6 @@ const applyToJob = async (req, res) => {
 
         // Check if already applied
         if (job.proposals.some(p => p.freelancerId && p.freelancerId.toString() === freelancerId)) {
-            // #region agent log
-            log({ location: 'server/controllers/jobController.js:58', message: 'Duplicate application blocked', data: { jobId, freelancerId }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: '5' });
-            // #endregion
             return res.status(400).json({ msg: 'You have already applied to this job' });
         }
 
@@ -114,7 +100,9 @@ const applyToJob = async (req, res) => {
             freelancerId,
             price,
             deliveryDays,
+            revisions: revisions || 0,
             message,
+            milestones: milestones || [],
             status: 'pending'
         };
 
@@ -145,11 +133,7 @@ const applyToJob = async (req, res) => {
             }
         }
 
-        // #region agent log
-        log({ location: 'server/controllers/jobController.js:84', message: 'Application successful', data: { jobId }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: '5' });
-        // #endregion
-
-        res.json(job.proposals);
+        res.json(newProposal);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');

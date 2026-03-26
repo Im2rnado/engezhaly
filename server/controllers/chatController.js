@@ -4,6 +4,7 @@ const Conversation = require('../models/Conversation');
 const ConsultationPayment = require('../models/ConsultationPayment');
 const Offer = require('../models/Offer');
 const Order = require('../models/Order');
+const Job = require('../models/Job');
 const Transaction = require('../models/Transaction');
 const { createMeetingLink } = require('../services/meetingService');
 const { sendAndLog } = require('../services/mailgunService');
@@ -423,10 +424,32 @@ const getConsultationStatus = async (req, res) => {
             used: true
         }).sort({ meetingScheduledAt: -1 });
 
+        // Check for ongoing order or job - consultation is FREE
+        const participants = conversation.participants.map(p => String(p));
+        const activeOrder = await Order.findOne({
+            $or: [
+                { buyerId: participants[0], sellerId: participants[1] },
+                { buyerId: participants[1], sellerId: participants[0] }
+            ],
+            status: { $in: ['active', 'pending_payment', 'pending'] }
+        });
+
+        const activeJob = await Job.findOne({
+            $or: [
+                { clientId: participants[0], 'proposals.freelancerId': participants[1] },
+                { clientId: participants[1], 'proposals.freelancerId': participants[0] }
+            ],
+            status: 'in_progress',
+            'proposals.status': 'accepted'
+        });
+
+        const isFree = !!(activeOrder || activeJob);
+
         res.json({
             hasUnusedPayment: !!unusedPayment,
             lastMeetingLink: lastUsedPayment?.meetingLink || null,
-            lastMeetingDate: lastUsedPayment?.meetingDate || null
+            lastMeetingDate: lastUsedPayment?.meetingDate || null,
+            isFree
         });
     } catch (err) {
         console.error(err.message);
@@ -448,12 +471,34 @@ const createConsultationMeeting = async (req, res) => {
             return res.status(403).json({ msg: 'Unauthorized' });
         }
 
+        const participants = conversation.participants.map(p => String(p));
         const payment = await ConsultationPayment.findOne({
             conversationId,
             used: false
         });
-        if (!payment) {
-            return res.status(400).json({ msg: 'No unused consultation payment. Please pay 100 EGP first.' });
+
+        // Check for active job/order to make it free
+        const activeOrder = await Order.findOne({
+            $or: [
+                { buyerId: participants[0], sellerId: participants[1] },
+                { buyerId: participants[1], sellerId: participants[0] }
+            ],
+            status: { $in: ['active', 'pending_payment', 'pending'] }
+        });
+
+        const activeJob = await Job.findOne({
+            $or: [
+                { clientId: participants[0], 'proposals.freelancerId': participants[1] },
+                { clientId: participants[1], 'proposals.freelancerId': participants[0] }
+            ],
+            status: 'in_progress',
+            'proposals.status': 'accepted'
+        });
+
+        const isFree = !!(activeOrder || activeJob);
+
+        if (!payment && !isFree) {
+            return res.status(400).json({ msg: 'No active job/order and no unused consultation payment. Please pay first.' });
         }
 
         const [year, month, day] = meetingDate.split('-').map(Number);
@@ -468,11 +513,26 @@ const createConsultationMeeting = async (req, res) => {
             return res.status(500).json({ msg: error || 'Failed to create meeting link' });
         }
 
-        payment.used = true;
-        payment.meetingLink = link;
-        payment.meetingDate = scheduledAt;
-        payment.meetingScheduledAt = new Date();
-        await payment.save();
+        if (payment) {
+            payment.used = true;
+            payment.meetingLink = link;
+            payment.meetingDate = scheduledAt;
+            payment.meetingScheduledAt = new Date();
+            await payment.save();
+        } else if (isFree) {
+            // Log a 0-amount payment for tracking purposes
+            await ConsultationPayment.create({
+                conversationId,
+                buyerId: participants.find(id => String(id) !== String(userId)) || userId, // simplified
+                sellerId: participants.find(id => String(id) === String(userId)) || userId,
+                amount: 0,
+                status: 'paid',
+                used: true,
+                meetingLink: link,
+                meetingDate: scheduledAt,
+                meetingScheduledAt: new Date()
+            });
+        }
 
         const otherParticipant = conversation.participants.find(p => String(p) !== String(userId));
         const receiverId = otherParticipant ? String(otherParticipant) : null;

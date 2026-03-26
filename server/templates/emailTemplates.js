@@ -187,6 +187,54 @@ function disputeResolved(title, outcome, orderId) {
     return { subject: `Dispute resolved: ${title || 'Order'}`, html: wrapEmail(content) };
 }
 
+function workSubmitted(clientName, freelancerName, title, orderId) {
+    const link = `${FRONTEND_URL}/dashboard/client?tab=orders`;
+    const content = `
+        <h2 style="margin: 0 0 16px; font-size: 22px; color: #111827;">Work Submitted for Your Review</h2>
+        <p style="margin: 0 0 16px; font-size: 16px; line-height: 1.6; color: #4b5563;">
+            Hi ${clientName}, <strong>${freelancerName}</strong> has submitted the work for <strong>${title}</strong>.
+        </p>
+        <p style="margin: 0 0 16px; font-size: 14px; color: #6b7280;">
+            Please review the submission in your dashboard. You can approve it to release the payment or request revisions.
+        </p>
+        ${ctaButton('Review Submission', link)}
+    `;
+    return { subject: `Work submitted for: ${title}`, html: wrapEmail(content) };
+}
+
+function bundlePurchased(freelancerName, clientName, bundleType, amount) {
+    const link = `${FRONTEND_URL}/dashboard/freelancer?tab=orders`;
+    const content = `
+        <h2 style="margin: 0 0 16px; font-size: 22px; color: #111827;">New Bundle Order Received!</h2>
+        <p style="margin: 0 0 16px; font-size: 16px; line-height: 1.6; color: #4b5563;">
+            Hi ${freelancerName}, <strong>${clientName}</strong> has purchased your <strong>${bundleType}</strong> bundle.
+        </p>
+        <p style="margin: 0 0 16px; font-size: 16px; color: #111827;">
+            Amount: <strong>${amount} EGP</strong>
+        </p>
+        <p style="margin: 0 0 16px; font-size: 14px; color: #6b7280;">
+            The client will provide details in the chat. You can now start the work.
+        </p>
+        ${ctaButton('View Order', link)}
+    `;
+    return { subject: `New ${bundleType} bundle order!`, html: wrapEmail(content) };
+}
+
+function paymentConfirmed(userName, amount, type, title) {
+    const link = `${FRONTEND_URL}/dashboard/${userName.includes('Client') ? 'client' : 'freelancer'}?tab=wallet`;
+    const content = `
+        <h2 style="margin: 0 0 16px; font-size: 22px; color: #111827;">Payment Confirmed</h2>
+        <p style="margin: 0 0 16px; font-size: 16px; line-height: 1.6; color: #4b5563;">
+            Hi ${userName}, your payment of <strong>${amount} EGP</strong> for <strong>${title || type}</strong> has been confirmed.
+        </p>
+        <p style="margin: 0 0 16px; font-size: 14px; color: #6b7280;">
+            Wait for the freelancer to start the work or check your dashboard for updates.
+        </p>
+        ${ctaButton('View Wallet', link)}
+    `;
+    return { subject: 'Payment confirmed successfully', html: wrapEmail(content) };
+}
+
 module.exports = {
     verification,
     jobApplication,
@@ -199,5 +247,8 @@ module.exports = {
     freelancerApproved,
     disputeResolved,
     orderApproved,
-    orderDenied
+    orderDenied,
+    workSubmitted,
+    bundlePurchased,
+    paymentConfirmed
 };

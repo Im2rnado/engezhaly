@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const OrderSchema = new mongoose.Schema({
+    orderNumber: { type: Number, unique: true },
     projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Project' }, // Optional for custom offers
     buyerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     sellerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -23,5 +24,18 @@ const OrderSchema = new mongoose.Schema({
         updatedAt: { type: Date, default: null }
     }
 }, { timestamps: true });
+
+OrderSchema.pre('save', async function (next) {
+    if (this.isNew && !this.orderNumber) {
+        const Sequence = mongoose.model('Sequence');
+        const sequence = await Sequence.findOneAndUpdate(
+            { name: 'orderNumber' },
+            { $inc: { value: 1 } },
+            { new: true, upsert: true, setDefaultsOnInsert: true }
+        );
+        this.orderNumber = sequence.value;
+    }
+    next();
+});
 
 module.exports = mongoose.model('Order', OrderSchema);

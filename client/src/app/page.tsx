@@ -435,35 +435,35 @@ export default function Home() {
       <section className="bg-[#f1fdf4] py-16 md:py-24">
         <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6 flex flex-col md:flex-row items-center gap-8 md:gap-12">
           <div className="md:w-1/2">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-8">A whole world of freelance talent at your fingertips</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-8">Why is Engezhaly the go to freelancing platform in Egypt ?</h2>
 
             <div className="space-y-6">
               <div className="flex gap-4">
-                <div className="mt-1"><ShieldCheck className="w-6 h-6 text-gray-600" /></div>
+                <div className="mt-1"><ShieldCheck className="w-6 h-6 text-[#09BF44]" /></div>
                 <div>
                   <h3 className="text-xl font-bold text-gray-800">The best for every budget</h3>
                   <p className="text-gray-600 mt-1">Find high-quality services at every price point. No hourly rates, just project-based pricing.</p>
                 </div>
               </div>
               <div className="flex gap-4">
-                <div className="mt-1"><Zap className="w-6 h-6 text-gray-600" /></div>
+                <div className="mt-1"><Zap className="w-6 h-6 text-[#09BF44]" /></div>
                 <div>
                   <h3 className="text-xl font-bold text-gray-800">Quality work done quickly</h3>
-                  <p className="text-gray-600 mt-1">Find the right freelancer to begin working on your project within minutes.</p>
+                  <p className="text-gray-600 mt-1">Find the right freelancer to begin working on your project within minutes. no waiting, no complicated steps.</p>
                 </div>
               </div>
               <div className="flex gap-4">
-                <div className="mt-1"><ShieldCheck className="w-6 h-6 text-gray-600" /></div>
+                <div className="mt-1"><ShieldCheck className="w-6 h-6 text-[#09BF44]" /></div>
                 <div>
                   <h3 className="text-xl font-bold text-gray-800">Protected payments, every time</h3>
-                  <p className="text-gray-600 mt-1">Always know what you&apos;ll pay upfront. Your payment isn&apos;t released until you approve the work.</p>
+                  <p className="text-gray-600 mt-1">Your money stays protected and is only released when you approve the work — simple and secure.</p>
                 </div>
               </div>
               <div className="flex gap-4">
-                <div className="mt-1"><Star className="w-6 h-6 text-gray-600" /></div>
+                <div className="mt-1"><Sparkles className="w-6 h-6 text-[#09BF44]" /></div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-800">24/7 support</h3>
-                  <p className="text-gray-600 mt-1">Questions? Our round-the-clock support team is available to help anytime, anywhere.</p>
+                  <h3 className="text-xl font-bold text-gray-800">Work your way, your choice</h3>
+                  <p className="text-gray-600 mt-1">Choose how you want to get things done &mdash; pick a bundle, chat for a custom deal, or post a job and receive offers.</p>
                 </div>
               </div>
             </div>
