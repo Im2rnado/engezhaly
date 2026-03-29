@@ -8,6 +8,22 @@ require('dotenv').config();
 
 const app = express();
 const server = http.createServer(app);
+// Sync Models at startup (registers with mongoose global instance)
+require('./models/User');
+require('./models/Project');
+require('./models/Job');
+require('./models/Order');
+require('./models/Offer');
+require('./models/Sequence');
+require('./models/Conversation');
+require('./models/Chat');
+require('./models/Transaction');
+require('./models/Strike');
+require('./models/Reward');
+require('./models/EmailLog');
+require('./models/Announcement');
+require('./models/AnnouncementRead');
+
 const io = new Server(server, {
     cors: {
         origin: ["https://engezhaly.com", "https://www.engezhaly.com", "http://localhost:3000"],

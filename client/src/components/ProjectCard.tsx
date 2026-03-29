@@ -257,7 +257,7 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                             }
 
                             const url = `/chat?conversation=${conversation?.id ?? sellerId}`;
-            router.push(variant === 'default' && project?._id ? `${url}&projectId=${project._id}` : url);
+                            router.push(variant === 'default' && project?._id ? `${url}&projectId=${project._id}` : url);
                         } catch (err: any) {
                             console.error(err);
                             showModal({
@@ -412,7 +412,7 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                             {orderModalStep === 'description' && (
                                 <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4" onClick={() => setOrderModalStep(null)}>
                                     <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                                        <h3 className="text-lg font-bold mb-2">Order Description</h3>
+                                        <h3 className="text-lg font-bold mb-2 text-gray-900">Order Description</h3>
                                         <p className="text-sm text-gray-600 mb-4">Describe what you need. The freelancer will see this and must approve before work starts.</p>
                                         {currentPackage?.type && (
                                             <div className="mb-4 p-4 rounded-xl bg-gray-50 border border-gray-200">
@@ -437,7 +437,7 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                                             value={orderDescription}
                                             onChange={e => setOrderDescription(e.target.value)}
                                             placeholder="Describe your requirements..."
-                                            className="w-full p-4 rounded-xl border-2 border-gray-200 focus:border-[#09BF44] outline-none resize-none h-32 mb-4"
+                                            className="w-full p-4 rounded-xl border-2 border-gray-100 focus:border-[#09BF44] focus:bg-white bg-gray-50 outline-none resize-none text-gray-900 placeholder:text-gray-400"
                                             required
                                         />
                                         <div className="flex gap-2 justify-end">
@@ -459,7 +459,7 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                             {orderModalStep === 'confirm' && (
                                 <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4" onClick={() => setOrderModalStep(null)}>
                                     <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                                        <h3 className="text-lg font-bold mb-2">Confirm Order</h3>
+                                        <h3 className="text-lg font-bold mb-2 text-gray-900">Confirm Order</h3>
                                         {currentPackage?.type && (
                                             <div className="mb-3 p-3 rounded-xl bg-[#09BF44]/5 border border-[#09BF44]/20">
                                                 <p className="text-sm font-bold text-gray-800 mb-2">Bundle: <span className="text-[#09BF44]">{currentPackage.type}</span></p>

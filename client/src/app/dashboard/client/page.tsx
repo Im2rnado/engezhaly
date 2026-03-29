@@ -651,7 +651,7 @@ function ClientDashboardContent() {
                 {reviewModal && (
                     <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4" onClick={() => setReviewModal(null)}>
                         <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl" onClick={e => e.stopPropagation()}>
-                            <h3 className="text-lg font-bold mb-2">Leave a Review</h3>
+                            <h3 className="text-lg font-bold mb-2 text-gray-900">Leave a Review</h3>
                             <p className="text-sm text-gray-600 mb-4">How was your experience with {reviewModal.order.sellerId?.firstName} {reviewModal.order.sellerId?.lastName}?</p>
                             <div className="flex gap-1 mb-4">
                                 {[1, 2, 3, 4, 5].map((n) => (
