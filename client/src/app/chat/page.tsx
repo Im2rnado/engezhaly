@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
-import { Send, Video, Paperclip, FileText, CheckCircle, XCircle, MessageSquare, Shield, PanelLeft, ArrowLeft, Loader2, Mic, Square, Trash2, ScrollText, Link as LinkIcon } from 'lucide-react';
+import { Send, Video, Paperclip, FileText, CheckCircle, XCircle, MessageSquare, Shield, PanelLeft, ArrowLeft, Loader2, Mic, Square, Trash2, ScrollText, Link as LinkIcon, Clock } from 'lucide-react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
 import { formatDateDDMMYYYY } from '@/lib/utils';
@@ -45,6 +45,7 @@ function ChatPageContent() {
     const [checkoutTitle, setCheckoutTitle] = useState('Complete Payment');
     const [paymentChoiceConfig, setPaymentChoiceConfig] = useState<{ type: string; amountCents: number; callbackSuccessUrl?: string; orderId?: string; offerId?: string; jobId?: string; proposalId?: string; conversationId?: string; durationMinutes?: number; meetingDate?: string; meetingTime?: string } | null>(null);
     const [pendingOrderForChat, setPendingOrderForChat] = useState<any>(null);
+    const [pendingApprovalOrder, setPendingApprovalOrder] = useState<any>(null);
     const [pendingPaymentOrder, setPendingPaymentOrder] = useState<any>(null);
     const [pendingWorkToApprove, setPendingWorkToApprove] = useState<{ order?: any; job?: any; activeJobForNav?: any } | null>(null);
     const [pendingOrderAction, setPendingOrderAction] = useState<'approve' | 'deny' | null>(null);
@@ -319,6 +320,22 @@ function ChatPageContent() {
             );
             setPendingPaymentOrder(pending || null);
         }).catch(() => setPendingPaymentOrder(null));
+    }, [conversationId, activeChat?.partnerId, activeChat?.id]);
+
+    // Client: fetch pending_approval order for this chat partner (awaiting freelancer approval)
+    useEffect(() => {
+        const stored = JSON.parse(localStorage.getItem('user') || '{}');
+        if (stored.role !== 'client' || !activeChat?.partnerId) {
+            setPendingApprovalOrder(null);
+            return;
+        }
+        const partnerId = String(activeChat.partnerId?._id ?? activeChat.partnerId);
+        api.client.getMyOrders().then((orders: any[]) => {
+            const pending = orders.find(
+                (o) => o.status === 'pending_approval' && String(o.sellerId?._id ?? o.sellerId) === partnerId
+            );
+            setPendingApprovalOrder(pending || null);
+        }).catch(() => setPendingApprovalOrder(null));
     }, [conversationId, activeChat?.partnerId, activeChat?.id]);
 
     // Listen for presence (online/offline)
@@ -1142,6 +1159,18 @@ function ChatPageContent() {
                                         </button>
                                     </div>
                                 </div>
+
+                                {/* Client: Awaiting Approval from Freelancer (after order placed) */}
+                                {pendingApprovalOrder && currentUser?.role === 'client' && (
+                                    <div className="mx-3 md:mx-6 mt-3 p-4 rounded-xl bg-blue-50 border-2 border-slate-200 shadow-sm animate-pulse">
+                                        <p className="text-sm font-bold text-slate-800 mb-1 flex items-center gap-2">
+                                            <Clock className="w-4 h-4 text-blue-600" /> Awaiting Freelancer Approval
+                                        </p>
+                                        <p className="text-gray-600 text-[11px] leading-relaxed">
+                                            Your order has been submitted. The freelancer is reviewing your requirements. You will be able to pay once they approve.
+                                        </p>
+                                    </div>
+                                )}
 
                                 {/* Client: Awaiting Payment - freelancer approved, client needs to pay */}
                                 {pendingPaymentOrder && currentUser?.role === 'client' && (

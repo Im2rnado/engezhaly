@@ -236,12 +236,10 @@ const createProjectOrder = async (req, res) => {
 ----------------------------
 Bundle: ${selectedPackage.type}
 Amount: ${amount} EGP
-⏱Delivery: ${selectedPackage.days} Days
+Delivery: ${selectedPackage.days} Days
 
-📝 Description:
-${description.trim()}
-----------------------------
-You can approve or decline this order from your dashboard.`,
+Description:
+${description.trim()}`,
             messageType: 'order'
         });
         await orderChat.save();
