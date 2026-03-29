@@ -424,15 +424,19 @@ export const api = {
                 headers: getHeaders(),
                 body: JSON.stringify(data),
             });
-            if (!res.ok) throw new Error('Failed to create project');
-            return res.json();
+            const result = await res.json().catch(() => ({ msg: 'Failed to create project' }));
+            if (!res.ok) throw new Error(result.msg || 'Failed to create project');
+            return result;
         },
         getAll: async () => {
             const res = await fetch(`${API_URL}/projects`, {
                 method: 'GET',
                 headers: getHeaders()
             });
-            if (!res.ok) throw new Error('Failed to fetch projects');
+            if (!res.ok) {
+                const error = await res.json().catch(() => ({ msg: 'Failed to fetch projects' }));
+                throw new Error(error.msg || 'Failed to fetch projects');
+            }
             return res.json();
         },
         getMyProjects: async () => {
@@ -440,7 +444,10 @@ export const api = {
                 method: 'GET',
                 headers: getHeaders()
             });
-            if (!res.ok) throw new Error('Failed to fetch my projects');
+            if (!res.ok) {
+                const error = await res.json().catch(() => ({ msg: 'Failed to fetch my projects' }));
+                throw new Error(error.msg || 'Failed to fetch my projects');
+            }
             return res.json();
         },
         getById: async (id: string) => {
@@ -448,7 +455,10 @@ export const api = {
                 method: 'GET',
                 headers: getHeaders()
             });
-            if (!res.ok) throw new Error('Failed to fetch project');
+            if (!res.ok) {
+                const error = await res.json().catch(() => ({ msg: 'Failed to fetch project' }));
+                throw new Error(error.msg || 'Failed to fetch project');
+            }
             return res.json();
         },
         update: async (id: string, data: any) => {
@@ -457,8 +467,9 @@ export const api = {
                 headers: getHeaders(),
                 body: JSON.stringify(data),
             });
-            if (!res.ok) throw new Error('Failed to update project');
-            return res.json();
+            const result = await res.json().catch(() => ({ msg: 'Failed to update project' }));
+            if (!res.ok) throw new Error(result.msg || 'Failed to update project');
+            return result;
         },
         createOrder: async (projectId: string, packageIndex: number, description: string) => {
             const res = await fetch(`${API_URL}/projects/${projectId}/order`, {
