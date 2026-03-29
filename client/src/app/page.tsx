@@ -88,7 +88,7 @@ export default function Home() {
             variants={stagger} 
             className="w-full md:w-1/2 flex flex-col justify-center"
           >
-            <motion.div variants={fadeIn} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/60 backdrop-blur-md text-[#07a63a] font-bold text-sm w-fit mb-6 border border-white/50 shadow-sm">
+            <motion.div variants={fadeIn} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/90 text-[#07a63a] font-bold text-sm w-fit mb-6 border border-gray-100 shadow-sm">
               <Sparkles className="w-4 h-4 text-[#09BF44]" />
               <span>The #1 Freelance Network in Egypt</span>
             </motion.div>
@@ -111,7 +111,7 @@ export default function Home() {
                 if (heroSearchQuery.trim()) params.set("search", heroSearchQuery.trim());
                 router.push(`/jobs?${params.toString()}`);
               }}
-              className="bg-white/90 backdrop-blur-md rounded-2xl p-2 flex flex-col sm:flex-row sm:items-center w-full max-w-xl mb-8 shadow-xl border border-white focus-within:ring-4 focus-within:ring-[#09BF44]/20 transition-all"
+              className="bg-white rounded-2xl p-2 flex flex-col sm:flex-row sm:items-center w-full max-w-xl mb-8 shadow-xl border border-gray-100 focus-within:ring-4 focus-within:ring-[#09BF44]/20 transition-all"
             >
               <div className="pl-4 pt-3 sm:pt-0 flex items-center">
                 <Search className="text-gray-400 w-6 h-6" />
@@ -146,7 +146,7 @@ export default function Home() {
             <div className="relative w-full max-w-lg aspect-square">
               {/* Clean solid geometric backgrounds instead of heavy blurred shadows */}
               <div className="absolute inset-0 bg-[#09BF44]/20 rounded-[40px] rotate-6 transform-gpu"></div>
-              <div className="absolute inset-0 bg-white/40 rounded-[40px] -rotate-3 transform-gpu backdrop-blur-sm border border-white/50"></div>
+              <div className="absolute inset-0 bg-white/80 rounded-[40px] -rotate-3 transform-gpu border border-white/50"></div>
               
               <div className="relative bg-white rounded-[40px] shadow-2xl border border-gray-100/50 overflow-hidden flex flex-col p-8 h-full transform-gpu">
                  <div className="flex items-center justify-between mb-8">
@@ -175,8 +175,8 @@ export default function Home() {
                  </div>
               </div>
 
-              {/* Simple Float animations using hardware acceleration */}
-              <motion.div animate={{ y: [-8, 8, -8] }} transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }} className="absolute -left-6 top-1/4 bg-white p-4 rounded-2xl shadow-xl flex items-center gap-3 border border-gray-100 z-20 transform-gpu">
+              {/* Static elements with entrance animation (removed infinite floats for max performance) */}
+              <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.6 }} className="absolute -left-6 top-1/4 bg-white p-4 rounded-2xl shadow-xl flex items-center gap-3 border border-gray-100 z-20 hover:-translate-y-1 transition-transform">
                 <div className="bg-orange-100 p-2.5 rounded-full text-orange-500"><Star className="w-5 h-5" fill="currentColor" /></div>
                 <div>
                   <p className="font-black text-gray-900 text-sm">4.9/5 Rating</p>
@@ -184,7 +184,7 @@ export default function Home() {
                 </div>
               </motion.div>
               
-              <motion.div animate={{ y: [8, -8, 8] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut", delay: 1 }} className="absolute -right-4 bottom-1/4 bg-white p-4 rounded-2xl shadow-xl flex items-center gap-3 border border-gray-100 z-20 transform-gpu">
+              <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.8 }} className="absolute -right-4 bottom-1/4 bg-white p-4 rounded-2xl shadow-xl flex items-center gap-3 border border-gray-100 z-20 hover:-translate-y-1 transition-transform">
                 <div className="bg-green-100 p-2.5 rounded-full text-[#09BF44]"><ShieldCheck className="w-5 h-5" /></div>
                 <div>
                   <p className="font-black text-gray-900 text-sm">100% Secure</p>
@@ -197,26 +197,29 @@ export default function Home() {
       </section>
 
       {/* NEW BOLD SECTION: Stats & Trust */}
-      <section className="bg-gray-900 py-16 text-white border-y border-gray-800 relative z-20 -mt-1 shadow-2xl">
-        <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 text-center divide-x divide-white/10">
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}>
-              <p className="text-4xl md:text-5xl font-black text-[#09BF44] mb-2 tracking-tighter">100+</p>
-              <p className="text-sm md:text-base text-gray-400 font-bold uppercase tracking-widest">Active Projects</p>
+      <section className="bg-black py-20 text-white border-y-[6px] border-[#09BF44] relative z-20 overflow-hidden">
+        {/* Subtle geometric light on black */}
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#09BF44]/20 via-transparent to-transparent pointer-events-none opacity-40"></div>
+        
+        <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6 relative z-10">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={stagger} className="grid grid-cols-2 md:grid-cols-4 gap-12 md:gap-8 text-center divide-x divide-white/10">
+            <motion.div variants={fadeIn} className="group cursor-default py-4">
+              <p className="text-6xl md:text-7xl font-black text-white mb-3 tracking-tighter group-hover:text-[#09BF44] group-hover:scale-110 transition-all duration-300 transform-gpu">100+</p>
+              <p className="text-xs md:text-sm text-gray-400 font-bold uppercase tracking-[0.2em] group-hover:text-gray-200 transition-colors">Active Projects</p>
             </motion.div>
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}>
-              <p className="text-4xl md:text-5xl font-black text-[#09BF44] mb-2 tracking-tighter">99%</p>
-              <p className="text-sm md:text-base text-gray-400 font-bold uppercase tracking-widest">Client Satisfaction</p>
+            <motion.div variants={fadeIn} className="group cursor-default py-4">
+              <p className="text-6xl md:text-7xl font-black text-white mb-3 tracking-tighter group-hover:text-[#09BF44] group-hover:scale-110 transition-all duration-300 transform-gpu">99%</p>
+              <p className="text-xs md:text-sm text-gray-400 font-bold uppercase tracking-[0.2em] group-hover:text-gray-200 transition-colors">Client Satisfaction</p>
             </motion.div>
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.3 }}>
-              <p className="text-4xl md:text-5xl font-black text-[#09BF44] mb-2 tracking-tighter">24/7</p>
-              <p className="text-sm md:text-base text-gray-400 font-bold uppercase tracking-widest">Support Available</p>
+            <motion.div variants={fadeIn} className="group cursor-default py-4">
+              <p className="text-6xl md:text-7xl font-black text-white mb-3 tracking-tighter group-hover:text-[#09BF44] group-hover:scale-110 transition-all duration-300 transform-gpu">24/7</p>
+              <p className="text-xs md:text-sm text-gray-400 font-bold uppercase tracking-[0.2em] group-hover:text-gray-200 transition-colors">Support Available</p>
             </motion.div>
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.4 }}>
-              <p className="text-4xl md:text-5xl font-black text-[#09BF44] mb-2 tracking-tighter">100%</p>
-              <p className="text-sm md:text-base text-gray-400 font-bold uppercase tracking-widest">Secure Payments</p>
+            <motion.div variants={fadeIn} className="group cursor-default py-4">
+              <p className="text-6xl md:text-7xl font-black text-white mb-3 tracking-tighter group-hover:text-[#09BF44] group-hover:scale-110 transition-all duration-300 transform-gpu">100%</p>
+              <p className="text-xs md:text-sm text-gray-400 font-bold uppercase tracking-[0.2em] group-hover:text-gray-200 transition-colors">Secure Payments</p>
             </motion.div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
@@ -268,7 +271,7 @@ export default function Home() {
       </section>
 
       {/* Top Freelancers Section */}
-      <section className="bg-slate-50 py-24 border-y border-gray-100">
+      {/* <section className="bg-slate-50 py-24 border-y border-gray-100">
         <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeIn} className="flex flex-col sm:flex-row sm:items-end justify-between mb-12 gap-4">
             <div>
@@ -346,7 +349,7 @@ export default function Home() {
             </div>
           )}
         </div>
-      </section>
+      </section> */}
 
       {/* Projects Section - Restored original grid mapping performance */}
       <section id="projects-section" className="bg-white py-24">
