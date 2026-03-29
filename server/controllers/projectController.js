@@ -232,7 +232,16 @@ const createProjectOrder = async (req, res) => {
             conversationId: conversation._id,
             senderId: buyerId,
             receiverId: project.sellerId,
-            content: `[Engezhaly Order] Order #${order.orderNumber || order._id}\nBundle: ${order.packageType}\n\n${description.trim()}`,
+            content: `New Order: ${project.title}
+----------------------------
+Bundle: ${selectedPackage.type}
+Amount: ${amount} EGP
+⏱Delivery: ${selectedPackage.days} Days
+
+📝 Description:
+${description.trim()}
+----------------------------
+You can approve or decline this order from your dashboard.`,
             messageType: 'order'
         });
         await orderChat.save();
