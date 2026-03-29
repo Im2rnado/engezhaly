@@ -31,15 +31,18 @@ const io = new Server(server, {
     }
 });
 
-// Middleware
+// CORS Middleware (Global - absolute top)
 app.use(cors({
-    origin: ["https://engezhaly.com", "https://www.engezhaly.com", "http://localhost:3000"],
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "x-auth-token", "Authorization"],
+    origin: true, // Allow any origin temporarily to debug, or provide your array
     credentials: true,
-    optionsSuccessStatus: 200
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "x-auth-token", "Authorization"]
 }));
 
+// Pre-flight OPTIONS support
+app.options('*', cors());
+
+// Middleware
 // 15MB limit for JSON (registration sends base64 profile picture + certificates)
 app.use(express.json({ limit: '15mb' }));
 
@@ -48,19 +51,33 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Database Connection
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/engezhaly';
-mongoose.connect(MONGO_URI)
-    .then(async () => {
-        console.log('MongoDB connected');
-        // Non-blocking migration
-        const User = mongoose.model('User');
-        User.updateMany(
-            { $or: [{ emailVerified: { $exists: false } }, { emailVerified: null }] },
-            { $set: { emailVerified: true } }
-        ).then(r => {
-            if (r.modifiedCount > 0) console.log(`[Migration] Set emailVerified for ${r.modifiedCount} existing users`);
-        }).catch(err => console.error('[Migration] Failed:', err.message));
-    })
-    .catch(err => console.error('MongoDB connection error:', err));
+const mongooseOptions = {
+    serverSelectionTimeoutMS: 10000, // 10 second timeout per attempt as requested
+    socketTimeoutMS: 45000,
+    family: 4 // Use IPv4 for Atlas stability
+};
+
+const connectWithRetry = () => {
+    console.log('[MongoDB] Attempting to connect...');
+    mongoose.connect(MONGO_URI, mongooseOptions)
+        .then(() => {
+            console.log('MongoDB connected successfully');
+            // Non-blocking migration
+            const User = mongoose.model('User');
+            User.updateMany(
+                { $or: [{ emailVerified: { $exists: false } }, { emailVerified: null }] },
+                { $set: { emailVerified: true } }
+            ).then(r => {
+                if (r.modifiedCount > 0) console.log(`[Migration] Set emailVerified for ${r.modifiedCount} existing users`);
+            }).catch(err => console.error('[Migration] Failed:', err.message));
+        })
+        .catch(err => {
+            console.error('MongoDB connection error. Retrying in 5 seconds...', err.message);
+            setTimeout(connectWithRetry, 5000);
+        });
+};
+
+connectWithRetry();
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
