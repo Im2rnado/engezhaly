@@ -26,15 +26,48 @@ const uploadFile = async (req, res) => {
 
         if (isImage) {
             try {
-                const buffer = await sharp(req.file.buffer)
-                    .resize(2400, 2400, { fit: 'inside', withoutEnlargement: true })
-                    .jpeg({ quality: 90 })
-                    .toBuffer();
+                const metadata = await sharp(req.file.buffer).metadata();
+                const isPng = req.file.mimetype === 'image/png';
+                const isWebp = req.file.mimetype === 'image/webp';
+                
+                let pipeline = sharp(req.file.buffer)
+                    .resize(3840, 3840, { // Increase to 4K for banners
+                        fit: 'inside',
+                        withoutEnlargement: true,
+                        kernel: sharp.kernel.lanczos3 // High quality scaling
+                    });
 
+                let processedBuffer;
                 const base = path.basename(req.file.originalname, path.extname(req.file.originalname) || '');
-                filename = `${sanitizeBase(base)}-${timestamp}.jpg`;
+
+                if (isPng) {
+                    // Keep PNG for transparency/graphics with high compression but no loss
+                    processedBuffer = await pipeline
+                        .png({ quality: 100, compressionLevel: 9, adaptiveFiltering: true })
+                        .toBuffer();
+                    filename = `${sanitizeBase(base)}-${timestamp}.png`;
+                } else if (isWebp) {
+                    processedBuffer = await pipeline
+                        .webp({ quality: 95, lossless: false, effort: 6 })
+                        .toBuffer();
+                    filename = `${sanitizeBase(base)}-${timestamp}.webp`;
+                } else {
+                    // Default to high quality JPG with progressive loading
+                    processedBuffer = await pipeline
+                        .jpeg({ 
+                            quality: 95, 
+                            progressive: true, 
+                            chromaSubsampling: '4:4:4', // Best color quality
+                            trellisQuantisation: true,
+                            overshootDeringing: true,
+                            optimizeScans: true
+                        })
+                        .toBuffer();
+                    filename = `${sanitizeBase(base)}-${timestamp}.jpg`;
+                }
+
                 const filepath = path.join(UPLOAD_DIR, filename);
-                fs.writeFileSync(filepath, buffer);
+                fs.writeFileSync(filepath, processedBuffer);
             } catch (err) {
                 console.error('[Upload] Sharp failed:', err.message);
                 return res.status(400).json({ message: 'Failed to process image. Please ensure it is a valid image file.' });

@@ -125,7 +125,7 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                     required
                                     disabled={showMilestones && milestones.length > 0}
                                     className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:border-[#09BF44] focus:ring-2 focus:ring-[#09BF44]/20 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                    placeholder="Minimum 500 EGP"
+                                    placeholder="Minimum 300 EGP"
                                 />
                                 {showMilestones && milestones.length > 0 && (
                                     <p className="text-xs text-gray-500 mt-2">

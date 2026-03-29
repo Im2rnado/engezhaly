@@ -1502,7 +1502,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Packages (min 500 EGP)</label>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Packages (min 300 EGP)</label>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         {starterOffer.packages.map((pkg, idx) => (
                                             <div key={pkg.type} className="border-2 border-gray-100 p-4 rounded-xl">
