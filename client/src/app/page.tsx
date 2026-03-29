@@ -196,6 +196,35 @@ export default function Home() {
         </div>
       </section>
 
+      {/* NEW BOLD SECTION: How It Works - Very strong graphic breakdown */}
+      <section className="bg-gray-50 py-24 border-y border-gray-200">
+        <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6">
+          <div className="text-center mb-16">
+             <motion.h2 initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeIn} className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight">
+               How Engezhaly Works
+             </motion.h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
+             <div className="hidden md:block absolute top-1/4 left-1/6 right-1/6 h-1 bg-gray-200 z-0"></div>
+             
+             {[
+               { icon: Search, title: "1. Discover", desc: "Browse available services or post a custom job specifically for your needs." },
+               { icon: CheckCircle2, title: "2. Hire & Pay", desc: "Review freelancer profiles, agree on a price, and fund the milestone securely." },
+               { icon: Zap, title: "3. Get It Done", desc: "Communicate directly, receive the finished work, and release funds upon approval." }
+             ].map((step, i) => (
+                <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.15 }} key={i} className="relative z-10 flex flex-col items-center text-center">
+                   <div className="w-20 h-20 rounded-2xl bg-white border-2 border-gray-100 shadow-xl flex items-center justify-center mb-6 text-[#09BF44] transform-gpu hover:scale-105 transition-transform">
+                      <step.icon className="w-10 h-10" />
+                   </div>
+                   <h3 className="text-2xl font-black text-gray-900 mb-3">{step.title}</h3>
+                   <p className="text-gray-600 font-medium px-4">{step.desc}</p>
+                </motion.div>
+             ))}
+          </div>
+        </div>
+      </section>
+
       {/* NEW BOLD SECTION: Stats & Trust */}
       <section className="bg-black py-20 text-white border-y-[6px] border-[#09BF44] relative z-20 overflow-hidden">
         {/* Subtle geometric light on black */}
@@ -407,35 +436,6 @@ export default function Home() {
               <p className="text-gray-500 font-medium">Check back later for new offers.</p>
             </div>
           )}
-        </div>
-      </section>
-
-      {/* NEW BOLD SECTION: How It Works - Very strong graphic breakdown */}
-      <section className="bg-gray-50 py-24 border-y border-gray-200">
-        <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6">
-          <div className="text-center mb-16">
-             <motion.h2 initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeIn} className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight">
-               How Engezhaly Works
-             </motion.h2>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
-             <div className="hidden md:block absolute top-1/4 left-1/6 right-1/6 h-1 bg-gray-200 z-0"></div>
-             
-             {[
-               { icon: Search, title: "1. Discover", desc: "Browse available services or post a custom job specifically for your needs." },
-               { icon: CheckCircle2, title: "2. Hire & Pay", desc: "Review freelancer profiles, agree on a price, and fund the milestone securely." },
-               { icon: Zap, title: "3. Get It Done", desc: "Communicate directly, receive the finished work, and release funds upon approval." }
-             ].map((step, i) => (
-                <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.15 }} key={i} className="relative z-10 flex flex-col items-center text-center">
-                   <div className="w-20 h-20 rounded-2xl bg-white border-2 border-gray-100 shadow-xl flex items-center justify-center mb-6 text-[#09BF44] transform-gpu hover:scale-105 transition-transform">
-                      <step.icon className="w-10 h-10" />
-                   </div>
-                   <h3 className="text-2xl font-black text-gray-900 mb-3">{step.title}</h3>
-                   <p className="text-gray-600 font-medium px-4">{step.desc}</p>
-                </motion.div>
-             ))}
-          </div>
         </div>
       </section>
 
