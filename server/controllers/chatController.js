@@ -318,18 +318,22 @@ const createOffer = async (req, res) => {
 
         await offer.save();
 
-        const deliveryDesc = deliveryDate ? new Date(deliveryDate).toLocaleDateString() : `${deliveryDays} days`;
+        const freelancer = await User.findById(senderId).select('freelancerProfile');
+        const subCategory = freelancer?.freelancerProfile?.category || 'Offer';
+
         // Send a message in chat about the offer
+        const offerContent = `[Engezhaly Offer Request] Custom Offer Request (${subCategory})\nHey! Tell the freelancer exactly what you need. Timeline, deliverables, budget, everything. They’ll create the best custom offer for you right here in chat.`;
+        
         const offerMessage = new Chat({
             conversationId,
             senderId,
             receiverId,
-            content: `Custom Offer Request. Custom offer created: ${price} EGP, delivery ${deliveryDesc}`,
+            content: offerContent,
             messageType: 'text'
         });
         await offerMessage.save();
 
-        conversation.lastMessage = `Custom Offer Request`;
+        conversation.lastMessage = `Custom Offer Request (${subCategory})`;
         await conversation.save();
 
         res.json(offer);

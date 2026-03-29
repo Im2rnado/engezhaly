@@ -1425,11 +1425,13 @@ function ChatPageContent() {
                                         const isAdmin = msg.isAdmin || msg.text?.includes('[Engezhaly Admin]');
                                         const isMeeting = msg.isMeeting || msg.messageType === 'meeting' || msg.text?.includes('[Engezhaly Meeting]');
                                         const isOrder = msg.messageType === 'order' || msg.text?.includes('[Engezhaly Order]');
-                                        const isCentered = isAdmin || isMeeting || isOrder;
+                                        const isOfferRequest = msg.text?.includes('[Engezhaly Offer Request]');
+                                        const isCentered = isAdmin || isMeeting || isOrder || isOfferRequest;
                                         let content = msg.text || '';
                                         if (isAdmin) content = content.replace('[Engezhaly Admin]', '').trim();
                                         if (isMeeting) content = content.replace('[Engezhaly Meeting]', '').trim();
                                         if (isOrder) content = content.replace('[Engezhaly Order]', '').trim();
+                                        if (isOfferRequest) content = content.replace('[Engezhaly Offer Request]', '').trim();
                                         const linkMatch = content.match(/Join here: (https?:\/\/[^\s]+)/);
                                         const meetingLink = linkMatch ? linkMatch[1] : null;
                                         
@@ -1439,7 +1441,7 @@ function ChatPageContent() {
                                                         ? 'bg-yellow-100 border-2 border-yellow-300 text-gray-900'
                                                         : isMeeting
                                                             ? 'bg-green-50 border-2 border-[#09BF44]/40 text-gray-900'
-                                                            : isOrder
+                                                            : isOrder || isOfferRequest
                                                                 ? 'bg-blue-50 border-2 border-blue-200 text-gray-900'
                                                         : msg.sender === 'me'
                                                             ? 'bg-[#09BF44] text-white rounded-br-sm'
