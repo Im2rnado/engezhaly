@@ -269,8 +269,8 @@ const createProjectOrder = async (req, res) => {
         // No payment receipts for pending_approval; client gets orderApproved on approval, orderDenied on deny
         res.json(populated);
     } catch (err) {
-        console.error(err.message);
-        res.status(500).json({ msg: 'Server Error' });
+        console.error('[CreateProjectOrder Error]:', err);
+        res.status(500).json({ msg: err.message || 'Server Error' });
     }
 };
 
