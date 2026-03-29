@@ -37,9 +37,6 @@ app.use(cors({
     allowedHeaders: ["Content-Type", "x-auth-token", "Authorization"]
 }));
 
-// Pre-flight OPTIONS support
-app.options('*', cors());
-
 // Middleware
 // 15MB limit for JSON (registration sends base64 profile picture + certificates)
 app.use(express.json({ limit: '15mb' }));
