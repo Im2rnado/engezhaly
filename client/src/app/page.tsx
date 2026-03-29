@@ -3,20 +3,20 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { ChevronLeft, ChevronRight, ArrowRight, Code, Palette, TrendingUp, Video, Sparkles, PenTool, Mic, Search, Briefcase, ShieldCheck, Zap, Star, Loader2, CheckCircle2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowRight, Code, Palette, TrendingUp, Video, Sparkles, PenTool, Mic, Search, Briefcase, ShieldCheck, Star, Loader2, CheckCircle2 } from "lucide-react";
 import { api } from "@/lib/api";
 import ProjectCardCompact from "@/components/ProjectCardCompact";
 import { MAIN_CATEGORIES } from "@/lib/categories";
 import MainHeader from "@/components/MainHeader";
 import { useModal } from "@/context/ModalContext";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 
-const fadeIn = {
+const fadeIn: Variants = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } }
 };
 
-const stagger = {
+const stagger: Variants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { staggerChildren: 0.08 } }
 };
@@ -404,7 +404,7 @@ export default function Home() {
               A whole world of freelance talent at your fingertips
             </motion.h2>
             <motion.p variants={fadeIn} className="text-green-50 text-lg md:text-xl mb-10 max-w-lg leading-relaxed font-medium">
-              We've built Engezhaly to help you get things done securely, quickly, and professionally.
+              We&apos;ve built Engezhaly to help you get things done securely, quickly, and professionally.
             </motion.p>
             
             <div className="space-y-6">
