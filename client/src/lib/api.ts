@@ -1020,7 +1020,7 @@ export const api = {
                 if (!res.ok) throw new Error('Failed to fetch announcements');
                 return res.json();
             },
-            create: async (data: { content?: string; imageUrl?: string }) => {
+            create: async (data: { content?: string; imageUrl?: string; videoLink?: string }) => {
                 const res = await fetch(`${API_URL}/announcements/admin`, {
                     method: 'POST',
                     headers: getHeaders(),

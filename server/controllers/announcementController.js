@@ -19,15 +19,16 @@ const getAnnouncements = async (req, res) => {
 const createAnnouncement = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { content, imageUrl } = req.body;
-
-        if (!content?.trim() && !imageUrl?.trim()) {
-            return res.status(400).json({ msg: 'Provide at least content or image' });
+        const { content, imageUrl, videoLink } = req.body;
+        
+        if (!content?.trim() && !imageUrl?.trim() && !videoLink?.trim()) {
+            return res.status(400).json({ msg: 'Provide at least content, image, or video link' });
         }
-
+        
         const announcement = new Announcement({
             content: (content || '').trim() || undefined,
             imageUrl: (imageUrl || '').trim() || undefined,
+            videoLink: (videoLink || '').trim() || undefined,
             createdBy: userId
         });
         await announcement.save();

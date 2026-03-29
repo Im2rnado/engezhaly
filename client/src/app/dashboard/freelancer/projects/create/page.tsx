@@ -316,7 +316,7 @@ export default function CreateProjectPage() {
                                                         <label className="text-xs font-bold text-gray-500">Price (EGP)</label>
                                                         <input
                                                             type="number"
-                                                            min="500"
+                                                            min="300"
                                                             required
                                                             value={pkg.price}
                                                             onChange={(e) => handlePackageChange(idx, 'price', Number(e.target.value))}
@@ -366,9 +366,9 @@ export default function CreateProjectPage() {
                                                                     <button
                                                                         type="button"
                                                                         onClick={() => {
-                                                                        const next = (pkg.features || []).filter((_: string, i: number) => i !== fi);
-                                                                        handleFeaturesChange(idx, next.length > 0 ? next : ['']);
-                                                                    }}
+                                                                            const next = (pkg.features || []).filter((_: string, i: number) => i !== fi);
+                                                                            handleFeaturesChange(idx, next.length > 0 ? next : ['']);
+                                                                        }}
                                                                         className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
                                                                     >
                                                                         <XIcon className="w-4 h-4" />

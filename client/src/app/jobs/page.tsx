@@ -349,7 +349,7 @@ function JobsPageContent() {
                     if (!localStorage.getItem('token')) {
                         setApplyJob(null);
                     } else {
-                        api.jobs.getAll().then(data => setJobs(data || [])).catch(() => {});
+                        api.jobs.getAll().then(data => setJobs(data || [])).catch(() => { });
                     }
                 }}
                 initialStep="login"
@@ -375,7 +375,7 @@ function JobsPageContent() {
                                     <input
                                         required
                                         type="number"
-                                        min="500"
+                                        min="300"
                                         value={proposal.price}
                                         onChange={e => setProposal({ ...proposal, price: e.target.value })}
                                         className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none text-gray-900"

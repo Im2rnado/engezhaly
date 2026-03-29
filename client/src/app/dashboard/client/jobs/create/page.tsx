@@ -183,7 +183,7 @@ export default function PostJobPage() {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Subcategory</label>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Subcategory (optional)</label>
                                     <select
                                         name="subCategory"
                                         value={jobData.subCategory}
@@ -243,7 +243,7 @@ export default function PostJobPage() {
                                         type="number"
                                         name="budgetMin"
                                         required
-                                        min="500"
+                                        min="300"
                                         value={jobData.budgetMin}
                                         onChange={handleChange}
                                         className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none"
@@ -255,7 +255,7 @@ export default function PostJobPage() {
                                         type="number"
                                         name="budgetMax"
                                         required
-                                        min="500"
+                                        min="300"
                                         value={jobData.budgetMax}
                                         onChange={handleChange}
                                         className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none"

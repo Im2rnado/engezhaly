@@ -328,7 +328,7 @@ export default function CreateOfferPage() {
                                                         <label className="text-xs font-bold text-gray-500">Price (EGP)</label>
                                                         <input
                                                             type="number"
-                                                            min="500"
+                                                            min="300"
                                                             required
                                                             value={pkg.price}
                                                             onChange={(e) => handlePackageChange(idx, 'price', Number(e.target.value))}

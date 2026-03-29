@@ -60,6 +60,17 @@ export default function FreelancerAnnouncementsPage() {
         );
     }
 
+    const getEmbedUrl = (url: string) => {
+        if (!url) return null;
+        // YouTube
+        let match = url.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+        if (match) return `https://www.youtube.com/embed/${match[1]}`;
+        // Vimeo
+        match = url.match(/(?:https?:\/\/)?(?:www\.)?vimeo\.com\/(\d+)/);
+        if (match) return `https://player.vimeo.com/video/${match[1]}`;
+        return null;
+    };
+
     return (
         <div className="min-h-screen bg-gray-50 flex font-sans text-gray-900">
             <FreelancerSidebar
@@ -105,21 +116,46 @@ export default function FreelancerAnnouncementsPage() {
                     </div>
                 ) : (
                     <div className="space-y-6">
-                        {announcements.map((a: any) => (
-                            <div key={a._id} className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
-                                <div className="flex items-start gap-4">
-                                    {a.imageUrl && (
-                                        <img src={a.imageUrl} alt="" className="w-24 h-24 md:w-32 md:h-32 object-cover rounded-xl shrink-0" />
-                                    )}
-                                    <div className="min-w-0 flex-1">
-                                        {a.content && <p className="text-gray-900 whitespace-pre-wrap leading-relaxed">{a.content}</p>}
-                                        <p className="text-xs text-gray-500 mt-3">
-                                            {a.createdBy?.firstName} {a.createdBy?.lastName} • {a.createdAt ? new Date(a.createdAt).toLocaleString() : ''}
-                                        </p>
+                        {announcements.map((a: any) => {
+                            const embedUrl = getEmbedUrl(a.videoLink);
+                            return (
+                                <div key={a._id} className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                                    <div className="p-6">
+                                        <div className="flex flex-col md:flex-row gap-6">
+                                            {a.imageUrl && (
+                                                <div className="w-full md:w-48 shrink-0">
+                                                    <img src={a.imageUrl} alt="" className="w-full h-48 md:h-32 object-cover rounded-2xl border border-gray-100" />
+                                                </div>
+                                            )}
+                                            <div className="min-w-0 flex-1 flex flex-col">
+                                                <div className="flex-1">
+                                                    {a.content && <p className="text-gray-900 whitespace-pre-wrap leading-relaxed font-medium">{a.content}</p>}
+                                                    
+                                                    {embedUrl && (
+                                                        <div className="mt-6 aspect-video rounded-2xl overflow-hidden border border-gray-100 shadow-sm bg-black">
+                                                            <iframe
+                                                                src={embedUrl}
+                                                                className="w-full h-full"
+                                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                                allowFullScreen
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="mt-6 pt-4 border-t border-gray-50 flex items-center justify-between">
+                                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                                                        {a.createdBy?.firstName} {a.createdBy?.lastName}
+                                                    </p>
+                                                    <p className="text-xs text-gray-400 font-medium">
+                                                        {a.createdAt ? new Date(a.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </div>

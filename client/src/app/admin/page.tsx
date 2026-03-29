@@ -369,6 +369,7 @@ export default function AdminDashboard() {
     // Announcements create form
     const [announcementContent, setAnnouncementContent] = useState('');
     const [announcementImageUrl, setAnnouncementImageUrl] = useState('');
+    const [announcementVideoLink, setAnnouncementVideoLink] = useState('');
     const [creatingAnnouncement, setCreatingAnnouncement] = useState(false);
 
     // Fetch Functions
@@ -1419,18 +1420,20 @@ export default function AdminDashboard() {
                             <form
                                 onSubmit={async (e) => {
                                     e.preventDefault();
-                                    if ((!announcementContent?.trim() && !announcementImageUrl?.trim())) {
-                                        showModal({ title: 'Required', message: 'Add at least some text or a photo.', type: 'error' });
+                                    if ((!announcementContent?.trim() && !announcementImageUrl?.trim() && !announcementVideoLink?.trim())) {
+                                        showModal({ title: 'Required', message: 'Add text, a photo, or a video link.', type: 'error' });
                                         return;
                                     }
                                     setCreatingAnnouncement(true);
                                     try {
                                         await api.announcements.admin.create({
                                             content: announcementContent.trim() || undefined,
-                                            imageUrl: announcementImageUrl.trim() || undefined
+                                            imageUrl: announcementImageUrl.trim() || undefined,
+                                            videoLink: announcementVideoLink.trim() || undefined
                                         });
                                         setAnnouncementContent('');
                                         setAnnouncementImageUrl('');
+                                        setAnnouncementVideoLink('');
                                         showModal({ title: 'Sent', message: 'Announcement published to freelancers.', type: 'success' });
                                         fetchAnnouncements();
                                     } catch (err: any) {
@@ -1444,10 +1447,20 @@ export default function AdminDashboard() {
                                 <textarea
                                     value={announcementContent}
                                     onChange={(e) => setAnnouncementContent(e.target.value)}
-                                    placeholder="Write your announcement (optional if you add a photo)"
+                                    placeholder="Write your announcement (optional if you add a photo/video)"
                                     rows={4}
                                     className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-[#09BF44] outline-none resize-none"
                                 />
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Video Link (YouTube/Vimeo - optional)</label>
+                                    <input
+                                        type="url"
+                                        value={announcementVideoLink}
+                                        onChange={(e) => setAnnouncementVideoLink(e.target.value)}
+                                        placeholder="e.g. https://www.youtube.com/watch?v=..."
+                                        className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-[#09BF44] outline-none"
+                                    />
+                                </div>
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-2">Photo (optional)</label>
                                     <div className="flex flex-wrap gap-3 items-center">

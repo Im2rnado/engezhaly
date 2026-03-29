@@ -121,7 +121,7 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                     type="number"
                                     value={price}
                                     onChange={(e) => setPrice(e.target.value)}
-                                    min="500"
+                                    min="300"
                                     required
                                     disabled={showMilestones && milestones.length > 0}
                                     className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:border-[#09BF44] focus:ring-2 focus:ring-[#09BF44]/20 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -201,11 +201,10 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                                 setMilestones([]);
                                             }
                                         }}
-                                        className={`px-6 py-2.5 rounded-xl font-bold transition-all ${
-                                            showMilestones
+                                        className={`px-6 py-2.5 rounded-xl font-bold transition-all ${showMilestones
                                                 ? 'bg-[#09BF44] text-white shadow-md shadow-[#09BF44]/20'
                                                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                        }`}
+                                            }`}
                                     >
                                         {showMilestones ? 'Enabled' : 'Enable'}
                                     </button>

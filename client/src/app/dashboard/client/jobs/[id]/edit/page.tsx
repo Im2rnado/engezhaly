@@ -191,11 +191,11 @@ export default function EditJobPage() {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-bold text-gray-700 mb-2">Min Budget (EGP)</label>
-                                        <input type="number" name="budgetMin" required min="500" value={jobData.budgetMin} onChange={handleChange} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none" />
+                                        <input type="number" name="budgetMin" required min="300" value={jobData.budgetMin} onChange={handleChange} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none" />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-bold text-gray-700 mb-2">Max Budget (EGP)</label>
-                                        <input type="number" name="budgetMax" required min="500" value={jobData.budgetMax} onChange={handleChange} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none" />
+                                        <input type="number" name="budgetMax" required min="300" value={jobData.budgetMax} onChange={handleChange} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none" />
                                     </div>
                                 </div>
                                 <div>
