@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const Sequence = require('./Sequence');
 
 const OrderSchema = new mongoose.Schema({
     orderNumber: { type: Number, unique: true },

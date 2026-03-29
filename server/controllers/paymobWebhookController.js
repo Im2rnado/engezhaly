@@ -54,11 +54,11 @@ const fulfillCharge = async (pendingCharge, app) => {
             const freelancer = job.freelancerId;
             if (client?.email) {
                 const { subject, html } = emailTemplates.paymentConfirmed(client.firstName, totalClientPaid, 'Job Payment', job.title);
-                sendAndLog(client.email, subject, html, client._id);
+                sendAndLog(client.email, subject, html, 'payment_confirmed');
             }
             if (freelancer?.email) {
                 const { subject, html } = emailTemplates.offerPurchased(client?.firstName || 'A client', job.title, proposal.price, null);
-                sendAndLog(freelancer.email, subject, html, freelancer._id);
+                sendAndLog(freelancer.email, subject, html, 'offer_purchased');
             }
             break;
         }
@@ -91,11 +91,11 @@ const fulfillCharge = async (pendingCharge, app) => {
             const title = order.projectId?.title || 'Project Order';
             if (client?.email) {
                 const { subject, html } = emailTemplates.paymentConfirmed(client.firstName, totalClientPaid, 'Order Payment', title);
-                sendAndLog(client.email, subject, html, client._id);
+                sendAndLog(client.email, subject, html, 'payment_confirmed');
             }
             if (freelancer?.email) {
                 const { subject, html } = emailTemplates.offerPurchased(client?.firstName || 'A client', title, order.amount, order._id);
-                sendAndLog(freelancer.email, subject, html, freelancer._id);
+                sendAndLog(freelancer.email, subject, html, 'offer_purchased');
             }
             break;
         }
@@ -164,11 +164,11 @@ const fulfillCharge = async (pendingCharge, app) => {
             const freelancer = offer.senderId;
             if (client?.email) {
                 const { subject, html } = emailTemplates.paymentConfirmed(client.firstName, totalClientPaid, 'Custom Offer', offer.title);
-                sendAndLog(client.email, subject, html, client._id);
+                sendAndLog(client.email, subject, html, 'payment_confirmed');
             }
             if (freelancer?.email) {
                 const { subject, html } = emailTemplates.offerPurchased(client?.firstName || 'A client', offer.title || 'Custom Offer', offer.price, order._id);
-                sendAndLog(freelancer.email, subject, html, freelancer._id);
+                sendAndLog(freelancer.email, subject, html, 'offer_purchased');
             }
             break;
         }
@@ -276,13 +276,13 @@ const fulfillCharge = async (pendingCharge, app) => {
             const client = await User.findById(userId);
             if (client?.email) {
                 const { subject, html } = emailTemplates.paymentConfirmed(client.firstName, amount, 'Consultation', 'Video Call');
-                sendAndLog(client.email, subject, html, client._id);
+                sendAndLog(client.email, subject, html, 'payment_confirmed');
             }
             const conversationEmails = await Conversation.findById(conversationId).populate('participants');
             const freelancer = conversationEmails?.participants?.find(p => String(p._id) !== String(userId));
             if (freelancer?.email) {
                 const { subject, html } = emailTemplates.offerPurchased(client?.firstName || 'A client', 'Video Consultation', amount, null);
-                sendAndLog(freelancer.email, subject, html, freelancer._id);
+                sendAndLog(freelancer.email, subject, html, 'offer_purchased');
             }
             break;
         }

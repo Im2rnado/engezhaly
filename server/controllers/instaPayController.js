@@ -226,11 +226,11 @@ const approveInstaPay = async (req, res) => {
                 const freelancer = offer.senderId;
                 if (client?.email) {
                     const { subject, html } = emailTemplates.paymentConfirmed(client.firstName, totalClientPaidOffer, 'Custom Offer', offer.title);
-                    sendAndLog(client.email, subject, html, client._id);
+                    sendAndLog(client.email, subject, html, 'payment_confirmed');
                 }
                 if (freelancer?.email) {
                     const { subject, html } = emailTemplates.offerPurchased(client?.firstName || 'A client', offer.title || 'Custom Offer', offer.price, newOrder._id);
-                    sendAndLog(freelancer.email, subject, html, freelancer._id);
+                    sendAndLog(freelancer.email, subject, html, 'offer_purchased');
                 }
             }
         } else if (type === 'consultation' && meta.conversationId) {
@@ -275,13 +275,13 @@ const approveInstaPay = async (req, res) => {
             const client = await User.findById(payment.userId);
             if (client?.email) {
                 const { subject, html } = emailTemplates.paymentConfirmed(client.firstName, amountEGP, 'Consultation', 'Video Call');
-                sendAndLog(client.email, subject, html, client._id);
+                sendAndLog(client.email, subject, html, 'payment_confirmed');
             }
             const conversationEmails = await Conversation.findById(meta.conversationId).populate('participants');
             const freelancer = conversationEmails?.participants?.find(p => String(p._id) !== String(payment.userId));
             if (freelancer?.email) {
                 const { subject, html } = emailTemplates.offerPurchased(client?.firstName || 'A client', 'Video Consultation', amountEGP, null);
-                sendAndLog(freelancer.email, subject, html, freelancer._id);
+                sendAndLog(freelancer.email, subject, html, 'offer_purchased');
             }
 
             // If meeting date/time were pre-selected, create the meeting now
@@ -363,11 +363,11 @@ const approveInstaPay = async (req, res) => {
                 const title = 'Project Order';
                 if (client?.email) {
                     const { subject, html } = emailTemplates.paymentConfirmed(client.firstName, totalPays, 'Order Payment', title);
-                    sendAndLog(client.email, subject, html, client._id);
+                    sendAndLog(client.email, subject, html, 'payment_confirmed');
                 }
                 if (freelancer?.email) {
                     const { subject, html } = emailTemplates.offerPurchased(client?.firstName || 'A client', title, order.amount, order._id);
-                    sendAndLog(freelancer.email, subject, html, freelancer._id);
+                    sendAndLog(freelancer.email, subject, html, 'offer_purchased');
                 }
             }
         } else if (type === 'job_proposal' && meta.jobId && meta.proposalId) {
@@ -399,11 +399,11 @@ const approveInstaPay = async (req, res) => {
                 const freelancer = await User.findById(proposal.freelancerId);
                 if (client?.email) {
                     const { subject, html } = emailTemplates.paymentConfirmed(client.firstName, totalPays, 'Job Payment', job.title);
-                    sendAndLog(client.email, subject, html, client._id);
+                    sendAndLog(client.email, subject, html, 'payment_confirmed');
                 }
                 if (freelancer?.email) {
                     const { subject, html } = emailTemplates.offerPurchased(client?.firstName || 'A client', job.title, proposal.price, null);
-                    sendAndLog(freelancer.email, subject, html, freelancer._id);
+                    sendAndLog(freelancer.email, subject, html, 'offer_purchased');
                 }
             }
         }
@@ -435,7 +435,7 @@ const denyInstaPay = async (req, res) => {
         const client = await User.findById(payment.userId);
         if (client?.email) {
             const { subject, html } = emailTemplates.orderDenied(client.firstName, payment.meta?.type || 'Payment', payment.amountEGP, null);
-            sendAndLog(client.email, subject, html, client._id);
+            sendAndLog(client.email, subject, html, 'order_denied');
         }
 
         res.json({ payment });

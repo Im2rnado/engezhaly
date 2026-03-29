@@ -324,12 +324,12 @@ const createOffer = async (req, res) => {
             conversationId,
             senderId,
             receiverId,
-            content: `[OFFER] Custom offer created: ${price} EGP, delivery ${deliveryDesc}`,
+            content: `Custom Offer Request. Custom offer created: ${price} EGP, delivery ${deliveryDesc}`,
             messageType: 'text'
         });
         await offerMessage.save();
 
-        conversation.lastMessage = `[OFFER] Custom offer: ${price} EGP`;
+        conversation.lastMessage = `Custom Offer Request`;
         await conversation.save();
 
         res.json(offer);

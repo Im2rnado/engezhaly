@@ -10,12 +10,18 @@ const EmailLogSchema = new mongoose.Schema({
             'job_application',
             'offer_purchased',
             'offline_chat',
-            'payment_receipt_freelancer',
-            'payment_receipt_client',
-            'deposit_receipt',
+            'payment_receipt_freelancer', // Wallet payment
+            'payment_receipt_client', // Wallet payment
+            'deposit_receipt', // Wallet deposit
             'password_reset',
             'freelancer_approved',
-            'dispute_resolved'
+            'dispute_resolved',
+            'order_approved',
+            'order_denied',
+            'work_submitted',
+            'delivery_approved',
+            'job_work_approved',
+            'payment_confirmed'
         ],
         required: true
     },
