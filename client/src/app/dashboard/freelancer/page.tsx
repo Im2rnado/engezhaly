@@ -18,7 +18,7 @@ function FreelancerDashboardContent() {
     const { showModal } = useModal();
     const router = useRouter();
     const searchParams = useSearchParams();
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'offers' | 'orders' | 'profile' | 'portfolio'>('dashboard');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'offers' | 'orders' | 'profile' | 'portfolio' | 'help'>('dashboard');
 
     const [user, setUser] = useState<any>(null);
     const [profile, setProfile] = useState<any>(null);
