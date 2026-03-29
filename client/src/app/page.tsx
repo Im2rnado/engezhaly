@@ -120,7 +120,7 @@ export default function Home() {
               const categoryIcons: { [key: string]: any } = {
                 'Development & Tech': Code,
                 'Design & Creative': Palette,
-                'Digital Marketing': TrendingUp,
+                'Marketing': TrendingUp,
                 'Video Editor': Video,
                 'AI and Automations': Sparkles,
                 'Writing & Language': PenTool,

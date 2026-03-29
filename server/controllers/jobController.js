@@ -10,9 +10,9 @@ const createJob = async (req, res) => {
     try {
         const { title, description, skills, budgetMin, budgetMax, deadline, category, subCategory, milestones } = req.body;
 
-        // Validation: Min budget 500
-        if (budgetMin < 500) {
-            return res.status(400).json({ msg: 'Minimum budget must be 500 EGP' });
+        // Validation: Min budget 300
+        if (budgetMin < 300) {
+            return res.status(400).json({ msg: 'Minimum budget must be 300 EGP' });
         }
 
         if (!category) {

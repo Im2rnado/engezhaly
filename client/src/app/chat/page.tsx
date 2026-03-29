@@ -1378,6 +1378,10 @@ function ChatPageContent() {
                                                                     {offer.deliveryDate ? formatDateDDMMYYYY(offer.deliveryDate) : (offer.deliveryDays ? `${offer.deliveryDays} days` : '—')}
                                                                 </span>
                                                         </div>
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-sm font-bold">Revisions:</span>
+                                                            <span className="text-sm font-medium">{offer.revisions || 0}</span>
+                                                        </div>
                                                         <div className="pt-3 border-t border-white/20">
                                                             <p className="text-sm font-bold mb-2">What&apos;s Included:</p>
                                                             <p className="text-sm leading-relaxed">{offer.whatsIncluded}</p>

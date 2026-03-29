@@ -8,7 +8,7 @@ const JobSchema = new mongoose.Schema({
     subCategory: { type: String },
     skills: [String],
     budgetRange: {
-        min: { type: Number, required: true, min: 500 },
+        min: { type: Number, required: true, min: 300 },
         max: { type: Number, required: true }
     },
     deadline: { type: String }, // e.g., "1 week", "Urgent"

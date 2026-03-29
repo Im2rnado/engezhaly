@@ -9,7 +9,7 @@ const ProjectSchema = new mongoose.Schema({
     images: [{ type: String }], // Array of image URLs
     packages: [{
         type: { type: String, enum: ['Basic', 'Standard', 'Premium'], required: true },
-        price: { type: Number, required: true, min: 500 },
+        price: { type: Number, required: true, min: 300 },
         days: { type: Number, required: true },
         features: [{ type: String }],
         revisions: { type: Number, default: 0 }

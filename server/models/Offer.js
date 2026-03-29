@@ -4,7 +4,7 @@ const OfferSchema = new mongoose.Schema({
     conversationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Conversation', required: true },
     senderId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // Freelancer or Client who created the offer
     receiverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // The other party
-    price: { type: Number, required: true, min: 500 },
+    price: { type: Number, required: true, min: 300 },
     deliveryDays: { type: Number }, // Optional, for backward compatibility
     deliveryDate: { type: Date }, // Preferred: explicit delivery date
     whatsIncluded: { type: String, required: true }, // Description of what's included
@@ -13,6 +13,7 @@ const OfferSchema = new mongoose.Schema({
         price: { type: Number, required: true },
         dueDate: { type: Date }
     }], // Optional milestones for payment splitting
+    revisions: { type: Number, default: 0 },
     status: { type: String, enum: ['pending', 'accepted', 'rejected', 'expired'], default: 'pending' },
     acceptedAt: { type: Date },
     expiresAt: { type: Date } // Optional expiration date

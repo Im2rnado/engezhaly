@@ -11,6 +11,7 @@ interface CreateOfferModalProps {
         price: number;
         deliveryDate: string;
         whatsIncluded: string;
+        revisions: number;
         milestones: Array<{ name: string; price: number; dueDate?: string }>;
     }) => void;
 }
@@ -19,6 +20,7 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
     const [price, setPrice] = useState('');
     const [deliveryDate, setDeliveryDate] = useState('');
     const [whatsIncluded, setWhatsIncluded] = useState('');
+    const [revisions, setRevisions] = useState('0');
     const [milestones, setMilestones] = useState<Array<{ name: string; price: string; dueDate: string }>>([]);
     const [showMilestones, setShowMilestones] = useState(false);
 
@@ -31,6 +33,7 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
             price: Number(price),
             deliveryDate: deliveryDate,
             whatsIncluded: whatsIncluded.trim(),
+            revisions: Number(revisions) || 0,
             milestones: milestones.map(m => ({
                 name: m.name.trim(),
                 price: Number(m.price),
@@ -39,8 +42,8 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
         };
 
         const effectivePrice = showMilestones && milestones.length > 0 ? totalMilestonePrice : offerData.price;
-        if (effectivePrice < 500) {
-            alert('Minimum price is 500 EGP');
+        if (effectivePrice < 300) {
+            alert('Minimum price is 300 EGP');
             return;
         }
 
@@ -64,6 +67,7 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
         setPrice('');
         setDeliveryDate('');
         setWhatsIncluded('');
+        setRevisions('0');
         setMilestones([]);
         setShowMilestones(false);
     };
@@ -142,6 +146,22 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                     min={new Date().toISOString().split('T')[0]}
                                     required
                                     className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:border-[#09BF44] focus:ring-2 focus:ring-[#09BF44]/20 outline-none transition-all"
+                                />
+                            </div>
+
+                            {/* Revisions */}
+                            <div>
+                                <label className="block text-sm font-bold text-gray-900 mb-2">
+                                    Number of Revisions <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="number"
+                                    value={revisions}
+                                    onChange={(e) => setRevisions(e.target.value)}
+                                    min="0"
+                                    required
+                                    className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:border-[#09BF44] focus:ring-2 focus:ring-[#09BF44]/20 outline-none transition-all"
+                                    placeholder="Enter number (e.g. 3)"
                                 />
                             </div>
 
@@ -289,6 +309,10 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                             <span className="font-bold text-gray-900">{milestones.length}</span>
                                         </div>
                                     )}
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-gray-600">Revisions:</span>
+                                        <span className="font-bold text-gray-900">{revisions || 0}</span>
+                                    </div>
                                 </div>
                             </div>
 

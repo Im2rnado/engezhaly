@@ -95,8 +95,8 @@ export default function EditJobPage() {
         setLoading(true);
         setError('');
 
-        if (Number(jobData.budgetMin) < 500) {
-            setError('Minimum budget allowed is 500 EGP.');
+        if (Number(jobData.budgetMin) < 300) {
+            setError('Minimum budget allowed is 300 EGP.');
             setLoading(false);
             return;
         }

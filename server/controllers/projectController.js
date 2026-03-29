@@ -14,8 +14,8 @@ const createProject = async (req, res) => {
         const { title, description, category, subCategory, images, packages, consultationPrice } = req.body;
 
         // Validation handled in frontend mostly, but double check min price
-        if (packages.some(p => p.price < 500)) {
-            return res.status(400).json({ msg: 'Minimum price must be 500 EGP' });
+        if (packages.some(p => p.price < 300)) {
+            return res.status(400).json({ msg: 'Minimum price must be 300 EGP' });
         }
 
         if (!category || !subCategory) {
@@ -133,8 +133,8 @@ const updateProject = async (req, res) => {
         if (images) project.images = images;
         if (packages) {
             // Validate packages
-            if (packages.some(p => p.price < 500)) {
-                return res.status(400).json({ msg: 'Minimum price must be 500 EGP' });
+            if (packages.some(p => p.price < 300)) {
+                return res.status(400).json({ msg: 'Minimum price must be 300 EGP' });
             }
             project.packages = packages;
         }

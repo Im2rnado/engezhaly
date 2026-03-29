@@ -107,8 +107,8 @@ const updateJob = async (req, res) => {
             }
         }
         if (budgetMin !== undefined) {
-            if (budgetMin < 500) {
-                return res.status(400).json({ msg: 'Minimum budget must be 500 EGP' });
+            if (budgetMin < 300) {
+                return res.status(400).json({ msg: 'Minimum budget must be 300 EGP' });
             }
             job.budgetRange.min = budgetMin;
         }
@@ -200,7 +200,7 @@ const acceptProposal = async (req, res) => {
             return res.status(400).json({ msg: 'This freelancer is busy and not accepting new work.' });
         }
 
-        const amount = Number(proposal.price) || job.budgetRange?.min || 500;
+        const amount = Number(proposal.price) || job.budgetRange?.min || 300;
         const clientFee = 20; // 20 EGP platform fee charged to client
         const totalClientPays = amount + clientFee;
         const amountCents = Math.round(totalClientPays * 100);

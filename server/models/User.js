@@ -38,7 +38,7 @@ const UserSchema = new mongoose.Schema({
             enum: [
                 'Development & Tech',
                 'Design & Creative',
-                'Digital Marketing',
+                'Marketing',
                 'Video Editor',
                 'AI and Automations',
                 'Writing & Language',

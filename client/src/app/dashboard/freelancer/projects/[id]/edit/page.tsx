@@ -123,8 +123,8 @@ export default function EditProjectPage() {
         setLoading(true);
         setError('');
 
-        if (projectData.packages.some(p => p.price < 500)) {
-            setError('Minimum price for any package is 500 EGP.');
+        if (projectData.packages.some(p => p.price < 300)) {
+            setError('Minimum price for any package is 300 EGP.');
             setLoading(false);
             return;
         }

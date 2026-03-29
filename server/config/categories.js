@@ -14,14 +14,13 @@ const CATEGORIES = {
         'UI/UX Designer',
         'Clothing / Fashion Designer'
     ],
-    'Digital Marketing': [
+    'Marketing': [
         'Social Media Manager',
         'Media Buyer (paid ads)',
         'Email Marketing'
     ],
     'Video Editor': [
-        'Video Editor - (Long Content)',
-        'Video Editor - (Short Content)',
+        'Video Editor - (Long / Short Content)',
     ],
     'AI and Automations': [
         'AI Content Creation (photos or videos)',
