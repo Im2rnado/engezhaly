@@ -32,7 +32,14 @@ const io = new Server(server, {
 });
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: ["https://engezhaly.com", "https://www.engezhaly.com", "http://localhost:3000"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "x-auth-token", "Authorization"],
+    credentials: true,
+    optionsSuccessStatus: 200
+}));
+
 // 15MB limit for JSON (registration sends base64 profile picture + certificates)
 app.use(express.json({ limit: '15mb' }));
 
@@ -44,13 +51,14 @@ const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/engezhaly'
 mongoose.connect(MONGO_URI)
     .then(async () => {
         console.log('MongoDB connected');
-        // Grandfather existing users: set emailVerified for users created before verification was required
-        const User = require('./models/User');
-        const r = await User.updateMany(
+        // Non-blocking migration
+        const User = mongoose.model('User');
+        User.updateMany(
             { $or: [{ emailVerified: { $exists: false } }, { emailVerified: null }] },
             { $set: { emailVerified: true } }
-        );
-        if (r.modifiedCount > 0) console.log(`[Migration] Set emailVerified for ${r.modifiedCount} existing users`);
+        ).then(r => {
+            if (r.modifiedCount > 0) console.log(`[Migration] Set emailVerified for ${r.modifiedCount} existing users`);
+        }).catch(err => console.error('[Migration] Failed:', err.message));
     })
     .catch(err => console.error('MongoDB connection error:', err));
 
