@@ -26,7 +26,7 @@ const OrderSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-OrderSchema.pre('save', async function (next) {
+OrderSchema.pre('save', async function () {
     if (this.isNew && !this.orderNumber) {
         const Sequence = mongoose.model('Sequence');
         const sequence = await Sequence.findOneAndUpdate(
@@ -36,7 +36,6 @@ OrderSchema.pre('save', async function (next) {
         );
         this.orderNumber = sequence.value;
     }
-    next();
 });
 
 module.exports = mongoose.model('Order', OrderSchema);
