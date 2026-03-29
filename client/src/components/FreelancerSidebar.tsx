@@ -12,8 +12,8 @@ interface FreelancerSidebarProps {
     profile?: any;
     onToggleBusy?: () => void;
     toggleBusyDisabled?: boolean;
-    onTabChange?: (tab: 'dashboard' | 'offers' | 'orders' | 'portfolio' | 'profile') => void;
-    activeTab?: 'dashboard' | 'offers' | 'orders' | 'portfolio' | 'profile';
+    onTabChange?: (tab: 'dashboard' | 'offers' | 'orders' | 'portfolio' | 'profile' | 'help') => void;
+    activeTab?: 'dashboard' | 'offers' | 'orders' | 'portfolio' | 'profile' | 'help';
     mobileOpen?: boolean;
     onCloseMobile?: () => void;
 }
