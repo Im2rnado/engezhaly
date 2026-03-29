@@ -81,7 +81,7 @@ export default function Home() {
         <div className="absolute top-0 right-[-10%] w-[800px] h-[800px] rounded-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#09BF44]/15 via-transparent to-transparent pointer-events-none"></div>
         <div className="absolute bottom-[-20%] left-[-5%] w-[600px] h-[600px] rounded-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/40 via-transparent to-transparent pointer-events-none"></div>
 
-        <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6 py-20 md:py-32 flex flex-col md:flex-row items-center relative z-10 gap-12">
+        <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6 py-16 md:py-28 flex flex-col md:flex-row items-center relative z-10 gap-12">
           <motion.div 
             initial="hidden" 
             animate="visible" 
@@ -95,8 +95,7 @@ export default function Home() {
             
             <motion.h1 variants={fadeIn} className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tight leading-[1.05] mb-6 text-gray-900 drop-shadow-sm">
               Find the perfect <br />
-              <span className="text-[#09BF44] italic pr-2 drop-shadow-sm">freelance</span> 
-              services
+              <span className="text-[#09BF44] italic pr-2 drop-shadow-sm">freelancer</span> 
             </motion.h1>
             
             <motion.p variants={fadeIn} className="text-lg md:text-xl text-gray-700 mb-8 max-w-lg leading-relaxed font-medium">
@@ -197,7 +196,7 @@ export default function Home() {
       </section>
 
       {/* NEW BOLD SECTION: How It Works - Very strong graphic breakdown */}
-      <section className="bg-gray-50 py-24 border-y border-gray-200">
+      <section className="bg-gray-50 py-28 border-y border-gray-200">
         <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6">
           <div className="text-center mb-16">
              <motion.h2 initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeIn} className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight">
@@ -381,7 +380,7 @@ export default function Home() {
       </section> */}
 
       {/* Projects Section - Restored original grid mapping performance */}
-      <section id="projects-section" className="bg-white py-24">
+      <section id="projects-section" className="bg-white pb-24">
         <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeIn} className="flex flex-col sm:flex-row sm:items-end justify-between mb-12 gap-4">
             <div>
