@@ -18,8 +18,6 @@ require('./models/Sequence');
 require('./models/Conversation');
 require('./models/Chat');
 require('./models/Transaction');
-require('./models/Strike');
-require('./models/Reward');
 require('./models/EmailLog');
 require('./models/Announcement');
 require('./models/AnnouncementRead');
