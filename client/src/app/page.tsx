@@ -3,22 +3,23 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { ChevronLeft, ChevronRight, ArrowRight, Code, Palette, TrendingUp, Video, Sparkles, PenTool, Mic, Search, Briefcase, ShieldCheck, Star, Loader2, CheckCircle2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowRight, Code, Palette, TrendingUp, Video, Sparkles, PenTool, Mic, Search, Briefcase, ShieldCheck, Star, Loader2, CheckCircle2, Zap } from "lucide-react";
 import { api } from "@/lib/api";
 import ProjectCardCompact from "@/components/ProjectCardCompact";
 import { MAIN_CATEGORIES } from "@/lib/categories";
 import MainHeader from "@/components/MainHeader";
 import { useModal } from "@/context/ModalContext";
-import { motion, AnimatePresence, Variants } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 
+// High-performance animations (no blurs, no box-shadow animations)
 const fadeIn: Variants = {
   hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } }
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } }
 };
 
 const stagger: Variants = {
   hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.08 } }
+  visible: { opacity: 1, transition: { staggerChildren: 0.05 } }
 };
 
 export default function Home() {
@@ -70,16 +71,15 @@ export default function Home() {
   }, [searchParams, router, showModal]);
 
   return (
-    <main className="min-h-screen bg-slate-50/50 text-gray-900 font-sans selection:bg-[#09BF44]/30">
+    <main className="min-h-screen bg-white text-gray-900 font-sans selection:bg-[#09BF44]/30">
       <MainHeader user={user} showCategories={true} />
 
-      {/* Hero Section */}
-      <section className="relative bg-white overflow-hidden border-b border-gray-100">
-        {/* Background Decorative Elements */}
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-          <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full bg-gradient-to-br from-[#09BF44]/10 to-transparent blur-3xl opacity-70"></div>
-          <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] rounded-full bg-gradient-to-tr from-[#09BF44]/5 to-transparent blur-3xl opacity-50"></div>
-        </div>
+      {/* Hero Section - Restored original gradient but modernized */}
+      <section className="relative bg-gradient-to-br from-white via-[#f1fdf4] to-[#09BF44]/60 overflow-hidden border-b border-[#09BF44]/10">
+        
+        {/* Fast Radial Backgrounds (No CSS Blur filters for max performance) */}
+        <div className="absolute top-0 right-[-10%] w-[800px] h-[800px] rounded-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#09BF44]/15 via-transparent to-transparent pointer-events-none"></div>
+        <div className="absolute bottom-[-20%] left-[-5%] w-[600px] h-[600px] rounded-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/40 via-transparent to-transparent pointer-events-none"></div>
 
         <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6 py-20 md:py-32 flex flex-col md:flex-row items-center relative z-10 gap-12">
           <motion.div 
@@ -88,19 +88,19 @@ export default function Home() {
             variants={stagger} 
             className="w-full md:w-1/2 flex flex-col justify-center"
           >
-            <motion.div variants={fadeIn} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#09BF44]/10 text-[#07a63a] font-semibold text-sm w-fit mb-6 border border-[#09BF44]/20">
-              <Sparkles className="w-4 h-4" />
+            <motion.div variants={fadeIn} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/60 backdrop-blur-md text-[#07a63a] font-bold text-sm w-fit mb-6 border border-white/50 shadow-sm">
+              <Sparkles className="w-4 h-4 text-[#09BF44]" />
               <span>The #1 Freelance Network in Egypt</span>
             </motion.div>
             
-            <motion.h1 variants={fadeIn} className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight leading-[1.1] mb-6 text-gray-900">
+            <motion.h1 variants={fadeIn} className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tight leading-[1.05] mb-6 text-gray-900 drop-shadow-sm">
               Find the perfect <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#09BF44] to-[#048729] italic pr-2">freelance</span> 
+              <span className="text-[#09BF44] italic pr-2 drop-shadow-sm">freelance</span> 
               services
             </motion.h1>
             
-            <motion.p variants={fadeIn} className="text-lg md:text-xl text-gray-500 mb-8 max-w-lg leading-relaxed">
-              Connect with top-tier talent for your business needs. Quality work, secure payments, and amazing results.
+            <motion.p variants={fadeIn} className="text-lg md:text-xl text-gray-700 mb-8 max-w-lg leading-relaxed font-medium">
+              Connect with top-tier talent for your business needs. Quality work, secure payments, and amazing results in minutes.
             </motion.p>
             
             <motion.form
@@ -111,81 +111,84 @@ export default function Home() {
                 if (heroSearchQuery.trim()) params.set("search", heroSearchQuery.trim());
                 router.push(`/jobs?${params.toString()}`);
               }}
-              className="bg-white rounded-2xl p-2 flex flex-col sm:flex-row sm:items-center w-full max-w-xl mb-8 shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-100 transition-shadow focus-within:shadow-[0_8px_30px_rgba(9,191,68,0.15)] focus-within:border-[#09BF44]/30"
+              className="bg-white/90 backdrop-blur-md rounded-2xl p-2 flex flex-col sm:flex-row sm:items-center w-full max-w-xl mb-8 shadow-xl border border-white focus-within:ring-4 focus-within:ring-[#09BF44]/20 transition-all"
             >
               <div className="pl-4 pt-3 sm:pt-0 flex items-center">
-                <Search className="text-gray-400 w-5 h-5" />
+                <Search className="text-gray-400 w-6 h-6" />
               </div>
               <input
                 type="text"
-                placeholder='Search for "mobile app development"'
+                placeholder='Try "building mobile app"'
                 value={heroSearchQuery}
                 onChange={(e) => setHeroSearchQuery(e.target.value)}
-                className="flex-1 px-4 py-3 text-gray-800 outline-none placeholder-gray-400 text-base md:text-lg bg-transparent"
+                className="flex-1 px-4 py-3 text-gray-900 outline-none placeholder-gray-400 text-base md:text-lg bg-transparent font-medium"
               />
-              <button type="submit" className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-6 py-3.5 rounded-xl font-bold transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 mt-2 sm:mt-0">
+              <button type="submit" className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-8 py-3.5 rounded-xl font-bold transition-transform hover:scale-105 mt-2 sm:mt-0 shadow-md">
                 Search
               </button>
             </motion.form>
             
-            <motion.div variants={fadeIn} className="flex flex-wrap items-center gap-3 text-sm font-medium text-gray-500">
+            <motion.div variants={fadeIn} className="flex flex-wrap items-center gap-3 text-sm font-bold text-gray-700">
               <span>Popular:</span>
-              <span className="bg-gray-100/80 hover:bg-[#09BF44]/10 hover:text-[#07a63a] px-4 py-1.5 rounded-full cursor-pointer transition-colors">Web Design</span>
-              <span className="bg-gray-100/80 hover:bg-[#09BF44]/10 hover:text-[#07a63a] px-4 py-1.5 rounded-full cursor-pointer transition-colors">Logo Design</span>
-              <span className="bg-gray-100/80 hover:bg-[#09BF44]/10 hover:text-[#07a63a] px-4 py-1.5 rounded-full cursor-pointer transition-colors">Video Editing</span>
+              <span className="bg-white/60 hover:bg-white px-4 py-1.5 rounded-full cursor-pointer transition-colors border border-white/50 shadow-sm">Website Design</span>
+              <span className="bg-white/60 hover:bg-white px-4 py-1.5 rounded-full cursor-pointer transition-colors border border-white/50 shadow-sm">Logo Design</span>
+              <span className="bg-white/60 hover:bg-white px-4 py-1.5 rounded-full cursor-pointer transition-colors border border-white/50 shadow-sm">Video Editing</span>
             </motion.div>
           </motion.div>
 
+          {/* Premium Hero Visual Element - Optimized for performance */}
           <motion.div 
-            initial={{ opacity: 0, scale: 0.95, rotate: 2 }}
-            animate={{ opacity: 1, scale: 1, rotate: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
             className="w-full md:w-1/2 flex justify-center relative"
           >
-            {/* Abstract Decorative Component to look High-End */}
             <div className="relative w-full max-w-lg aspect-square">
-              <div className="absolute inset-0 bg-gradient-to-tr from-[#09BF44]/20 to-emerald-100 rounded-3xl rotate-3 scale-105 blur-sm opacity-50"></div>
-              <div className="absolute inset-0 bg-white rounded-3xl shadow-2xl border border-white/40 overflow-hidden flex flex-col p-6 backdrop-blur-xl">
+              {/* Clean solid geometric backgrounds instead of heavy blurred shadows */}
+              <div className="absolute inset-0 bg-[#09BF44]/20 rounded-[40px] rotate-6 transform-gpu"></div>
+              <div className="absolute inset-0 bg-white/40 rounded-[40px] -rotate-3 transform-gpu backdrop-blur-sm border border-white/50"></div>
+              
+              <div className="relative bg-white rounded-[40px] shadow-2xl border border-gray-100/50 overflow-hidden flex flex-col p-8 h-full transform-gpu">
                  <div className="flex items-center justify-between mb-8">
-                    <div className="flex gap-2">
-                      <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                      <div className="w-3 h-3 rounded-full bg-amber-400"></div>
-                      <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                    <div className="h-8 w-32 bg-gray-100 rounded-full"></div>
+                    <div className="w-10 h-10 rounded-full bg-green-50 text-[#09BF44] flex items-center justify-center">
+                       <CheckCircle2 className="w-6 h-6" />
                     </div>
-                    <div className="h-6 w-24 bg-gray-100 rounded-full"></div>
                  </div>
-                 <div className="space-y-4 flex-1">
-                    <div className="flex gap-4 items-center">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#09BF44] to-[#048729] shadow-lg"></div>
-                      <div className="space-y-2 flex-1">
-                        <div className="h-4 w-1/3 bg-gray-200 rounded-lg"></div>
-                        <div className="h-3 w-1/4 bg-gray-100 rounded-lg"></div>
+                 <div className="space-y-6 flex-1">
+                    <div className="flex gap-5 items-center">
+                      <div className="w-16 h-16 rounded-full bg-[#09BF44] flex items-center justify-center shadow-lg shadow-[#09BF44]/30">
+                         <span className="text-white font-black text-2xl">A</span>
+                      </div>
+                      <div className="space-y-3 flex-1">
+                        <div className="h-4 w-1/2 bg-gray-200 rounded-lg"></div>
+                        <div className="h-3 w-1/3 bg-gray-100 rounded-lg"></div>
                       </div>
                     </div>
-                    <div className="h-32 w-full border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50 flex items-center justify-center">
-                       <p className="text-gray-400 font-medium font-mono text-sm tracking-widest uppercase">Creative Workspace</p>
+                    <div className="h-32 w-full border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50 flex items-center justify-center">
+                       <p className="text-gray-400 font-bold tracking-widest uppercase">Creative Workspace</p>
                     </div>
-                    <div className="flex gap-3 pt-2">
-                       <div className="h-10 w-1/2 bg-gray-100 rounded-xl"></div>
-                       <div className="h-10 w-1/2 bg-[#09BF44]/10 rounded-xl"></div>
+                    <div className="flex gap-4 pt-4">
+                       <div className="h-12 w-1/2 bg-gray-100 rounded-xl"></div>
+                       <div className="h-12 w-1/2 bg-[#09BF44] rounded-xl shadow-md shadow-[#09BF44]/20"></div>
                     </div>
                  </div>
               </div>
 
-              {/* Floating elements */}
-              <motion.div animate={{ y: [-10, 10, -10] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }} className="absolute -left-8 top-1/4 bg-white p-4 rounded-2xl shadow-xl flex items-center gap-3 border border-gray-100 z-20">
-                <div className="bg-orange-100 p-2 rounded-full text-orange-500"><Star className="w-5 h-5" fill="currentColor" /></div>
+              {/* Simple Float animations using hardware acceleration */}
+              <motion.div animate={{ y: [-8, 8, -8] }} transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }} className="absolute -left-6 top-1/4 bg-white p-4 rounded-2xl shadow-xl flex items-center gap-3 border border-gray-100 z-20 transform-gpu">
+                <div className="bg-orange-100 p-2.5 rounded-full text-orange-500"><Star className="w-5 h-5" fill="currentColor" /></div>
                 <div>
-                  <p className="font-bold text-gray-900 text-sm">4.9/5</p>
-                  <p className="text-xs text-gray-500">Average Rating</p>
+                  <p className="font-black text-gray-900 text-sm">4.9/5 Rating</p>
+                  <p className="text-xs text-gray-500 font-bold">Client Average</p>
                 </div>
               </motion.div>
               
-              <motion.div animate={{ y: [10, -10, 10] }} transition={{ repeat: Infinity, duration: 5, ease: "easeInOut", delay: 1 }} className="absolute -right-6 bottom-1/4 bg-white p-4 rounded-2xl shadow-xl flex items-center gap-3 border border-gray-100 z-20">
-                <div className="bg-green-100 p-2 rounded-full text-[#09BF44]"><ShieldCheck className="w-5 h-5" /></div>
+              <motion.div animate={{ y: [8, -8, 8] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut", delay: 1 }} className="absolute -right-4 bottom-1/4 bg-white p-4 rounded-2xl shadow-xl flex items-center gap-3 border border-gray-100 z-20 transform-gpu">
+                <div className="bg-green-100 p-2.5 rounded-full text-[#09BF44]"><ShieldCheck className="w-5 h-5" /></div>
                 <div>
-                  <p className="font-bold text-gray-900 text-sm">100% Secure</p>
-                  <p className="text-xs text-gray-500">Payment Protection</p>
+                  <p className="font-black text-gray-900 text-sm">100% Secure</p>
+                  <p className="text-xs text-gray-500 font-bold">Payments</p>
                 </div>
               </motion.div>
             </div>
@@ -193,15 +196,39 @@ export default function Home() {
         </div>
       </section>
 
+      {/* NEW BOLD SECTION: Stats & Trust */}
+      <section className="bg-gray-900 py-16 text-white border-y border-gray-800 relative z-20 -mt-1 shadow-2xl">
+        <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 text-center divide-x divide-white/10">
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}>
+              <p className="text-4xl md:text-5xl font-black text-[#09BF44] mb-2 tracking-tighter">100+</p>
+              <p className="text-sm md:text-base text-gray-400 font-bold uppercase tracking-widest">Active Projects</p>
+            </motion.div>
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}>
+              <p className="text-4xl md:text-5xl font-black text-[#09BF44] mb-2 tracking-tighter">99%</p>
+              <p className="text-sm md:text-base text-gray-400 font-bold uppercase tracking-widest">Client Satisfaction</p>
+            </motion.div>
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.3 }}>
+              <p className="text-4xl md:text-5xl font-black text-[#09BF44] mb-2 tracking-tighter">24/7</p>
+              <p className="text-sm md:text-base text-gray-400 font-bold uppercase tracking-widest">Support Available</p>
+            </motion.div>
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.4 }}>
+              <p className="text-4xl md:text-5xl font-black text-[#09BF44] mb-2 tracking-tighter">100%</p>
+              <p className="text-sm md:text-base text-gray-400 font-bold uppercase tracking-widest">Secure Payments</p>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
       {/* Popular Services Section */}
-      <section className="py-24 relative overflow-hidden bg-white">
+      <section className="py-24 bg-white">
         <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6">
           <motion.div 
-            initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={fadeIn}
+            initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={fadeIn}
             className="text-center md:text-left mb-12"
           >
-            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight">Popular Categories</h2>
-            <p className="text-gray-500 mt-3 text-lg">Explore our most demanded professional services</p>
+            <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">Popular Professional Services</h2>
+            <p className="text-gray-500 mt-3 text-lg font-medium">Explore our most demanded categories</p>
           </motion.div>
           
           <motion.div 
@@ -227,11 +254,11 @@ export default function Home() {
                   onClick={() => router.push(`/offers?category=${encodeURIComponent(category)}`)}
                   className="group cursor-pointer relative"
                 >
-                  <div className="h-44 rounded-3xl bg-slate-50 border border-slate-100 flex flex-col items-center justify-center p-6 text-center transition-all duration-400 group-hover:bg-white group-hover:shadow-[0_20px_40px_-15px_rgba(9,191,68,0.2)] group-hover:-translate-y-2 group-hover:border-[#09BF44]/30">
+                  <div className="h-44 rounded-3xl bg-slate-50 border border-slate-100 flex flex-col items-center justify-center p-6 text-center transition-transform hover:-translate-y-2 transform-gpu">
                     <div className="mb-4 p-4 rounded-full bg-white shadow-sm text-gray-600 group-hover:bg-[#09BF44] group-hover:text-white transition-colors duration-300">
                       <IconComponent className="w-7 h-7" />
                     </div>
-                    <h3 className="text-sm font-bold text-gray-800 group-hover:text-[#09BF44] transition-colors">{category}</h3>
+                    <h3 className="text-sm font-bold text-gray-900 group-hover:text-[#09BF44] transition-colors">{category}</h3>
                   </div>
                 </motion.div>
               );
@@ -241,18 +268,18 @@ export default function Home() {
       </section>
 
       {/* Top Freelancers Section */}
-      <section className="bg-slate-50/80 py-24 border-y border-gray-100">
+      <section className="bg-slate-50 py-24 border-y border-gray-100">
         <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeIn} className="flex flex-col sm:flex-row sm:items-end justify-between mb-12 gap-4">
             <div>
-              <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight">Top Rated Freelancers</h2>
-              <p className="text-gray-500 mt-3 text-lg">Work with the best talent on our platform</p>
+              <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">Top Rated Freelancers</h2>
+              <p className="text-gray-500 mt-3 text-lg font-medium">Work with the best talent on our platform</p>
             </div>
             <button
               onClick={() => router.push('/freelancers')}
-              className="flex items-center gap-2 text-gray-600 hover:text-[#09BF44] font-semibold transition-colors group"
+              className="flex items-center gap-2 text-gray-900 hover:text-[#09BF44] font-bold transition-colors group"
             >
-              See all <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              See all pros <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
           </motion.div>
 
@@ -267,11 +294,10 @@ export default function Home() {
                   variants={fadeIn}
                   key={freelancer._id}
                   onClick={() => router.push(`/freelancer/${freelancer._id}`)}
-                  className="bg-white rounded-3xl border border-gray-100 p-6 hover:shadow-xl hover:shadow-[#09BF44]/5 hover:border-[#09BF44]/20 transition-all duration-300 cursor-pointer group flex flex-col h-full"
+                  className="bg-white rounded-3xl border border-gray-200 p-6 hover:border-[#09BF44]/50 transition-colors cursor-pointer group flex flex-col h-full shadow-sm hover:shadow-md"
                 >
                   <div className="relative mb-5 flex justify-center">
-                    <div className="absolute -inset-2 rounded-full bg-gradient-to-b from-[#09BF44]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity blur-md"></div>
-                    <div className="relative w-20 h-20 rounded-full bg-slate-100 border-[3px] border-white shadow-sm overflow-hidden z-10 transition-transform group-hover:scale-105 duration-300">
+                    <div className="relative w-20 h-20 rounded-full bg-slate-100 border-[3px] border-white shadow-md overflow-hidden z-10 transition-transform group-hover:scale-110 transform-gpu duration-300">
                       {freelancer.freelancerProfile?.profilePicture ? (
                         <Image
                           src={freelancer.freelancerProfile.profilePicture}
@@ -281,32 +307,32 @@ export default function Home() {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-[#09BF44] to-[#048729] flex items-center justify-center text-white font-black text-2xl">
+                        <div className="w-full h-full bg-[#09BF44] flex items-center justify-center text-white font-black text-2xl">
                           {freelancer.firstName?.[0]?.toUpperCase() || 'F'}
                         </div>
                       )}
                     </div>
                   </div>
 
-                  <h3 className="text-center font-bold text-gray-900 group-hover:text-[#09BF44] transition-colors leading-tight">
+                  <h3 className="text-center font-black text-gray-900 group-hover:text-[#09BF44] transition-colors leading-tight">
                     {freelancer.firstName} {freelancer.lastName}
                   </h3>
                   
-                  <p className="text-sm text-gray-500 text-center mt-2 mb-4 line-clamp-2 max-h-10 flex-1">
+                  <p className="text-sm text-gray-500 font-medium text-center mt-2 mb-4 line-clamp-2 max-h-10 flex-1">
                     {freelancer.freelancerProfile?.bio || 'Professional Freelancer'}
                   </p>
 
                   <div className="mt-auto">
                     {freelancer.avgRating > 0 && (
-                      <div className="flex items-center justify-center gap-1.5 mb-3">
+                      <div className="flex items-center justify-center gap-1 mb-3">
                         <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
                         <span className="text-sm font-bold text-gray-900">{freelancer.avgRating.toFixed(1)}</span>
-                        <span className="text-xs text-gray-400 font-medium">({freelancer.completedDeals || 0})</span>
+                        <span className="text-xs text-gray-400 font-bold">({freelancer.completedDeals || 0})</span>
                       </div>
                     )}
                     <div className="text-center pt-3 border-t border-gray-100">
-                      <p className="text-xs text-gray-400 font-medium mb-0.5 uppercase tracking-wider">Starting at</p>
-                      <p className="text-base font-black text-gray-900 group-hover:text-[#09BF44] transition-colors">
+                      <p className="text-xs text-gray-400 font-bold mb-0.5 uppercase tracking-wider">Starting at</p>
+                      <p className="text-base font-black text-[#09BF44]">
                         EGP {freelancer.startingPrice || freelancer.freelancerProfile?.starterPricing?.basic?.price || 0}
                       </p>
                     </div>
@@ -315,26 +341,26 @@ export default function Home() {
               ))}
             </motion.div>
           ) : (
-            <div className="text-center py-16 text-gray-400">
+            <div className="text-center py-16 text-gray-400 font-bold">
               <p>No freelancers available right now.</p>
             </div>
           )}
         </div>
       </section>
 
-      {/* Projects Section - Modified to animate properly, keeping ProjectCardCompact logic identical */}
-      <section id="projects-section" className="bg-white py-24 relative">
+      {/* Projects Section - Restored original grid mapping performance */}
+      <section id="projects-section" className="bg-white py-24">
         <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeIn} className="flex flex-col sm:flex-row sm:items-end justify-between mb-12 gap-4">
             <div>
-              <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight">Featured Services</h2>
-              <p className="text-gray-500 mt-3 text-lg">Top quality work delivered by verified pros</p>
+              <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">Services you might like</h2>
+              <p className="text-gray-500 mt-3 text-lg font-medium">Explore professional services from talented freelancers</p>
             </div>
             <button
               onClick={() => router.push('/offers')}
-              className="flex items-center gap-2 text-gray-600 hover:text-[#09BF44] font-semibold transition-colors group"
+              className="flex items-center gap-2 text-gray-900 hover:text-[#09BF44] font-bold transition-colors group"
             >
-              Explore all <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              View More <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
           </motion.div>
 
@@ -344,36 +370,27 @@ export default function Home() {
             </div>
           ) : projects.length > 0 ? (
             <div className="relative">
-              <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <AnimatePresence mode="popLayout">
-                  {projects.slice(projectStartIndex, projectStartIndex + 6).map((project) => (
-                    <motion.div 
-                      key={project._id}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ duration: 0.3 }}
-                      className="h-full"
-                    >
-                      <ProjectCardCompact project={project} />
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
+              <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {projects.slice(projectStartIndex, projectStartIndex + 6).map((project) => (
+                  <motion.div variants={fadeIn} key={project._id} className="h-full">
+                    <ProjectCardCompact project={project} />
+                  </motion.div>
+                ))}
               </motion.div>
               
               {projects.length > 6 && (
-                <div className="flex items-center justify-center gap-4 mt-12">
+                <div className="flex items-center justify-center gap-4 mt-8">
                   <button
                     onClick={() => setProjectStartIndex(Math.max(0, projectStartIndex - 3))}
                     disabled={projectStartIndex === 0}
-                    className="p-3 rounded-full bg-white border border-gray-200 shadow-sm hover:border-[#09BF44] hover:text-[#09BF44] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="p-3 rounded-full bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-bold"
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </button>
                   <button
                     onClick={() => setProjectStartIndex(Math.min(projects.length - 6, projectStartIndex + 3))}
                     disabled={projectStartIndex >= projects.length - 6}
-                    className="p-3 rounded-full bg-white border border-gray-200 shadow-sm hover:border-[#09BF44] hover:text-[#09BF44] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="p-3 rounded-full bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-bold"
                   >
                     <ChevronRight className="w-5 h-5" />
                   </button>
@@ -383,81 +400,105 @@ export default function Home() {
           ) : (
             <div className="text-center py-16">
               <Briefcase className="w-16 h-16 mx-auto mb-4 text-gray-200" />
-              <h3 className="text-lg font-bold text-gray-900 mb-1">No Services Available</h3>
-              <p className="text-gray-500">Check back later for new offers.</p>
+              <h3 className="text-lg font-black text-gray-900 mb-1">No Services Available</h3>
+              <p className="text-gray-500 font-medium">Check back later for new offers.</p>
             </div>
           )}
         </div>
       </section>
 
-      {/* Value Proposition Section - Totally revamped */}
-      <section className="relative py-32 bg-[#09BF44] overflow-hidden">
-        {/* Abstract pattern via SVG or CSS */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 right-1/4 w-[800px] h-[800px] bg-white rounded-full blur-[120px]"></div>
-          <div className="absolute bottom-0 left-1/4 w-[600px] h-[600px] bg-white rounded-full blur-[100px]"></div>
+      {/* NEW BOLD SECTION: How It Works - Very strong graphic breakdown */}
+      <section className="bg-gray-50 py-24 border-y border-gray-200">
+        <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6">
+          <div className="text-center mb-16">
+             <motion.h2 initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeIn} className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight">
+               How Engezhaly Works
+             </motion.h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
+             <div className="hidden md:block absolute top-1/4 left-1/6 right-1/6 h-1 bg-gray-200 z-0"></div>
+             
+             {[
+               { icon: Search, title: "1. Discover", desc: "Browse available services or post a custom job specifically for your needs." },
+               { icon: CheckCircle2, title: "2. Hire & Pay", desc: "Review freelancer profiles, agree on a price, and fund the milestone securely." },
+               { icon: Zap, title: "3. Get It Done", desc: "Communicate directly, receive the finished work, and release funds upon approval." }
+             ].map((step, i) => (
+                <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.15 }} key={i} className="relative z-10 flex flex-col items-center text-center">
+                   <div className="w-20 h-20 rounded-2xl bg-white border-2 border-gray-100 shadow-xl flex items-center justify-center mb-6 text-[#09BF44] transform-gpu hover:scale-105 transition-transform">
+                      <step.icon className="w-10 h-10" />
+                   </div>
+                   <h3 className="text-2xl font-black text-gray-900 mb-3">{step.title}</h3>
+                   <p className="text-gray-600 font-medium px-4">{step.desc}</p>
+                </motion.div>
+             ))}
+          </div>
         </div>
+      </section>
+
+      {/* Value Proposition Section - Optimized Backgrounds */}
+      <section className="relative py-24 bg-[#08a63b] overflow-hidden">
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/10 to-transparent pointer-events-none mix-blend-overlay"></div>
+        <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#000]/10 to-transparent pointer-events-none mix-blend-overlay"></div>
 
         <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6 relative z-10 flex flex-col lg:flex-row items-center gap-16">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger} className="w-full lg:w-1/2">
-            <motion.h2 variants={fadeIn} className="text-3xl md:text-5xl font-extrabold text-white mb-6 leading-tight">
+            <motion.h2 variants={fadeIn} className="text-3xl md:text-5xl font-black text-white mb-6 leading-tight">
               A whole world of freelance talent at your fingertips
             </motion.h2>
-            <motion.p variants={fadeIn} className="text-green-50 text-lg md:text-xl mb-10 max-w-lg leading-relaxed font-medium">
+            <motion.p variants={fadeIn} className="text-green-50/90 text-lg md:text-xl mb-12 max-w-lg leading-relaxed font-bold">
               We&apos;ve built Engezhaly to help you get things done securely, quickly, and professionally.
             </motion.p>
             
-            <div className="space-y-6">
+            <div className="space-y-8">
               {[
                 { title: 'The best for every budget', desc: 'Find high-quality services at every price point. No hourly rates, just project-based pricing.' },
                 { title: 'Quality work done quickly', desc: 'Find the right freelancer to begin working on your project within minutes.' },
-                { title: 'Protected payments, every time', desc: 'Your money stays protected and is only released when you approve the work.' },
-                { title: '24/7 Support', desc: 'Reach out to us at any time, anywhere.' }
+                { title: 'Protected payments, every time', desc: 'Your money stays protected and is only released when you approve the work.' }
               ].map((item, i) => (
-                <motion.div variants={fadeIn} key={i} className="flex gap-4 items-start group">
-                  <div className="mt-1 bg-white/20 p-1.5 rounded-full group-hover:bg-white group-hover:text-[#09BF44] text-white transition-colors">
-                    <CheckCircle2 className="w-5 h-5" />
+                <motion.div variants={fadeIn} key={i} className="flex gap-5 items-start">
+                  <div className="mt-1 bg-white p-1.5 rounded-full text-[#09BF44]">
+                    <CheckCircle2 className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-white mb-1.5">{item.title}</h3>
-                    <p className="text-green-50/90 leading-relaxed">{item.desc}</p>
+                    <h3 className="text-xl font-black text-white mb-2">{item.title}</h3>
+                    <p className="text-green-50/90 leading-relaxed font-semibold">{item.desc}</p>
                   </div>
                 </motion.div>
               ))}
             </div>
           </motion.div>
 
-          {/* Premium Right Image/Card */}
+          {/* Solid performant geometric visual */}
           <motion.div 
-            initial={{ opacity: 0, x: 50 }} 
+            initial={{ opacity: 0, x: 20 }} 
             whileInView={{ opacity: 1, x: 0 }} 
             viewport={{ once: true }} 
-            transition={{ duration: 0.8, ease: "easeOut" }}
+            transition={{ duration: 0.6 }}
             className="w-full lg:w-1/2 flex justify-center lg:justify-end"
           >
-             <div className="relative w-full max-w-lg">
-                <div className="absolute inset-0 bg-white rounded-[40px] rotate-3 opacity-20"></div>
-                <div className="absolute inset-0 bg-white rounded-[40px] -rotate-3 opacity-40"></div>
-                <div className="relative bg-white rounded-[40px] shadow-2xl overflow-hidden aspect-[4/3] flex flex-col justify-between">
-                   {/* Top Bar mock */}
-                   <div className="h-14 border-b border-gray-100 flex items-center px-6 gap-2 bg-slate-50">
-                      <div className="w-3 h-3 rounded-full bg-gray-300"></div>
-                      <div className="w-3 h-3 rounded-full bg-gray-300"></div>
-                      <div className="w-3 h-3 rounded-full bg-gray-300"></div>
-                   </div>
-                   {/* Body */}
-                   <div className="flex-1 flex items-center justify-center p-8 bg-[url('https://patterns.dev/images/pattern-dots.svg')] bg-[length:24px_24px]">
-                      <div className="w-24 h-24 rounded-full bg-[#09BF44] shadow-xl shadow-[#09BF44]/40 flex items-center justify-center text-white cursor-pointer hover:scale-105 transition-transform duration-300">
-                         <div className="ml-2 w-0 h-0 border-t-[12px] border-t-transparent border-l-[20px] border-l-white border-b-[12px] border-b-transparent"></div>
+             <div className="relative w-full max-w-lg bg-white rounded-3xl p-8 shadow-2xl transform-gpu -rotate-2 border-4 border-white/20">
+                <div className="space-y-6">
+                   <div className="h-6 w-1/3 bg-gray-200 rounded-lg"></div>
+                   <div className="h-24 w-full bg-gray-100 rounded-xl flex items-center justify-between px-6">
+                      <div className="flex items-center gap-4">
+                         <div className="w-12 h-12 bg-gray-300 rounded-full"></div>
+                         <div className="space-y-2">
+                           <div className="h-3 w-24 bg-gray-300 rounded"></div>
+                           <div className="h-2 w-16 bg-gray-200 rounded"></div>
+                         </div>
                       </div>
+                      <div className="h-8 w-24 bg-[#09BF44]/20 rounded-full"></div>
                    </div>
-                   {/* Bottom Sheet mock */}
-                   <div className="h-24 bg-white border-t border-gray-100 p-6 flex items-center justify-between">
-                      <div className="space-y-2">
-                         <div className="h-3 w-32 bg-gray-200 rounded"></div>
-                         <div className="h-2 w-20 bg-gray-100 rounded"></div>
+                   <div className="h-24 w-full bg-gray-100 rounded-xl flex items-center justify-between px-6">
+                      <div className="flex items-center gap-4">
+                         <div className="w-12 h-12 bg-[#09BF44] rounded-full flex items-center justify-center text-white"><Star className="w-6 h-6" /></div>
+                         <div className="space-y-2">
+                           <div className="h-3 w-32 bg-gray-800 rounded"></div>
+                           <div className="h-2 w-20 bg-gray-300 rounded"></div>
+                         </div>
                       </div>
-                      <div className="h-10 w-24 bg-[#09BF44]/10 rounded-full"></div>
+                      <div className="h-8 w-24 bg-[#09BF44] rounded-full"></div>
                    </div>
                 </div>
              </div>
@@ -466,16 +507,16 @@ export default function Home() {
       </section>
 
       {/* Jobs Section */}
-      <section id="jobs-section" className="bg-slate-50 py-24 pb-32">
+      <section id="jobs-section" className="bg-white py-24 pb-32">
         <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeIn} className="flex flex-col sm:flex-row sm:items-end justify-between mb-12 gap-4">
             <div>
-              <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight">Recent Opportunities</h2>
-              <p className="text-gray-500 mt-3 text-lg">Browse available jobs and send your proposals</p>
+              <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">Recent Opportunities</h2>
+              <p className="text-gray-500 mt-3 text-lg font-medium">Browse available jobs and send your proposals</p>
             </div>
             <button
               onClick={() => router.push('/jobs')}
-              className="flex items-center gap-2 text-gray-600 hover:text-[#09BF44] font-semibold transition-colors group"
+              className="flex items-center gap-2 text-gray-900 hover:text-[#09BF44] font-bold transition-colors group"
             >
               View all jobs <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
@@ -488,59 +529,56 @@ export default function Home() {
           ) : jobs.length > 0 ? (
             <div className="relative">
               <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <AnimatePresence mode="popLayout">
                   {jobs.slice(jobStartIndex, jobStartIndex + 4).map((job) => (
                     <motion.div
+                      variants={fadeIn}
                       key={job._id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 20 }}
-                      className="bg-white border text-left border-gray-100/80 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)] rounded-3xl p-8 hover:border-[#09BF44]/30 hover:shadow-xl transition-all duration-300 group"
+                      className="bg-white border text-left border-gray-200 shadow-sm rounded-3xl p-8 hover:border-[#09BF44] transition-colors focus-within:ring-4 focus-within:ring-[#09BF44]/10 group"
                     >
                       <div className="flex flex-col h-full">
-                        <div className="flex items-start justify-between mb-5 gap-4">
-                          <h3 className="text-xl font-bold text-gray-900 leading-snug group-hover:text-[#09BF44] transition-colors">{job.title}</h3>
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-5 gap-4">
+                          <h3 className="text-xl font-black text-gray-900 leading-snug group-hover:text-[#09BF44] transition-colors">{job.title}</h3>
                           {job.status === 'open' && (
-                            <span className="bg-emerald-50 text-[#09BF44] border border-emerald-100 px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap">
+                            <span className="bg-emerald-50 text-[#09BF44] border border-emerald-100 px-3.5 py-1.5 rounded-full text-xs font-black whitespace-nowrap self-start">
                               Open Right Now
                             </span>
                           )}
                         </div>
                         
-                        <p className="text-gray-500 text-[15px] mb-6 line-clamp-2 leading-relaxed flex-1">
+                        <p className="text-gray-600 font-medium text-[15px] mb-6 line-clamp-2 leading-relaxed flex-1">
                           {job.description}
                         </p>
                         
-                        <div className="flex flex-wrap items-center gap-5 text-sm mb-6 pb-6 border-b border-gray-50">
+                        <div className="flex flex-wrap items-center gap-5 text-sm mb-6 pb-6 border-b border-gray-100">
                           <div>
-                            <span className="text-gray-400 font-medium block mb-1 text-xs uppercase tracking-wider">Budget</span>
-                            <span className="text-gray-900 font-bold whitespace-nowrap">
+                            <span className="text-gray-400 font-bold block mb-1 text-xs uppercase tracking-wider">Budget</span>
+                            <span className="text-gray-900 font-black whitespace-nowrap">
                               EGP {job.budgetRange?.min || 0} - {job.budgetRange?.max || 0}
                             </span>
                           </div>
-                          <div className="h-8 w-px bg-gray-100"></div>
+                          <div className="h-8 w-px bg-gray-200"></div>
                           <div>
-                            <span className="text-gray-400 font-medium block mb-1 text-xs uppercase tracking-wider">Deadline</span>
-                            <span className="text-gray-900 font-bold">{job.deadline || 'N/A'}</span>
+                            <span className="text-gray-400 font-bold block mb-1 text-xs uppercase tracking-wider">Deadline</span>
+                            <span className="text-gray-900 font-black">{job.deadline || 'N/A'}</span>
                           </div>
                         </div>
                         
                         <div className="flex items-center justify-between">
                             <div className="flex flex-wrap gap-2">
                               {job.skills?.slice(0, 3).map((skill: string, idx: number) => (
-                                <span key={idx} className="bg-slate-50 border border-slate-100 text-slate-600 px-3 py-1.5 rounded-lg text-xs font-semibold">
+                                <span key={idx} className="bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-bold">
                                   {skill}
                                 </span>
                               ))}
                               {job.skills?.length > 3 && (
-                                <span className="text-gray-400 text-xs font-bold py-1.5">+{job.skills.length - 3}</span>
+                                <span className="text-gray-400 text-xs font-black py-1.5">+{job.skills.length - 3}</span>
                               )}
                             </div>
 
                             {user?.role === 'freelancer' && job.status === 'open' && (
                               <button
                                 onClick={() => router.push(`/jobs`)}
-                                className="bg-gray-900 hover:bg-[#09BF44] text-white px-6 py-2.5 rounded-xl font-bold transition-colors shadow-md text-sm whitespace-nowrap ml-4"
+                                className="bg-gray-900 hover:bg-[#09BF44] text-white px-6 py-2.5 rounded-xl font-black transition-colors shadow-md text-sm whitespace-nowrap ml-4 active:scale-95 transform-gpu"
                               >
                                 Submit Proposal
                               </button>
@@ -549,22 +587,21 @@ export default function Home() {
                       </div>
                     </motion.div>
                   ))}
-                </AnimatePresence>
               </motion.div>
               
               {jobs.length > 4 && (
-                <div className="flex items-center justify-center gap-4 mt-12">
+                <div className="flex items-center justify-center gap-4 mt-8">
                   <button
                     onClick={() => setJobStartIndex(Math.max(0, jobStartIndex - 2))}
                     disabled={jobStartIndex === 0}
-                    className="p-3 rounded-full bg-white border border-gray-200 shadow-sm hover:border-[#09BF44] hover:text-[#09BF44] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="p-3 rounded-full bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-bold"
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </button>
                   <button
                     onClick={() => setJobStartIndex(Math.min(jobs.length - 4, jobStartIndex + 2))}
                     disabled={jobStartIndex >= jobs.length - 4}
-                    className="p-3 rounded-full bg-white border border-gray-200 shadow-sm hover:border-[#09BF44] hover:text-[#09BF44] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="p-3 rounded-full bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-bold"
                   >
                     <ChevronRight className="w-5 h-5" />
                   </button>
@@ -574,8 +611,8 @@ export default function Home() {
           ) : (
             <div className="text-center py-16">
               <Briefcase className="w-16 h-16 mx-auto mb-4 text-gray-200" />
-              <h3 className="text-lg font-bold text-gray-900 mb-1">No Jobs Available</h3>
-              <p className="text-gray-500">Check back later for new job postings.</p>
+              <h3 className="text-lg font-black text-gray-900 mb-1">No Jobs Available</h3>
+              <p className="text-gray-500 font-medium">Check back later for new job postings.</p>
             </div>
           )}
         </div>
