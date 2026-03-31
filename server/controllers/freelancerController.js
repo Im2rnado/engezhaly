@@ -1,5 +1,7 @@
 const User = require('../models/User');
 const Order = require('../models/Order');
+const Chat = require('../models/Chat');
+const Conversation = require('../models/Conversation');
 const { sendAndLog } = require('../services/mailgunService');
 const { orderApproved, orderDenied, workSubmitted } = require('../templates/emailTemplates');
 
@@ -387,6 +389,40 @@ const approveOrder = async (req, res) => {
         const populated = await Order.findById(orderId)
             .populate('projectId', 'title packages subCategory')
             .populate('buyerId', 'firstName lastName email');
+
+        // Sync order approval to chat
+        const conversation = await Conversation.findOne({
+            participants: { $all: [String(order.buyerId._id), String(freelancerId)] }
+        });
+        
+        if (conversation) {
+            const chatMsg = new Chat({
+                conversationId: conversation._id,
+                senderId: freelancerId,
+                receiverId: order.buyerId._id,
+                content: `[Engezhaly Order] Freelancer has accepted your order request. Please complete the payment of ${order.amount} EGP via Paymob or InstaPay using the dashboard or chat button.`,
+                messageType: 'order',
+                isAdmin: false
+            });
+            await chatMsg.save();
+            await Conversation.findByIdAndUpdate(conversation._id, { 
+                lastMessage: chatMsg.content, 
+                lastMessageId: chatMsg._id 
+            });
+            const io = req.app?.get('io');
+            if (io) {
+                io.to(`conversation:${conversation._id}`).emit('message', {
+                    _id: chatMsg._id,
+                    conversationId: conversation._id,
+                    senderId: freelancerId,
+                    content: chatMsg.content,
+                    messageType: 'order',
+                    createdAt: chatMsg.createdAt,
+                    isAdmin: false,
+                    isRead: false
+                });
+            }
+        }
 
         res.json(populated);
     } catch (err) {
