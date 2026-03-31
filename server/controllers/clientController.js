@@ -201,8 +201,8 @@ const acceptProposal = async (req, res) => {
         }
 
         const amount = Number(proposal.price) || job.budgetRange?.min || 300;
-        const clientFee = 20; // 20 EGP platform fee charged to client
-        const totalClientPays = amount + clientFee;
+        const clientFee = 20; // 20 EGP platform fee charged to freelancer
+        const totalClientPays = amount;
         const amountCents = Math.round(totalClientPays * 100);
         if (amountCents < 100) {
             return res.status(400).json({ msg: 'Invalid proposal amount' });
@@ -380,9 +380,10 @@ const approveDelivery = async (req, res) => {
             return res.status(400).json({ msg: 'Freelancer has not submitted work yet' });
         }
 
-        // Release escrow: credit freelancer
+        // Release escrow: credit freelancer (deducting platform fee)
         const freelancerId = String(order.sellerId?._id || order.sellerId);
-        const amount = order.amount;
+        const fee = order.platformFee || 20;
+        const amount = Math.max(0, order.amount - fee);
         const freelancer = await User.findById(freelancerId);
         if (freelancer) {
             freelancer.walletBalance = (freelancer.walletBalance || 0) + amount;
@@ -489,7 +490,9 @@ const approveJobWork = async (req, res) => {
         }
 
         const freelancerId = String(acceptedProposal.freelancerId?._id || acceptedProposal.freelancerId);
-        const amount = Number(acceptedProposal.price) || 0;
+        const grossAmount = Number(acceptedProposal.price) || 0;
+        const fee = 20;
+        const amount = Math.max(0, grossAmount - fee);
 
         const freelancer = await User.findById(freelancerId);
         if (freelancer && amount > 0) {

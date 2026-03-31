@@ -369,7 +369,7 @@ const acceptOffer = async (req, res) => {
         }
 
         const clientFee = 20;
-        const totalClientPays = offer.price + clientFee;
+        const totalClientPays = offer.price;
         const amountCents = Math.round(totalClientPays * 100);
 
         if (amountCents < 100) {

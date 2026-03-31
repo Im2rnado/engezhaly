@@ -173,7 +173,7 @@ const approveInstaPay = async (req, res) => {
             const offer = await Offer.findById(meta.offerId).populate('conversationId').populate('senderId');
             if (offer && offer.status === 'pending') {
                 const freelancerReceivesOffer = Number(offer.price) || 0;
-                const totalClientPaidOffer = freelancerReceivesOffer + CLIENT_FEE;
+                const totalClientPaidOffer = freelancerReceivesOffer;
                 const deliveryDate = offer.deliveryDate
                     ? new Date(offer.deliveryDate)
                     : new Date(Date.now() + (offer.deliveryDays || 7) * 24 * 60 * 60 * 1000);
@@ -369,7 +369,7 @@ const approveInstaPay = async (req, res) => {
         } else if (type === 'project_order' && meta.orderId) {
             const order = await Order.findById(meta.orderId);
             if (order && order.status === 'pending_payment') {
-                const totalPays = order.amount + clientFee;
+                const totalPays = order.amount;
                 const freelancerId = String(order.sellerId);
 
                 // ESCROW: Do NOT credit freelancer - money stays in escrow until client approves delivery
@@ -433,7 +433,7 @@ const approveInstaPay = async (req, res) => {
             const proposal = job?.proposals?.id(meta.proposalId);
             if (job && proposal) {
                 const proposalPrice = Number(proposal.price) || 0;
-                const totalPays = proposalPrice + clientFee;
+                const totalPays = proposalPrice;
                 const freelancerId = String(proposal.freelancerId);
 
                 // ESCROW: Do NOT credit freelancer - money stays in escrow until client approves work

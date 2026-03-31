@@ -512,8 +512,7 @@ function ClientDashboardContent() {
                                             ) : (
                                                 <button
                                                     onClick={() => {
-                                                        const clientFee = 20;
-                                                        const totalPays = (order.amount || 0) + clientFee;
+                                                        const totalPays = order.amount || 0;
                                                         const amountCents = Math.round(totalPays * 100);
                                                         const callbackUrl = typeof window !== 'undefined'
                                                             ? `${window.location.origin}/dashboard/client?tab=orders&payment_success=1`

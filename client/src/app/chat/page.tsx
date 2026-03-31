@@ -1185,8 +1185,7 @@ function ChatPageContent() {
                                         ) : (
                                             <button
                                                 onClick={() => {
-                                                    const clientFee = 20;
-                                                    const totalPays = (pendingPaymentOrder.amount || 0) + clientFee;
+                                                    const totalPays = pendingPaymentOrder.amount || 0;
                                                     const amountCents = Math.round(totalPays * 100);
                                                     const callbackUrl = typeof window !== 'undefined'
                                                         ? `${window.location.origin}/chat?conversation=${conversationId}&payment_success=1`
@@ -1396,11 +1395,6 @@ function ChatPageContent() {
                                                             <span className="text-sm font-bold">Price:</span>
                                                             <span className="text-lg font-black">{offer.price} EGP</span>
                                                         </div>
-                                                            {canAccept && (
-                                                                <div className="relative group shrink-0">
-                                                                    + 20 EGP fee = {offer.price + 20} EGP total to pay
-                                                                </div>
-                                                            )}
                                                         <div className="flex items-center justify-between">
                                                             <span className="text-sm font-bold">Delivery:</span>
                                                                 <span className="text-sm font-medium">
