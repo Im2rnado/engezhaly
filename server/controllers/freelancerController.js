@@ -400,7 +400,7 @@ const approveOrder = async (req, res) => {
                 conversationId: conversation._id,
                 senderId: freelancerId,
                 receiverId: order.buyerId._id,
-                content: `[Engezhaly Order] Freelancer has accepted your order request. Please complete the payment of ${order.amount} EGP via Paymob or InstaPay using the dashboard or chat button.`,
+                content: `[Engezhaly Order] Freelancer has accepted the order request. Please complete the payment of ${order.amount} EGP via Paymob or InstaPay using the dashboard or chat button.`,
                 messageType: 'order',
                 isAdmin: false
             });

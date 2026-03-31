@@ -230,7 +230,7 @@ export default function Home() {
         <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#09BF44]/20 via-transparent to-transparent pointer-events-none opacity-40"></div>
 
         <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6 relative z-10">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={stagger} className="grid grid-cols-2 md:grid-cols-4 gap-12 md:gap-8 text-center divide-x divide-white/10">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={stagger} className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8 text-center divide-x divide-white/10">
             {/* <motion.div variants={fadeIn} className="group cursor-default py-4">
               <p className="text-6xl md:text-7xl font-black text-white mb-3 tracking-tighter group-hover:text-[#09BF44] group-hover:scale-110 transition-all duration-300 transform-gpu">100+</p>
               <p className="text-xs md:text-sm text-gray-400 font-bold uppercase tracking-[0.2em] group-hover:text-gray-200 transition-colors">Active Projects</p>

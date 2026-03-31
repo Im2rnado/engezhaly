@@ -16,7 +16,7 @@ import ClientSidebar from '@/components/ClientSidebar';
 import FreelancerSidebar from '@/components/FreelancerSidebar';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 
-const SOCKET_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.engezhaly.com/api').replace('/api', '');
+const SOCKET_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.engezhaly.com/api').replace(/\/api$/, '');
 
 function ChatPageContent() {
     const router = useRouter();

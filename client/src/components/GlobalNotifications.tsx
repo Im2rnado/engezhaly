@@ -11,7 +11,7 @@ export default function GlobalNotifications() {
         const token = localStorage.getItem('token');
         if (!token) return;
 
-        const socket = io(process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000', {
+        const socket = io(process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '') || 'https://api.engezhaly.com', {
             auth: { token },
             extraHeaders: token ? { 'x-auth-token': token } : {}
         });
