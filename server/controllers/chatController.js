@@ -325,16 +325,16 @@ const createOffer = async (req, res) => {
         const subCategory = freelancer?.freelancerProfile?.category || 'Offer';
 
         // Send a message in chat about the offer
-        const offerContent = `[Engezhaly Offer Request] Custom Offer Request (${subCategory})\nHey! Tell the freelancer exactly what you need. Timeline, deliverables, budget, everything. They’ll create the best custom offer for you right here in chat.`;
+        // const offerContent = `[Engezhaly Offer Request] Custom Offer Request (${subCategory})\nHey! Tell the freelancer exactly what you need. Timeline, deliverables, budget, everything. They’ll create the best custom offer for you right here in chat.`;
         
-        const offerMessage = new Chat({
-            conversationId,
-            senderId,
-            receiverId,
-            content: offerContent,
-            messageType: 'text'
-        });
-        await offerMessage.save();
+        // const offerMessage = new Chat({
+        //     conversationId,
+        //     senderId,
+        //     receiverId,
+        //     content: offerContent,
+        //     messageType: 'text'
+        // });
+        // await offerMessage.save();
 
         conversation.lastMessage = `Custom Offer Request (${subCategory})`;
         await conversation.save();
