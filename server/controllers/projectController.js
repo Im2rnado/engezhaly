@@ -188,14 +188,14 @@ const createProjectOrder = async (req, res) => {
             return res.status(400).json({ msg: 'You cannot order your own project' });
         }
 
-        // Prevent duplicate active order for same project + buyer
+        // Prevent duplicate orders for same project + buyer (covers all in-flight states)
         const existing = await Order.findOne({
             projectId,
             buyerId,
-            status: 'active'
+            status: { $in: ['pending_approval', 'pending_payment', 'active'] }
         });
         if (existing) {
-            return res.status(400).json({ msg: 'You already have an active order for this project' });
+            return res.status(409).json({ msg: 'You already have a pending or active order for this project. Please wait for the freelancer to respond.' });
         }
 
         const amount = Number(selectedPackage.price || 0);

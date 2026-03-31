@@ -75,33 +75,33 @@ export default function Home() {
       <MainHeader user={user} showCategories={true} />
 
       {/* Hero Section - Restored original gradient but modernized */}
-      <section className="relative bg-gradient-to-br from-white via-[#f1fdf4] to-[#09BF44]/60 overflow-hidden border-b border-[#09BF44]/10">
-        
+      <section className="relative bg-linear-to-br from-white to-[#09BF44] overflow-hidden border-b border-[#09BF44]/10">
+
         {/* Fast Radial Backgrounds (No CSS Blur filters for max performance) */}
         <div className="absolute top-0 right-[-10%] w-[800px] h-[800px] rounded-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#09BF44]/15 via-transparent to-transparent pointer-events-none"></div>
         <div className="absolute bottom-[-20%] left-[-5%] w-[600px] h-[600px] rounded-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/40 via-transparent to-transparent pointer-events-none"></div>
 
         <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6 py-16 md:py-28 flex flex-col md:flex-row items-center relative z-10 gap-12">
-          <motion.div 
-            initial="hidden" 
-            animate="visible" 
-            variants={stagger} 
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={stagger}
             className="w-full md:w-1/2 flex flex-col justify-center"
           >
             <motion.div variants={fadeIn} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/90 text-[#07a63a] font-bold text-sm w-fit mb-6 border border-gray-100 shadow-sm">
               <Sparkles className="w-4 h-4 text-[#09BF44]" />
               <span>The #1 Freelance Network in Egypt</span>
             </motion.div>
-            
+
             <motion.h1 variants={fadeIn} className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tight leading-[1.05] mb-6 text-gray-900 drop-shadow-sm">
               Find the perfect <br />
-              <span className="text-[#09BF44] italic pr-2 drop-shadow-sm">freelancer</span> 
+              <span className="text-[#09BF44] italic pr-2 drop-shadow-sm">freelancer</span>
             </motion.h1>
-            
+
             <motion.p variants={fadeIn} className="text-lg md:text-xl text-gray-700 mb-8 max-w-lg leading-relaxed font-medium">
               Connect with top-tier talent for your business needs. Quality work, secure payments, and amazing results in minutes.
             </motion.p>
-            
+
             <motion.form
               variants={fadeIn}
               onSubmit={(e) => {
@@ -126,7 +126,7 @@ export default function Home() {
                 Search
               </button>
             </motion.form>
-            
+
             <motion.div variants={fadeIn} className="flex flex-wrap items-center gap-3 text-sm font-bold text-gray-700">
               <span>Popular:</span>
               <span className="bg-white/60 hover:bg-white px-4 py-1.5 rounded-full cursor-pointer transition-colors border border-white/50 shadow-sm">Website Design</span>
@@ -136,7 +136,7 @@ export default function Home() {
           </motion.div>
 
           {/* Premium Hero Visual Element - Optimized for performance */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
@@ -146,32 +146,32 @@ export default function Home() {
               {/* Clean solid geometric backgrounds instead of heavy blurred shadows */}
               <div className="absolute inset-0 bg-[#09BF44]/20 rounded-[40px] rotate-6 transform-gpu"></div>
               <div className="absolute inset-0 bg-white/80 rounded-[40px] -rotate-3 transform-gpu border border-white/50"></div>
-              
+
               <div className="relative bg-white rounded-[40px] shadow-2xl border border-gray-100/50 overflow-hidden flex flex-col p-8 h-full transform-gpu">
-                 <div className="flex items-center justify-between mb-8">
-                    <div className="h-8 w-32 bg-gray-100 rounded-full"></div>
-                    <div className="w-10 h-10 rounded-full bg-green-50 text-[#09BF44] flex items-center justify-center">
-                       <CheckCircle2 className="w-6 h-6" />
+                <div className="flex items-center justify-between mb-8">
+                  <div className="h-8 w-32 bg-gray-100 rounded-full"></div>
+                  <div className="w-10 h-10 rounded-full bg-green-50 text-[#09BF44] flex items-center justify-center">
+                    <CheckCircle2 className="w-6 h-6" />
+                  </div>
+                </div>
+                <div className="space-y-6 flex-1">
+                  <div className="flex gap-5 items-center">
+                    <div className="w-16 h-16 rounded-full bg-[#09BF44] flex items-center justify-center shadow-lg shadow-[#09BF44]/30">
+                      <span className="text-white font-black text-2xl">A</span>
                     </div>
-                 </div>
-                 <div className="space-y-6 flex-1">
-                    <div className="flex gap-5 items-center">
-                      <div className="w-16 h-16 rounded-full bg-[#09BF44] flex items-center justify-center shadow-lg shadow-[#09BF44]/30">
-                         <span className="text-white font-black text-2xl">A</span>
-                      </div>
-                      <div className="space-y-3 flex-1">
-                        <div className="h-4 w-1/2 bg-gray-200 rounded-lg"></div>
-                        <div className="h-3 w-1/3 bg-gray-100 rounded-lg"></div>
-                      </div>
+                    <div className="space-y-3 flex-1">
+                      <div className="h-4 w-1/2 bg-gray-200 rounded-lg"></div>
+                      <div className="h-3 w-1/3 bg-gray-100 rounded-lg"></div>
                     </div>
-                    <div className="h-32 w-full border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50 flex items-center justify-center">
-                       <p className="text-gray-400 font-bold tracking-widest uppercase">Creative Workspace</p>
-                    </div>
-                    <div className="flex gap-4 pt-4">
-                       <div className="h-12 w-1/2 bg-gray-100 rounded-xl"></div>
-                       <div className="h-12 w-1/2 bg-[#09BF44] rounded-xl shadow-md shadow-[#09BF44]/20"></div>
-                    </div>
-                 </div>
+                  </div>
+                  <div className="h-32 w-full border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50 flex items-center justify-center">
+                    <p className="text-gray-400 font-bold tracking-widest uppercase">Creative Workspace</p>
+                  </div>
+                  <div className="flex gap-4 pt-4">
+                    <div className="h-12 w-1/2 bg-gray-100 rounded-xl"></div>
+                    <div className="h-12 w-1/2 bg-[#09BF44] rounded-xl shadow-md shadow-[#09BF44]/20"></div>
+                  </div>
+                </div>
               </div>
 
               {/* Static elements with entrance animation (removed infinite floats for max performance) */}
@@ -182,7 +182,7 @@ export default function Home() {
                   <p className="text-xs text-gray-500 font-bold">Client Average</p>
                 </div>
               </motion.div>
-              
+
               <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.8 }} className="absolute -right-4 bottom-1/4 bg-white p-4 rounded-2xl shadow-xl flex items-center gap-3 border border-gray-100 z-20 hover:-translate-y-1 transition-transform">
                 <div className="bg-green-100 p-2.5 rounded-full text-[#09BF44]"><ShieldCheck className="w-5 h-5" /></div>
                 <div>
@@ -199,27 +199,27 @@ export default function Home() {
       <section className="bg-gray-50 py-28 border-y border-gray-200">
         <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6">
           <div className="text-center mb-16">
-             <motion.h2 initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeIn} className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight">
-               How Engezhaly Works
-             </motion.h2>
+            <motion.h2 initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeIn} className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight">
+              How Engezhaly Works
+            </motion.h2>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
-             <div className="hidden md:block absolute top-1/4 left-1/6 right-1/6 h-1 bg-gray-200 z-0"></div>
-             
-             {[
-               { icon: Search, title: "1. Discover", desc: "Browse available services or post a custom job specifically for your needs." },
-               { icon: CheckCircle2, title: "2. Hire & Pay", desc: "Review freelancer profiles, agree on a price, and fund the milestone securely." },
-               { icon: Zap, title: "3. Get It Done", desc: "Communicate directly, receive the finished work, and release funds upon approval." }
-             ].map((step, i) => (
-                <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.15 }} key={i} className="relative z-10 flex flex-col items-center text-center">
-                   <div className="w-20 h-20 rounded-2xl bg-white border-2 border-gray-100 shadow-xl flex items-center justify-center mb-6 text-[#09BF44] transform-gpu hover:scale-105 transition-transform">
-                      <step.icon className="w-10 h-10" />
-                   </div>
-                   <h3 className="text-2xl font-black text-gray-900 mb-3">{step.title}</h3>
-                   <p className="text-gray-600 font-medium px-4">{step.desc}</p>
-                </motion.div>
-             ))}
+            <div className="hidden md:block absolute top-1/4 left-1/6 right-1/6 h-1 bg-gray-200 z-0"></div>
+
+            {[
+              { icon: Search, title: "1. Find Your Match", desc: "Browse vetted freelancers by category, reviews, and price. Or post a job and let them come to you." },
+              { icon: CheckCircle2, title: "2. Create Your Deal", desc: "Chat directly, customize your offer, or bud a bundle deal and pay securely. We hold your money until you’re satisfied." },
+              { icon: Zap, title: "3. Get It Done Guaranteed", desc: "Work done right — you release the payment. Bad quality or missed deadline? We step in and make it right." }
+            ].map((step, i) => (
+              <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.15 }} key={i} className="relative z-10 flex flex-col items-center text-center">
+                <div className="w-20 h-20 rounded-2xl bg-white border-2 border-gray-100 shadow-xl flex items-center justify-center mb-6 text-[#09BF44] transform-gpu hover:scale-105 transition-transform">
+                  <step.icon className="w-10 h-10" />
+                </div>
+                <h3 className="text-2xl font-black text-gray-900 mb-3">{step.title}</h3>
+                <p className="text-gray-600 font-medium px-4">{step.desc}</p>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
@@ -228,13 +228,13 @@ export default function Home() {
       <section className="bg-black py-20 text-white border-y-[6px] border-[#09BF44] relative z-20 overflow-hidden">
         {/* Subtle geometric light on black */}
         <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#09BF44]/20 via-transparent to-transparent pointer-events-none opacity-40"></div>
-        
+
         <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6 relative z-10">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={stagger} className="grid grid-cols-2 md:grid-cols-4 gap-12 md:gap-8 text-center divide-x divide-white/10">
-            <motion.div variants={fadeIn} className="group cursor-default py-4">
+            {/* <motion.div variants={fadeIn} className="group cursor-default py-4">
               <p className="text-6xl md:text-7xl font-black text-white mb-3 tracking-tighter group-hover:text-[#09BF44] group-hover:scale-110 transition-all duration-300 transform-gpu">100+</p>
               <p className="text-xs md:text-sm text-gray-400 font-bold uppercase tracking-[0.2em] group-hover:text-gray-200 transition-colors">Active Projects</p>
-            </motion.div>
+            </motion.div> */}
             <motion.div variants={fadeIn} className="group cursor-default py-4">
               <p className="text-6xl md:text-7xl font-black text-white mb-3 tracking-tighter group-hover:text-[#09BF44] group-hover:scale-110 transition-all duration-300 transform-gpu">99%</p>
               <p className="text-xs md:text-sm text-gray-400 font-bold uppercase tracking-[0.2em] group-hover:text-gray-200 transition-colors">Client Satisfaction</p>
@@ -254,15 +254,15 @@ export default function Home() {
       {/* Popular Services Section */}
       <section className="py-24 bg-white">
         <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6">
-          <motion.div 
+          <motion.div
             initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={fadeIn}
             className="text-center md:text-left mb-12"
           >
             <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">Popular Professional Services</h2>
             <p className="text-gray-500 mt-3 text-lg font-medium">Explore our most demanded categories</p>
           </motion.div>
-          
-          <motion.div 
+
+          <motion.div
             initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={stagger}
             className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-6"
           >
@@ -408,7 +408,7 @@ export default function Home() {
                   </motion.div>
                 ))}
               </motion.div>
-              
+
               {projects.length > 6 && (
                 <div className="flex items-center justify-center gap-4 mt-8">
                   <button
@@ -448,15 +448,13 @@ export default function Home() {
             <motion.h2 variants={fadeIn} className="text-3xl md:text-5xl font-black text-white mb-6 leading-tight">
               A whole world of freelance talent at your fingertips
             </motion.h2>
-            <motion.p variants={fadeIn} className="text-green-50/90 text-lg md:text-xl mb-12 max-w-lg leading-relaxed font-bold">
-              We&apos;ve built Engezhaly to help you get things done securely, quickly, and professionally.
-            </motion.p>
-            
+
             <div className="space-y-8">
               {[
                 { title: 'The best for every budget', desc: 'Find high-quality services at every price point. No hourly rates, just project-based pricing.' },
                 { title: 'Quality work done quickly', desc: 'Find the right freelancer to begin working on your project within minutes.' },
-                { title: 'Protected payments, every time', desc: 'Your money stays protected and is only released when you approve the work.' }
+                { title: 'Protected payments, every time', desc: 'Your money stays protected and is only released when you approve the work.' },
+                { title: 'Work your way, your choice', desc: 'Choose how you want to get things done pick a bundle, chat for a custom deal, or post a job and receive offers.' }
               ].map((item, i) => (
                 <motion.div variants={fadeIn} key={i} className="flex gap-5 items-start">
                   <div className="mt-1 bg-white p-1.5 rounded-full text-[#09BF44]">
@@ -472,38 +470,38 @@ export default function Home() {
           </motion.div>
 
           {/* Solid performant geometric visual */}
-          <motion.div 
-            initial={{ opacity: 0, x: 20 }} 
-            whileInView={{ opacity: 1, x: 0 }} 
-            viewport={{ once: true }} 
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
             transition={{ duration: 0.6 }}
             className="w-full lg:w-1/2 flex justify-center lg:justify-end"
           >
-             <div className="relative w-full max-w-lg bg-white rounded-3xl p-8 shadow-2xl transform-gpu -rotate-2 border-4 border-white/20">
-                <div className="space-y-6">
-                   <div className="h-6 w-1/3 bg-gray-200 rounded-lg"></div>
-                   <div className="h-24 w-full bg-gray-100 rounded-xl flex items-center justify-between px-6">
-                      <div className="flex items-center gap-4">
-                         <div className="w-12 h-12 bg-gray-300 rounded-full"></div>
-                         <div className="space-y-2">
-                           <div className="h-3 w-24 bg-gray-300 rounded"></div>
-                           <div className="h-2 w-16 bg-gray-200 rounded"></div>
-                         </div>
-                      </div>
-                      <div className="h-8 w-24 bg-[#09BF44]/20 rounded-full"></div>
-                   </div>
-                   <div className="h-24 w-full bg-gray-100 rounded-xl flex items-center justify-between px-6">
-                      <div className="flex items-center gap-4">
-                         <div className="w-12 h-12 bg-[#09BF44] rounded-full flex items-center justify-center text-white"><Star className="w-6 h-6" /></div>
-                         <div className="space-y-2">
-                           <div className="h-3 w-32 bg-gray-800 rounded"></div>
-                           <div className="h-2 w-20 bg-gray-300 rounded"></div>
-                         </div>
-                      </div>
-                      <div className="h-8 w-24 bg-[#09BF44] rounded-full"></div>
-                   </div>
+            <div className="relative w-full max-w-lg bg-white rounded-3xl p-8 shadow-2xl transform-gpu -rotate-2 border-4 border-white/20">
+              <div className="space-y-6">
+                <div className="h-6 w-1/3 bg-gray-200 rounded-lg"></div>
+                <div className="h-24 w-full bg-gray-100 rounded-xl flex items-center justify-between px-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gray-300 rounded-full"></div>
+                    <div className="space-y-2">
+                      <div className="h-3 w-24 bg-gray-300 rounded"></div>
+                      <div className="h-2 w-16 bg-gray-200 rounded"></div>
+                    </div>
+                  </div>
+                  <div className="h-8 w-24 bg-[#09BF44]/20 rounded-full"></div>
                 </div>
-             </div>
+                <div className="h-24 w-full bg-gray-100 rounded-xl flex items-center justify-between px-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-[#09BF44] rounded-full flex items-center justify-center text-white"><Star className="w-6 h-6" /></div>
+                    <div className="space-y-2">
+                      <div className="h-3 w-32 bg-gray-800 rounded"></div>
+                      <div className="h-2 w-20 bg-gray-300 rounded"></div>
+                    </div>
+                  </div>
+                  <div className="h-8 w-24 bg-[#09BF44] rounded-full"></div>
+                </div>
+              </div>
+            </div>
           </motion.div>
         </div>
       </section>
@@ -531,66 +529,66 @@ export default function Home() {
           ) : jobs.length > 0 ? (
             <div className="relative">
               <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {jobs.slice(jobStartIndex, jobStartIndex + 4).map((job) => (
-                    <motion.div
-                      variants={fadeIn}
-                      key={job._id}
-                      className="bg-white border text-left border-gray-200 shadow-sm rounded-3xl p-8 hover:border-[#09BF44] transition-colors focus-within:ring-4 focus-within:ring-[#09BF44]/10 group"
-                    >
-                      <div className="flex flex-col h-full">
-                        <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-5 gap-4">
-                          <h3 className="text-xl font-black text-gray-900 leading-snug group-hover:text-[#09BF44] transition-colors">{job.title}</h3>
-                          {job.status === 'open' && (
-                            <span className="bg-emerald-50 text-[#09BF44] border border-emerald-100 px-3.5 py-1.5 rounded-full text-xs font-black whitespace-nowrap self-start">
-                              Open Right Now
-                            </span>
-                          )}
-                        </div>
-                        
-                        <p className="text-gray-600 font-medium text-[15px] mb-6 line-clamp-2 leading-relaxed flex-1">
-                          {job.description}
-                        </p>
-                        
-                        <div className="flex flex-wrap items-center gap-5 text-sm mb-6 pb-6 border-b border-gray-100">
-                          <div>
-                            <span className="text-gray-400 font-bold block mb-1 text-xs uppercase tracking-wider">Budget</span>
-                            <span className="text-gray-900 font-black whitespace-nowrap">
-                              EGP {job.budgetRange?.min || 0} - {job.budgetRange?.max || 0}
-                            </span>
-                          </div>
-                          <div className="h-8 w-px bg-gray-200"></div>
-                          <div>
-                            <span className="text-gray-400 font-bold block mb-1 text-xs uppercase tracking-wider">Deadline</span>
-                            <span className="text-gray-900 font-black">{job.deadline || 'N/A'}</span>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center justify-between">
-                            <div className="flex flex-wrap gap-2">
-                              {job.skills?.slice(0, 3).map((skill: string, idx: number) => (
-                                <span key={idx} className="bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-bold">
-                                  {skill}
-                                </span>
-                              ))}
-                              {job.skills?.length > 3 && (
-                                <span className="text-gray-400 text-xs font-black py-1.5">+{job.skills.length - 3}</span>
-                              )}
-                            </div>
+                {jobs.slice(jobStartIndex, jobStartIndex + 4).map((job) => (
+                  <motion.div
+                    variants={fadeIn}
+                    key={job._id}
+                    className="bg-white border text-left border-gray-200 shadow-sm rounded-3xl p-8 hover:border-[#09BF44] transition-colors focus-within:ring-4 focus-within:ring-[#09BF44]/10 group"
+                  >
+                    <div className="flex flex-col h-full">
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-5 gap-4">
+                        <h3 className="text-xl font-black text-gray-900 leading-snug group-hover:text-[#09BF44] transition-colors">{job.title}</h3>
+                        {job.status === 'open' && (
+                          <span className="bg-emerald-50 text-[#09BF44] border border-emerald-100 px-3.5 py-1.5 rounded-full text-xs font-black whitespace-nowrap self-start">
+                            Open Right Now
+                          </span>
+                        )}
+                      </div>
 
-                            {user?.role === 'freelancer' && job.status === 'open' && (
-                              <button
-                                onClick={() => router.push(`/jobs`)}
-                                className="bg-gray-900 hover:bg-[#09BF44] text-white px-6 py-2.5 rounded-xl font-black transition-colors shadow-md text-sm whitespace-nowrap ml-4 active:scale-95 transform-gpu"
-                              >
-                                Submit Proposal
-                              </button>
-                            )}
+                      <p className="text-gray-600 font-medium text-[15px] mb-6 line-clamp-2 leading-relaxed flex-1">
+                        {job.description}
+                      </p>
+
+                      <div className="flex flex-wrap items-center gap-5 text-sm mb-6 pb-6 border-b border-gray-100">
+                        <div>
+                          <span className="text-gray-400 font-bold block mb-1 text-xs uppercase tracking-wider">Budget</span>
+                          <span className="text-gray-900 font-black whitespace-nowrap">
+                            EGP {job.budgetRange?.min || 0} - {job.budgetRange?.max || 0}
+                          </span>
+                        </div>
+                        <div className="h-8 w-px bg-gray-200"></div>
+                        <div>
+                          <span className="text-gray-400 font-bold block mb-1 text-xs uppercase tracking-wider">Deadline</span>
+                          <span className="text-gray-900 font-black">{job.deadline || 'N/A'}</span>
                         </div>
                       </div>
-                    </motion.div>
-                  ))}
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-wrap gap-2">
+                          {job.skills?.slice(0, 3).map((skill: string, idx: number) => (
+                            <span key={idx} className="bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-bold">
+                              {skill}
+                            </span>
+                          ))}
+                          {job.skills?.length > 3 && (
+                            <span className="text-gray-400 text-xs font-black py-1.5">+{job.skills.length - 3}</span>
+                          )}
+                        </div>
+
+                        {user?.role === 'freelancer' && job.status === 'open' && (
+                          <button
+                            onClick={() => router.push(`/jobs`)}
+                            className="bg-gray-900 hover:bg-[#09BF44] text-white px-6 py-2.5 rounded-xl font-black transition-colors shadow-md text-sm whitespace-nowrap ml-4 active:scale-95 transform-gpu"
+                          >
+                            Submit Proposal
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
               </motion.div>
-              
+
               {jobs.length > 4 && (
                 <div className="flex items-center justify-center gap-4 mt-8">
                   <button

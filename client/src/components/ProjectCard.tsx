@@ -27,6 +27,7 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
     const [orderModalStep, setOrderModalStep] = useState<'description' | 'confirm' | null>(null);
     const [orderDescription, setOrderDescription] = useState('');
     const [isCustomizeLoading, setIsCustomizeLoading] = useState(false);
+    const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
     const packages = project.packages || [];
     const currentPackage = packages[selectedPackage] || {};
     const extractSellerId = (value: any): string | null => {
@@ -413,7 +414,7 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                                 <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4" onClick={() => setOrderModalStep(null)}>
                                     <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                                         <h3 className="text-lg font-bold mb-2 text-gray-900">Order Description</h3>
-                                        <p className="text-sm text-gray-600 mb-4">Describe what you need. The freelancer will see this and must approve before work starts.</p>
+                                        <p className="text-sm text-gray-600 mb-4">Describe what you need. The freelancer will review this and approve through the chat if what you requested matches the bundle. After approval, you will pay through the chat or dashboard.</p>
                                         {currentPackage?.type && (
                                             <div className="mb-4 p-4 rounded-xl bg-gray-50 border border-gray-200">
                                                 <p className="text-sm font-bold text-gray-700 mb-2">Selected bundle: <span className="text-[#09BF44]">{currentPackage.type}</span></p>
@@ -485,6 +486,8 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                                             <button onClick={() => setOrderModalStep('description')} className="px-4 py-2 rounded-xl font-bold text-gray-600 hover:bg-[#09BF44]/10 hover:text-[#09BF44]">Back</button>
                                             <button
                                                 onClick={async () => {
+                                                    if (isSubmittingOrder) return;
+                                                    setIsSubmittingOrder(true);
                                                     try {
                                                         await api.projects.createOrder(project._id, selectedPackage, orderDescription.trim());
                                                         setOrderModalStep(null);
@@ -503,11 +506,16 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                                                         }
                                                     } catch (err: any) {
                                                         showModal({ title: 'Error', message: err.message || 'Failed to create order', type: 'error' });
+                                                    } finally {
+                                                        setIsSubmittingOrder(false);
                                                     }
                                                 }}
-                                                className="px-4 py-2 bg-[#09BF44] text-white rounded-xl font-bold"
+                                                disabled={isSubmittingOrder}
+                                                className="px-4 py-2 bg-[#09BF44] text-white rounded-xl font-bold disabled:opacity-60 flex items-center gap-2"
                                             >
-                                                Submit Order
+                                                {isSubmittingOrder ? (
+                                                    <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</>
+                                                ) : 'Submit Order'}
                                             </button>
                                         </div>
                                     </div>
