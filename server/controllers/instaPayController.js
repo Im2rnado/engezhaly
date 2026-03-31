@@ -232,6 +232,34 @@ const approveInstaPay = async (req, res) => {
                     const { subject, html } = emailTemplates.offerPurchased(client?.firstName || 'A client', offer.title || 'Custom Offer', offer.price, newOrder._id);
                     sendAndLog(freelancer.email, subject, html, 'offer_purchased');
                 }
+
+                // Escrow confirmation message in chat
+                if (convId) {
+                    const sellerId = offer.senderId._id || offer.senderId;
+                    const escrowMsg = new Chat({
+                        conversationId: convId,
+                        senderId: payment.userId,
+                        receiverId: sellerId,
+                        content: `[Engezhaly Order] Payment has been made by the client and approved. It is now in Escrow until the work is done.`,
+                        messageType: 'order',
+                        isAdmin: false
+                    });
+                    await escrowMsg.save();
+                    await Conversation.findByIdAndUpdate(convId, { lastMessage: escrowMsg.content, lastMessageId: escrowMsg._id });
+                    const io = req.app?.get('io');
+                    if (io) {
+                        io.to(`conversation:${convId}`).emit('message', {
+                            _id: escrowMsg._id,
+                            conversationId: convId,
+                            senderId: payment.userId,
+                            content: escrowMsg.content,
+                            messageType: 'order',
+                            createdAt: escrowMsg.createdAt,
+                            isAdmin: false,
+                            isRead: false
+                        });
+                    }
+                }
             }
         } else if (type === 'consultation' && meta.conversationId) {
             const paymentRecord = new ConsultationPayment({
@@ -369,6 +397,36 @@ const approveInstaPay = async (req, res) => {
                     const { subject, html } = emailTemplates.offerPurchased(client?.firstName || 'A client', title, order.amount, order._id);
                     sendAndLog(freelancer.email, subject, html, 'offer_purchased');
                 }
+
+                // Escrow confirmation message in chat
+                const conversation = await Conversation.findOne({
+                    participants: { $all: [String(payment.userId), String(order.sellerId)] }
+                });
+                if (conversation) {
+                    const escrowMsg = new Chat({
+                        conversationId: conversation._id,
+                        senderId: payment.userId,
+                        receiverId: order.sellerId,
+                        content: `[Engezhaly Order] Payment has been made by the client and approved. It is now in Escrow until the work is done.`,
+                        messageType: 'order',
+                        isAdmin: false
+                    });
+                    await escrowMsg.save();
+                    await Conversation.findByIdAndUpdate(conversation._id, { lastMessage: escrowMsg.content, lastMessageId: escrowMsg._id });
+                    const io = req.app?.get('io');
+                    if (io) {
+                        io.to(`conversation:${conversation._id}`).emit('message', {
+                            _id: escrowMsg._id,
+                            conversationId: conversation._id,
+                            senderId: payment.userId,
+                            content: escrowMsg.content,
+                            messageType: 'order',
+                            createdAt: escrowMsg.createdAt,
+                            isAdmin: false,
+                            isRead: false
+                        });
+                    }
+                }
             }
         } else if (type === 'job_proposal' && meta.jobId && meta.proposalId) {
             const job = await Job.findById(meta.jobId);
@@ -404,6 +462,36 @@ const approveInstaPay = async (req, res) => {
                 if (freelancer?.email) {
                     const { subject, html } = emailTemplates.offerPurchased(client?.firstName || 'A client', job.title, proposal.price, null);
                     sendAndLog(freelancer.email, subject, html, 'offer_purchased');
+                }
+
+                // Escrow confirmation message in chat
+                const jobConversation = await Conversation.findOne({
+                    participants: { $all: [String(payment.userId), String(proposal.freelancerId)] }
+                });
+                if (jobConversation) {
+                    const escrowMsg = new Chat({
+                        conversationId: jobConversation._id,
+                        senderId: payment.userId,
+                        receiverId: proposal.freelancerId,
+                        content: `[Engezhaly Order] Payment has been made by the client and approved. It is now in Escrow until the work is done.`,
+                        messageType: 'order',
+                        isAdmin: false
+                    });
+                    await escrowMsg.save();
+                    await Conversation.findByIdAndUpdate(jobConversation._id, { lastMessage: escrowMsg.content, lastMessageId: escrowMsg._id });
+                    const io = req.app?.get('io');
+                    if (io) {
+                        io.to(`conversation:${jobConversation._id}`).emit('message', {
+                            _id: escrowMsg._id,
+                            conversationId: jobConversation._id,
+                            senderId: payment.userId,
+                            content: escrowMsg.content,
+                            messageType: 'order',
+                            createdAt: escrowMsg.createdAt,
+                            isAdmin: false,
+                            isRead: false
+                        });
+                    }
                 }
             }
         }
