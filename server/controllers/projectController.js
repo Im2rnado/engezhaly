@@ -232,8 +232,9 @@ const createProjectOrder = async (req, res) => {
             conversationId: conversation._id,
             senderId: buyerId,
             receiverId: project.sellerId,
-            content: `New Order: ${project.title}
+            content: `New Order Request: ${project.subCategory}
 ----------------------------
+Name: ${project.title}
 Bundle: ${selectedPackage.type}
 Amount: ${amount} EGP
 Delivery: ${selectedPackage.days} Days

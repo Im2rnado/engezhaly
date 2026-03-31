@@ -302,7 +302,10 @@ const createOffer = async (req, res) => {
 
         // Validate conversation exists and user is participant
         const conversation = await Conversation.findById(conversationId);
-        if (!conversation || !conversation.participants.includes(senderId) || !conversation.participants.includes(receiverId)) {
+        if (!conversation ||
+            !conversation.participants.some(id => id.toString() === senderId) ||
+            !conversation.participants.some(id => id.toString() === receiverId)
+        ) {
             return res.status(403).json({ msg: 'Invalid conversation or unauthorized' });
         }
 
@@ -393,7 +396,7 @@ const getOffers = async (req, res) => {
 
         // Verify user is part of conversation
         const conversation = await Conversation.findById(conversationId);
-        if (!conversation || !conversation.participants.includes(userId)) {
+        if (!conversation || !conversation.participants.some(id => id.toString() === userId)) {
             return res.status(403).json({ msg: 'Unauthorized' });
         }
 
