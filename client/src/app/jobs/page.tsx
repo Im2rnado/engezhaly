@@ -405,19 +405,19 @@ function JobsPageContent() {
                                 </div>
                             </div>
 
-                            {/* Milestones Extension */}
+                            {/* Delivery milestones — client pays once at final approval */}
                             <div className="p-4 rounded-2xl border-2 border-gray-100 bg-gray-50/50">
                                 <div className="flex items-center justify-between mb-4">
                                     <div>
-                                        <label className="block text-sm font-bold text-gray-900">Milestones</label>
-                                        <p className="text-xs text-gray-600 font-medium">Split your proposal into milestones</p>
+                                        <label className="block text-sm font-bold text-gray-900">Delivery Milestones</label>
+                                        <p className="text-xs text-gray-600 font-medium">Optional phases you will deliver by. The client pays once when they approve the full job.</p>
                                     </div>
                                     <button
                                         type="button"
                                         onClick={() => setShowMilestones(!showMilestones)}
                                         className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${showMilestones ? 'bg-[#09BF44] text-white' : 'bg-gray-200 text-gray-700'}`}
                                     >
-                                        {showMilestones ? 'Enabled' : 'Add Milestones'}
+                                        {showMilestones ? 'Enabled' : 'Add delivery milestones'}
                                     </button>
                                 </div>
                                 {showMilestones && (
@@ -425,7 +425,7 @@ function JobsPageContent() {
                                         {milestones.map((m, idx) => (
                                             <div key={idx} className="flex flex-col sm:flex-row gap-2 bg-white p-3 rounded-xl border border-gray-200 items-center">
                                                 <input
-                                                    placeholder="Milestone name"
+                                                    placeholder="Delivery phase name"
                                                     value={m.name}
                                                     onChange={e => {
                                                         const newMs = [...milestones];
@@ -459,7 +459,7 @@ function JobsPageContent() {
                                             onClick={() => setMilestones([...milestones, { name: '', dueDate: '' }])}
                                             className="w-full py-2 border-2 border-dashed border-gray-300 rounded-xl text-sm font-bold text-gray-500 hover:border-[#09BF44] hover:text-[#09BF44] transition-all"
                                         >
-                                            + Add Milestone
+                                            + Add delivery milestone
                                         </button>
                                     </div>
                                 )}

@@ -14,7 +14,7 @@ const JobSchema = new mongoose.Schema({
     deadline: { type: String }, // e.g., "1 week", "Urgent"
     milestones: [{
         name: { type: String, required: true },
-        price: { type: Number, required: true },
+        price: { type: Number, default: 0 },
         dueDate: { type: Date }
     }],
     status: { type: String, enum: ['open', 'in_progress', 'completed', 'closed'], default: 'open' },

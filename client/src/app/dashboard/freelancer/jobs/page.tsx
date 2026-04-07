@@ -260,10 +260,11 @@ export default function MyJobsPage() {
                                         </div>
                                         {acceptedAndActive && (
                                             <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
-                                                {/* Milestones */}
+                                                {/* Delivery milestones */}
                                                 {myProposal?.milestones && myProposal.milestones.length > 0 && (
                                                     <div>
-                                                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Milestones</p>
+                                                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Delivery milestones</p>
+                                                        <p className="text-xs text-gray-500 mb-2">Submit work per phase; the client approves and pays once for the full project.</p>
                                                         <div className="space-y-2">
                                                             {myProposal.milestones.map((m: any, idx: number) => (
                                                                 <div key={idx} className="flex items-center justify-between bg-gray-50 rounded-xl p-3">

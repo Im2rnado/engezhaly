@@ -22,7 +22,7 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
     const [deliveryDate, setDeliveryDate] = useState('');
     const [whatsIncluded, setWhatsIncluded] = useState('');
     const [revisions, setRevisions] = useState('0');
-    const [milestones, setMilestones] = useState<Array<{ name: string; price: string; dueDate: string }>>([]);
+    const [milestones, setMilestones] = useState<Array<{ name: string; dueDate: string }>>([]);
     const [showMilestones, setShowMilestones] = useState(false);
 
     if (!isOpen) return null;
@@ -30,20 +30,22 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
+        const totalPrice = Number(price);
         const offerData = {
-            price: Number(price),
+            price: totalPrice,
             deliveryDate: deliveryDate,
             whatsIncluded: whatsIncluded.trim(),
             revisions: Number(revisions) || 0,
-            milestones: milestones.map(m => ({
-                name: m.name.trim(),
-                price: Number(m.price),
-                dueDate: m.dueDate ? new Date(m.dueDate).toISOString() : undefined
-            }))
+            milestones: milestones
+                .filter((m) => m.name.trim())
+                .map((m) => ({
+                    name: m.name.trim(),
+                    price: 0,
+                    dueDate: m.dueDate ? new Date(m.dueDate).toISOString() : undefined
+                }))
         };
 
-        const effectivePrice = showMilestones && milestones.length > 0 ? totalMilestonePrice : offerData.price;
-        if (effectivePrice < 300) {
+        if (totalPrice < 300) {
             alert('Minimum price is 300 EGP');
             return;
         }
@@ -74,21 +76,20 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
     };
 
     const addMilestone = () => {
-        setMilestones([...milestones, { name: '', price: '', dueDate: '' }]);
+        setMilestones([...milestones, { name: '', dueDate: '' }]);
     };
 
     const removeMilestone = (index: number) => {
         setMilestones(milestones.filter((_, i) => i !== index));
     };
 
-    const updateMilestone = (index: number, field: 'name' | 'price' | 'dueDate', value: string) => {
+    const updateMilestone = (index: number, field: 'name' | 'dueDate', value: string) => {
         const updated = [...milestones];
         updated[index] = { ...updated[index], [field]: value };
         setMilestones(updated);
     };
 
-    const totalMilestonePrice = milestones.reduce((sum, m) => sum + (Number(m.price) || 0), 0);
-    const finalPrice = showMilestones && milestones.length > 0 ? totalMilestonePrice : Number(price) || 0;
+    const finalPrice = Number(price) || 0;
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -122,17 +123,13 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                     type="number"
                                     value={price}
                                     onChange={(e) => setPrice(e.target.value)}
-                                   
                                     required
-                                    disabled={showMilestones && milestones.length > 0}
-                                    className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:border-[#09BF44] focus:ring-2 focus:ring-[#09BF44]/20 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:border-[#09BF44] focus:ring-2 focus:ring-[#09BF44]/20 outline-none transition-all"
                                     placeholder="Minimum 300 EGP"
                                 />
-                                {showMilestones && milestones.length > 0 && (
-                                    <p className="text-xs text-gray-500 mt-2">
-                                        Price will be calculated from milestones ({totalMilestonePrice} EGP)
-                                    </p>
-                                )}
+                                <p className="text-xs text-gray-500 mt-2">
+                                    The client pays this amount once when they accept the offer. Delivery milestones below are for scheduling only—not split payments.
+                                </p>
                             </div>
 
                             {/* Delivery Date */}
@@ -159,7 +156,6 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                     type="number"
                                     value={revisions}
                                     onChange={(e) => setRevisions(e.target.value)}
-                                   
                                     required
                                     className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:border-[#09BF44] focus:ring-2 focus:ring-[#09BF44]/20 outline-none transition-all"
                                     placeholder="Enter number (e.g. 3)"
@@ -181,24 +177,22 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                 />
                             </div>
 
-                            {/* Milestones Toggle */}
+                            {/* Delivery milestones */}
                             <div className="p-5 bg-gradient-to-r from-gray-50 to-gray-100/50 border-2 border-gray-200 rounded-xl">
                                 <div className="flex items-center justify-between">
                                     <div>
                                         <label className="block text-sm font-bold text-gray-900 mb-1">
-                                            Payment Milestones
+                                            Delivery Milestones
                                         </label>
                                         <p className="text-xs text-gray-600">
-                                            Split payment across multiple milestones
+                                            Optional phases (e.g. wireframe, final files). Payment is still once at acceptance—milestones are for clarity and timing only.
                                         </p>
                                     </div>
                                     <button
                                         type="button"
                                         onClick={() => {
                                             setShowMilestones(!showMilestones);
-                                            if (!showMilestones) {
-                                                setPrice('');
-                                            } else {
+                                            if (showMilestones) {
                                                 setMilestones([]);
                                             }
                                         }}
@@ -212,26 +206,25 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                 </div>
                             </div>
 
-                            {/* Milestones */}
                             {showMilestones && (
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between">
                                         <label className="block text-sm font-bold text-gray-900">
-                                            Milestones
+                                            Delivery milestones
                                         </label>
                                         <button
                                             type="button"
                                             onClick={addMilestone}
                                             className="flex items-center gap-2 px-4 py-2 bg-[#09BF44] text-white text-sm font-bold rounded-xl hover:bg-[#07a63a] transition-colors shadow-sm"
                                         >
-                                            <Plus className="w-4 h-4" /> Add Milestone
+                                            <Plus className="w-4 h-4" /> Add delivery milestone
                                         </button>
                                     </div>
 
                                     {milestones.length === 0 ? (
                                         <div className="text-center py-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
                                             <p className="text-sm text-gray-500">
-                                                No milestones added. Click &quot;Add Milestone&quot; to create payment milestones.
+                                                No milestones yet. Click &quot;Add delivery milestone&quot; to list delivery phases.
                                             </p>
                                         </div>
                                     ) : (
@@ -240,7 +233,7 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                                 <div key={index} className="p-5 bg-gray-50 rounded-xl border-2 border-gray-200">
                                                     <div className="flex items-start justify-between mb-4">
                                                         <span className="text-sm font-bold text-gray-900">
-                                                            Milestone {index + 1}
+                                                            Phase {index + 1}
                                                         </span>
                                                         <button
                                                             type="button"
@@ -255,37 +248,19 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                                             type="text"
                                                             value={milestone.name}
                                                             onChange={(e) => updateMilestone(index, 'name', e.target.value)}
-                                                            placeholder="Milestone description (e.g., Design Phase)"
+                                                            placeholder="Delivery phase (e.g. First draft)"
                                                             className="w-full px-4 py-2.5 bg-white border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:border-[#09BF44] focus:ring-2 focus:ring-[#09BF44]/20 outline-none transition-all"
                                                         />
-                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                            <input
-                                                                type="number"
-                                                                value={milestone.price}
-                                                                onChange={(e) => updateMilestone(index, 'price', e.target.value)}
-                                                                placeholder="Price (EGP)"
-                                                               
-                                                                className="px-4 py-2.5 bg-white border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:border-[#09BF44] focus:ring-2 focus:ring-[#09BF44]/20 outline-none transition-all"
-                                                            />
-                                                            <DatePicker
-                                                                value={milestone.dueDate}
-                                                                onChange={(v) => updateMilestone(index, 'dueDate', v)}
-                                                                placeholder="Due Date"
-                                                                min={new Date().toISOString().split('T')[0]}
-                                                                className="w-full"
-                                                            />
-                                                        </div>
+                                                        <DatePicker
+                                                            value={milestone.dueDate}
+                                                            onChange={(v) => updateMilestone(index, 'dueDate', v)}
+                                                            placeholder="Target due date (optional)"
+                                                            min={new Date().toISOString().split('T')[0]}
+                                                            className="w-full"
+                                                        />
                                                     </div>
                                                 </div>
                                             ))}
-                                            <div className="p-4 bg-gradient-to-r from-[#09BF44]/10 to-[#09BF44]/5 border-2 border-[#09BF44]/20 rounded-xl">
-                                                <div className="flex items-center justify-between">
-                                                    <span className="font-bold text-gray-900">Total:</span>
-                                                    <span className="font-black text-[#09BF44] text-xl">
-                                                        {totalMilestonePrice} EGP
-                                                    </span>
-                                                </div>
-                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -296,7 +271,7 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                 <h3 className="text-sm font-bold text-gray-900 mb-4">Offer Summary</h3>
                                 <div className="space-y-2 text-sm">
                                     <div className="flex justify-between items-center">
-                                        <span className="text-gray-600">Price:</span>
+                                        <span className="text-gray-600">Price (single payment):</span>
                                         <span className="font-bold text-gray-900">{finalPrice} EGP</span>
                                     </div>
                                     <div className="flex justify-between items-center">
@@ -305,7 +280,7 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                     </div>
                                     {milestones.length > 0 && (
                                         <div className="flex justify-between items-center">
-                                            <span className="text-gray-600">Milestones:</span>
+                                            <span className="text-gray-600">Delivery milestones:</span>
                                             <span className="font-bold text-gray-900">{milestones.length}</span>
                                         </div>
                                     )}

@@ -36,16 +36,16 @@ export default function PostJobPage() {
         category: '',
         subCategory: '',
         skills: '', // space separated, displayed as tags
-        budgetMin: 500,
-        budgetMax: 1000,
+        budgetMin: '',
+        budgetMax: '',
         deadline: '' // YYYY-MM-DD date
     });
     const [showMilestones, setShowMilestones] = useState(false);
-    const [milestones, setMilestones] = useState<Array<{ name: string; price: string; dueDate: string }>>([]);
+    const [milestones, setMilestones] = useState<Array<{ name: string; dueDate: string }>>([]);
 
-    const addMilestone = () => setMilestones([...milestones, { name: '', price: '', dueDate: '' }]);
+    const addMilestone = () => setMilestones([...milestones, { name: '', dueDate: '' }]);
     const removeMilestone = (index: number) => setMilestones(milestones.filter((_, i) => i !== index));
-    const updateMilestone = (index: number, field: 'name' | 'price' | 'dueDate', value: string) => {
+    const updateMilestone = (index: number, field: 'name' | 'dueDate', value: string) => {
         const updated = [...milestones];
         updated[index] = { ...updated[index], [field]: value };
         setMilestones(updated);
@@ -79,9 +79,8 @@ export default function PostJobPage() {
 
         try {
             const milestonesPayload = showMilestones && milestones.length > 0
-                ? milestones.filter((m) => m.name.trim() && Number(m.price) > 0).map((m) => ({
+                ? milestones.filter((m) => m.name.trim()).map((m) => ({
                     name: m.name.trim(),
-                    price: Number(m.price),
                     dueDate: m.dueDate || undefined
                 }))
                 : [];
@@ -245,9 +244,9 @@ export default function PostJobPage() {
                                         type="number"
                                         name="budgetMin"
                                         required
-                                       
                                         value={jobData.budgetMin}
                                         onChange={handleChange}
+                                        placeholder="e.g. 500 (min 300)"
                                         className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none"
                                     />
                                 </div>
@@ -257,9 +256,9 @@ export default function PostJobPage() {
                                         type="number"
                                         name="budgetMax"
                                         required
-                                       
                                         value={jobData.budgetMax}
                                         onChange={handleChange}
+                                        placeholder="e.g. 1500"
                                         className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none"
                                     />
                                 </div>
@@ -278,12 +277,12 @@ export default function PostJobPage() {
                                 />
                             </div>
 
-                            {/* Payment Milestones */}
+                            {/* Delivery milestones — payment is once at project completion */}
                             <div className="p-4 rounded-xl border-2 border-gray-100 bg-gray-50/50">
                                 <div className="flex items-center justify-between flex-wrap gap-3 mb-2">
                                     <div>
-                                        <label className="block text-sm font-bold text-gray-900">Payment Milestones</label>
-                                        <p className="text-xs text-gray-600">Optionally split payment across milestones (e.g., Design Phase, Development)</p>
+                                        <label className="block text-sm font-bold text-gray-900">Delivery Milestones</label>
+                                        <p className="text-xs text-gray-600">Optional phases or checkpoints (e.g. first draft, final files). You still pay once when you approve the full delivery at the end.</p>
                                     </div>
                                     <button
                                         type="button"
@@ -299,13 +298,13 @@ export default function PostJobPage() {
                                 {showMilestones && (
                                     <div className="mt-4 space-y-3">
                                         <div className="flex justify-between items-center">
-                                            <span className="text-sm font-bold text-gray-700">Milestones</span>
+                                            <span className="text-sm font-bold text-gray-700">Delivery milestones</span>
                                             <button type="button" onClick={addMilestone} className="flex items-center gap-2 px-3 py-1.5 bg-[#09BF44] text-white text-sm font-bold rounded-lg hover:bg-[#07a63a]">
                                                 <Plus className="w-4 h-4" /> Add
                                             </button>
                                         </div>
                                         {milestones.length === 0 ? (
-                                            <p className="text-sm text-gray-500 py-4 text-center border-2 border-dashed border-gray-200 rounded-xl">Click &quot;Add&quot; to create payment milestones.</p>
+                                            <p className="text-sm text-gray-500 py-4 text-center border-2 border-dashed border-gray-200 rounded-xl">Click &quot;Add&quot; to list delivery phases. Payment stays single, at the end.</p>
                                         ) : (
                                             <div className="space-y-3">
                                                 {milestones.map((m, idx) => (
@@ -316,14 +315,6 @@ export default function PostJobPage() {
                                                             onChange={(e) => updateMilestone(idx, 'name', e.target.value)}
                                                             placeholder="e.g. Design Phase"
                                                             className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:border-[#09BF44] outline-none"
-                                                        />
-                                                        <input
-                                                            type="number"
-                                                            value={m.price}
-                                                            onChange={(e) => updateMilestone(idx, 'price', e.target.value)}
-                                                            placeholder="EGP"
-                                                           
-                                                            className="w-24 px-3 py-2 border border-gray-200 rounded-lg focus:border-[#09BF44] outline-none"
                                                         />
                                                         <DatePicker
                                                             value={m.dueDate}
@@ -337,11 +328,6 @@ export default function PostJobPage() {
                                                         </button>
                                                     </div>
                                                 ))}
-                                                {milestones.length > 0 && (
-                                                    <p className="text-sm font-bold text-gray-700">
-                                                        Total: {milestones.reduce((s, m) => s + (Number(m.price) || 0), 0)} EGP
-                                                    </p>
-                                                )}
                                             </div>
                                         )}
                                     </div>

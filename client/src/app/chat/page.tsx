@@ -1397,12 +1397,15 @@ function ChatPageContent() {
                                                         </div>
                                                         {offer.milestones && offer.milestones.length > 0 && (
                                                             <div className="pt-3 border-t border-white/20">
-                                                                <p className="text-sm font-bold mb-2">Milestones:</p>
+                                                                <p className="text-sm font-bold mb-1">Delivery milestones</p>
+                                                                <p className="text-xs opacity-90 mb-2">For scheduling only—payment is the total above, once.</p>
                                                                 {offer.milestones.map((milestone: any, idx: number) => (
-                                                                    <div key={idx} className="text-xs mb-1.5 flex items-center gap-1">
+                                                                    <div key={idx} className="text-xs mb-1.5 flex items-center gap-2">
                                                                         <div className="w-10 h-10 rounded-xl bg-linear-to-br from-indigo-500 to-purple-600 flex items-center justify-center shrink-0 shadow-indigo-100/50 shadow-lg border border-white/20"></div>
-                                                                        {milestone.name}: {milestone.price} EGP
-                                                                            {milestone.dueDate && ` (Due: ${formatDateDDMMYYYY(milestone.dueDate)})`}
+                                                                        <span>
+                                                                            {milestone.name}
+                                                                            {milestone.dueDate && ` · Due ${formatDateDDMMYYYY(milestone.dueDate)}`}
+                                                                        </span>
                                                                     </div>
                                                                 ))}
                                                             </div>

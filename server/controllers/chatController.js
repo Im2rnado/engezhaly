@@ -309,7 +309,16 @@ const createOffer = async (req, res) => {
             return res.status(403).json({ msg: 'Invalid conversation or unauthorized' });
         }
 
-        const offerData = { conversationId, senderId, receiverId, price, whatsIncluded, milestones: milestones || [] };
+        const normalizedMilestones = Array.isArray(milestones)
+            ? milestones
+                .filter((m) => m && String(m.name || '').trim())
+                .map((m) => ({
+                    name: String(m.name).trim(),
+                    price: 0,
+                    dueDate: m.dueDate ? new Date(m.dueDate) : undefined
+                }))
+            : [];
+        const offerData = { conversationId, senderId, receiverId, price, whatsIncluded, milestones: normalizedMilestones };
         if (deliveryDate) {
             offerData.deliveryDate = new Date(deliveryDate);
         } else {

@@ -101,8 +101,6 @@ function UserDetailPanel({ user, onBack, onEdit, onDelete, onRefresh }: { user: 
                                     <label className="block text-xs font-bold text-gray-500 mb-1">Top up amount (EGP)</label>
                                     <input
                                         type="number"
-                                       
-                                        step="1"
                                         value={topUpAmount}
                                         onChange={(e) => setTopUpAmount(e.target.value)}
                                         placeholder="e.g. 100"

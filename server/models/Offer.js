@@ -10,9 +10,9 @@ const OfferSchema = new mongoose.Schema({
     whatsIncluded: { type: String, required: true }, // Description of what's included
     milestones: [{
         name: { type: String, required: true },
-        price: { type: Number, required: true },
+        price: { type: Number, default: 0 },
         dueDate: { type: Date }
-    }], // Optional milestones for payment splitting
+    }], // Optional delivery phases (single payment is offer.price)
     revisions: { type: Number, default: 0 },
     status: { type: String, enum: ['pending', 'accepted', 'rejected', 'expired'], default: 'pending' },
     acceptedAt: { type: Date },

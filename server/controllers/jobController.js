@@ -24,10 +24,10 @@ const createJob = async (req, res) => {
 
         const parsedMilestones = Array.isArray(milestones)
             ? milestones
-                .filter((m) => m && m.name && Number(m.price) > 0)
+                .filter((m) => m && String(m.name || '').trim())
                 .map((m) => ({
                     name: String(m.name).trim(),
-                    price: Number(m.price),
+                    price: 0,
                     dueDate: m.dueDate ? new Date(m.dueDate) : undefined
                 }))
             : [];

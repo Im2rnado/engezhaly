@@ -32,9 +32,9 @@ export default function EditProjectPage() {
         subCategory: '',
         images: [] as string[],
         packages: [
-            { type: 'Basic', price: 500, days: 3, features: [''], revisions: 0 },
-            { type: 'Standard', price: 1000, days: 5, features: [''], revisions: 1 },
-            { type: 'Premium', price: 2000, days: 7, features: [''], revisions: 2 }
+            { type: 'Basic', price: '', days: '', features: [''], revisions: '' },
+            { type: 'Standard', price: '', days: '', features: [''], revisions: '' },
+            { type: 'Premium', price: '', days: '', features: [''], revisions: '' }
         ],
         isActive: true
     });
@@ -64,17 +64,26 @@ export default function EditProjectPage() {
                     if (lockedCategory && projectData.category && projectData.category !== lockedCategory) {
                         setError('This offer\'s category no longer matches your profile. Contact support.');
                     }
+                    const defaultPkgs = [
+                        { type: 'Basic', price: '', days: '', features: [''], revisions: '' },
+                        { type: 'Standard', price: '', days: '', features: [''], revisions: '' },
+                        { type: 'Premium', price: '', days: '', features: [''], revisions: '' }
+                    ];
+                    const srcPkgs = Array.isArray(projectData.packages) && projectData.packages.length > 0 ? projectData.packages : defaultPkgs;
+                    const norm = (p: any, i: number) => ({
+                        type: p.type || defaultPkgs[i]?.type || 'Basic',
+                        price: p.price !== undefined && p.price !== null && String(p.price) !== '' ? String(p.price) : '',
+                        days: p.days !== undefined && p.days !== null && String(p.days) !== '' ? String(p.days) : '',
+                        revisions: p.revisions !== undefined && p.revisions !== null && String(p.revisions) !== '' ? String(p.revisions) : '',
+                        features: Array.isArray(p.features) && p.features.length ? p.features : ['']
+                    });
                     setProjectData({
                         title: projectData.title || '',
                         description: projectData.description || '',
                         category: lockedCategory || projectData.category || '',
                         subCategory: projectData.subCategory || '',
                         images: projectData.images || [],
-                        packages: projectData.packages || [
-                            { type: 'Basic', price: 500, days: 3, features: [''], revisions: 0 },
-                            { type: 'Standard', price: 1000, days: 5, features: [''], revisions: 1 },
-                            { type: 'Premium', price: 2000, days: 7, features: [''], revisions: 2 }
-                        ],
+                        packages: srcPkgs.map(norm),
                         isActive: projectData.isActive !== undefined ? projectData.isActive : true
                     });
                 }
@@ -123,7 +132,7 @@ export default function EditProjectPage() {
         setLoading(true);
         setError('');
 
-        if (projectData.packages.some(p => p.price < 300)) {
+        if (projectData.packages.some(p => (Number(p.price) || 0) < 300)) {
             setError('Minimum price for any package is 300 EGP.');
             setLoading(false);
             return;
@@ -342,8 +351,9 @@ export default function EditProjectPage() {
                                                            
                                                             required
                                                             value={pkg.price}
-                                                            onChange={(e) => handlePackageChange(idx, 'price', Number(e.target.value))}
-                                                            className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none font-bold text-gray-900"
+                                                            onChange={(e) => handlePackageChange(idx, 'price', e.target.value)}
+                                                            placeholder="Min 300"
+                                                            className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none font-bold text-gray-900 placeholder:text-gray-400 placeholder:opacity-70"
                                                         />
                                                     </div>
 
@@ -354,8 +364,9 @@ export default function EditProjectPage() {
                                                            
                                                             required
                                                             value={pkg.days}
-                                                            onChange={(e) => handlePackageChange(idx, 'days', Number(e.target.value))}
-                                                            className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none"
+                                                            onChange={(e) => handlePackageChange(idx, 'days', e.target.value)}
+                                                            placeholder="Days"
+                                                            className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none placeholder:text-gray-400 placeholder:opacity-70"
                                                         />
                                                     </div>
 
@@ -366,8 +377,9 @@ export default function EditProjectPage() {
                                                            
                                                             required
                                                             value={pkg.revisions}
-                                                            onChange={(e) => handlePackageChange(idx, 'revisions', Number(e.target.value))}
-                                                            className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none"
+                                                            onChange={(e) => handlePackageChange(idx, 'revisions', e.target.value)}
+                                                            placeholder="Revisions"
+                                                            className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none placeholder:text-gray-400 placeholder:opacity-70"
                                                         />
                                                     </div>
 

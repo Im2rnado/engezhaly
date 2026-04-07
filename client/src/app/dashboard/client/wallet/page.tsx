@@ -98,7 +98,7 @@ export default function PaymentMethodsPage() {
         }
     };
 
-    // Check for success redirect after Paymob callback
+    // Check for success redirect after Credit Card (checkout) callback
     useEffect(() => {
         if (typeof window === 'undefined') return;
         const params = new URLSearchParams(window.location.search);

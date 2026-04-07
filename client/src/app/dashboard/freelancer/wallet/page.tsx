@@ -432,10 +432,9 @@ export default function FreelancerWalletPage() {
                                 <label className="block text-sm font-bold text-gray-700 mb-1">Amount (EGP)</label>
                                 <input
                                     type="number"
-                                    min={70}
                                     value={withdrawAmount}
                                     onChange={e => setWithdrawAmount(e.target.value)}
-                                    placeholder="70"
+                                    placeholder="e.g. 70"
                                     className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-[#09BF44] outline-none"
                                 />
                                 {withdrawAmount && Number(withdrawAmount) >= 70 && (

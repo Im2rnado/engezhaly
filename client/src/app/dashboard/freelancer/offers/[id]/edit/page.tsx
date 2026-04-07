@@ -30,12 +30,12 @@ export default function EditOfferPage() {
         description: '',
         category: '',
         subCategory: '',
-        consultationPrice: 100,
+        consultationPrice: '',
         images: [] as string[],
         packages: [
-            { type: 'Basic', price: 500, days: 3, features: [''], revisions: 0 },
-            { type: 'Standard', price: 1000, days: 5, features: [''], revisions: 1 },
-            { type: 'Premium', price: 2000, days: 7, features: [''], revisions: 2 }
+            { type: 'Basic', price: '', days: '', features: [''], revisions: '' },
+            { type: 'Standard', price: '', days: '', features: [''], revisions: '' },
+            { type: 'Premium', price: '', days: '', features: [''], revisions: '' }
         ],
         isActive: true
     });
@@ -65,18 +65,28 @@ export default function EditOfferPage() {
                     if (lockedCategory && projectData.category && projectData.category !== lockedCategory) {
                         setError('This offer\'s category no longer matches your profile. Contact support.');
                     }
+                    const defaultPkgs = [
+                        { type: 'Basic', price: '', days: '', features: [''], revisions: '' },
+                        { type: 'Standard', price: '', days: '', features: [''], revisions: '' },
+                        { type: 'Premium', price: '', days: '', features: [''], revisions: '' }
+                    ];
+                    const srcPkgs = Array.isArray(projectData.packages) && projectData.packages.length > 0 ? projectData.packages : defaultPkgs;
+                    const norm = (p: any, i: number) => ({
+                        type: p.type || defaultPkgs[i]?.type || 'Basic',
+                        price: p.price !== undefined && p.price !== null && String(p.price) !== '' ? String(p.price) : '',
+                        days: p.days !== undefined && p.days !== null && String(p.days) !== '' ? String(p.days) : '',
+                        revisions: p.revisions !== undefined && p.revisions !== null && String(p.revisions) !== '' ? String(p.revisions) : '',
+                        features: Array.isArray(p.features) && p.features.length ? p.features : ['']
+                    });
+                    const consultationRaw = projectData.consultationPrice;
                     setProjectData({
                         title: projectData.title || '',
                         description: projectData.description || '',
                         category: lockedCategory || projectData.category || '',
                         subCategory: projectData.subCategory || '',
-                        consultationPrice: projectData.consultationPrice ?? 100,
+                        consultationPrice: consultationRaw !== undefined && consultationRaw !== null && String(consultationRaw) !== '' ? String(consultationRaw) : '',
                         images: projectData.images || [],
-                        packages: projectData.packages || [
-                            { type: 'Basic', price: 500, days: 3, features: [''], revisions: 0 },
-                            { type: 'Standard', price: 1000, days: 5, features: [''], revisions: 1 },
-                            { type: 'Premium', price: 2000, days: 7, features: [''], revisions: 2 }
-                        ],
+                        packages: srcPkgs.map(norm),
                         isActive: projectData.isActive !== undefined ? projectData.isActive : true
                     });
                 }
@@ -125,15 +135,19 @@ export default function EditOfferPage() {
         setLoading(true);
         setError('');
 
-        if (projectData.packages.some(p => p.price < 300)) {
+        if (projectData.packages.some(p => (Number(p.price) || 0) < 300)) {
             setError('Minimum price for any package is 300 EGP.');
             setLoading(false);
             return;
         }
 
+        const consultationNum = Number(projectData.consultationPrice);
+        const consultationPrice = projectData.consultationPrice === '' || Number.isNaN(consultationNum) ? 100 : consultationNum;
+
         try {
             await api.projects.update(projectId, {
                 ...projectData,
+                consultationPrice,
                 packages: projectData.packages.map(p => ({
                     ...p,
                     price: Number(p.price),
@@ -266,10 +280,10 @@ export default function EditOfferPage() {
                                         <p className="text-xs text-gray-500 mb-1">Price for video/voice calls when clients book a consultation. This amount goes to your balance.</p>
                                         <input
                                             type="number"
-                                           
                                             value={projectData.consultationPrice}
-                                            onChange={(e) => setProjectData({ ...projectData, consultationPrice: Number(e.target.value) || 100 })}
-                                            className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none max-w-xs"
+                                            onChange={(e) => setProjectData({ ...projectData, consultationPrice: e.target.value })}
+                                            placeholder="e.g. 100"
+                                            className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none max-w-xs placeholder:text-gray-400 placeholder:opacity-70"
                                         />
                                     </div>
 
@@ -351,11 +365,11 @@ export default function EditOfferPage() {
                                                         <label className="text-xs font-bold text-gray-500">Price (EGP)</label>
                                                         <input
                                                             type="number"
-                                                           
                                                             required
                                                             value={pkg.price}
-                                                            onChange={(e) => handlePackageChange(idx, 'price', Number(e.target.value))}
-                                                            className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none font-bold text-gray-900"
+                                                            onChange={(e) => handlePackageChange(idx, 'price', e.target.value)}
+                                                            placeholder="Min 300"
+                                                            className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none font-bold text-gray-900 placeholder:text-gray-400 placeholder:opacity-70"
                                                         />
                                                     </div>
 
@@ -363,11 +377,11 @@ export default function EditOfferPage() {
                                                         <label className="text-xs font-bold text-gray-500">Delivery (Days)</label>
                                                         <input
                                                             type="number"
-                                                           
                                                             required
                                                             value={pkg.days}
-                                                            onChange={(e) => handlePackageChange(idx, 'days', Number(e.target.value))}
-                                                            className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none"
+                                                            onChange={(e) => handlePackageChange(idx, 'days', e.target.value)}
+                                                            placeholder="Days"
+                                                            className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none placeholder:text-gray-400 placeholder:opacity-70"
                                                         />
                                                     </div>
 
@@ -375,11 +389,11 @@ export default function EditOfferPage() {
                                                         <label className="text-xs font-bold text-gray-500">Revisions</label>
                                                         <input
                                                             type="number"
-                                                           
                                                             required
                                                             value={pkg.revisions}
-                                                            onChange={(e) => handlePackageChange(idx, 'revisions', Number(e.target.value))}
-                                                            className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none"
+                                                            onChange={(e) => handlePackageChange(idx, 'revisions', e.target.value)}
+                                                            placeholder="Revisions"
+                                                            className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none placeholder:text-gray-400 placeholder:opacity-70"
                                                         />
                                                     </div>
 
