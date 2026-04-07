@@ -443,7 +443,7 @@ export default function JobDetailPage() {
                                                         disabled={approvingJob}
                                                         className="flex-1 bg-[#09BF44] text-white font-bold py-2.5 rounded-xl hover:bg-[#07a63a] transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                                                     >
-                                                        {approvingJob ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />} Approve & Complete
+                                                        {approvingJob ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />} Approve & Release Payment
                                                     </button>
                                                 ) : (
                                                     <span className="flex-1 bg-green-100 text-green-700 font-bold py-2.5 rounded-xl text-center flex items-center justify-center gap-2">
@@ -492,6 +492,11 @@ export default function JobDetailPage() {
                             jobId: paymentChoiceConfig.jobId,
                             proposalId: paymentChoiceConfig.proposalId
                         });
+                        if (charge.paidFromWallet) {
+                            setPaymentChoiceConfig(null);
+                            showModal({ title: 'Payment Successful', message: 'Payment deducted from your wallet balance.', type: 'success' });
+                            return;
+                        }
                         setCheckoutIframeUrl(charge.iframeUrl || null);
                     }}
                     onInstaPayComplete={() => {

@@ -26,8 +26,11 @@ const JobSchema = new mongoose.Schema({
         message: String,
         milestones: [{
             name: { type: String, required: true },
-            price: { type: Number, required: true },
-            deliveryDays: { type: Number }
+            price: { type: Number },
+            dueDate: { type: Date },
+            status: { type: String, enum: ['pending', 'submitted', 'done'], default: 'pending' },
+            submissionNote: { type: String },
+            submissionFiles: [String]
         }],
         status: { type: String, enum: ['pending', 'accepted', 'rejected'], default: 'pending' },
         workSubmission: {

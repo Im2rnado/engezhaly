@@ -211,6 +211,16 @@ export const api = {
             if (!res.ok) throw new Error(result.msg || 'Failed to submit work');
             return result;
         },
+        submitMilestoneWork: async (jobId: string, milestoneIdx: number, data: { note?: string; files?: string[] }) => {
+            const res = await fetch(`${API_URL}/freelancer/jobs/${jobId}/milestones/${milestoneIdx}/submit`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify(data),
+            });
+            const result = await res.json().catch(() => ({ msg: 'Failed to submit milestone' }));
+            if (!res.ok) throw new Error(result.msg || 'Failed to submit milestone');
+            return result;
+        },
         raiseDispute: async (orderId: string, reason?: string) => {
             const res = await fetch(`${API_URL}/freelancer/orders/${orderId}/dispute`, {
                 method: 'POST',

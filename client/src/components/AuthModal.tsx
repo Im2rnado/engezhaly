@@ -8,6 +8,8 @@ import { api } from '@/lib/api';
 import { useModal } from '@/context/ModalContext';
 import { MAIN_CATEGORIES, CATEGORIES } from '@/lib/categories';
 import { PHONE_COUNTRIES, validatePhone, formatPhoneE164, getFlagEmoji } from '@/lib/phoneUtils';
+import DatePicker from '@/components/DatePicker';
+import ImageCropModal from '@/components/ImageCropModal';
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -82,10 +84,12 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
         disagreementHandling: string;
         hoursPerDay: string;
         discoverySource: string[];
+        aiUsage: string;
     }>({
         disagreementHandling: '',
         hoursPerDay: '',
-        discoverySource: []
+        discoverySource: [],
+        aiUsage: ''
     });
     const [cvUrl, setCvUrl] = useState('');
     const [cvUploading, setCvUploading] = useState(false);
@@ -104,9 +108,9 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
         subCategory: '',
         images: [] as string[],
         packages: [
-            { type: 'Basic', price: 500, days: 3, revisions: 0, features: [''] },
-            { type: 'Standard', price: 1000, days: 5, revisions: 1, features: [''] },
-            { type: 'Premium', price: 2000, days: 7, revisions: 2, features: [''] }
+            { type: 'Basic', price: '', days: '', revisions: '', features: [''] },
+            { type: 'Standard', price: '', days: '', revisions: '', features: [''] },
+            { type: 'Premium', price: '', days: '', revisions: '', features: [''] }
         ]
     });
     const [portfolioItems, setPortfolioItems] = useState<{ title: string; description: string; imageUrl: string; link: string; subCategory: string }[]>([{ title: '', description: '', imageUrl: '', link: '', subCategory: '' }]);
@@ -144,12 +148,12 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             setPortfolioImageUploading(null);
             setPortfolioImageProgress(0);
             setProfessionalInfo({ category: '', experienceYears: '', technicalSkills: '', softSkills: '', bio: '', isStudent: false, certifications: [], universityIdUrl: '', idDocumentUrl: '', city: '', english: 'Fluent', arabic: 'Fluent', extraLanguages: '' });
-            setSurvey({ disagreementHandling: '', hoursPerDay: '', discoverySource: [] });
+            setSurvey({ disagreementHandling: '', hoursPerDay: '', discoverySource: [], aiUsage: '' });
             setCvUrl('');
             setWithdrawalMethod({ method: 'vodafone_cash', phoneNumber: '', accountNumber: '', bankName: '' });
             setSignupNotes('');
             setSurveyStep(1);
-            setStarterOffer({ title: '', description: '', subCategory: '', images: [], packages: [{ type: 'Basic', price: 500, days: 3, revisions: 0, features: [''] }, { type: 'Standard', price: 1000, days: 5, revisions: 1, features: [''] }, { type: 'Premium', price: 2000, days: 7, revisions: 2, features: [''] }] });
+            setStarterOffer({ title: '', description: '', subCategory: '', images: [], packages: [{ type: 'Basic', price: '', days: '', revisions: '', features: [''] }, { type: 'Standard', price: '', days: '', revisions: '', features: [''] }, { type: 'Premium', price: '', days: '', revisions: '', features: [''] }] });
             setPortfolioItems([{ title: '', description: '', imageUrl: '', link: '', subCategory: '' }]);
             setAcceptedTerms(false);
         }
@@ -157,12 +161,13 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
 
     const [profilePictureUploading, setProfilePictureUploading] = useState(false);
     const [profilePictureProgress, setProfilePictureProgress] = useState(0);
+    const [cropSrc, setCropSrc] = useState<string | null>(null);
     const [documentUploadProgress, setDocumentUploadProgress] = useState<number | null>(null);
     const [documentUploadingLabel, setDocumentUploadingLabel] = useState<string | null>(null);
     const [portfolioImageUploading, setPortfolioImageUploading] = useState<number | null>(null);
     const [portfolioImageProgress, setPortfolioImageProgress] = useState(0);
 
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
         if (file.size > 5 * 1024 * 1024) {
@@ -174,12 +179,24 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             return;
         }
         setError('');
+        // Open crop modal instead of uploading directly
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            if (ev.target?.result) setCropSrc(ev.target.result as string);
+        };
+        reader.readAsDataURL(file);
+        e.target.value = '';
+    };
+
+    const handleCropConfirm = async (blob: Blob) => {
+        setCropSrc(null);
         setProfilePictureUploading(true);
         setProfilePictureProgress(0);
         try {
-            const url = await api.upload.file(file, {
+            const croppedFile = new File([blob], 'profile.jpg', { type: 'image/jpeg' });
+            const url = await api.upload.file(croppedFile, {
                 forSignup: true,
-                onProgress: (p) => setProfilePictureProgress(p)
+                onProgress: (p: number) => setProfilePictureProgress(p)
             });
             setProfilePicture(url);
         } catch (err: any) {
@@ -187,7 +204,6 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
         } finally {
             setProfilePictureUploading(false);
             setProfilePictureProgress(0);
-            e.target.value = '';
         }
     };
 
@@ -422,7 +438,8 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
     const SURVEY_QUESTIONS: { key: keyof typeof survey; label: string; type: 'text' | 'select' | 'radio' | 'multi-select'; options?: string[] }[] = [
         { key: 'disagreementHandling', label: 'What happens if you have a disagreement with the client?', type: 'text' },
         { key: 'hoursPerDay', label: 'On average, how many hours per day can you dedicate to Engezhaly?', type: 'radio', options: ['Less than 1', '1–2', '2–4', '4–6', '6+', 'Other'] },
-        { key: 'discoverySource', label: 'Where did you find out about Engezhaly from? (Select all that apply)', type: 'multi-select', options: ['TikTok', 'Instagram', 'Facebook', 'X', 'Friend/Referral', 'Google/Search', 'Other'] }
+        { key: 'discoverySource', label: 'Where did you find out about Engezhaly from? (Select all that apply)', type: 'multi-select', options: ['TikTok', 'Instagram', 'Facebook', 'X', 'Friend/Referral', 'Google/Search', 'Other'] },
+        { key: 'aiUsage', label: 'Do you use AI in your work?', type: 'select', options: ['Always', 'Sometimes', 'No'] }
     ];
 
     const handleFinalSubmit = async () => {
@@ -446,7 +463,8 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             surveyResponses: {
                 disagreementHandling: survey.disagreementHandling?.trim() || undefined,
                 hoursPerDay: survey.hoursPerDay?.trim() || undefined,
-                discoverySource: Array.isArray(survey.discoverySource) && survey.discoverySource.length > 0 ? survey.discoverySource.join(', ') : undefined
+                discoverySource: Array.isArray(survey.discoverySource) && survey.discoverySource.length > 0 ? survey.discoverySource.join(', ') : undefined,
+                aiUsage: survey.aiUsage?.trim() || undefined
             },
             cvUrl: cvUrl?.trim() || undefined,
             starterOffer: {
@@ -456,8 +474,8 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                 images: starterOffer.images || [],
                 packages: starterOffer.packages.map(p => ({
                     type: p.type,
-                    price: Number(p.price) || 500,
-                    days: Number(p.days) || 3,
+                    price: Number(p.price) || 300,
+                    days: Number(p.days) || 1,
                     revisions: Number(p.revisions) || 0,
                     features: Array.isArray(p.features) ? p.features.filter((f: string) => f?.trim()) : []
                 }))
@@ -556,6 +574,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
     };
 
     return (
+        <>
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4">
             <div className={`relative w-full bg-white rounded-2xl md:rounded-3xl shadow-2xl max-h-[92vh] md:max-h-[90vh] flex flex-col overflow-hidden ${step === 'freelancer-step-3-offer' ? 'max-w-4xl' : 'max-w-2xl'}`}>
                 <div ref={scrollContainerRef} className="overflow-y-auto flex-1 px-4 md:px-8 pb-6 md:pb-8 min-h-0 pt-2">
@@ -812,9 +831,9 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                 <input name="username" placeholder="Username" required onChange={handleChange} value={formData.username} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
                                 <input name="email" type="email" placeholder="Email Address" required onChange={handleChange} value={formData.email} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
                                 <div className="flex gap-2">
-                                    <select name="phoneCountryCode" onChange={handleChange} value={formData.phoneCountryCode} className="w-24 shrink-0 p-2 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 text-sm">
+                                    <select name="phoneCountryCode" onChange={handleChange} value={formData.phoneCountryCode} className="w-48 shrink-0 p-2 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 text-sm">
                                         {PHONE_COUNTRIES.map((c) => (
-                                            <option key={c.code} value={c.code}>{getFlagEmoji(c.code)} +{c.callingCode}</option>
+                                            <option key={c.code} value={c.code}>{getFlagEmoji(c.code)} {c.name} (+{c.callingCode})</option>
                                         ))}
                                     </select>
                                     <input name="phoneNumber" type="tel" placeholder="Phone number" required onChange={handleChange} value={formData.phoneNumber} className="flex-1 min-w-0 p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
@@ -922,14 +941,14 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-bold text-gray-700 mb-1">Date of Birth</label>
-                                        <input name="dob" type="date" required onChange={handleChange} value={formData.dob} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
+                                        <DatePicker name="dob" value={formData.dob} onChange={(v) => setFormData(f => ({ ...f, dob: v }))} max={new Date().toISOString().split('T')[0]} placeholder="Date of Birth" className="w-full" required />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-bold text-gray-700 mb-1">Phone Number</label>
                                         <div className="flex gap-2">
-                                            <select name="phoneCountryCode" onChange={handleChange} value={formData.phoneCountryCode} className="w-24 shrink-0 p-2 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 text-sm">
+                                            <select name="phoneCountryCode" onChange={handleChange} value={formData.phoneCountryCode} className="w-48 shrink-0 p-2 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 text-sm">
                                                 {PHONE_COUNTRIES.map((c) => (
-                                                    <option key={c.code} value={c.code}>{getFlagEmoji(c.code)} +{c.callingCode}</option>
+                                                    <option key={c.code} value={c.code}>{getFlagEmoji(c.code)} {c.name} (+{c.callingCode})</option>
                                                 ))}
                                             </select>
                                             <input name="phoneNumber" type="tel" placeholder="Number" required onChange={handleChange} value={formData.phoneNumber} className="flex-1 min-w-0 p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
@@ -1157,7 +1176,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
 
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-2">Years of Experience</label>
-                                    <input type="number" name="experienceYears" required min="0" value={professionalInfo.experienceYears} onChange={handleProfessionalChange} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
+                                    <input type="number" name="experienceYears" required value={professionalInfo.experienceYears} onChange={handleProfessionalChange} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
                                 </div>
 
                                 <div>
@@ -1324,15 +1343,15 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                         placeholder="Certification name"
                                                         className="flex-1 min-w-30 p-2 rounded-lg border border-gray-200 text-sm"
                                                     />
-                                                    <input
-                                                        type="date"
+                                                    <DatePicker
                                                         value={cert.date}
-                                                        onChange={(e) => {
+                                                        onChange={(v) => {
                                                             const next = [...professionalInfo.certifications];
-                                                            next[idx] = { ...next[idx], date: e.target.value };
+                                                            next[idx] = { ...next[idx], date: v };
                                                             setProfessionalInfo({ ...professionalInfo, certifications: next });
                                                         }}
                                                         placeholder="Date"
+                                                        max={new Date().toISOString().split('T')[0]}
                                                         className="w-36 p-2 rounded-lg border border-gray-200 text-sm"
                                                     />
                                                     <input
@@ -1508,9 +1527,9 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                             <div key={pkg.type} className="border-2 border-gray-100 p-4 rounded-xl">
                                                 <h5 className="font-bold text-sm text-[#09BF44] mb-3 uppercase">{pkg.type}</h5>
                                                 <div className="space-y-2">
-                                                    <input type="number" min={500} placeholder="Price" value={pkg.price || ''} onChange={(e) => handleStarterOfferPackage(idx, 'price', Number(e.target.value))} className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm" />
-                                                    <input type="number" min={1} placeholder="Days" value={pkg.days || ''} onChange={(e) => handleStarterOfferPackage(idx, 'days', Number(e.target.value))} className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm" />
-                                                    <input type="number" min={0} placeholder="Revisions" value={pkg.revisions ?? ''} onChange={(e) => handleStarterOfferPackage(idx, 'revisions', Number(e.target.value))} className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm" />
+                                                    <input type="number" placeholder="Price in EGP (min 300)" value={pkg.price} onChange={(e) => handleStarterOfferPackage(idx, 'price', e.target.value)} className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm placeholder:text-gray-400 placeholder:opacity-70" />
+                                                    <input type="number" placeholder="Delivery days" value={pkg.days} onChange={(e) => handleStarterOfferPackage(idx, 'days', e.target.value)} className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm placeholder:text-gray-400 placeholder:opacity-70" />
+                                                    <input type="number" placeholder="Number of revisions" value={pkg.revisions} onChange={(e) => handleStarterOfferPackage(idx, 'revisions', e.target.value)} className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm placeholder:text-gray-400 placeholder:opacity-70" />
                                                     <div>
                                                     <label className="text-xs font-bold text-gray-500">Features (press Enter for new line)</label>
                                                     <textarea
@@ -1539,7 +1558,15 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                 <p className="text-xs text-gray-500">This will be published once your account is verified and approved.</p>
                                 <div className="flex flex-col sm:flex-row gap-3">
                                     <button type="button" onClick={() => setStep('freelancer-step-3b')} className="flex-1 bg-gray-100 text-gray-600 font-bold p-4 rounded-xl hover:bg-gray-200">Back</button>
-                                    <button type="button" onClick={() => { setSurveyStep(1); setStep('freelancer-step-3-survey'); }} className="flex-1 bg-[#09BF44] text-white font-bold p-4 rounded-xl hover:bg-[#07a63a] flex items-center justify-center gap-2">
+                                    <button type="button" onClick={() => {
+                                        if (!starterOffer.title.trim()) { setError('Please add an offer title.'); return; }
+                                        const basicPkg = starterOffer.packages[0];
+                                        if (!basicPkg.price || Number(basicPkg.price) < 300) { setError('Basic package price must be at least 300 EGP.'); return; }
+                                        if (!basicPkg.days || Number(basicPkg.days) < 1) { setError('Basic package must have at least 1 delivery day.'); return; }
+                                        setError('');
+                                        setSurveyStep(1);
+                                        setStep('freelancer-step-3-survey');
+                                    }} className="flex-1 bg-[#09BF44] text-white font-bold p-4 rounded-xl hover:bg-[#07a63a] flex items-center justify-center gap-2">
                                         Next: Survey <ChevronRight className="w-5 h-5" />
                                     </button>
                                 </div>
@@ -1560,14 +1587,14 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                 <div className="bg-[#09BF44] h-full rounded-full transition-all" style={{ width: '100%' }} />
                             </div>
                             <div className="flex items-center justify-center gap-2 mb-4 text-sm font-bold text-gray-400 uppercase tracking-wider">
-                                <span className="text-[#09BF44]">Step 6</span><span>/</span><span>6</span> · Question {surveyStep}/4
+                                <span className="text-[#09BF44]">Step 6</span><span>/</span><span>6</span> · Question {surveyStep}/5
                             </div>
                             <h3 className="text-xl md:text-2xl font-bold text-center mb-2">Survey</h3>
 
                             {error && <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center gap-2 text-sm mb-4"><div className="w-2 h-2 bg-red-500 rounded-full"></div>{error}</div>}
 
                             <div className="space-y-6">
-                                {surveyStep <= 3 && SURVEY_QUESTIONS.slice(surveyStep - 1, surveyStep).map((q) => (
+                                {surveyStep <= 4 && SURVEY_QUESTIONS.slice(surveyStep - 1, surveyStep).map((q) => (
                                     <div key={q.key}>
                                         <label className="block font-medium text-gray-700 mb-3">{q.label}</label>
                                         {q.type === 'multi-select' ? (
@@ -1613,7 +1640,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                         )}
                                     </div>
                                 ))}
-                                {surveyStep === 4 && (
+                                {surveyStep === 5 && (
                                     <div>
                                         <label className="block font-medium text-gray-700 mb-2">Upload your CV (optional)</label>
                                         <p className="text-sm text-gray-500 mb-3">Your CV is for admin review only and will not be shown publicly on your profile.</p>
@@ -1654,7 +1681,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                         </label>
                                     </div>
                                 )}
-                                {surveyStep === 4 && (
+                                {surveyStep === 5 && (
                                     <label className="flex items-start gap-3 cursor-pointer">
                                         <input
                                             type="checkbox"
@@ -1672,7 +1699,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                 )}
                                 <div className="flex flex-col sm:flex-row gap-3">
                                     <button type="button" onClick={() => surveyStep > 1 ? setSurveyStep(s => s - 1) : setStep('freelancer-step-3-offer')} className="flex-1 bg-gray-100 text-gray-600 font-bold p-4 rounded-xl hover:bg-gray-200">Back</button>
-                                    {surveyStep < 4 ? (
+                                    {surveyStep < 5 ? (
                                         <button type="button" onClick={() => setSurveyStep(s => s + 1)} className="flex-1 bg-[#09BF44] text-white font-bold p-4 rounded-xl hover:bg-[#07a63a] flex items-center justify-center gap-2">
                                             Next <ChevronRight className="w-5 h-5" />
                                         </button>
@@ -1882,5 +1909,13 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                 </div>
             </div>
         </div>
+        {cropSrc && (
+            <ImageCropModal
+                src={cropSrc}
+                onConfirm={handleCropConfirm}
+                onCancel={() => setCropSrc(null)}
+            />
+        )}
+        </>
     );
 }

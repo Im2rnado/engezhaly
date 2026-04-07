@@ -12,6 +12,8 @@ import CreateOfferModal from '@/components/CreateOfferModal';
 import PaymobCheckoutModal from '@/components/PaymobCheckoutModal';
 import PaymentChoiceModal from '@/components/PaymentChoiceModal';
 import ChatRulesModal from '@/components/ChatRulesModal';
+import DatePicker from '@/components/DatePicker';
+import Avatar from '@/components/Avatar';
 import ClientSidebar from '@/components/ClientSidebar';
 import FreelancerSidebar from '@/components/FreelancerSidebar';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
@@ -1037,23 +1039,14 @@ function ChatPageContent() {
                                                     <div className="absolute inset-x-0 top-0 h-32 bg-linear-to-b from-black/40 to-transparent z-0"></div>
                                                 </div>
                                                 {/* Profile Picture Container */}
-                                                <div className="relative w-14 h-14 rounded-full overflow-hidden border-2 border-white shadow-md z-10 bg-gray-200">
-                                                    {chat.profilePicture ? (
-                                                        <Image
-                                                            src={chat.profilePicture}
-                                                            alt={partnerName}
-                                                            width={56}
-                                                            height={56}
-                                                            className="w-full h-full object-cover rounded-full"
-                                                        />
-                                                    ) : (
-                                                        <div className="w-full h-full rounded-full bg-linear-to-br from-[#09BF44] to-[#07a63a] flex items-center justify-center text-white font-black text-sm">
-                                                            {partnerInitials}
-                                                        </div>
-                                                    )}
-                                                </div>
+                                                <Avatar
+                                                    src={chat.profilePicture}
+                                                    name={partnerName}
+                                                    size={56}
+                                                    className="relative z-10 border-2 border-white shadow-md"
+                                                />
                                                 {(chat.id === activeChat?.id && partnerOnline) && (
-                                                    <div className="absolute bottom-0 right-0 w-4 h-4 bg-[#09BF44] border-2 border-white rounded-full shadow-sm"></div>
+                                                    <div className="absolute bottom-0 right-0 z-20 w-4 h-4 bg-[#09BF44] border-2 border-white rounded-full shadow-sm"></div>
                                                 )}
                                             </div>
                                             <div className="flex-1 min-w-0">
@@ -1115,23 +1108,14 @@ function ChatPageContent() {
                                                 <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-indigo-100 to-purple-100 flex items-center justify-center shrink-0 shadow-sm border border-white/50 group-hover:scale-105 transition-transform duration-300"></div>
                                             </div>
                                             {/* Profile Picture Container */}
-                                            <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-md z-10 bg-gray-200">
-                                                {activeChat.profilePicture ? (
-                                                    <Image
-                                                        src={activeChat.profilePicture}
-                                                        alt={activeChat.name}
-                                                        width={48}
-                                                        height={48}
-                                                        className="w-full h-full object-cover rounded-full"
-                                                    />
-                                                ) : (
-                                                    <div className="w-full h-full rounded-full bg-linear-to-br from-[#09BF44] to-[#07a63a] flex items-center justify-center text-white font-black text-sm">
-                                                        {getInitials(activeChat.name)}
-                                                    </div>
-                                                )}
-                                            </div>
+                                            <Avatar
+                                                src={activeChat.profilePicture}
+                                                name={activeChat.name}
+                                                size={48}
+                                                className="relative z-10 border-2 border-white shadow-md"
+                                            />
                                             {partnerOnline && (
-                                                <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#09BF44] border-2 border-white rounded-full"></div>
+                                                <div className="absolute bottom-0 right-0 z-20 w-3 h-3 bg-[#09BF44] border-2 border-white rounded-full"></div>
                                             )}
                                         </div>
                                         <div className="min-w-0">
@@ -1142,20 +1126,22 @@ function ChatPageContent() {
                                             </span>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-2 md:gap-4 text-gray-400">
+                                    <div className="flex items-center gap-2 md:gap-4">
                                         <button
                                             onClick={() => setShowRulesModal(true)}
-                                            className="p-2 hover:bg-gray-100 rounded-xl transition-colors hover:text-[#09BF44]"
+                                            className="flex flex-col items-center gap-0.5 p-2 text-red-500 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors"
                                             title="Chat Rules"
                                         >
                                             <ScrollText className="w-5 h-5" />
+                                            <span className="text-[10px] font-bold leading-none">Rules</span>
                                         </button>
                                         <button
                                             onClick={handleBookConsultation}
-                                            className="p-2 hover:bg-gray-100 rounded-xl transition-colors hover:text-[#09BF44]"
+                                            className="flex flex-col items-center gap-0.5 p-2 text-gray-400 hover:bg-gray-100 hover:text-[#09BF44] rounded-xl transition-colors"
                                             title="Book Consultation"
                                         >
                                             <Video className="w-5 h-5" />
+                                            <span className="text-[10px] font-bold leading-none">Call</span>
                                         </button>
                                     </div>
                                 </div>
@@ -1310,7 +1296,7 @@ function ChatPageContent() {
                                                     }}
                                                     className="px-4 py-2 rounded-xl font-bold bg-[#09BF44] text-white hover:bg-[#07a63a] text-sm"
                                                 >
-                                                    Approve & Complete
+                                                    Approve & Release Payment
                                                 </button>
                                             </div>
                                         )}
@@ -1354,7 +1340,7 @@ function ChatPageContent() {
                                                     }}
                                                     className="px-4 py-2 rounded-xl font-bold bg-[#09BF44] text-white hover:bg-[#07a63a] text-sm"
                                                 >
-                                                    Approve & Complete
+                                                    Approve & Release Payment
                                                 </button>
                                             </div>
                                         )}
@@ -1638,13 +1624,13 @@ function ChatPageContent() {
                         <form onSubmit={handleSetMeeting} className="space-y-4">
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-1">Date</label>
-                                <input
-                                    type="date"
+                                <DatePicker
                                     value={meetingDate}
-                                    onChange={(e) => setMeetingDate(e.target.value)}
+                                    onChange={setMeetingDate}
                                     min={new Date().toISOString().split('T')[0]}
                                     required
-                                    className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-[#09BF44] focus:ring-2 focus:ring-[#09BF44]/20 outline-none"
+                                    placeholder="Select date"
+                                    className="w-full"
                                 />
                             </div>
                             <div>
@@ -1726,6 +1712,11 @@ function ChatPageContent() {
                             meetingDate: paymentChoiceConfig.meetingDate,
                             meetingTime: paymentChoiceConfig.meetingTime
                         });
+                        if (charge.paidFromWallet) {
+                            setPaymentChoiceConfig(null);
+                            showModal({ title: 'Payment Successful', message: 'Payment deducted from your wallet balance.', type: 'success' });
+                            return;
+                        }
                         setCheckoutTitle(paymentChoiceConfig.type === 'consultation' ? 'Pay for Video Consultation' : 'Complete Payment');
                         setCheckoutIframeUrl(charge.iframeUrl || null);
                     }}

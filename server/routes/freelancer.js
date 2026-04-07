@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const authVerified = require('../middleware/authVerified');
 const auth = require('../middleware/auth');
-const { updateProfile, getProfile, getPublicProfile, getReviews, getTopFreelancers, getMyOrders, submitOrderWork, raiseDispute, approveOrder, denyOrder } = require('../controllers/freelancerController');
+const { updateProfile, getProfile, getPublicProfile, getReviews, getTopFreelancers, getMyOrders, submitOrderWork, raiseDispute, approveOrder, denyOrder, submitMilestoneWork } = require('../controllers/freelancerController');
 
 // @route   PUT api/freelancer/profile
 // @desc    Update freelancer profile (onboarding steps) - auth only, no email verification required
@@ -41,5 +41,10 @@ router.post('/orders/:id/submit-work', authVerified, submitOrderWork);
 router.post('/orders/:id/dispute', authVerified, raiseDispute);
 router.patch('/orders/:id/approve', authVerified, approveOrder);
 router.patch('/orders/:id/deny', authVerified, denyOrder);
+
+// @route   POST api/freelancer/jobs/:jobId/milestones/:milestoneIdx/submit
+// @desc    Submit work for a specific milestone in a job proposal
+// @access  Private (Freelancer)
+router.post('/jobs/:jobId/milestones/:milestoneIdx/submit', authVerified, submitMilestoneWork);
 
 module.exports = router;

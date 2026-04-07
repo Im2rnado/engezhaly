@@ -43,7 +43,7 @@ const fulfillCharge = async (pendingCharge, app) => {
                 userId: pendingCharge.userId,
                 type: 'payment',
                 amount: -totalClientPaid,
-                description: `Job: ${job.title} - held in escrow`,
+                description: `Job: ${job.title} - held by Engezhaly team`,
                 orderId: null,
                 relatedUserId: freelancerId,
                 metadata: { jobId: meta.jobId, proposalId: meta.proposalId }
@@ -80,7 +80,7 @@ const fulfillCharge = async (pendingCharge, app) => {
                 userId: order.buyerId?._id || order.buyerId,
                 type: 'payment',
                 amount: -totalClientPaid,
-                description: `Order: ${order.projectId?.title || 'Project'} - held in escrow`,
+                description: `Order: ${order.projectId?.title || 'Project'} - held by Engezhaly team`,
                 orderId: order._id,
                 relatedUserId: freelancerId
             });
@@ -154,7 +154,7 @@ const fulfillCharge = async (pendingCharge, app) => {
                 userId: pendingCharge.userId,
                 type: 'payment',
                 amount: -totalClientPaid,
-                description: `Custom Offer (incl. ${clientFee} EGP fee) - held in escrow`,
+                description: `Custom Offer (incl. ${clientFee} EGP fee) - held by Engezhaly team`,
                 orderId: order._id,
                 relatedUserId: sellerId
             });

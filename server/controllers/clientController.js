@@ -341,7 +341,8 @@ const raiseDispute = async (req, res) => {
 
         const order = await Order.findById(orderId);
         if (!order) return res.status(404).json({ msg: 'Order not found' });
-        if (order.buyerId.toString() !== userId) {
+        const disputeBuyerIdStr = String(order.buyerId?._id || order.buyerId);
+        if (disputeBuyerIdStr !== userId) {
             return res.status(403).json({ msg: 'Only the buyer can raise a dispute on this order' });
         }
         if (order.status !== 'active') {
@@ -366,11 +367,11 @@ const approveDelivery = async (req, res) => {
 
         const order = await Order.findById(orderId)
             .populate('projectId', 'title packages')
-            .populate('sellerId', 'firstName lastName')
-            .populate('buyerId', '_id');
+            .populate('sellerId', 'firstName lastName');
 
         if (!order) return res.status(404).json({ msg: 'Order not found' });
-        if (order.buyerId.toString() !== userId) {
+        const buyerIdStr = String(order.buyerId?._id || order.buyerId);
+        if (buyerIdStr !== userId) {
             return res.status(403).json({ msg: 'Only the buyer can approve delivery' });
         }
         if (order.status !== 'active') {
@@ -471,9 +472,10 @@ const approveJobWork = async (req, res) => {
         const userId = req.user.id;
         const jobId = req.params.id;
 
-        const job = await Job.findById(jobId).populate('clientId proposals.freelancerId');
+        const job = await Job.findById(jobId).populate('proposals.freelancerId');
         if (!job) return res.status(404).json({ msg: 'Job not found' });
-        if (job.clientId.toString() !== userId) {
+        const jobClientId = String(job.clientId?._id || job.clientId);
+        if (jobClientId !== userId) {
             return res.status(403).json({ msg: 'Only the job owner can approve work' });
         }
         if (job.status !== 'in_progress') {
@@ -536,7 +538,8 @@ const submitReview = async (req, res) => {
             .populate('sellerId', 'firstName lastName');
 
         if (!order) return res.status(404).json({ msg: 'Order not found' });
-        if (order.buyerId.toString() !== userId) {
+        const reviewBuyerIdStr = String(order.buyerId?._id || order.buyerId);
+        if (reviewBuyerIdStr !== userId) {
             return res.status(403).json({ msg: 'Only the buyer can submit a review' });
         }
         if (order.status !== 'completed') {

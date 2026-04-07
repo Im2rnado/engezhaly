@@ -8,6 +8,7 @@ import { MAIN_CATEGORIES, CATEGORIES } from '@/lib/categories';
 import { useModal } from '@/context/ModalContext';
 import ClientSidebar from '@/components/ClientSidebar';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
+import DatePicker from '@/components/DatePicker';
 
 export default function EditJobPage() {
     const { showModal } = useModal();
@@ -180,6 +181,7 @@ export default function EditJobPage() {
                                         <label className="block text-sm font-bold text-gray-700 mb-2">Subcategory</label>
                                         <select name="subCategory" value={jobData.subCategory} onChange={handleChange} disabled={!jobData.category} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none disabled:opacity-60">
                                             <option value="">Select subcategory</option>
+                                            <option value="all">All</option>
                                             {(CATEGORIES[jobData.category as keyof typeof CATEGORIES] || []).map((sub) => <option key={sub} value={sub}>{sub}</option>)}
                                         </select>
                                     </div>
@@ -191,16 +193,16 @@ export default function EditJobPage() {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-bold text-gray-700 mb-2">Min Budget (EGP)</label>
-                                        <input type="number" name="budgetMin" required min="300" value={jobData.budgetMin} onChange={handleChange} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none" />
+                                        <input type="number" name="budgetMin" required value={jobData.budgetMin} onChange={handleChange} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none" />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-bold text-gray-700 mb-2">Max Budget (EGP)</label>
-                                        <input type="number" name="budgetMax" required min="300" value={jobData.budgetMax} onChange={handleChange} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none" />
+                                        <input type="number" name="budgetMax" required value={jobData.budgetMax} onChange={handleChange} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none" />
                                     </div>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-2">Deadline</label>
-                                    <input type="date" name="deadline" value={jobData.deadline} onChange={handleChange} min={new Date().toISOString().split('T')[0]} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none" />
+                                    <DatePicker name="deadline" value={jobData.deadline} onChange={(v) => setJobData(d => ({ ...d, deadline: v }))} min={new Date().toISOString().split('T')[0]} placeholder="Select deadline" className="w-full" />
                                 </div>
                                 <div className="p-4 rounded-xl border-2 border-gray-100 bg-gray-50/50">
                                     <div className="flex items-center justify-between flex-wrap gap-3 mb-2">
@@ -223,8 +225,8 @@ export default function EditJobPage() {
                                                     {milestones.map((m, idx) => (
                                                         <div key={idx} className="p-3 bg-white rounded-xl border border-gray-200 flex flex-col sm:flex-row gap-3">
                                                             <input type="text" value={m.name} onChange={(e) => updateMilestone(idx, 'name', e.target.value)} placeholder="e.g. Design Phase" className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:border-[#09BF44] outline-none" />
-                                                            <input type="number" value={m.price} onChange={(e) => updateMilestone(idx, 'price', e.target.value)} placeholder="EGP" min="0" className="w-24 px-3 py-2 border border-gray-200 rounded-lg focus:border-[#09BF44] outline-none" />
-                                                            <input type="date" value={m.dueDate} onChange={(e) => updateMilestone(idx, 'dueDate', e.target.value)} min={new Date().toISOString().split('T')[0]} className="w-36 px-3 py-2 border border-gray-200 rounded-lg focus:border-[#09BF44] outline-none" />
+                                                            <input type="number" value={m.price} onChange={(e) => updateMilestone(idx, 'price', e.target.value)} placeholder="EGP" className="w-24 px-3 py-2 border border-gray-200 rounded-lg focus:border-[#09BF44] outline-none" />
+                                                            <DatePicker value={m.dueDate} onChange={(v) => updateMilestone(idx, 'dueDate', v)} min={new Date().toISOString().split('T')[0]} placeholder="Due date" className="w-44" />
                                                             <button type="button" onClick={() => removeMilestone(idx)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
                                                         </div>
                                                     ))}

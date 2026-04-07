@@ -25,7 +25,7 @@ export default function PaymobCheckoutModal({ iframeUrl, title, onClose }: Paymo
                     <iframe
                         src={iframeUrl}
                         className="w-full h-full min-h-[400px] border-0"
-                        title="Paymob Payment"
+                        title="Credit Card Payment"
                     />
                 </div>
             </div>

@@ -124,18 +124,38 @@ const setDefault = async (req, res) => {
  * POST /payment-methods/init-charge - Create payment for a business action
  * Returns iframe URL. Client pays, webhook fulfills.
  * Body: { type, amountCents, ...meta }
+ * If the client has sufficient wallet balance, deducts directly and returns { paidFromWallet: true }
  */
 const initCharge = async (req, res) => {
     try {
         const userId = req.user.id;
         const { type, amountCents, callbackSuccessUrl, ...meta } = req.body || {};
 
-        const user = await User.findById(userId).select('firstName lastName email');
+        const user = await User.findById(userId).select('firstName lastName email walletBalance');
         if (!user || user.role !== 'client') {
             return res.status(403).json({ msg: 'Only clients can initiate charges' });
         }
         if (!type || !amountCents || amountCents < 100) {
             return res.status(400).json({ msg: 'Invalid type or amount' });
+        }
+
+        const amountEGP = amountCents / 100;
+
+        // Check wallet balance first - if sufficient, deduct and fulfill directly
+        const walletBalance = user.walletBalance || 0;
+        if (walletBalance >= amountEGP) {
+            user.walletBalance = walletBalance - amountEGP;
+            await user.save();
+
+            const Transaction = require('../models/Transaction');
+            await Transaction.create({
+                userId,
+                type: 'payment',
+                amount: -amountEGP,
+                description: meta.description || type
+            });
+
+            return res.json({ paidFromWallet: true, remainingBalance: user.walletBalance });
         }
 
         const paymobOrderId = await registerOrder(amountCents);
@@ -162,7 +182,7 @@ const initCharge = async (req, res) => {
         await pending.save();
 
         const iframeUrl = getIframeUrl(paymentToken);
-        res.json({ iframeUrl, paymentToken, pendingChargeId: pending._id });
+        res.json({ iframeUrl, paymentToken, pendingChargeId: pending._id, walletBalance });
     } catch (err) {
         console.error(err);
         res.status(500).json({ msg: err.message || 'Server Error' });

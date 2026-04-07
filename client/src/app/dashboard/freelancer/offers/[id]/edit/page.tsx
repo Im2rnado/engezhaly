@@ -266,7 +266,7 @@ export default function EditOfferPage() {
                                         <p className="text-xs text-gray-500 mb-1">Price for video/voice calls when clients book a consultation. This amount goes to your balance.</p>
                                         <input
                                             type="number"
-                                            min="0"
+                                           
                                             value={projectData.consultationPrice}
                                             onChange={(e) => setProjectData({ ...projectData, consultationPrice: Number(e.target.value) || 100 })}
                                             className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none max-w-xs"
@@ -351,7 +351,7 @@ export default function EditOfferPage() {
                                                         <label className="text-xs font-bold text-gray-500">Price (EGP)</label>
                                                         <input
                                                             type="number"
-                                                            min="300"
+                                                           
                                                             required
                                                             value={pkg.price}
                                                             onChange={(e) => handlePackageChange(idx, 'price', Number(e.target.value))}
@@ -363,7 +363,7 @@ export default function EditOfferPage() {
                                                         <label className="text-xs font-bold text-gray-500">Delivery (Days)</label>
                                                         <input
                                                             type="number"
-                                                            min="1"
+                                                           
                                                             required
                                                             value={pkg.days}
                                                             onChange={(e) => handlePackageChange(idx, 'days', Number(e.target.value))}
@@ -375,7 +375,7 @@ export default function EditOfferPage() {
                                                         <label className="text-xs font-bold text-gray-500">Revisions</label>
                                                         <input
                                                             type="number"
-                                                            min="0"
+                                                           
                                                             required
                                                             value={pkg.revisions}
                                                             onChange={(e) => handlePackageChange(idx, 'revisions', Number(e.target.value))}

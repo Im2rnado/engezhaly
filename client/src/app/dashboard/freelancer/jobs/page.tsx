@@ -26,6 +26,9 @@ export default function MyJobsPage() {
         links: '',
         files: [] as File[]
     });
+    const [milestoneSubmitModal, setMilestoneSubmitModal] = useState<{ job: any; milestoneIdx: number } | null>(null);
+    const [milestoneNote, setMilestoneNote] = useState('');
+    const [milestoneSubmitting, setMilestoneSubmitting] = useState(false);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -115,6 +118,27 @@ export default function MyJobsPage() {
         } finally {
             setSubmittingWork(false);
             setUploadProgress(null);
+        }
+    };
+
+    const handleSubmitMilestone = async () => {
+        if (!milestoneSubmitModal) return;
+        setMilestoneSubmitting(true);
+        try {
+            await api.freelancer.submitMilestoneWork(
+                milestoneSubmitModal.job._id,
+                milestoneSubmitModal.milestoneIdx,
+                { note: milestoneNote, files: [] }
+            );
+            showModal({ title: 'Success', message: 'Milestone work submitted!', type: 'success' });
+            setMilestoneSubmitModal(null);
+            setMilestoneNote('');
+            const myJobsData = await api.jobs.getFreelancerJobs().catch(() => []);
+            setMyJobs(myJobsData);
+        } catch (err: any) {
+            showModal({ title: 'Error', message: err.message || 'Failed to submit milestone', type: 'error' });
+        } finally {
+            setMilestoneSubmitting(false);
         }
     };
 
@@ -235,32 +259,67 @@ export default function MyJobsPage() {
                                             </div>
                                         </div>
                                         {acceptedAndActive && (
-                                            <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
-                                                <div className="text-sm text-gray-600">
-                                                    {myProposal?.workSubmission?.updatedAt
-                                                        ? `Last submitted: ${new Date(myProposal.workSubmission.updatedAt).toLocaleString()}`
-                                                        : 'No work submitted yet'}
-                                                </div>
-                                                <div className="flex gap-2">
-                                                    <button
-                                                        onClick={() => openChatWithClient(job)}
-                                                        className="bg-gray-100 text-gray-700 px-4 py-2 rounded-xl font-bold hover:bg-gray-200 transition-colors flex items-center gap-2"
-                                                    >
-                                                        <MessageSquare className="w-4 h-4" /> Message Client
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            setWorkJob(job);
-                                                            setWorkSubmission({
-                                                                message: myProposal?.workSubmission?.message || '',
-                                                                links: (myProposal?.workSubmission?.links || []).join(', '),
-                                                                files: []
-                                                            });
-                                                        }}
-                                                        className="bg-[#09BF44] text-white px-5 py-2 rounded-xl font-bold hover:bg-[#07a63a] transition-colors"
-                                                    >
-                                                        {myProposal?.workSubmission?.updatedAt ? 'Update Submission' : 'Submit Work'}
-                                                    </button>
+                                            <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
+                                                {/* Milestones */}
+                                                {myProposal?.milestones && myProposal.milestones.length > 0 && (
+                                                    <div>
+                                                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Milestones</p>
+                                                        <div className="space-y-2">
+                                                            {myProposal.milestones.map((m: any, idx: number) => (
+                                                                <div key={idx} className="flex items-center justify-between bg-gray-50 rounded-xl p-3">
+                                                                    <div>
+                                                                        <p className="font-medium text-gray-900 text-sm">{m.name}</p>
+                                                                        {m.dueDate && <p className="text-xs text-gray-500">Due: {new Date(m.dueDate).toLocaleDateString()}</p>}
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className={`text-xs font-bold px-2 py-1 rounded-full ${
+                                                                            m.status === 'submitted' ? 'bg-blue-100 text-blue-700' :
+                                                                            m.status === 'done' ? 'bg-green-100 text-green-700' :
+                                                                            'bg-gray-200 text-gray-600'
+                                                                        }`}>
+                                                                            {m.status || 'pending'}
+                                                                        </span>
+                                                                        {m.status !== 'done' && (
+                                                                            <button
+                                                                                onClick={() => { setMilestoneSubmitModal({ job, milestoneIdx: idx }); setMilestoneNote(''); }}
+                                                                                className="text-xs bg-[#09BF44] text-white px-3 py-1 rounded-lg font-bold hover:bg-[#07a63a]"
+                                                                            >
+                                                                                {m.status === 'submitted' ? 'Resubmit' : 'Submit'}
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                <div className="flex items-center justify-between">
+                                                    <div className="text-sm text-gray-600">
+                                                        {myProposal?.workSubmission?.updatedAt
+                                                            ? `Last submitted: ${new Date(myProposal.workSubmission.updatedAt).toLocaleString()}`
+                                                            : 'No full work submitted yet'}
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => openChatWithClient(job)}
+                                                            className="bg-gray-100 text-gray-700 px-4 py-2 rounded-xl font-bold hover:bg-gray-200 transition-colors flex items-center gap-2"
+                                                        >
+                                                            <MessageSquare className="w-4 h-4" /> Message Client
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                setWorkJob(job);
+                                                                setWorkSubmission({
+                                                                    message: myProposal?.workSubmission?.message || '',
+                                                                    links: (myProposal?.workSubmission?.links || []).join(', '),
+                                                                    files: []
+                                                                });
+                                                            }}
+                                                            className="bg-[#09BF44] text-white px-5 py-2 rounded-xl font-bold hover:bg-[#07a63a] transition-colors"
+                                                        >
+                                                            {myProposal?.workSubmission?.updatedAt ? 'Update Submission' : 'Submit Full Work'}
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         )}
@@ -363,6 +422,47 @@ export default function MyJobsPage() {
                                     </button>
                                 </div>
                             </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* Milestone Submission Modal */}
+                {milestoneSubmitModal && (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                        <div className="bg-white p-6 rounded-3xl max-w-md w-full shadow-2xl">
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-xl font-bold text-gray-900">Submit Milestone</h2>
+                                <button onClick={() => setMilestoneSubmitModal(null)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                                    <X className="w-5 h-5 text-gray-500" />
+                                </button>
+                            </div>
+                            <p className="text-sm text-gray-600 mb-1 font-medium">
+                                {milestoneSubmitModal.job.myProposal?.milestones?.[milestoneSubmitModal.milestoneIdx]?.name}
+                            </p>
+                            <p className="text-xs text-gray-500 mb-4">The client will be notified but cannot approve/release payment for this milestone individually. Full payment is released at the end.</p>
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-1">Notes (optional)</label>
+                                    <textarea
+                                        value={milestoneNote}
+                                        onChange={(e) => setMilestoneNote(e.target.value)}
+                                        rows={3}
+                                        placeholder="Describe what you completed for this milestone..."
+                                        className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none resize-none"
+                                    />
+                                </div>
+                                <div className="flex gap-3">
+                                    <button onClick={() => setMilestoneSubmitModal(null)} className="flex-1 bg-gray-100 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-200">Cancel</button>
+                                    <button
+                                        onClick={handleSubmitMilestone}
+                                        disabled={milestoneSubmitting}
+                                        className="flex-1 bg-[#09BF44] text-white font-bold py-3 rounded-xl hover:bg-[#07a63a] disabled:opacity-70 flex items-center justify-center gap-2"
+                                    >
+                                        {milestoneSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                                        Submit
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}

@@ -339,7 +339,7 @@ export default function EditProjectPage() {
                                                         <label className="text-xs font-bold text-gray-500">Price (EGP)</label>
                                                         <input
                                                             type="number"
-                                                            min="300"
+                                                           
                                                             required
                                                             value={pkg.price}
                                                             onChange={(e) => handlePackageChange(idx, 'price', Number(e.target.value))}
@@ -351,7 +351,7 @@ export default function EditProjectPage() {
                                                         <label className="text-xs font-bold text-gray-500">Delivery (Days)</label>
                                                         <input
                                                             type="number"
-                                                            min="1"
+                                                           
                                                             required
                                                             value={pkg.days}
                                                             onChange={(e) => handlePackageChange(idx, 'days', Number(e.target.value))}
@@ -363,7 +363,7 @@ export default function EditProjectPage() {
                                                         <label className="text-xs font-bold text-gray-500">Revisions</label>
                                                         <input
                                                             type="number"
-                                                            min="0"
+                                                           
                                                             required
                                                             value={pkg.revisions}
                                                             onChange={(e) => handlePackageChange(idx, 'revisions', Number(e.target.value))}

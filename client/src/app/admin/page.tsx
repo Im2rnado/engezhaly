@@ -101,7 +101,7 @@ function UserDetailPanel({ user, onBack, onEdit, onDelete, onRefresh }: { user: 
                                     <label className="block text-xs font-bold text-gray-500 mb-1">Top up amount (EGP)</label>
                                     <input
                                         type="number"
-                                        min="1"
+                                       
                                         step="1"
                                         value={topUpAmount}
                                         onChange={(e) => setTopUpAmount(e.target.value)}
@@ -178,6 +178,7 @@ function UserDetailPanel({ user, onBack, onEdit, onDelete, onRefresh }: { user: 
                                         {fp.surveyResponses.clientUpdates && <div className="bg-gray-50 p-4 rounded-xl"><p className="text-xs font-bold text-gray-400 mb-1">Client updates</p><p className="font-medium text-gray-900">{fp.surveyResponses.clientUpdates}</p></div>}
                                         {fp.surveyResponses.biggestChallenge && <div className="bg-gray-50 p-4 rounded-xl"><p className="text-xs font-bold text-gray-400 mb-1">Biggest challenge</p><p className="font-medium text-gray-900">{fp.surveyResponses.biggestChallenge}</p></div>}
                                         {fp.surveyResponses.discoverySource && <div className="bg-gray-50 p-4 rounded-xl"><p className="text-xs font-bold text-gray-400 mb-1">Discovery source</p><p className="font-medium text-gray-900">{fp.surveyResponses.discoverySource}</p></div>}
+                                        {fp.surveyResponses.aiUsage && <div className="bg-gray-50 p-4 rounded-xl"><p className="text-xs font-bold text-gray-400 mb-1">Uses AI in work</p><p className="font-medium text-gray-900">{fp.surveyResponses.aiUsage}</p></div>}
                                     </div>
                                 </div>
                             )}
@@ -1771,6 +1772,12 @@ export default function AdminDashboard() {
                                                     <div className="bg-gray-50 p-4 rounded-xl">
                                                         <p className="text-xs font-bold text-gray-400 mb-1">Discovery source</p>
                                                         <p className="font-medium text-gray-900">{selectedFreelancer.freelancerProfile.surveyResponses.discoverySource}</p>
+                                                    </div>
+                                                )}
+                                                {selectedFreelancer.freelancerProfile.surveyResponses.aiUsage && (
+                                                    <div className="bg-gray-50 p-4 rounded-xl">
+                                                        <p className="text-xs font-bold text-gray-400 mb-1">Uses AI in work</p>
+                                                        <p className="font-medium text-gray-900">{selectedFreelancer.freelancerProfile.surveyResponses.aiUsage}</p>
                                                     </div>
                                                 )}
                                             </div>

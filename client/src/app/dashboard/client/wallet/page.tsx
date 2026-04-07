@@ -184,7 +184,7 @@ export default function PaymentMethodsPage() {
                                                     <p className="font-bold text-gray-900">
                                                         {m.brand || 'Card'} ****{m.last4 || '****'}
                                                     </p>
-                                                    <p className="text-xs text-gray-500">Expires securely with Paymob</p>
+                                                    <p className="text-xs text-gray-500">Saved securely</p>
                                                 </div>
                                                 {m.isDefault && (
                                                     <span className="px-2 py-1 bg-[#09BF44]/10 text-[#09BF44] text-xs font-bold rounded-full flex items-center gap-1">
@@ -273,7 +273,7 @@ export default function PaymentMethodsPage() {
                     )}
             </div>
 
-            {/* Paymob iframe modal */}
+            {/* Credit Card iframe modal */}
             {iframeUrl && (
                 <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
@@ -290,7 +290,7 @@ export default function PaymentMethodsPage() {
                             <iframe
                                 src={iframeUrl}
                                 className="w-full h-full min-h-[400px] border-0"
-                                title="Paymob Payment"
+                                title="Credit Card Payment"
                             />
                         </div>
                     </div>

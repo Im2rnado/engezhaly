@@ -550,7 +550,7 @@ function ClientDashboardContent() {
                                                         disabled={actionLoadingOrderId === order._id}
                                                         className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                                                     >
-                                                        {actionLoadingOrderId === order._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />} Approve & Complete
+                                                        {actionLoadingOrderId === order._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />} Approve & Release Payment
                                                     </button>
                                                 )}
                                                 <button
@@ -638,6 +638,12 @@ function ClientDashboardContent() {
                                 callbackSuccessUrl: paymentChoiceConfig.callbackSuccessUrl,
                                 orderId: paymentChoiceConfig.orderId
                             });
+                            if (charge.paidFromWallet) {
+                                setPaymentChoiceConfig(null);
+                                showModal({ title: 'Payment Successful', message: 'Payment deducted from your wallet balance.', type: 'success' });
+                                fetchOrders();
+                                return;
+                            }
                             setCheckoutIframeUrl(charge.iframeUrl || null);
                         }}
                         onInstaPayComplete={() => {

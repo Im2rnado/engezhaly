@@ -216,7 +216,7 @@ const approveInstaPay = async (req, res) => {
                     userId: payment.userId,
                     type: 'payment',
                     amount: -totalClientPaidOffer,
-                    description: `Custom Offer (incl. ${CLIENT_FEE} EGP fee) - held in escrow`,
+                    description: `Custom Offer (incl. ${CLIENT_FEE} EGP fee) - held by Engezhaly team`,
                     orderId: newOrder._id,
                     relatedUserId: freelancerId
                 });
@@ -240,7 +240,7 @@ const approveInstaPay = async (req, res) => {
                         conversationId: convId,
                         senderId: payment.userId,
                         receiverId: sellerId,
-                        content: `[Engezhaly Order] Payment has been made by the client and approved. It is now in Escrow until the work is done.`,
+                        content: `[Engezhaly Order] Payment has been made by the client and approved. It is now held by the Engezhaly team until the work is done.`,
                         messageType: 'order',
                         isAdmin: false
                     });
@@ -380,7 +380,7 @@ const approveInstaPay = async (req, res) => {
                     userId: payment.userId,
                     type: 'payment',
                     amount: -totalPays,
-                    description: `Project order - held in escrow`,
+                    description: `Project order - held by Engezhaly team`,
                     orderId: order._id,
                     relatedUserId: freelancerId
                 });
@@ -407,7 +407,7 @@ const approveInstaPay = async (req, res) => {
                         conversationId: conversation._id,
                         senderId: payment.userId,
                         receiverId: order.sellerId,
-                        content: `[Engezhaly Order] Payment has been made by the client and approved. It is now in Escrow until the work is done.`,
+                        content: `[Engezhaly Order] Payment has been made by the client and approved. It is now held by the Engezhaly team until the work is done.`,
                         messageType: 'order',
                         isAdmin: false
                     });
@@ -447,7 +447,7 @@ const approveInstaPay = async (req, res) => {
                     userId: payment.userId,
                     type: 'payment',
                     amount: -totalPays,
-                    description: `Job: ${job.title} - held in escrow`,
+                    description: `Job: ${job.title} - held by Engezhaly team`,
                     relatedUserId: freelancerId,
                     metadata: { jobId: meta.jobId, proposalId: meta.proposalId }
                 });
@@ -473,7 +473,7 @@ const approveInstaPay = async (req, res) => {
                         conversationId: jobConversation._id,
                         senderId: payment.userId,
                         receiverId: proposal.freelancerId,
-                        content: `[Engezhaly Order] Payment has been made by the client and approved. It is now in Escrow until the work is done.`,
+                        content: `[Engezhaly Order] Payment has been made by the client and approved. It is now held by the Engezhaly team until the work is done.`,
                         messageType: 'order',
                         isAdmin: false
                     });

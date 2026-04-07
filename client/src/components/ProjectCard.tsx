@@ -8,6 +8,7 @@ import { api } from '@/lib/api';
 import { useModal } from '@/context/ModalContext';
 import CountdownTimer from './CountdownTimer';
 import AuthModal from './AuthModal';
+import Avatar from './Avatar';
 
 interface ProjectCardProps {
     project: any;
@@ -190,21 +191,12 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                             <div className="absolute inset-0 flex items-center justify-center -z-10">
                                 <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#09BF44]/30 via-[#09BF44]/15 to-transparent blur-md"></div>
                             </div>
-                            <div className="relative w-12 h-12 md:w-16 md:h-16 rounded-full overflow-hidden border-4 border-white shadow-lg z-10 bg-gray-200">
-                                {freelancerProfilePicture ? (
-                                    <Image
-                                        src={freelancerProfilePicture}
-                                        alt={freelancerName}
-                                        width={64}
-                                        height={64}
-                                        className="w-full h-full object-cover rounded-full"
-                                    />
-                                ) : (
-                                    <div className="w-full h-full rounded-full bg-gradient-to-br from-[#09BF44] to-[#07a63a] flex items-center justify-center text-white font-black text-xl">
-                                        {freelancerName[0]?.toUpperCase() || 'F'}
-                                    </div>
-                                )}
-                            </div>
+                            <Avatar
+                                src={freelancerProfilePicture}
+                                name={freelancerName}
+                                size={64}
+                                className="relative z-10 border-4 border-white shadow-lg w-12 h-12 md:w-16 md:h-16"
+                            />
                         </div>
                         <div>
                             <h4 className="font-bold text-gray-900 text-sm md:text-lg line-clamp-1">{freelancerName}</h4>

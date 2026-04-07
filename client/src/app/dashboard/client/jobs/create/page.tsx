@@ -8,6 +8,7 @@ import { MAIN_CATEGORIES, CATEGORIES } from '@/lib/categories';
 import { useModal } from '@/context/ModalContext';
 import ClientSidebar from '@/components/ClientSidebar';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
+import DatePicker from '@/components/DatePicker';
 
 export default function PostJobPage() {
     const { showModal } = useModal();
@@ -192,6 +193,7 @@ export default function PostJobPage() {
                                         className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none disabled:opacity-60"
                                     >
                                         <option value="">Select subcategory</option>
+                                        <option value="all">All</option>
                                         {(CATEGORIES[jobData.category as keyof typeof CATEGORIES] || []).map((sub) => (
                                             <option key={sub} value={sub}>{sub}</option>
                                         ))}
@@ -243,7 +245,7 @@ export default function PostJobPage() {
                                         type="number"
                                         name="budgetMin"
                                         required
-                                        min="300"
+                                       
                                         value={jobData.budgetMin}
                                         onChange={handleChange}
                                         className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none"
@@ -255,7 +257,7 @@ export default function PostJobPage() {
                                         type="number"
                                         name="budgetMax"
                                         required
-                                        min="300"
+                                       
                                         value={jobData.budgetMax}
                                         onChange={handleChange}
                                         className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none"
@@ -265,14 +267,14 @@ export default function PostJobPage() {
 
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-2">Deadline</label>
-                                <input
-                                    type="date"
+                                <DatePicker
                                     name="deadline"
-                                    required
                                     value={jobData.deadline}
-                                    onChange={handleChange}
+                                    onChange={(v) => setJobData(d => ({ ...d, deadline: v }))}
                                     min={new Date().toISOString().split('T')[0]}
-                                    className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none"
+                                    required
+                                    placeholder="Select deadline"
+                                    className="w-full"
                                 />
                             </div>
 
@@ -320,15 +322,15 @@ export default function PostJobPage() {
                                                             value={m.price}
                                                             onChange={(e) => updateMilestone(idx, 'price', e.target.value)}
                                                             placeholder="EGP"
-                                                            min="0"
+                                                           
                                                             className="w-24 px-3 py-2 border border-gray-200 rounded-lg focus:border-[#09BF44] outline-none"
                                                         />
-                                                        <input
-                                                            type="date"
+                                                        <DatePicker
                                                             value={m.dueDate}
-                                                            onChange={(e) => updateMilestone(idx, 'dueDate', e.target.value)}
+                                                            onChange={(v) => updateMilestone(idx, 'dueDate', v)}
                                                             min={new Date().toISOString().split('T')[0]}
-                                                            className="w-36 px-3 py-2 border border-gray-200 rounded-lg focus:border-[#09BF44] outline-none"
+                                                            placeholder="Due date"
+                                                            className="w-44"
                                                         />
                                                         <button type="button" onClick={() => removeMilestone(idx)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg">
                                                             <Trash2 className="w-4 h-4" />

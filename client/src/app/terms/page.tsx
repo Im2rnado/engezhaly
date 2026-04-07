@@ -43,7 +43,7 @@ const SECTIONS = [
         title: "5. Payment Methods",
         items: [
             "InstaPay: No fees are charged by Engezhaly. Transfers are free and usually completed within 1 hour (may take up to 1 working day).",
-            "Card (via PayMob): Any additional fees are applied by the payment provider only, not by Engezhaly, and will be shown before payment.",
+            "Card: Any additional fees are applied by the payment provider only, not by Engezhaly, and will be shown before payment.",
         ],
     },
     {
@@ -53,14 +53,21 @@ const SECTIONS = [
         footer: "If you break the rules, your account may be terminated without warning.",
     },
     {
-        title: "7. Updates",
+        title: "7. Account Actions",
+        intro: "We can freeze or ban accounts for:",
+        subItems: ["Rudeness", "Harassment", "Suspicion of cheating"],
+        footer: "If you break the rules, your account may be terminated without warning.",
+    },
+    {
+        title: "8. Late or Poor Quality Work Penalty on Freelancers",
         items: [
-            "We may update these terms at any time.",
-            "By continuing to use Engezhaly, you automatically agree to any updates.",
+            "If work is submitted late or doesn’t meet quality standards without a valid reason, a percentage will be deducted from your payment.",
+            "If work is significantly late or extremely poor quality, the client may be reassigned to a different freelancer and you may forfeit payment entirely.",
+            "Note: We value our freelancers. This only applies if no reason was provided and work quality is genuinely substandard."
         ],
     },
     {
-        title: "8. Privacy",
+        title: "9. Privacy",
         items: [
             "We collect only what's needed: name, email, phone, and payment details.",
             "Your data is used only for your account, chats, and payments.",

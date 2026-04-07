@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { X, Plus, Trash2, FileText } from 'lucide-react';
 import { formatDateDDMMYYYY } from '@/lib/utils';
+import DatePicker from '@/components/DatePicker';
 
 interface CreateOfferModalProps {
     isOpen: boolean;
@@ -121,7 +122,7 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                     type="number"
                                     value={price}
                                     onChange={(e) => setPrice(e.target.value)}
-                                    min="300"
+                                   
                                     required
                                     disabled={showMilestones && milestones.length > 0}
                                     className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:border-[#09BF44] focus:ring-2 focus:ring-[#09BF44]/20 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -139,13 +140,13 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                 <label className="block text-sm font-bold text-gray-900 mb-2">
                                     Delivery Date <span className="text-red-500">*</span>
                                 </label>
-                                <input
-                                    type="date"
+                                <DatePicker
                                     value={deliveryDate}
-                                    onChange={(e) => setDeliveryDate(e.target.value)}
+                                    onChange={setDeliveryDate}
                                     min={new Date().toISOString().split('T')[0]}
                                     required
-                                    className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:border-[#09BF44] focus:ring-2 focus:ring-[#09BF44]/20 outline-none transition-all"
+                                    placeholder="Select delivery date"
+                                    className="w-full"
                                 />
                             </div>
 
@@ -158,7 +159,7 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                     type="number"
                                     value={revisions}
                                     onChange={(e) => setRevisions(e.target.value)}
-                                    min="0"
+                                   
                                     required
                                     className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:border-[#09BF44] focus:ring-2 focus:ring-[#09BF44]/20 outline-none transition-all"
                                     placeholder="Enter number (e.g. 3)"
@@ -263,15 +264,15 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                                                 value={milestone.price}
                                                                 onChange={(e) => updateMilestone(index, 'price', e.target.value)}
                                                                 placeholder="Price (EGP)"
-                                                                min="0"
+                                                               
                                                                 className="px-4 py-2.5 bg-white border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:border-[#09BF44] focus:ring-2 focus:ring-[#09BF44]/20 outline-none transition-all"
                                                             />
-                                                            <input
-                                                                type="date"
+                                                            <DatePicker
                                                                 value={milestone.dueDate}
-                                                                onChange={(e) => updateMilestone(index, 'dueDate', e.target.value)}
+                                                                onChange={(v) => updateMilestone(index, 'dueDate', v)}
                                                                 placeholder="Due Date"
-                                                                className="px-4 py-2.5 bg-white border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:border-[#09BF44] focus:ring-2 focus:ring-[#09BF44]/20 outline-none transition-all"
+                                                                min={new Date().toISOString().split('T')[0]}
+                                                                className="w-full"
                                                             />
                                                         </div>
                                                     </div>

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Plus, X as XIcon, Upload, Trash2, User, Briefcase, Award } from 'lucide-react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
+import DatePicker from '@/components/DatePicker';
 
 interface ProfileEditModalProps {
     isOpen: boolean;
@@ -216,7 +217,7 @@ export default function ProfileEditModal({ isOpen, onClose, onSave, profile, mai
                                     <label className="block text-xs font-bold text-gray-500 mb-1.5">Experience (Years)</label>
                                     <input
                                         type="number"
-                                        min="0"
+                                       
                                         max="100"
                                         required
                                         value={formData.experienceYears}
@@ -306,14 +307,15 @@ export default function ProfileEditModal({ isOpen, onClose, onSave, profile, mai
                                             placeholder="Name"
                                             className="sm:col-span-2 p-2.5 rounded-lg border border-gray-200 bg-white text-sm"
                                         />
-                                        <input
-                                            type="date"
+                                        <DatePicker
                                             value={cert.date}
-                                            onChange={(e) => {
+                                            onChange={(v) => {
                                                 const next = [...formData.certifications];
-                                                next[idx] = { ...next[idx], date: e.target.value };
+                                                next[idx] = { ...next[idx], date: v };
                                                 setFormData({ ...formData, certifications: next });
                                             }}
+                                            max={new Date().toISOString().split('T')[0]}
+                                            placeholder="Date"
                                             className="p-2.5 rounded-lg border border-gray-200 bg-white text-sm"
                                         />
                                     </div>

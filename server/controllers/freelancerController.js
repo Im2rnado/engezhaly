@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Order = require('../models/Order');
+const Job = require('../models/Job');
 const Chat = require('../models/Chat');
 const Conversation = require('../models/Conversation');
 const { sendAndLog } = require('../services/mailgunService');
@@ -400,7 +401,7 @@ const approveOrder = async (req, res) => {
                 conversationId: conversation._id,
                 senderId: freelancerId,
                 receiverId: order.buyerId._id,
-                content: `[Engezhaly Order] Freelancer has accepted the order request. Please complete the payment of ${order.amount} EGP via Paymob or InstaPay using the dashboard or chat button.`,
+                content: `[Engezhaly Order] Freelancer has accepted the order request. Please complete the payment of ${order.amount} EGP via Credit Card or InstaPay using the dashboard (My Orders) or chat button.`,
                 messageType: 'order',
                 isAdmin: false
             });
@@ -471,6 +472,43 @@ const denyOrder = async (req, res) => {
     }
 };
 
+const submitMilestoneWork = async (req, res) => {
+    try {
+        const freelancerId = req.user.id;
+        const { jobId, milestoneIdx } = req.params;
+        const { note, files } = req.body;
+
+        const job = await Job.findById(jobId);
+        if (!job) return res.status(404).json({ msg: 'Job not found' });
+
+        const acceptedProposal = job.proposals.find(
+            p => p.status === 'accepted' && String(p.freelancerId) === freelancerId
+        );
+        if (!acceptedProposal) {
+            return res.status(403).json({ msg: 'You do not have an accepted proposal on this job' });
+        }
+
+        const idx = Number(milestoneIdx);
+        if (!acceptedProposal.milestones || idx < 0 || idx >= acceptedProposal.milestones.length) {
+            return res.status(400).json({ msg: 'Invalid milestone index' });
+        }
+
+        const milestone = acceptedProposal.milestones[idx];
+        milestone.status = 'submitted';
+        milestone.submissionNote = note || '';
+        milestone.submissionFiles = Array.isArray(files) ? files : [];
+        acceptedProposal.milestones[idx] = milestone;
+
+        job.markModified('proposals');
+        await job.save();
+
+        res.json({ msg: 'Milestone work submitted successfully', job });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ msg: err.message || 'Server Error' });
+    }
+};
+
 module.exports = {
     updateProfile,
     getProfile,
@@ -481,5 +519,6 @@ module.exports = {
     submitOrderWork,
     raiseDispute,
     approveOrder,
-    denyOrder
+    denyOrder,
+    submitMilestoneWork
 };

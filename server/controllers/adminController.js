@@ -41,6 +41,33 @@ const approveFreelancer = async (req, res) => {
         user.freelancerProfile.status = 'approved';
         await user.save();
 
+        // Auto-create a live Project/Offer from the starter offer if provided
+        const so = user.freelancerProfile?.starterOffer;
+        if (so && so.title && so.packages && so.packages.length > 0) {
+            try {
+                const category = user.freelancerProfile.category || 'General';
+                const subCategory = so.subCategory || (user.freelancerProfile.category || 'General');
+                await Project.create({
+                    sellerId: user._id,
+                    title: so.title,
+                    description: so.description || '',
+                    category,
+                    subCategory,
+                    images: so.images || [],
+                    packages: so.packages.map(p => ({
+                        type: p.type || 'Basic',
+                        price: Math.max(300, Number(p.price) || 300),
+                        days: Math.max(1, Number(p.days) || 1),
+                        revisions: Number(p.revisions) || 0,
+                        features: Array.isArray(p.features) ? p.features.filter(Boolean) : []
+                    })),
+                    isActive: true
+                });
+            } catch (offerErr) {
+                console.error('[Admin] Failed to create starter offer project:', offerErr.message);
+            }
+        }
+
         // Send approval email
         if (user.email) {
             const { subject, html } = freelancerApprovedTemplate();

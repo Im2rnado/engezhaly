@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, ArrowRight, Code, Palette, TrendingUp, Video, Sparkles, PenTool, Mic, Search, Briefcase, ShieldCheck, Star, Loader2, CheckCircle2, Zap } from "lucide-react";
@@ -9,7 +9,7 @@ import ProjectCardCompact from "@/components/ProjectCardCompact";
 import { MAIN_CATEGORIES } from "@/lib/categories";
 import MainHeader from "@/components/MainHeader";
 import { useModal } from "@/context/ModalContext";
-import { motion, Variants } from "framer-motion";
+import { motion, Variants, useScroll, useTransform } from "framer-motion";
 
 // High-performance animations (no blurs, no box-shadow animations)
 const fadeIn: Variants = {
@@ -20,6 +20,80 @@ const fadeIn: Variants = {
 const stagger: Variants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { staggerChildren: 0.05 } }
+};
+
+const Word = ({ children, progress, range }: { children: React.ReactNode, progress: any, range: [number, number] }) => {
+  const opacity = useTransform(progress, range, [0.15, 1]);
+  return <motion.span style={{ opacity }}>{children}</motion.span>;
+};
+
+const ScrollRevealText = ({
+  text,
+  renderLineBreaks = false,
+}: { text: string; renderLineBreaks?: boolean }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start 85%", "end 50%"],
+  });
+
+  if (renderLineBreaks) {
+    // Split on \n to preserve line breaks
+    const lines = text.split("\n");
+    let wordIndex = 0;
+    const allWords = text.split(/\s+/).filter(Boolean);
+    return (
+      <div
+        ref={containerRef}
+        className="text-3xl md:text-4xl lg:text-5xl text-gray-900 font-black leading-none items-center justify-center flex flex-col gap-y-2 mb-12 mx-auto max-w-[85%]"
+      >
+        {lines.map((line, lineIdx) => {
+          // Preserve empty lines for multiple \n\ns
+          if (line.trim() === "") {
+            return <br key={`br-${lineIdx}`} />;
+          }
+          // Split line into words (preserve original spacing, but collapse)
+          const words = line.split(" ").filter(Boolean);
+          return (
+            <div
+              key={lineIdx}
+              className="flex flex-wrap gap-x-2 md:gap-x-3 items-center justify-center"
+            >
+              {words.map((word, i) => {
+                // Calculate animation range relative to all words
+                const start = wordIndex / allWords.length;
+                const end = start + 1 / allWords.length;
+                wordIndex++;
+                return (
+                  <Word key={i} progress={scrollYProgress} range={[start, end]}>
+                    {word}
+                  </Word>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+    );
+  } else {
+    const words = text.split(" ");
+    return (
+      <div
+        ref={containerRef}
+        className="text-3xl md:text-4xl lg:text-5xl text-gray-900 font-black leading-none items-center justify-center flex flex-wrap gap-x-2 md:gap-x-3 gap-y-2 mb-12 mx-auto max-w-[85%]"
+      >
+        {words.map((word, i) => {
+          const start = i / words.length;
+          const end = start + 1 / words.length;
+          return (
+            <Word key={i} progress={scrollYProgress} range={[start, end]}>
+              {word}
+            </Word>
+          );
+        })}
+      </div>
+    );
+  }
 };
 
 export default function Home() {
@@ -34,6 +108,7 @@ export default function Home() {
   const [projectStartIndex, setProjectStartIndex] = useState(0);
   const [jobStartIndex, setJobStartIndex] = useState(0);
   const [heroSearchQuery, setHeroSearchQuery] = useState("");
+  const [showSecret, setShowSecret] = useState(false);
 
   useEffect(() => {
     const sessionExpired = searchParams.get('session_expired');
@@ -195,31 +270,55 @@ export default function Home() {
         </div>
       </section>
 
-      {/* NEW BOLD SECTION: How It Works - Very strong graphic breakdown */}
-      <section className="bg-gray-50 py-28 border-y border-gray-200">
-        <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6">
-          <div className="text-center mb-16">
-            <motion.h2 initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeIn} className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight">
-              How Engezhaly Works
-            </motion.h2>
+      {/* About Section */}
+      <section className="relative bg-white py-24 overflow-hidden">
+        {/* Subtle background decoration */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#09BF44]/8 to-transparent"></div>
+          <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#09BF44]/6 to-transparent"></div>
+        </div>
+        <div className="relative max-w-[90%] mx-auto px-4">
+          {/* Eyebrow */}
+          <motion.p
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeIn}
+            className="text-center text-[#09BF44] font-black text-lg uppercase tracking-[0.2em] mb-12"
+          >
+            About Engezhaly
+          </motion.p>
+
+          {/* Description lines — staggered word-by-line reveal */}
+          <div className="mx-auto text-center my-16">
+            <ScrollRevealText text={
+              `We’re not your typical freelancing platform. We’re built different.\n\n` +
+              `Egypt is moving fast. People are building brands, launching businesses, chasing ideas. And they need the right people beside them that care about quality, speed and price.\n\n` +
+              `That’s exactly why Engezhaly exists.\n\n` +
+              `Handpicked freelancers. Protected payments. Zero drama. Everything done through one clean platform built for YOU.\n\n` +
+              `We’re not just here for Egypt. We’re coming for the whole Middle East.`
+            } renderLineBreaks />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
-            <div className="hidden md:block absolute top-1/4 left-1/6 right-1/6 h-1 bg-gray-200 z-0"></div>
-
-            {[
-              { icon: Search, title: "1. Find Your Match", desc: "Browse vetted freelancers by category, reviews, and price. Or post a job and let them come to you." },
-              { icon: CheckCircle2, title: "2. Create Your Deal", desc: "Chat directly, customize your offer, or bud a bundle deal and pay securely. We hold your money until you’re satisfied." },
-              { icon: Zap, title: "3. Get It Done Guaranteed", desc: "Work done right — you release the payment. Bad quality or missed deadline? We step in and make it right." }
-            ].map((step, i) => (
-              <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.15 }} key={i} className="relative z-10 flex flex-col items-center text-center">
-                <div className="w-20 h-20 rounded-2xl bg-white border-2 border-gray-100 shadow-xl flex items-center justify-center mb-6 text-[#09BF44] transform-gpu hover:scale-105 transition-transform">
-                  <step.icon className="w-10 h-10" />
-                </div>
-                <h3 className="text-2xl font-black text-gray-900 mb-3">{step.title}</h3>
-                <p className="text-gray-600 font-medium px-4">{step.desc}</p>
+          <div className="flex flex-col items-center justify-center mt-24">
+            <button 
+              onClick={() => setShowSecret(!showSecret)}
+              className="w-48 h-12 rounded-full bg-gray-50 hover:bg-gray-100 flex items-center justify-center transition-colors mb-6 text-gray-400 hover:text-[#09BF44]"
+            >
+              <Sparkles className="w-5 h-5 mr-3" /> Secret Message
+            </button>
+            
+            {showSecret && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                className="bg-gradient-to-r from-[#09BF44]/10 to-emerald-500/10 px-8 py-4 rounded-2xl border border-[#09BF44]/20 shadow-sm"
+              >
+                <p className="text-xl md:text-2xl font-black text-[#09BF44] text-center">
+                  "W ehna ma3ko min awel matna2y freelancer le8ayet mat5od el sho8l.😉"
+                </p>
               </motion.div>
-            ))}
+            )}
           </div>
         </div>
       </section>
@@ -248,6 +347,35 @@ export default function Home() {
               <p className="text-xs md:text-sm text-gray-400 font-bold uppercase tracking-[0.2em] group-hover:text-gray-200 transition-colors">Secure Payments</p>
             </motion.div>
           </motion.div>
+        </div>
+      </section>
+
+      {/* NEW BOLD SECTION: How It Works - Very strong graphic breakdown */}
+      <section className="bg-gray-50 py-28 border-y border-gray-200">
+        <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6">
+          <div className="text-center mb-16">
+            <motion.h2 initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeIn} className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight">
+              How Engezhaly Works
+            </motion.h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
+            <div className="hidden md:block absolute top-1/4 left-1/6 right-1/6 h-1 bg-gray-200 z-0"></div>
+
+            {[
+              { icon: Search, title: "1. Find Your Match", desc: "Browse vetted freelancers by category, reviews, and price. Or post a job and let them come to you." },
+              { icon: CheckCircle2, title: "2. Create Your Deal", desc: "Chat directly, customize your offer, or bud a bundle deal and pay securely. We hold your money until you’re satisfied." },
+              { icon: Zap, title: "3. Get It Done Guaranteed", desc: "Work done right — you release the payment. Bad quality or missed deadline? We step in and make it right." }
+            ].map((step, i) => (
+              <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.15 }} key={i} className="relative z-10 flex flex-col items-center text-center">
+                <div className="w-20 h-20 rounded-2xl bg-white border-2 border-gray-100 shadow-xl flex items-center justify-center mb-6 text-[#09BF44] transform-gpu hover:scale-105 transition-transform">
+                  <step.icon className="w-10 h-10" />
+                </div>
+                <h3 className="text-2xl font-black text-gray-900 mb-3">{step.title}</h3>
+                <p className="text-gray-600 font-medium px-4">{step.desc}</p>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </section>
 

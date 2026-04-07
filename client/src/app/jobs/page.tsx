@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import MainHeader from "@/components/MainHeader";
 import AuthModal from "@/components/AuthModal";
 import { useModal } from "@/context/ModalContext";
+import DatePicker from "@/components/DatePicker";
 
 function JobsPageContent() {
     const router = useRouter();
@@ -26,7 +27,7 @@ function JobsPageContent() {
     const [applyJob, setApplyJob] = useState<any>(null);
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [proposal, setProposal] = useState({ price: '', days: '', revisions: '1', message: '' });
-    const [milestones, setMilestones] = useState<Array<{ name: string; price: string; deliveryDays: string }>>([]);
+    const [milestones, setMilestones] = useState<Array<{ name: string; dueDate: string }>>([]);
     const [showMilestones, setShowMilestones] = useState(false);
     const [applyLoading, setApplyLoading] = useState(false);
 
@@ -146,10 +147,9 @@ function JobsPageContent() {
                 deliveryDays: Number(proposal.days),
                 revisions: Number(proposal.revisions),
                 message: proposal.message,
-                milestones: showMilestones ? milestones.filter(m => m.name && Number(m.price) > 0).map(m => ({
+                milestones: showMilestones ? milestones.filter(m => m.name.trim()).map(m => ({
                     name: m.name,
-                    price: Number(m.price),
-                    deliveryDays: Number(m.deliveryDays)
+                    dueDate: m.dueDate || undefined
                 })) : []
             });
             showModal({ title: 'Success', message: 'Application sent!', type: 'success' });
@@ -375,7 +375,7 @@ function JobsPageContent() {
                                     <input
                                         required
                                         type="number"
-                                        min="300"
+                                       
                                         value={proposal.price}
                                         onChange={e => setProposal({ ...proposal, price: e.target.value })}
                                         className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none text-gray-900"
@@ -386,7 +386,7 @@ function JobsPageContent() {
                                     <input
                                         required
                                         type="number"
-                                        min="1"
+                                       
                                         value={proposal.days}
                                         onChange={e => setProposal({ ...proposal, days: e.target.value })}
                                         className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none text-gray-900"
@@ -397,7 +397,7 @@ function JobsPageContent() {
                                     <input
                                         required
                                         type="number"
-                                        min="0"
+                                       
                                         value={proposal.revisions}
                                         onChange={e => setProposal({ ...proposal, revisions: e.target.value })}
                                         className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none text-gray-900"
@@ -423,62 +423,44 @@ function JobsPageContent() {
                                 {showMilestones && (
                                     <div className="space-y-3">
                                         {milestones.map((m, idx) => (
-                                            <div key={idx} className="flex flex-col sm:flex-row gap-2 bg-white p-3 rounded-xl border border-gray-200">
+                                            <div key={idx} className="flex flex-col sm:flex-row gap-2 bg-white p-3 rounded-xl border border-gray-200 items-center">
                                                 <input
-                                                    placeholder="Task name"
+                                                    placeholder="Milestone name"
                                                     value={m.name}
                                                     onChange={e => {
                                                         const newMs = [...milestones];
-                                                        newMs[idx].name = e.target.value;
+                                                        newMs[idx] = { ...newMs[idx], name: e.target.value };
                                                         setMilestones(newMs);
                                                     }}
-                                                    className="flex-1 text-sm outline-none px-2"
+                                                    className="flex-1 text-sm outline-none px-2 border border-gray-200 rounded-lg p-2"
                                                 />
-                                                <div className="flex gap-2">
-                                                    <input
-                                                        type="number"
-                                                        placeholder="EGP"
-                                                        value={m.price}
-                                                        onChange={e => {
-                                                            const newMs = [...milestones];
-                                                            newMs[idx].price = e.target.value;
-                                                            setMilestones(newMs);
-                                                        }}
-                                                        className="w-20 text-sm border rounded p-1"
-                                                    />
-                                                    <input
-                                                        type="number"
-                                                        placeholder="Days"
-                                                        value={m.deliveryDays}
-                                                        onChange={e => {
-                                                            const newMs = [...milestones];
-                                                            newMs[idx].deliveryDays = e.target.value;
-                                                            setMilestones(newMs);
-                                                        }}
-                                                        className="w-16 text-sm border rounded p-1"
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setMilestones(milestones.filter((_, i) => i !== idx))}
-                                                        className="text-red-500 hover:bg-red-50 p-1 rounded"
-                                                    >
-                                                        <X className="w-4 h-4" />
-                                                    </button>
-                                                </div>
+                                                <DatePicker
+                                                    value={m.dueDate}
+                                                    onChange={v => {
+                                                        const newMs = [...milestones];
+                                                        newMs[idx] = { ...newMs[idx], dueDate: v };
+                                                        setMilestones(newMs);
+                                                    }}
+                                                    min={new Date().toISOString().split('T')[0]}
+                                                    placeholder="Due date (optional)"
+                                                    className="w-48"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setMilestones(milestones.filter((_, i) => i !== idx))}
+                                                    className="text-red-500 hover:bg-red-50 p-1 rounded"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </button>
                                             </div>
                                         ))}
                                         <button
                                             type="button"
-                                            onClick={() => setMilestones([...milestones, { name: '', price: '', deliveryDays: '' }])}
+                                            onClick={() => setMilestones([...milestones, { name: '', dueDate: '' }])}
                                             className="w-full py-2 border-2 border-dashed border-gray-300 rounded-xl text-sm font-bold text-gray-500 hover:border-[#09BF44] hover:text-[#09BF44] transition-all"
                                         >
                                             + Add Milestone
                                         </button>
-                                        {milestones.length > 0 && (
-                                            <p className="text-xs font-bold text-[#09BF44] text-right">
-                                                Total: {milestones.reduce((sum, m) => sum + (Number(m.price) || 0), 0)} EGP
-                                            </p>
-                                        )}
                                     </div>
                                 )}
                             </div>
