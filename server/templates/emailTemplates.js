@@ -62,21 +62,31 @@ function offlineChat(senderName, messagePreview, conversationId) {
     return { subject: `New message from ${senderName}`, html: wrapEmail(content) };
 }
 
-function paymentReceiptFreelancer(amount, netAmount, fee, title, transactionId, date) {
+/** @param {number} grossAmount - Client order / proposal total before platform fee */
+/** @param {number} netAmount - Amount credited to freelancer wallet */
+/** @param {number} fee - Platform fee deducted */
+/** @param {string} title - Job or project title (not Mongo id) */
+function paymentReceiptFreelancer(grossAmount, netAmount, fee, title, transactionId, date) {
     const link = `${FRONTEND_URL}/dashboard/freelancer?tab=wallet`;
+    const safeTitle = (title && String(title).trim()) || 'Your work';
+    const gross = Number(grossAmount) || 0;
+    const net = Number(netAmount) || 0;
+    const feeNum = Number(fee) || 0;
     const content = `
         <h2 style="margin: 0 0 16px; font-size: 22px; color: #111827;">You Received a Payment</h2>
-        <p style="margin: 0 0 16px; font-size: 24px; font-weight: 700; color: #09BF44;">${amount} EGP</p>
+        <p style="margin: 0 0 8px; font-size: 24px; font-weight: 700; color: #09BF44;">${net} EGP</p>
+        <p style="margin: 0 0 16px; font-size: 14px; color: #6b7280;">Credited to your wallet (after platform fee).</p>
         <table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; color: #4b5563;">
-            <tr><td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">Job/Order</td><td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: right;">${title || 'N/A'}</td></tr>
-            <tr><td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">Platform Fee</td><td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: right;">${fee || 0} EGP</td></tr>
-            <tr><td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">Net Amount</td><td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: right;">${netAmount} EGP</td></tr>
+            <tr><td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">Job / order</td><td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: right;">${safeTitle}</td></tr>
+            <tr><td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">Order total</td><td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: right;">${gross} EGP</td></tr>
+            <tr><td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">Platform fee</td><td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: right;">${feeNum} EGP</td></tr>
+            <tr><td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">Net credited</td><td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: right;">${net} EGP</td></tr>
             <tr><td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">Transaction ID</td><td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: right;">${transactionId || 'N/A'}</td></tr>
             <tr><td style="padding: 8px 0;">Date</td><td style="padding: 8px 0; text-align: right;">${date || new Date().toLocaleDateString()}</td></tr>
         </table>
         ${ctaButton('View Transaction Details', link)}
     `;
-    return { subject: `You received a payment of ${amount} EGP`, html: wrapEmail(content) };
+    return { subject: `Payment released: ${net} EGP net for ${safeTitle}`, html: wrapEmail(content) };
 }
 
 function paymentReceiptClient(amount, title, transactionId, date) {

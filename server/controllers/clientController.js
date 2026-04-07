@@ -390,7 +390,7 @@ const approveDelivery = async (req, res) => {
             freelancer.walletBalance = (freelancer.walletBalance || 0) + amount;
             await freelancer.save();
         }
-        await Transaction.create({
+        const freelancerTx = await Transaction.create({
             userId: freelancerId,
             type: 'payment',
             amount,
@@ -403,10 +403,13 @@ const approveDelivery = async (req, res) => {
         order.completedAt = new Date();
         await order.save();
 
-        // Email notification to freelancer
+        // Email: template args are (grossAmount, netAmount, fee, title, transactionId, date)
         if (freelancer?.email) {
-            const clientName = (await User.findById(userId))?.firstName || 'A client';
-            const { subject, html } = emailTemplates.paymentReceiptFreelancer(clientName, order.amount, order.projectId?.title || 'Project', order._id);
+            const gross = Number(order.amount) || 0;
+            const title = order.projectId?.title || 'Project';
+            const txId = freelancerTx?._id?.toString?.() || '';
+            const dateStr = new Date().toLocaleDateString();
+            const { subject, html } = emailTemplates.paymentReceiptFreelancer(gross, amount, fee, title, txId, dateStr);
             sendAndLog(freelancer.email, subject, html, 'delivery_approved', { orderId: order._id });
         }
 
@@ -501,7 +504,7 @@ const approveJobWork = async (req, res) => {
             freelancer.walletBalance = (freelancer.walletBalance || 0) + amount;
             await freelancer.save();
         }
-        await Transaction.create({
+        const freelancerTx = await Transaction.create({
             userId: freelancerId,
             type: 'payment',
             amount,
@@ -513,10 +516,10 @@ const approveJobWork = async (req, res) => {
         job.status = 'completed';
         await job.save();
 
-        // Email notification to freelancer
         if (freelancer?.email) {
-            const clientName = job.clientId?.firstName || 'A client';
-            const { subject, html } = emailTemplates.paymentReceiptFreelancer(clientName, amount, job.title, job._id);
+            const txId = freelancerTx?._id?.toString?.() || '';
+            const dateStr = new Date().toLocaleDateString();
+            const { subject, html } = emailTemplates.paymentReceiptFreelancer(grossAmount, amount, fee, job.title, txId, dateStr);
             sendAndLog(freelancer.email, subject, html, 'job_work_approved', { jobId: job._id });
         }
 
