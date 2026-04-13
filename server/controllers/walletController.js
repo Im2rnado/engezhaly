@@ -99,12 +99,13 @@ const payConsultation = async (req, res) => {
         // Check for ongoing order or job - consultation is FREE
         const Order = require('../models/Order');
         const Job = require('../models/Job');
+        const Offer = require('../models/Offer');
         const ongoingOrder = await Order.findOne({
             $or: [
                 { buyerId: userId, sellerId: freelancerId },
                 { buyerId: freelancerId, sellerId: userId }
             ],
-            status: { $in: ['active', 'pending_payment'] }
+            status: { $in: ['active', 'pending_payment', 'pending'] }
         });
         const ongoingJob = await Job.findOne({
             clientId: userId,
@@ -112,7 +113,11 @@ const payConsultation = async (req, res) => {
             'proposals.status': 'accepted',
             status: 'in_progress'
         });
-        if (ongoingOrder || ongoingJob) {
+        const pendingOffer = await Offer.findOne({
+            conversationId,
+            status: 'pending'
+        });
+        if (ongoingOrder || ongoingJob || pendingOffer) {
             return res.json({ requiresPayment: false, freeReason: 'ongoing_work' });
         }
 

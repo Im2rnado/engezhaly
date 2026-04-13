@@ -18,6 +18,9 @@ const JobSchema = new mongoose.Schema({
         dueDate: { type: Date }
     }],
     status: { type: String, enum: ['open', 'in_progress', 'completed', 'closed'], default: 'open' },
+    /** Client review after job is completed (posted-job flow, not Order). */
+    rating: { type: Number, min: 1, max: 5 },
+    review: { type: String },
     proposals: [{
         freelancerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         price: Number,

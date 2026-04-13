@@ -14,6 +14,7 @@ import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 import CountdownTimer from '@/components/CountdownTimer';
 import PaymobCheckoutModal from '@/components/PaymobCheckoutModal';
 import PaymentChoiceModal from '@/components/PaymentChoiceModal';
+import { payWithWalletIfPossible } from '@/lib/payWithWalletIfPossible';
 
 function ClientDashboardContent() {
     const { showModal } = useModal();
@@ -32,7 +33,7 @@ function ClientDashboardContent() {
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
     const [checkoutIframeUrl, setCheckoutIframeUrl] = useState<string | null>(null);
     const [paymentChoiceConfig, setPaymentChoiceConfig] = useState<{ type: string; amountCents: number; callbackSuccessUrl?: string; orderId?: string; offerId?: string; jobId?: string; proposalId?: string; conversationId?: string } | null>(null);
-    const [reviewModal, setReviewModal] = useState<{ order: any } | null>(null);
+    const [reviewModal, setReviewModal] = useState<{ type: 'order'; order: any } | { type: 'job'; job: any } | null>(null);
     const [reviewRating, setReviewRating] = useState(5);
     const [reviewText, setReviewText] = useState('');
     const [reviewSubmitting, setReviewSubmitting] = useState(false);
@@ -288,7 +289,7 @@ function ClientDashboardContent() {
                         {/* Recent Jobs */}
                         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
                             <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                                <h3 className="text-lg font-bold">My Jobs</h3>
+                                <h3 className="text-lg font-bold">Posted Jobs</h3>
                                 <button onClick={() => handleTabChange('jobs')} className="text-[#09BF44] font-bold text-sm hover:underline">View All</button>
                             </div>
                             <div className="p-6">
@@ -333,7 +334,7 @@ function ClientDashboardContent() {
                                             <div key={order._id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
                                                 <div>
                                                     <h4 className="font-bold text-gray-900">{order.projectId?.title || 'Offer'}</h4>
-                                                    <p className="text-sm text-gray-500">Seller: {order.sellerId?.firstName} {order.sellerId?.lastName}</p>
+                                                    <p className="text-sm text-gray-500">Freelancer: {order.sellerId?.firstName} {order.sellerId?.lastName}</p>
                                                     {order.status === 'active' && order.deliveryDate && (
                                                         <div className="mt-2">
                                                             <CountdownTimer deadline={order.deliveryDate} variant="inline" />
@@ -409,6 +410,18 @@ function ClientDashboardContent() {
                                         >
                                             <Eye className="w-4 h-4" /> View
                                         </button>
+                                        {job.status === 'completed' && job.rating == null && (
+                                            <button
+                                                onClick={() => {
+                                                    setReviewModal({ type: 'job', job });
+                                                    setReviewRating(5);
+                                                    setReviewText('');
+                                                }}
+                                                className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2"
+                                            >
+                                                <Star className="w-4 h-4" /> Leave Review
+                                            </button>
+                                        )}
                                         {job.status === 'open' && (
                                             <button
                                                 onClick={() => handleDeleteJob(job._id)}
@@ -446,7 +459,7 @@ function ClientDashboardContent() {
                                         <div className="flex-1">
                                             <h4 className="text-xl font-bold text-gray-900">{order.projectId?.title || 'Offer'}</h4>
                                             <p className="text-gray-500 text-sm mt-1">
-                                                Seller: {order.sellerId?.firstName} {order.sellerId?.lastName}
+                                                Freelancer: {order.sellerId?.firstName} {order.sellerId?.lastName}
                                             </p>
                                             {order.status === 'active' && order.deliveryDate && (
                                                 <div className="mt-2">
@@ -511,18 +524,24 @@ function ClientDashboardContent() {
                                                 </span>
                                             ) : (
                                                 <button
-                                                    onClick={() => {
+                                                    onClick={async () => {
                                                         const totalPays = order.amount || 0;
                                                         const amountCents = Math.round(totalPays * 100);
                                                         const callbackUrl = typeof window !== 'undefined'
                                                             ? `${window.location.origin}/dashboard/client?tab=orders&payment_success=1`
                                                             : undefined;
-                                                        setPaymentChoiceConfig({
-                                                            type: 'project_order',
+                                                        const body = {
+                                                            type: 'project_order' as const,
                                                             amountCents,
                                                             callbackSuccessUrl: callbackUrl,
                                                             orderId: order._id
+                                                        };
+                                                        const paid = await payWithWalletIfPossible(body, () => {
+                                                            showModal({ title: 'Payment Successful', message: 'Payment deducted from your wallet balance.', type: 'success' });
+                                                            fetchOrders();
                                                         });
+                                                        if (paid) return;
+                                                        setPaymentChoiceConfig(body);
                                                     }}
                                                     className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-4 py-2 rounded-xl text-sm font-bold"
                                                 >
@@ -577,7 +596,7 @@ function ClientDashboardContent() {
                                         {order.status === 'completed' && order.rating == null && (
                                             <button
                                                 onClick={() => {
-                                                    setReviewModal({ order });
+                                                    setReviewModal({ type: 'order', order });
                                                     setReviewRating(5);
                                                     setReviewText('');
                                                 }}
@@ -657,7 +676,16 @@ function ClientDashboardContent() {
                     <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4" onClick={() => setReviewModal(null)}>
                         <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl" onClick={e => e.stopPropagation()}>
                             <h3 className="text-lg font-bold mb-2 text-gray-900">Leave a Review</h3>
-                            <p className="text-sm text-gray-600 mb-4">How was your experience with {reviewModal.order.sellerId?.firstName} {reviewModal.order.sellerId?.lastName}?</p>
+                            <p className="text-sm text-gray-600 mb-4">
+                                {reviewModal.type === 'order'
+                                    ? <>How was your experience with {reviewModal.order.sellerId?.firstName} {reviewModal.order.sellerId?.lastName}?</>
+                                    : (() => {
+                                        const accepted = reviewModal.job?.proposals?.find((p: any) => p.status === 'accepted');
+                                        const f = accepted?.freelancerId;
+                                        const name = f?.firstName != null ? `${f.firstName} ${f.lastName || ''}`.trim() : 'the freelancer';
+                                        return <>How was your experience with {name} on this job?</>;
+                                    })()}
+                            </p>
                             <div className="flex gap-1 mb-4">
                                 {[1, 2, 3, 4, 5].map((n) => (
                                     <button
@@ -684,10 +712,15 @@ function ClientDashboardContent() {
                                     onClick={async () => {
                                         setReviewSubmitting(true);
                                         try {
-                                            await api.client.submitReview(reviewModal.order._id, reviewRating, reviewText);
+                                            if (reviewModal.type === 'order') {
+                                                await api.client.submitReview(reviewModal.order._id, reviewRating, reviewText);
+                                                fetchOrders();
+                                            } else {
+                                                await api.client.submitJobReview(reviewModal.job._id, reviewRating, reviewText);
+                                                fetchJobs();
+                                            }
                                             showModal({ title: 'Thank You!', message: 'Your review has been submitted.', type: 'success' });
                                             setReviewModal(null);
-                                            fetchOrders();
                                         } catch (e: any) {
                                             showModal({ title: 'Error', message: e.message || 'Failed to submit review', type: 'error' });
                                         } finally {

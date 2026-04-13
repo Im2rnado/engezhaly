@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import { Briefcase, Clock, User, ArrowLeft, Loader2, CheckCircle, XCircle, MessageSquare, Link as LinkIcon, Paperclip, PanelLeft } from 'lucide-react';
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import { Briefcase, Clock, User, ArrowLeft, Loader2, CheckCircle, XCircle, MessageSquare, Link as LinkIcon, Paperclip, PanelLeft, Star } from 'lucide-react';
 import { api } from '@/lib/api';
 import { formatStatus, formatDateDDMMYYYY } from '@/lib/utils';
 import { useModal } from '@/context/ModalContext';
@@ -11,11 +11,13 @@ import CountdownTimer from '@/components/CountdownTimer';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 import PaymobCheckoutModal from '@/components/PaymobCheckoutModal';
 import PaymentChoiceModal from '@/components/PaymentChoiceModal';
+import { payWithWalletIfPossible } from '@/lib/payWithWalletIfPossible';
 
-export default function JobDetailPage() {
+function JobDetailPageContent() {
     const { showModal } = useModal();
     const router = useRouter();
     const params = useParams();
+    const searchParams = useSearchParams();
     const jobId = params.id as string;
 
     const [user, setUser] = useState<any>(null);
@@ -28,6 +30,10 @@ export default function JobDetailPage() {
     const [paymentChoiceConfig, setPaymentChoiceConfig] = useState<{ type: string; amountCents: number; callbackSuccessUrl?: string; jobId?: string; proposalId?: string } | null>(null);
     const [acceptingProposalId, setAcceptingProposalId] = useState<string | null>(null);
     const [approvingJob, setApprovingJob] = useState(false);
+    const [jobReviewModal, setJobReviewModal] = useState<any>(null);
+    const [jobReviewRating, setJobReviewRating] = useState(5);
+    const [jobReviewText, setJobReviewText] = useState('');
+    const [jobReviewSubmitting, setJobReviewSubmitting] = useState(false);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -78,6 +84,27 @@ export default function JobDetailPage() {
         loadData();
     }, [jobId, router, showModal]);
 
+    // Open review modal when returning from chat (or direct link) after job completion
+    useEffect(() => {
+        if (searchParams.get('promptReview') !== '1' || !jobId) return;
+        if (typeof window !== 'undefined') {
+            window.history.replaceState({}, '', window.location.pathname);
+        }
+        (async () => {
+            try {
+                const fresh = await api.client.getJobById(jobId);
+                setJob(fresh);
+                if (fresh.status === 'completed' && fresh.rating == null) {
+                    setJobReviewModal(fresh);
+                    setJobReviewRating(5);
+                    setJobReviewText('');
+                }
+            } catch {
+                /* ignore */
+            }
+        })();
+    }, [jobId, searchParams]);
+
     const refreshJob = async () => {
         try {
             const jobData = await api.client.getJobById(jobId);
@@ -115,13 +142,20 @@ export default function JobDetailPage() {
                 const callbackUrl = typeof window !== 'undefined'
                     ? `${window.location.origin}/dashboard/client/jobs/${jobId}?payment_success=1`
                     : undefined;
-                setPaymentChoiceConfig({
-                    type: 'job_proposal',
+                const body = {
+                    type: 'job_proposal' as const,
                     amountCents: result.amountCents,
                     callbackSuccessUrl: callbackUrl,
                     jobId: result.meta?.jobId,
                     proposalId: result.meta?.proposalId
+                };
+                const paid = await payWithWalletIfPossible(body, () => {
+                    showModal({ title: 'Success', message: 'Payment successful! Job is now in progress.', type: 'success' });
+                    refreshJob();
                 });
+                if (!paid) {
+                    setPaymentChoiceConfig(body);
+                }
             } else {
                 setJob(result);
                 showModal({ title: 'Success', message: 'Proposal accepted!', type: 'success' });
@@ -427,8 +461,16 @@ export default function JobDetailPage() {
                                                             setApprovingJob(true);
                                                             try {
                                                                 await api.client.approveJobWork(jobId);
-                                                                showModal({ title: 'Job Completed', message: 'Work approved! Payment released to freelancer.', type: 'success' });
-                                                                refreshJob();
+                                                                const fresh = await api.client.getJobById(jobId);
+                                                                setJob(fresh);
+                                                                setJobReviewModal(fresh);
+                                                                setJobReviewRating(5);
+                                                                setJobReviewText('');
+                                                                showModal({
+                                                                    title: 'Job Completed',
+                                                                    message: 'Work approved! Payment released to freelancer. Please leave a review.',
+                                                                    type: 'success'
+                                                                });
                                                             } catch (e: any) {
                                                                 showModal({ title: 'Error', message: e.message || 'Failed to approve work', type: 'error' });
                                                             } finally {
@@ -474,6 +516,60 @@ export default function JobDetailPage() {
                 onClose={closeCheckout}
             />
 
+            {jobReviewModal && (
+                <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4" onClick={() => setJobReviewModal(null)}>
+                    <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
+                        <h3 className="text-lg font-bold mb-2 text-gray-900">Leave a Review</h3>
+                        <p className="text-sm text-gray-600 mb-4">
+                            {(() => {
+                                const accepted = jobReviewModal?.proposals?.find((p: any) => p.status === 'accepted');
+                                const f = accepted?.freelancerId;
+                                const name = f?.firstName != null ? `${f.firstName} ${f.lastName || ''}`.trim() : 'the freelancer';
+                                return <>How was your experience with {name}?</>;
+                            })()}
+                        </p>
+                        <div className="flex gap-1 mb-4">
+                            {[1, 2, 3, 4, 5].map((n) => (
+                                <button key={n} type="button" onClick={() => setJobReviewRating(n)} className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                                    <Star className={`w-8 h-8 ${n <= jobReviewRating ? 'fill-amber-400 text-amber-500' : 'text-gray-300'}`} />
+                                </button>
+                            ))}
+                        </div>
+                        <textarea
+                            value={jobReviewText}
+                            onChange={(e) => setJobReviewText(e.target.value)}
+                            placeholder="Write your review (optional)..."
+                            rows={4}
+                            className="w-full p-3 rounded-xl border-2 border-gray-200 focus:border-[#09BF44] outline-none resize-none mb-4"
+                        />
+                        <div className="flex gap-2 justify-end">
+                            <button type="button" onClick={() => setJobReviewModal(null)} className="px-4 py-2 rounded-xl font-bold text-gray-600 hover:bg-gray-100">Later</button>
+                            <button
+                                type="button"
+                                disabled={jobReviewSubmitting}
+                                onClick={async () => {
+                                    setJobReviewSubmitting(true);
+                                    try {
+                                        await api.client.submitJobReview(jobId, jobReviewRating, jobReviewText);
+                                        showModal({ title: 'Thank You!', message: 'Your review has been submitted.', type: 'success' });
+                                        setJobReviewModal(null);
+                                        refreshJob();
+                                    } catch (err: any) {
+                                        showModal({ title: 'Error', message: err.message || 'Failed to submit review', type: 'error' });
+                                    } finally {
+                                        setJobReviewSubmitting(false);
+                                    }
+                                }}
+                                className="px-4 py-2 bg-[#09BF44] text-white rounded-xl font-bold disabled:opacity-70 flex items-center gap-2"
+                            >
+                                {jobReviewSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                                Submit Review
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {paymentChoiceConfig && (
                 <PaymentChoiceModal
                     isOpen={!!paymentChoiceConfig}
@@ -490,6 +586,7 @@ export default function JobDetailPage() {
                         if (charge.paidFromWallet) {
                             setPaymentChoiceConfig(null);
                             showModal({ title: 'Payment Successful', message: 'Payment deducted from your wallet balance.', type: 'success' });
+                            refreshJob();
                             return;
                         }
                         setCheckoutIframeUrl(charge.iframeUrl || null);
@@ -503,5 +600,17 @@ export default function JobDetailPage() {
                 />
             )}
         </div>
+    );
+}
+
+export default function JobDetailPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-[#09BF44]" />
+            </div>
+        }>
+            <JobDetailPageContent />
+        </Suspense>
     );
 }

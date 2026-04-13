@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { api } from '@/lib/api';
-import { Loader2, PanelLeft, Plus, Trash2, ArrowLeft } from 'lucide-react';
+import { Loader2, PanelLeft, ArrowLeft } from 'lucide-react';
 import { MAIN_CATEGORIES, CATEGORIES } from '@/lib/categories';
 import { useModal } from '@/context/ModalContext';
 import ClientSidebar from '@/components/ClientSidebar';
@@ -33,17 +33,6 @@ export default function EditJobPage() {
         budgetMax: '',
         deadline: ''
     });
-    const [showMilestones, setShowMilestones] = useState(false);
-    const [milestones, setMilestones] = useState<Array<{ name: string; dueDate: string }>>([]);
-
-    const addMilestone = () => setMilestones([...milestones, { name: '', dueDate: '' }]);
-    const removeMilestone = (index: number) => setMilestones(milestones.filter((_, i) => i !== index));
-    const updateMilestone = (index: number, field: 'name' | 'dueDate', value: string) => {
-        const updated = [...milestones];
-        updated[index] = { ...updated[index], [field]: value };
-        setMilestones(updated);
-    };
-
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         if (name === 'category') {
@@ -79,12 +68,6 @@ export default function EditJobPage() {
                     budgetMax: job.budgetRange?.max != null ? String(job.budgetRange.max) : '',
                     deadline: job.deadline ? (typeof job.deadline === 'string' && job.deadline.match(/^\d{4}-\d{2}-\d{2}$/) ? job.deadline : new Date(job.deadline).toISOString().split('T')[0]) : ''
                 });
-                const ms = job.milestones || [];
-                setShowMilestones(ms.length > 0);
-                setMilestones(ms.map((m: any) => ({
-                    name: m.name || '',
-                    dueDate: m.dueDate ? new Date(m.dueDate).toISOString().split('T')[0] : ''
-                })));
             })
             .catch(() => router.push('/dashboard/client'))
             .finally(() => setLoadingJob(false));
@@ -108,23 +91,17 @@ export default function EditJobPage() {
         }
 
         try {
-            const milestonesPayload = showMilestones && milestones.length > 0
-                ? milestones.filter((m) => m.name.trim()).map((m) => ({
-                    name: m.name.trim(),
-                    dueDate: m.dueDate || undefined
-                }))
-                : [];
-
+            const subCategory = jobData.subCategory === 'all' ? '' : jobData.subCategory;
             await api.client.updateJob(jobId, {
                 title: jobData.title,
                 description: jobData.description,
                 skills: jobData.skills.trim().split(/\s+/).filter(Boolean),
                 category: jobData.category,
-                subCategory: jobData.subCategory,
+                subCategory,
                 budgetMin: Number(jobData.budgetMin),
                 budgetMax: Number(jobData.budgetMax),
                 deadline: jobData.deadline || undefined,
-                milestones: milestonesPayload
+                milestones: []
             });
             showModal({ title: 'Success', message: 'Job updated successfully!', type: 'success' });
             router.push('/dashboard/client');
@@ -154,7 +131,7 @@ export default function EditJobPage() {
                                 <button onClick={() => setMobileSidebarOpen(true)} className="md:hidden p-2 rounded-lg border border-gray-200 bg-white text-gray-700" aria-label="Open sidebar"><PanelLeft className="w-5 h-5" /></button>
                                 <h1 className="text-2xl md:text-3xl font-black text-gray-900">Edit Job</h1>
                             </div>
-                            <p className="text-gray-500 mb-8">Update your job details and optional delivery milestones.</p>
+                            <p className="text-gray-500 mb-8">Update your job details.</p>
 
                             {error && <div className="bg-red-50 text-red-500 p-4 rounded-xl mb-6">{error}</div>}
 
@@ -201,36 +178,6 @@ export default function EditJobPage() {
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-2">Deadline</label>
                                     <DatePicker name="deadline" value={jobData.deadline} onChange={(v) => setJobData(d => ({ ...d, deadline: v }))} min={new Date().toISOString().split('T')[0]} placeholder="Select deadline" className="w-full" />
-                                </div>
-                                <div className="p-4 rounded-xl border-2 border-gray-100 bg-gray-50/50">
-                                    <div className="flex items-center justify-between flex-wrap gap-3 mb-2">
-                                        <div>
-                                            <label className="block text-sm font-bold text-gray-900">Delivery Milestones</label>
-                                            <p className="text-xs text-gray-600">Optional delivery phases. Payment is released once when you approve the full work at the end.</p>
-                                        </div>
-                                        <button type="button" onClick={() => { setShowMilestones(!showMilestones); if (!showMilestones) setMilestones([]); }} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${showMilestones ? 'bg-[#09BF44] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>{showMilestones ? 'Enabled' : 'Enable'}</button>
-                                    </div>
-                                    {showMilestones && (
-                                        <div className="mt-4 space-y-3">
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-sm font-bold text-gray-700">Delivery milestones</span>
-                                                <button type="button" onClick={addMilestone} className="flex items-center gap-2 px-3 py-1.5 bg-[#09BF44] text-white text-sm font-bold rounded-lg hover:bg-[#07a63a]"><Plus className="w-4 h-4" /> Add</button>
-                                            </div>
-                                            {milestones.length === 0 ? (
-                                                <p className="text-sm text-gray-500 py-4 text-center border-2 border-dashed border-gray-200 rounded-xl">Click &quot;Add&quot; to list delivery phases. Payment stays single, at the end.</p>
-                                            ) : (
-                                                <div className="space-y-3">
-                                                    {milestones.map((m, idx) => (
-                                                        <div key={idx} className="p-3 bg-white rounded-xl border border-gray-200 flex flex-col sm:flex-row gap-3">
-                                                            <input type="text" value={m.name} onChange={(e) => updateMilestone(idx, 'name', e.target.value)} placeholder="e.g. Design Phase" className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:border-[#09BF44] outline-none" />
-                                                            <DatePicker value={m.dueDate} onChange={(v) => updateMilestone(idx, 'dueDate', v)} min={new Date().toISOString().split('T')[0]} placeholder="Due date" className="w-44" />
-                                                            <button type="button" onClick={() => removeMilestone(idx)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
                                 </div>
                                 <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4 pt-4 border-t border-gray-100">
                                     <button type="button" onClick={() => router.back()} className="w-full sm:w-auto bg-gray-100 text-gray-600 font-bold px-8 py-3 rounded-xl hover:bg-[#09BF44]/20 hover:text-[#09BF44] transition-colors">Cancel</button>

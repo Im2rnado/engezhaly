@@ -188,13 +188,33 @@ const getReviews = async (req, res) => {
             .sort({ completedAt: -1 })
             .limit(20)
             .lean();
-        const reviews = orders.map(o => ({
+        const fromOrders = orders.map(o => ({
             rating: o.rating,
             review: o.review,
             buyerName: o.buyerId?.firstName ? `${o.buyerId.firstName}.` : 'Client', // Anonymized
             completedAt: o.completedAt
         }));
-        res.json(reviews);
+
+        const jobs = await Job.find({
+            status: 'completed',
+            rating: { $exists: true, $gte: 1, $lte: 5 },
+            proposals: { $elemMatch: { freelancerId: sellerId, status: 'accepted' } }
+        })
+            .populate('clientId', 'firstName')
+            .sort({ updatedAt: -1 })
+            .limit(20)
+            .lean();
+        const fromJobs = jobs.map((j) => ({
+            rating: j.rating,
+            review: j.review,
+            buyerName: j.clientId?.firstName ? `${j.clientId.firstName}.` : 'Client',
+            completedAt: j.updatedAt
+        }));
+
+        const merged = [...fromOrders, ...fromJobs].sort(
+            (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
+        ).slice(0, 20);
+        res.json(merged);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');

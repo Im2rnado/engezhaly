@@ -100,10 +100,10 @@ const updateJob = async (req, res) => {
             if (subCategory !== undefined) {
                 const cat = category || job.category;
                 const { isValidCategorySubCategory } = require('../config/categories');
-                if (!isValidCategorySubCategory(cat, subCategory)) {
+                if (subCategory && !isValidCategorySubCategory(cat, subCategory)) {
                     return res.status(400).json({ msg: 'Invalid subcategory for this category' });
                 }
-                job.subCategory = subCategory;
+                job.subCategory = subCategory || '';
             }
         }
         if (budgetMin !== undefined) {
@@ -568,6 +568,40 @@ const submitReview = async (req, res) => {
     }
 };
 
+const submitJobReview = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const jobId = req.params.id;
+        const { rating, review } = req.body;
+
+        const job = await Job.findById(jobId);
+        if (!job) return res.status(404).json({ msg: 'Job not found' });
+        if (String(job.clientId) !== userId) {
+            return res.status(403).json({ msg: 'Only the job owner can submit a review' });
+        }
+        if (job.status !== 'completed') {
+            return res.status(400).json({ msg: 'Can only review completed jobs' });
+        }
+        if (job.rating != null) {
+            return res.status(400).json({ msg: 'You have already submitted a review for this job' });
+        }
+
+        const r = Number(rating);
+        if (!Number.isFinite(r) || r < 1 || r > 5) {
+            return res.status(400).json({ msg: 'Rating must be between 1 and 5' });
+        }
+
+        job.rating = Math.round(r);
+        if (typeof review === 'string') job.review = review.trim();
+        await job.save();
+
+        res.json({ msg: 'Review submitted. Thank you!', job });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+};
+
 module.exports = {
     getProfile,
     updateProfile,
@@ -583,5 +617,6 @@ module.exports = {
     approveDelivery,
     approveJobWork,
     getPendingWorkToApprove,
-    submitReview
+    submitReview,
+    submitJobReview
 };

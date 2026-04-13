@@ -387,7 +387,7 @@ function FreelancerDashboardContent() {
                                                 <div className="flex items-center justify-between">
                                                     <div>
                                                         <h4 className="font-bold text-gray-900">{order.projectId?.title || 'Offer'}</h4>
-                                                        <p className="text-sm text-gray-500">Buyer: {order.buyerId?.firstName} {order.buyerId?.lastName}</p>
+                                                        <p className="text-sm text-gray-500">Client: {order.buyerId?.firstName} {order.buyerId?.lastName}</p>
                                                         {order.status === 'active' && order.deliveryDate && (
                                                             <div className="mt-2">
                                                                 <CountdownTimer deadline={order.deliveryDate} variant="inline" />
@@ -481,7 +481,7 @@ function FreelancerDashboardContent() {
                                         <div className="flex-1">
                                             <h4 className="text-xl font-bold text-gray-900">{order.projectId?.title || 'Offer'}</h4>
                                             <p className="text-sm text-gray-500 mt-1">
-                                                Buyer: {order.buyerId?.firstName} {order.buyerId?.lastName}
+                                                Client: {order.buyerId?.firstName} {order.buyerId?.lastName}
                                             </p>
                                         </div>
                                         <div className="text-right">

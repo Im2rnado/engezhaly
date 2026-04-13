@@ -291,7 +291,7 @@ const createOffer = async (req, res) => {
         const { conversationId, receiverId, price, deliveryDays, deliveryDate, whatsIncluded, milestones } = req.body;
         const senderId = req.user.id;
 
-        const sender = await User.findById(senderId).select('role');
+        const sender = await User.findById(senderId).select('role firstName lastName freelancerProfile');
         if (!sender || sender.role !== 'freelancer') {
             return res.status(403).json({ msg: 'Only freelancers can create custom offers' });
         }
@@ -330,23 +330,55 @@ const createOffer = async (req, res) => {
 
         await offer.save();
 
-        const freelancer = await User.findById(senderId).select('freelancerProfile');
-        const subCategory = freelancer?.freelancerProfile?.category || 'Offer';
+        const subCategory = sender?.freelancerProfile?.category || 'Offer';
+        const priceStr = Number(price).toLocaleString('en-EG');
+        const offerContent = `[Engezhaly Custom Offer] ${subCategory}\n${priceStr} EGP — Tap to view and accept in chat.\n${(whatsIncluded || '').substring(0, 200)}${String(whatsIncluded || '').length > 200 ? '…' : ''}`;
 
-        // Send a message in chat about the offer
-        // const offerContent = `[Engezhaly Offer Request] Custom Offer Request (${subCategory})\nHey! Tell the freelancer exactly what you need. Timeline, deliverables, budget, everything. They’ll create the best custom offer for you right here in chat.`;
-        
-        // const offerMessage = new Chat({
-        //     conversationId,
-        //     senderId,
-        //     receiverId,
-        //     content: offerContent,
-        //     messageType: 'text'
-        // });
-        // await offerMessage.save();
+        const offerMessage = new Chat({
+            conversationId,
+            senderId,
+            receiverId,
+            content: offerContent,
+            messageType: 'text'
+        });
+        await offerMessage.save();
 
-        conversation.lastMessage = `Custom Offer Request (${subCategory})`;
+        conversation.lastMessage = offerContent;
+        conversation.lastMessageId = offerMessage._id;
         await conversation.save();
+
+        const io = req.app.get('io');
+        if (io) {
+            const roomId = `conversation:${conversation._id}`;
+            io.to(roomId).emit('message', {
+                _id: offerMessage._id,
+                conversationId: conversation._id,
+                senderId: offerMessage.senderId,
+                content: offerContent,
+                messageType: 'text',
+                createdAt: offerMessage.createdAt,
+                isAdmin: false,
+                isRead: false
+            });
+        }
+
+        const senderName = sender ? `${sender.firstName || ''} ${sender.lastName || ''}`.trim() || 'Freelancer' : 'Someone';
+        const preview = offerContent.substring(0, 100);
+        const chatLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/chat?conversation=${conversation._id}`;
+        if (isUserOnline(req.app, receiverId)) {
+            emitToUser(req.app, receiverId, {
+                title: `New custom offer from ${senderName}`,
+                message: preview,
+                link: chatLink,
+                type: 'chat'
+            });
+        } else {
+            const receiverUser = await User.findById(receiverId).select('email');
+            if (receiverUser?.email) {
+                const { subject, html } = offlineChatTemplate(senderName, preview, conversation._id);
+                sendAndLog(receiverUser.email, subject, html, 'offline_chat', { conversationId: conversation._id, senderId, receiverId }).catch((err) => console.error('[Offer] Offline email failed:', err.message));
+            }
+        }
 
         res.json(offer);
     } catch (err) {
@@ -459,7 +491,12 @@ const getConsultationStatus = async (req, res) => {
             'proposals.status': 'accepted'
         });
 
-        const isFree = !!(activeOrder || activeJob);
+        const activeOffer = await Offer.findOne({
+            conversationId,
+            status: 'pending'
+        });
+
+        const isFree = !!(activeOrder || activeJob || activeOffer);
 
         res.json({
             hasUnusedPayment: !!unusedPayment,
@@ -511,7 +548,12 @@ const createConsultationMeeting = async (req, res) => {
             'proposals.status': 'accepted'
         });
 
-        const isFree = !!(activeOrder || activeJob);
+        const activeOffer = await Offer.findOne({
+            conversationId,
+            status: 'pending'
+        });
+
+        const isFree = !!(activeOrder || activeJob || activeOffer);
 
         if (!payment && !isFree) {
             return res.status(400).json({ msg: 'No active job/order and no unused consultation payment. Please pay first.' });

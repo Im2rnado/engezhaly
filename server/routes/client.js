@@ -16,7 +16,8 @@ const {
     approveDelivery,
     approveJobWork,
     getPendingWorkToApprove,
-    submitReview
+    submitReview,
+    submitJobReview
 } = require('../controllers/clientController');
 
 // @route   GET api/client/profile
@@ -80,5 +81,6 @@ router.get('/orders/active', authVerified, getAllActiveOrders);
 router.post('/orders/:id/dispute', authVerified, raiseDispute);
 router.patch('/orders/:id/approve-delivery', authVerified, approveDelivery);
 router.patch('/orders/:id/review', authVerified, submitReview);
+router.patch('/jobs/:id/review', authVerified, submitJobReview);
 
 module.exports = router;

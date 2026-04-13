@@ -377,6 +377,16 @@ export const api = {
             const result = await res.json();
             if (!res.ok) throw new Error(result.msg || 'Failed to submit review');
             return result;
+        },
+        submitJobReview: async (jobId: string, rating: number, review?: string) => {
+            const res = await fetch(`${API_URL}/client/jobs/${jobId}/review`, {
+                method: 'PATCH',
+                headers: getHeaders(),
+                body: JSON.stringify({ rating, review: review || '' }),
+            });
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.msg || 'Failed to submit review');
+            return result;
         }
     },
     jobs: {

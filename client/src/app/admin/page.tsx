@@ -250,7 +250,7 @@ function UserDetailPanel({ user, onBack, onEdit, onDelete, onRefresh }: { user: 
                                 </div>
                             )}
 
-                                    {fp?.signupNotes && (
+                            {fp?.signupNotes && (
                                 <div>
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Signup Notes</h4>
                                     <p className="text-gray-700 bg-gray-50 p-4 rounded-xl whitespace-pre-wrap">{fp.signupNotes}</p>
@@ -1069,9 +1069,9 @@ export default function AdminDashboard() {
                             <table className="w-full text-sm text-left">
                                 <thead className="bg-gray-50 text-gray-500 font-bold uppercase">
                                     <tr>
-                                        {activeTab === 'projects' && <><th className="p-4">Title</th><th className="p-4">Seller</th><th className="p-4">Price Range</th><th className="p-4">Actions</th></>}
+                                        {activeTab === 'projects' && <><th className="p-4">Title</th><th className="p-4">Freelancer</th><th className="p-4">Price Range</th><th className="p-4">Actions</th></>}
                                         {activeTab === 'jobs' && <><th className="p-4">Title</th><th className="p-4">Client</th><th className="p-4">Budget</th><th className="p-4">Actions</th></>}
-                                        {activeTab === 'orders' && <><th className="p-4">ID</th><th className="p-4">Project</th><th className="p-4">Buyer</th><th className="p-4">Seller</th><th className="p-4">Amount</th><th className="p-4">Status</th><th className="p-4">Actions</th></>}
+                                        {activeTab === 'orders' && <><th className="p-4">ID</th><th className="p-4">Project</th><th className="p-4">Client</th><th className="p-4">Freelancer</th><th className="p-4">Amount</th><th className="p-4">Status</th><th className="p-4">Actions</th></>}
                                         {activeTab === 'finance' && <><th className="p-4">Type</th><th className="p-4">User</th><th className="p-4">Amount</th><th className="p-4">Status</th><th className="p-4">Date</th></>}
                                     </tr>
                                 </thead>
@@ -1205,11 +1205,10 @@ export default function AdminDashboard() {
                                                     <td className="p-4 capitalize">{w.method?.replace('_', ' ')}</td>
                                                     <td className="p-4 text-gray-600 truncate max-w-[140px]">{details}</td>
                                                     <td className="p-4">
-                                                        <span className={`px-2 py-1 rounded text-xs font-bold ${
-                                                            w.status === 'completed' ? 'bg-green-100 text-green-700' :
+                                                        <span className={`px-2 py-1 rounded text-xs font-bold ${w.status === 'completed' ? 'bg-green-100 text-green-700' :
                                                             w.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                                                            'bg-amber-100 text-amber-700'
-                                                        }`}>{w.status}</span>
+                                                                'bg-amber-100 text-amber-700'
+                                                            }`}>{w.status}</span>
                                                     </td>
                                                     <td className="p-4 text-gray-500">{formatDateDDMMYYYY(w.createdAt)}</td>
                                                     <td className="p-4">
@@ -1575,59 +1574,59 @@ export default function AdminDashboard() {
                                             return true;
                                         });
                                         return filtered.length > 0 ? (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                            {filtered.map((f: any) => (
-                                                <div
-                                                    key={f._id}
-                                                    onClick={() => setSelectedFreelancer(f)}
-                                                    className="flex flex-col p-4 bg-gray-50 rounded-2xl border border-gray-100 hover:border-[#09BF44] hover:shadow-sm transition-all cursor-pointer"
-                                                >
-                                                    <div className="flex items-start justify-between mb-3">
-                                                        <div className="flex items-center gap-3">
-                                                            {f.freelancerProfile?.profilePicture ? (
-                                                                <Image src={f.freelancerProfile.profilePicture} alt="" width={48} height={48} className="w-12 h-12 rounded-full object-cover shrink-0" />
-                                                            ) : (
-                                                                <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center text-xl font-bold text-gray-500 shrink-0">
-                                                                    {f.firstName?.[0]}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                                {filtered.map((f: any) => (
+                                                    <div
+                                                        key={f._id}
+                                                        onClick={() => setSelectedFreelancer(f)}
+                                                        className="flex flex-col p-4 bg-gray-50 rounded-2xl border border-gray-100 hover:border-[#09BF44] hover:shadow-sm transition-all cursor-pointer"
+                                                    >
+                                                        <div className="flex items-start justify-between mb-3">
+                                                            <div className="flex items-center gap-3">
+                                                                {f.freelancerProfile?.profilePicture ? (
+                                                                    <Image src={f.freelancerProfile.profilePicture} alt="" width={48} height={48} className="w-12 h-12 rounded-full object-cover shrink-0" />
+                                                                ) : (
+                                                                    <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center text-xl font-bold text-gray-500 shrink-0">
+                                                                        {f.firstName?.[0]}
+                                                                    </div>
+                                                                )}
+                                                                <div className="min-w-0">
+                                                                    <h4 className="font-bold text-gray-900 truncate">{f.firstName} {f.lastName}</h4>
+                                                                    <p className="text-sm text-gray-500">{f.freelancerProfile?.experienceYears != null ? `${f.freelancerProfile.experienceYears} Years Exp.` : ''}</p>
                                                                 </div>
-                                                            )}
-                                                            <div className="min-w-0">
-                                                                <h4 className="font-bold text-gray-900 truncate">{f.firstName} {f.lastName}</h4>
-                                                                <p className="text-sm text-gray-500">{f.freelancerProfile?.experienceYears != null ? `${f.freelancerProfile.experienceYears} Years Exp.` : ''}</p>
                                                             </div>
+                                                            <button
+                                                                onClick={async (e) => {
+                                                                    e.stopPropagation();
+                                                                    try {
+                                                                        if (f.freelancerProfile?.adminStarred) {
+                                                                            await api.admin.unstarFreelancer(f._id);
+                                                                        } else {
+                                                                            await api.admin.starFreelancer(f._id);
+                                                                        }
+                                                                        fetchPending();
+                                                                    } catch { }
+                                                                }}
+                                                                className="p-2 rounded-lg hover:bg-gray-200 transition-colors"
+                                                            >
+                                                                <Star className={`w-5 h-5 ${f.freelancerProfile?.adminStarred ? 'fill-amber-400 text-amber-500' : 'text-gray-300'}`} />
+                                                            </button>
                                                         </div>
-                                                        <button
-                                                            onClick={async (e) => {
-                                                            e.stopPropagation();
-                                                            try {
-                                                                if (f.freelancerProfile?.adminStarred) {
-                                                                    await api.admin.unstarFreelancer(f._id);
-                                                                } else {
-                                                                    await api.admin.starFreelancer(f._id);
-                                                                }
-                                                                fetchPending();
-                                                            } catch {}
-                                                            }}
-                                                            className="p-2 rounded-lg hover:bg-gray-200 transition-colors"
-                                                        >
-                                                            <Star className={`w-5 h-5 ${f.freelancerProfile?.adminStarred ? 'fill-amber-400 text-amber-500' : 'text-gray-300'}`} />
-                                                        </button>
+                                                        <div className="flex flex-wrap gap-2 mt-auto pt-2">
+                                                            <span className="px-2 py-1 bg-[#09BF44]/10 text-[#09BF44] text-xs font-bold rounded-full uppercase truncate">{(f.freelancerProfile?.category || 'No category')}</span>
+                                                            {f.freelancerProfile?.isStudent && (
+                                                                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">STUDENT</span>
+                                                            )}
+                                                            <span className="text-xs font-bold text-gray-400 ml-auto">Click to review →</span>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex flex-wrap gap-2 mt-auto pt-2">
-                                                        <span className="px-2 py-1 bg-[#09BF44]/10 text-[#09BF44] text-xs font-bold rounded-full uppercase truncate">{(f.freelancerProfile?.category || 'No category')}</span>
-                                                        {f.freelancerProfile?.isStudent && (
-                                                            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">STUDENT</span>
-                                                        )}
-                                                        <span className="text-xs font-bold text-gray-400 ml-auto">Click to review →</span>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
+                                                ))}
+                                            </div>
                                         ) : (
-                                        <div className="text-center py-12 text-gray-400">
-                                            <Check className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                                            <p>{filtered.length === 0 && pendingFreelancers.length > 0 ? 'No matching freelancers.' : 'All caught up! No pending approvals.'}</p>
-                                        </div>
+                                            <div className="text-center py-12 text-gray-400">
+                                                <Check className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                                                <p>{filtered.length === 0 && pendingFreelancers.length > 0 ? 'No matching freelancers.' : 'All caught up! No pending approvals.'}</p>
+                                            </div>
                                         );
                                     })()}
                                 </div>
@@ -2250,12 +2249,12 @@ export default function AdminDashboard() {
                                         return (
                                             <div key={msg._id} className={`flex ${isCentered ? 'justify-center' : isFromParticipant1 ? 'justify-start' : 'justify-end'}`}>
                                                 <div className={`max-w-[70%] px-4 py-2 rounded-2xl shadow-sm ${isAdmin
-                                                        ? 'bg-yellow-100 border-2 border-yellow-300 text-gray-900'
-                                                        : isMeeting
-                                                            ? 'bg-green-50 border-2 border-[#09BF44]/40 text-gray-900'
-                                                            : isFromParticipant1
-                                                                ? 'bg-white border border-gray-200 text-gray-900 rounded-bl-sm'
-                                                                : 'bg-[#a7f3d0] text-gray-900 rounded-br-sm'
+                                                    ? 'bg-yellow-100 border-2 border-yellow-300 text-gray-900'
+                                                    : isMeeting
+                                                        ? 'bg-green-50 border-2 border-[#09BF44]/40 text-gray-900'
+                                                        : isFromParticipant1
+                                                            ? 'bg-white border border-gray-200 text-gray-900 rounded-bl-sm'
+                                                            : 'bg-[#a7f3d0] text-gray-900 rounded-br-sm'
                                                     }`}>
                                                     {!isAdmin && !isMeeting && (
                                                         <div className="flex items-center gap-1 mb-1">

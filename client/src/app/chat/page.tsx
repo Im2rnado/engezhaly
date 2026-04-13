@@ -12,6 +12,7 @@ import CreateOfferModal from '@/components/CreateOfferModal';
 import PaymobCheckoutModal from '@/components/PaymobCheckoutModal';
 import PaymentChoiceModal from '@/components/PaymentChoiceModal';
 import ChatRulesModal from '@/components/ChatRulesModal';
+import { payWithWalletIfPossible } from '@/lib/payWithWalletIfPossible';
 import DatePicker from '@/components/DatePicker';
 import Avatar from '@/components/Avatar';
 import ClientSidebar from '@/components/ClientSidebar';
@@ -72,6 +73,36 @@ function ChatPageContent() {
             : {};
         return String(currentUser?._id || currentUser?.id || storedUser?._id || storedUser?.id || '');
     }, [currentUser]);
+
+    const refreshChatMessagesAndOffers = useCallback(async () => {
+        if (!conversationId) return;
+        try {
+            const [offersData, messagesData] = await Promise.all([
+                api.chat.getOffers(conversationId),
+                api.chat.getMessages(conversationId)
+            ]);
+            setOffers(offersData || []);
+            const userId = resolveUserId();
+            const formatted = (messagesData || []).map((m: any) => {
+                const senderId = m.senderId?._id || m.senderId;
+                const isAdmin = m.isAdmin || m.content?.includes('[Engezhaly Admin]');
+                return {
+                    _id: m._id,
+                    text: m.content,
+                    sender: String(senderId) === String(userId) ? 'me' : 'them',
+                    senderId: senderId,
+                    timestamp: m.createdAt,
+                    messageType: m.messageType,
+                    isRead: !!m.isRead,
+                    isAdmin: isAdmin,
+                    isBlurred: !!m.isBlurred
+                };
+            });
+            setMessages(formatted);
+        } catch (e) {
+            console.error(e);
+        }
+    }, [conversationId, resolveUserId]);
 
     useEffect(() => {
         // Get current user
@@ -746,24 +777,35 @@ function ChatPageContent() {
         try {
             const result = await api.chat.acceptOffer(offer._id);
 
-                    if (result?.requiresPayment && result?.type === 'custom_offer') {
-                        const callbackUrl = typeof window !== 'undefined' && conversationId
-                            ? `${window.location.origin}/chat?conversation=${conversationId}&payment_success=1`
-                            : undefined;
-                        setPaymentChoiceConfig({
-                            type: 'custom_offer',
-                            amountCents: result.amountCents,
-                            callbackSuccessUrl: callbackUrl,
-                            offerId: result.meta?.offerId,
-                            conversationId: conversationId || undefined
-                        });
-                    } else {
+            if (result?.requiresPayment && result?.type === 'custom_offer') {
+                const callbackUrl = typeof window !== 'undefined' && conversationId
+                    ? `${window.location.origin}/chat?conversation=${conversationId}&payment_success=1`
+                    : undefined;
+                const body = {
+                    type: 'custom_offer' as const,
+                    amountCents: result.amountCents,
+                    callbackSuccessUrl: callbackUrl,
+                    offerId: result.meta?.offerId,
+                    conversationId: conversationId || undefined
+                };
+                const paid = await payWithWalletIfPossible(body, async () => {
+                    setPaymentChoiceConfig(null);
+                    showModal({ title: 'Success', message: 'Order created! Payment was taken from your wallet.', type: 'success' });
+                    await refreshChatMessagesAndOffers();
                     if (conversationId) {
-                        const offersData = await api.chat.getOffers(conversationId);
-                        setOffers(offersData || []);
+                        api.chat.getConsultationStatus(conversationId).then(setConsultationStatus).catch(() => {});
                     }
-                        showModal({ title: 'Success', message: 'Order created successfully! Payment processed.', type: 'success' });
-                    }
+                });
+                if (!paid) {
+                    setPaymentChoiceConfig(body);
+                }
+            } else {
+                if (conversationId) {
+                    const offersData = await api.chat.getOffers(conversationId);
+                    setOffers(offersData || []);
+                }
+                showModal({ title: 'Success', message: 'Order created successfully! Payment processed.', type: 'success' });
+            }
         } catch (err: any) {
             console.error(err);
             showModal({ title: 'Error', message: err.message || 'Failed to accept offer', type: 'error' });
@@ -852,8 +894,8 @@ function ChatPageContent() {
                 const callbackUrl = typeof window !== 'undefined' && conversationId
                     ? `${window.location.origin}/chat?conversation=${conversationId}&payment_success=consultation`
                     : undefined;
-                setPaymentChoiceConfig({
-                    type: 'consultation',
+                const body = {
+                    type: 'consultation' as const,
                     amountCents: result.amountCents,
                     callbackSuccessUrl: callbackUrl,
                     conversationId: conversationId || undefined,
@@ -861,7 +903,37 @@ function ChatPageContent() {
                     meetingDate,
                     meetingTime,
                     ...result.meta
+                };
+                const paid = await payWithWalletIfPossible(body, async () => {
+                    setPaymentChoiceConfig(null);
+                    showModal({ title: 'Success', message: 'Consultation paid from your wallet. Your meeting is scheduled.', type: 'success' });
+                    if (conversationId) {
+                        api.chat.getConsultationStatus(conversationId).then(setConsultationStatus).catch(() => {});
+                    }
+                    const data = await api.chat.getMessages(conversationId!);
+                    const userId = resolveUserId();
+                    const formatted = data.map((m: any) => {
+                        const senderId = m.senderId?._id || m.senderId;
+                        const isAdmin = m.isAdmin || m.content?.includes('[Engezhaly Admin]');
+                        const isMeeting = m.messageType === 'meeting' || m.content?.includes('[Engezhaly Meeting]');
+                        return {
+                            _id: m._id,
+                            text: m.content,
+                            sender: String(senderId) === String(userId) ? 'me' : 'them',
+                            senderId: senderId,
+                            timestamp: m.createdAt,
+                            messageType: m.messageType,
+                            isRead: !!m.isRead,
+                            isAdmin: isAdmin,
+                            isMeeting: isMeeting,
+                            isBlurred: !!m.isBlurred
+                        };
+                    });
+                    setMessages(formatted);
                 });
+                if (!paid) {
+                    setPaymentChoiceConfig(body);
+                }
                 return;
             }
 
@@ -1170,18 +1242,33 @@ function ChatPageContent() {
                                             </span>
                                         ) : (
                                             <button
-                                                onClick={() => {
+                                                onClick={async () => {
                                                     const totalPays = pendingPaymentOrder.amount || 0;
                                                     const amountCents = Math.round(totalPays * 100);
                                                     const callbackUrl = typeof window !== 'undefined'
                                                         ? `${window.location.origin}/chat?conversation=${conversationId}&payment_success=1`
                                                         : undefined;
-                                                    setPaymentChoiceConfig({
-                                                        type: 'project_order',
+                                                    const body = {
+                                                        type: 'project_order' as const,
                                                         amountCents,
                                                         callbackSuccessUrl: callbackUrl,
                                                         orderId: pendingPaymentOrder._id
+                                                    };
+                                                    const paid = await payWithWalletIfPossible(body, async () => {
+                                                        showModal({ title: 'Payment Successful', message: 'Payment deducted from your wallet balance.', type: 'success' });
+                                                        if (activeChat?.partnerId) {
+                                                            const partnerId = String(activeChat.partnerId?._id ?? activeChat.partnerId);
+                                                            const orders = await api.client.getMyOrders();
+                                                            const pending = orders.find(
+                                                                (o: any) => o.status === 'pending_payment' && String(o.sellerId?._id ?? o.sellerId) === partnerId
+                                                            );
+                                                            setPendingPaymentOrder(pending || null);
+                                                        }
+                                                        await refreshChatMessagesAndOffers();
                                                     });
+                                                    if (!paid) {
+                                                        setPaymentChoiceConfig(body);
+                                                    }
                                                 }}
                                                 className="px-4 py-2 rounded-xl font-bold bg-[#09BF44] text-white hover:bg-[#07a63a] text-sm"
                                             >
@@ -1331,9 +1418,15 @@ function ChatPageContent() {
                                                     onClick={async () => {
                                                         if (!confirm('Approve the submitted work and mark this job as completed?')) return;
                                                         try {
-                                                            await api.client.approveJobWork(pendingWorkToApprove.job._id);
-                                                            showModal({ title: 'Job Completed', message: 'Work approved! Payment released to freelancer.', type: 'success' });
-                                                            setPendingWorkToApprove((p: any) => p ? { ...p, job: null } : null);
+                                                            const jid = pendingWorkToApprove.job._id;
+                                                            await api.client.approveJobWork(jid);
+                                                            setPendingWorkToApprove((p: any) => (p ? { ...p, job: null } : null));
+                                                            showModal({
+                                                                title: 'Job Completed',
+                                                                message: 'Work approved! Leave a review on the job page.',
+                                                                type: 'success'
+                                                            });
+                                                            router.push(`/dashboard/client/jobs/${jid}?promptReview=1`);
                                                         } catch (e: any) {
                                                             showModal({ title: 'Error', message: e.message || 'Failed to approve', type: 'error' });
                                                         }
@@ -1718,6 +1811,43 @@ function ChatPageContent() {
                         if (charge.paidFromWallet) {
                             setPaymentChoiceConfig(null);
                             showModal({ title: 'Payment Successful', message: 'Payment deducted from your wallet balance.', type: 'success' });
+                            const t = paymentChoiceConfig.type;
+                            if (t === 'custom_offer' || t === 'project_order') {
+                                await refreshChatMessagesAndOffers();
+                            }
+                            if (t === 'project_order' && activeChat?.partnerId) {
+                                const partnerId = String(activeChat.partnerId?._id ?? activeChat.partnerId);
+                                const orders = await api.client.getMyOrders();
+                                const pending = orders.find(
+                                    (o: any) => o.status === 'pending_payment' && String(o.sellerId?._id ?? o.sellerId) === partnerId
+                                );
+                                setPendingPaymentOrder(pending || null);
+                            }
+                            if (t === 'consultation' && conversationId) {
+                                api.chat.getConsultationStatus(conversationId).then(setConsultationStatus).catch(() => {});
+                                const data = await api.chat.getMessages(conversationId);
+                                const userId = resolveUserId();
+                                setMessages(data.map((m: any) => {
+                                    const senderId = m.senderId?._id || m.senderId;
+                                    const isAdmin = m.isAdmin || m.content?.includes('[Engezhaly Admin]');
+                                    const isMeeting = m.messageType === 'meeting' || m.content?.includes('[Engezhaly Meeting]');
+                                    return {
+                                        _id: m._id,
+                                        text: m.content,
+                                        sender: String(senderId) === String(userId) ? 'me' : 'them',
+                                        senderId: senderId,
+                                        timestamp: m.createdAt,
+                                        messageType: m.messageType,
+                                        isRead: !!m.isRead,
+                                        isAdmin: isAdmin,
+                                        isMeeting: isMeeting,
+                                        isBlurred: !!m.isBlurred
+                                    };
+                                }));
+                            }
+                            if ((t === 'custom_offer' || t === 'project_order') && conversationId) {
+                                api.chat.getConsultationStatus(conversationId).then(setConsultationStatus).catch(() => {});
+                            }
                             return;
                         }
                         setCheckoutTitle(paymentChoiceConfig.type === 'consultation' ? 'Pay for Video Consultation' : 'Complete Payment');

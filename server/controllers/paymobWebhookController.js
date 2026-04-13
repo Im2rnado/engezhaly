@@ -357,4 +357,4 @@ const handleWebhook = async (req, res) => {
 
 const PAYMOB_HMAC_SECRET = process.env.PAYMOB_HMAC_SECRET;
 
-module.exports = { handleWebhook };
+module.exports = { handleWebhook, fulfillCharge };

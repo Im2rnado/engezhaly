@@ -6,6 +6,7 @@ const {
     createPaymentKey,
     getIframeUrl
 } = require('../services/paymobService');
+const { fulfillCharge } = require('./paymobWebhookController');
 
 const ADD_CARD_AMOUNT_CENTS = 100; // 1 EGP verification
 
@@ -131,7 +132,7 @@ const initCharge = async (req, res) => {
         const userId = req.user.id;
         const { type, amountCents, callbackSuccessUrl, ...meta } = req.body || {};
 
-        const user = await User.findById(userId).select('firstName lastName email walletBalance');
+        const user = await User.findById(userId).select('firstName lastName email walletBalance role');
         if (!user || user.role !== 'client') {
             return res.status(403).json({ msg: 'Only clients can initiate charges' });
         }
@@ -140,20 +141,28 @@ const initCharge = async (req, res) => {
         }
 
         const amountEGP = amountCents / 100;
+        const fulfillableTypes = ['job_proposal', 'project_order', 'custom_offer', 'consultation'];
 
-        // Check wallet balance first - if sufficient, deduct and fulfill directly
+        // Check wallet balance first - if sufficient, deduct wallet and run same fulfillment as Paymob success
         const walletBalance = user.walletBalance || 0;
-        if (walletBalance >= amountEGP) {
+        if (walletBalance >= amountEGP && fulfillableTypes.includes(type)) {
+            const prevBalance = walletBalance;
             user.walletBalance = walletBalance - amountEGP;
             await user.save();
 
-            const Transaction = require('../models/Transaction');
-            await Transaction.create({
+            const syntheticPending = {
                 userId,
-                type: 'payment',
-                amount: -amountEGP,
-                description: meta.description || type
-            });
+                amountCents,
+                meta: { type, ...meta }
+            };
+            try {
+                await fulfillCharge(syntheticPending, req.app);
+            } catch (fulfillErr) {
+                console.error('[initCharge] fulfillCharge after wallet failed:', fulfillErr);
+                user.walletBalance = prevBalance;
+                await user.save();
+                return res.status(500).json({ msg: fulfillErr.message || 'Could not complete payment from wallet' });
+            }
 
             return res.json({ paidFromWallet: true, remainingBalance: user.walletBalance });
         }

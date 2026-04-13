@@ -21,19 +21,23 @@ export default function PaymentMethodsPage() {
     const [profile, setProfile] = useState<any>(null);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
     const [hideManualTopUp, setHideManualTopUp] = useState(false);
+    const [walletBalance, setWalletBalance] = useState<number | null>(null);
 
     const fetchData = useCallback(async () => {
         try {
-            const [methodsData, txData] = await Promise.all([
+            const [methodsData, txData, bal] = await Promise.all([
                 api.paymentMethods.list().catch(() => []),
-                api.wallet.getTransactions(hideManualTopUp).catch(() => [])
+                api.wallet.getTransactions(hideManualTopUp).catch(() => []),
+                api.wallet.getBalance().catch(() => ({ balance: 0 }))
             ]);
             setMethods(Array.isArray(methodsData) ? methodsData : []);
             setTransactions(Array.isArray(txData) ? txData : []);
+            setWalletBalance(typeof bal?.balance === 'number' ? bal.balance : 0);
         } catch (err) {
             console.error(err);
             setMethods([]);
             setTransactions([]);
+            setWalletBalance(null);
         } finally {
             setLoading(false);
         }
@@ -152,6 +156,16 @@ export default function PaymentMethodsPage() {
                         <h1 className="text-2xl md:text-3xl font-black text-gray-900">Payment Methods</h1>
                     </div>
                     <p className="text-sm md:text-base text-gray-500 -mt-4 mb-6">Add and manage your saved cards for secure payments when ordering.</p>
+
+                    {!loading && walletBalance != null && (
+                        <div className="bg-gradient-to-br from-[#09BF44]/10 to-emerald-50 border-2 border-[#09BF44]/25 rounded-3xl p-6 md:p-8 mb-8 shadow-sm">
+                            <p className="text-sm font-bold text-gray-600 uppercase tracking-wide mb-1">Available wallet balance</p>
+                            <p className="text-3xl md:text-4xl font-black text-gray-900 tabular-nums">
+                                {walletBalance.toLocaleString('en-EG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EGP
+                            </p>
+                            <p className="text-sm text-gray-600 mt-2">Includes manual top-ups, refunds, and other credits. This balance is used first when you pay for orders and offers.</p>
+                        </div>
+                    )}
 
                     {loading ? (
                         <div className="flex justify-center py-12">
