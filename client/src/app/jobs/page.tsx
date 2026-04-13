@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { X, ChevronDown, Briefcase, Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
@@ -26,7 +26,7 @@ function JobsPageContent() {
     const [profile, setProfile] = useState<any>(null);
     const [applyJob, setApplyJob] = useState<any>(null);
     const [showAuthModal, setShowAuthModal] = useState(false);
-    const [proposal, setProposal] = useState({ price: '', days: '', revisions: '1', message: '' });
+    const [proposal, setProposal] = useState({ price: '', days: '', revisions: '1', message: '', revisionsUnlimited: false });
     const [milestones, setMilestones] = useState<Array<{ name: string; dueDate: string }>>([]);
     const [showMilestones, setShowMilestones] = useState(false);
     const [applyLoading, setApplyLoading] = useState(false);
@@ -131,11 +131,20 @@ function JobsPageContent() {
                 return;
             }
             setApplyJob(job);
-            setProposal({ price: '', days: '', revisions: '1', message: '' });
+            setProposal({ price: '', days: '', revisions: '1', message: '', revisionsUnlimited: false });
             setMilestones([]);
             setShowMilestones(false);
         }
     };
+
+    const milestonePayload = useMemo(
+        () => (showMilestones ? milestones.filter(m => m.name.trim()).map(m => ({ name: m.name, dueDate: m.dueDate || undefined })) : []),
+        [showMilestones, milestones]
+    );
+    const hasMilestoneDueDates = useMemo(
+        () => milestonePayload.some(m => m.dueDate && String(m.dueDate).trim()),
+        [milestonePayload]
+    );
 
     const handleApplySubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -144,17 +153,15 @@ function JobsPageContent() {
         try {
             await api.jobs.apply(applyJob._id, {
                 price: Number(proposal.price),
-                deliveryDays: Number(proposal.days),
-                revisions: Number(proposal.revisions),
+                deliveryDays: hasMilestoneDueDates ? undefined : Number(proposal.days),
+                revisions: proposal.revisionsUnlimited ? 0 : Number(proposal.revisions),
+                revisionsUnlimited: proposal.revisionsUnlimited,
                 message: proposal.message,
-                milestones: showMilestones ? milestones.filter(m => m.name.trim()).map(m => ({
-                    name: m.name,
-                    dueDate: m.dueDate || undefined
-                })) : []
+                milestones: milestonePayload
             });
             showModal({ title: 'Success', message: 'Application sent!', type: 'success' });
             setApplyJob(null);
-            setProposal({ price: '', days: '', revisions: '1', message: '' });
+            setProposal({ price: '', days: '', revisions: '1', message: '', revisionsUnlimited: false });
             setMilestones([]);
             setShowMilestones(false);
         } catch (err: any) {
@@ -335,7 +342,13 @@ function JobsPageContent() {
                     <div className="text-center py-12 bg-white rounded-xl">
                         <Briefcase className="w-12 h-12 mx-auto mb-3 opacity-20 text-gray-400" />
                         <p className="text-gray-400 text-lg font-bold">No jobs found</p>
-                        <p className="text-gray-500 text-sm mt-2">Try adjusting your filters</p>
+                        {user?.role === 'freelancer' && profile && !profile.freelancerProfile?.category ? (
+                            <p className="text-gray-600 text-sm mt-2 max-w-md mx-auto">
+                                Add your main category in your profile to see jobs in your field. Until then, the job list stays empty.
+                            </p>
+                        ) : (
+                            <p className="text-gray-500 text-sm mt-2">Try adjusting your filters</p>
+                        )}
                     </div>
                 )}
             </div>
@@ -362,7 +375,7 @@ function JobsPageContent() {
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-2xl font-bold text-gray-900">Apply to {applyJob.title}</h2>
                             <button
-                                onClick={() => { setApplyJob(null); setProposal({ price: '', days: '', revisions: '1', message: '' }); }}
+                                onClick={() => { setApplyJob(null); setProposal({ price: '', days: '', revisions: '1', message: '', revisionsUnlimited: false }); }}
                                 className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                             >
                                 <X className="w-5 h-5 text-gray-500" />
@@ -375,33 +388,49 @@ function JobsPageContent() {
                                     <input
                                         required
                                         type="number"
-                                       
                                         value={proposal.price}
                                         onChange={e => setProposal({ ...proposal, price: e.target.value })}
                                         className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none text-gray-900"
                                     />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Days</label>
-                                    <input
-                                        required
-                                        type="number"
-                                       
-                                        value={proposal.days}
-                                        onChange={e => setProposal({ ...proposal, days: e.target.value })}
-                                        className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none text-gray-900"
-                                    />
-                                </div>
-                                <div>
+                                {!hasMilestoneDueDates && (
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">Delivery (days)</label>
+                                        <input
+                                            required
+                                            type="number"
+                                            min={1}
+                                            value={proposal.days}
+                                            onChange={e => setProposal({ ...proposal, days: e.target.value })}
+                                            className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none text-gray-900"
+                                        />
+                                    </div>
+                                )}
+                                {hasMilestoneDueDates && (
+                                    <div className="col-span-2 md:col-span-1 flex items-end">
+                                        <p className="text-xs text-gray-500 font-medium pb-3">Delivery is calculated from your latest milestone due date.</p>
+                                    </div>
+                                )}
+                                <div className="col-span-2 md:col-span-1">
                                     <label className="block text-sm font-bold text-gray-700 mb-2">Revisions</label>
-                                    <input
-                                        required
-                                        type="number"
-                                       
-                                        value={proposal.revisions}
-                                        onChange={e => setProposal({ ...proposal, revisions: e.target.value })}
-                                        className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none text-gray-900"
-                                    />
+                                    <select
+                                        value={proposal.revisionsUnlimited ? 'unlimited' : 'fixed'}
+                                        onChange={e => setProposal({ ...proposal, revisionsUnlimited: e.target.value === 'unlimited' })}
+                                        className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none text-gray-900 mb-2"
+                                    >
+                                        <option value="fixed">Fixed count</option>
+                                        <option value="unlimited">Unlimited</option>
+                                    </select>
+                                    {!proposal.revisionsUnlimited && (
+                                        <input
+                                            required
+                                            type="number"
+                                            min={0}
+                                            value={proposal.revisions}
+                                            onChange={e => setProposal({ ...proposal, revisions: e.target.value })}
+                                            className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none text-gray-900"
+                                        />
+                                    )}
                                 </div>
                             </div>
 
@@ -477,7 +506,7 @@ function JobsPageContent() {
                             <div className="flex gap-4 pt-4">
                                 <button
                                     type="button"
-                                    onClick={() => { setApplyJob(null); setProposal({ price: '', days: '', revisions: '1', message: '' }); }}
+                                    onClick={() => { setApplyJob(null); setProposal({ price: '', days: '', revisions: '1', message: '', revisionsUnlimited: false }); }}
                                     className="flex-1 bg-gray-100 text-gray-700 font-bold p-3 rounded-xl hover:bg-gray-200 transition-colors"
                                 >
                                     Cancel

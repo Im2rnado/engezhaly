@@ -28,9 +28,9 @@ export default function CreateProjectPage() {
         subCategory: '',
         images: [] as string[],
         packages: [
-            { type: 'Basic', price: '', days: '', features: [''], revisions: '' },
-            { type: 'Standard', price: '', days: '', features: [''], revisions: '' },
-            { type: 'Premium', price: '', days: '', features: [''], revisions: '' }
+            { type: 'Basic', price: '', days: '', features: [''], revisions: '', revisionsUnlimited: false },
+            { type: 'Standard', price: '', days: '', features: [''], revisions: '', revisionsUnlimited: false },
+            { type: 'Premium', price: '', days: '', features: [''], revisions: '', revisionsUnlimited: false }
         ]
     });
 
@@ -115,7 +115,8 @@ export default function CreateProjectPage() {
                     ...p,
                     price: Number(p.price),
                     days: Number(p.days),
-                    revisions: Number(p.revisions),
+                    revisions: p.revisionsUnlimited ? 0 : Number(p.revisions),
+                    revisionsUnlimited: !!p.revisionsUnlimited,
                     features: Array.isArray(p.features) ? p.features.filter((f: string) => f && String(f).trim()) : []
                 }))
             });
@@ -338,14 +339,25 @@ export default function CreateProjectPage() {
 
                                                     <div>
                                                         <label className="text-xs font-bold text-gray-500">Revisions</label>
-                                                        <input
-                                                            type="number"
-                                                            required
-                                                            value={pkg.revisions}
-                                                            onChange={(e) => handlePackageChange(idx, 'revisions', e.target.value)}
-                                                            placeholder="Revisions"
-                                                            className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none placeholder:text-gray-400 placeholder:opacity-70"
-                                                        />
+                                                        <select
+                                                            value={pkg.revisionsUnlimited ? 'unlimited' : 'fixed'}
+                                                            onChange={(e) => handlePackageChange(idx, 'revisionsUnlimited', e.target.value === 'unlimited')}
+                                                            className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm mb-1"
+                                                        >
+                                                            <option value="fixed">Fixed count</option>
+                                                            <option value="unlimited">Unlimited</option>
+                                                        </select>
+                                                        {!pkg.revisionsUnlimited && (
+                                                            <input
+                                                                type="number"
+                                                                required
+                                                                min={0}
+                                                                value={pkg.revisions}
+                                                                onChange={(e) => handlePackageChange(idx, 'revisions', e.target.value)}
+                                                                placeholder="Revisions"
+                                                                className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none placeholder:text-gray-400 placeholder:opacity-70"
+                                                            />
+                                                        )}
                                                     </div>
 
                                                     <div>

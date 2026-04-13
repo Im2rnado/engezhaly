@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const ConversationSchema = new mongoose.Schema({
+    kind: { type: String, enum: ['direct', 'support'], default: 'direct' },
     participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     lastMessage: { type: String },
     lastMessageId: { type: mongoose.Schema.Types.ObjectId, ref: 'Chat' },

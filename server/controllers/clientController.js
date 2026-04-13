@@ -2,6 +2,22 @@ const User = require('../models/User');
 const Job = require('../models/Job');
 const Order = require('../models/Order');
 const Transaction = require('../models/Transaction');
+const Conversation = require('../models/Conversation');
+const { emitChatContextRefresh } = require('../services/chatContextRefresh');
+
+const orderWithRevisionFallback = (order) => {
+    const o = order.toObject ? order.toObject({ virtuals: true }) : { ...order };
+    if (o.offerId && typeof o.offerId === 'object') {
+        const off = o.offerId;
+        const orderEmpty = !o.revisionsUnlimited && (o.revisions === undefined || o.revisions === null || Number(o.revisions) === 0);
+        const offerHas = !!off.revisionsUnlimited || (Number(off.revisions) > 0);
+        if (orderEmpty && offerHas) {
+            o.revisions = off.revisionsUnlimited ? 0 : Math.max(0, Math.floor(Number(off.revisions) || 0));
+            o.revisionsUnlimited = !!off.revisionsUnlimited;
+        }
+    }
+    return o;
+};
 const { sendAndLog } = require('../services/mailgunService');
 const emailTemplates = require('../templates/emailTemplates');
 
@@ -201,7 +217,6 @@ const acceptProposal = async (req, res) => {
         }
 
         const amount = Number(proposal.price) || job.budgetRange?.min || 300;
-        const clientFee = 20; // 20 EGP platform fee charged to freelancer
         const totalClientPays = amount;
         const amountCents = Math.round(totalClientPays * 100);
         if (amountCents < 100) {
@@ -222,6 +237,7 @@ const acceptProposal = async (req, res) => {
 };
 
 const InstaPayPayment = require('../models/InstaPayPayment');
+const { ORDER_PLATFORM_FEE_EGP } = require('../config/fees');
 
 const getMyOrders = async (req, res) => {
     try {
@@ -229,8 +245,9 @@ const getMyOrders = async (req, res) => {
         const orders = await Order.find({ buyerId: userId })
             .populate('projectId', 'title packages')
             .populate('sellerId', 'firstName lastName')
+            .populate('offerId', 'revisions revisionsUnlimited')
             .sort({ createdAt: -1 });
-        const ordersArr = orders.map(o => o.toObject ? o.toObject() : o);
+        const ordersArr = orders.map((ord) => orderWithRevisionFallback(ord));
         const pendingPaymentIds = ordersArr.filter(o => o.status === 'pending_payment').map(o => o._id?.toString()).filter(Boolean);
         if (pendingPaymentIds.length > 0) {
             const pendingInstaPay = await InstaPayPayment.find({
@@ -383,7 +400,7 @@ const approveDelivery = async (req, res) => {
 
         // Release escrow: credit freelancer (deducting platform fee)
         const freelancerId = String(order.sellerId?._id || order.sellerId);
-        const fee = order.platformFee || 20;
+        const fee = Number(order.platformFee ?? ORDER_PLATFORM_FEE_EGP);
         const amount = Math.max(0, order.amount - fee);
         const freelancer = await User.findById(freelancerId);
         if (freelancer) {
@@ -402,6 +419,11 @@ const approveDelivery = async (req, res) => {
         order.status = 'completed';
         order.completedAt = new Date();
         await order.save();
+
+        const conv = await Conversation.findOne({
+            participants: { $all: [buyerIdStr, freelancerId] }
+        });
+        if (conv) emitChatContextRefresh(req.app?.get('io'), conv._id);
 
         // Email: template args are (grossAmount, netAmount, fee, title, transactionId, date)
         if (freelancer?.email) {
@@ -496,7 +518,7 @@ const approveJobWork = async (req, res) => {
 
         const freelancerId = String(acceptedProposal.freelancerId?._id || acceptedProposal.freelancerId);
         const grossAmount = Number(acceptedProposal.price) || 0;
-        const fee = 20;
+        const fee = ORDER_PLATFORM_FEE_EGP;
         const amount = Math.max(0, grossAmount - fee);
 
         const freelancer = await User.findById(freelancerId);
@@ -515,6 +537,11 @@ const approveJobWork = async (req, res) => {
 
         job.status = 'completed';
         await job.save();
+
+        const conv = await Conversation.findOne({
+            participants: { $all: [String(userId), String(freelancerId)] }
+        });
+        if (conv) emitChatContextRefresh(req.app?.get('io'), conv._id);
 
         if (freelancer?.email) {
             const txId = freelancerTx?._id?.toString?.() || '';

@@ -8,6 +8,7 @@ const { isValidCategorySubCategory } = require('../config/categories');
 const { sendAndLog } = require('../services/mailgunService');
 const { offerPurchased: offerPurchasedTemplate, paymentReceiptFreelancer, paymentReceiptClient } = require('../templates/emailTemplates');
 const { emitToUser, isUserOnline } = require('../services/notificationService');
+const { ORDER_PLATFORM_FEE_EGP } = require('../config/fees');
 
 const createProject = async (req, res) => {
     try {
@@ -199,8 +200,15 @@ const createProjectOrder = async (req, res) => {
         }
 
         const amount = Number(selectedPackage.price || 0);
-        const platformFee = 20; // Fixed 20 EGP platform fee
+        const platformFee = ORDER_PLATFORM_FEE_EGP;
         const deliveryDate = new Date(Date.now() + Number(selectedPackage.days || 0) * 24 * 60 * 60 * 1000);
+        const revUnlimited = !!selectedPackage.revisionsUnlimited;
+        let revNum = 0;
+        if (!revUnlimited) {
+            const n = Number(selectedPackage.revisions);
+            revNum = Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
+        }
+        const revisionsLine = revUnlimited ? 'Revisions: Unlimited' : `Revisions: ${revNum}`;
 
         const order = new Order({
             projectId: project._id,
@@ -211,7 +219,9 @@ const createProjectOrder = async (req, res) => {
             platformFee,
             status: 'pending_approval',
             description: description.trim(),
-            deliveryDate
+            deliveryDate,
+            revisions: revNum,
+            revisionsUnlimited: revUnlimited
         });
 
         await order.save();
@@ -238,6 +248,7 @@ Name: ${project.title}
 Bundle: ${selectedPackage.type}
 Amount: ${amount} EGP
 Delivery: ${selectedPackage.days} Days
+${revisionsLine}
 
 Description:
 ${description.trim()}`,

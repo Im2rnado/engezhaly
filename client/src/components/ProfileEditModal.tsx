@@ -5,6 +5,7 @@ import { X, Plus, X as XIcon, Upload, Trash2, User, Briefcase, Award } from 'luc
 import Image from 'next/image';
 import { api } from '@/lib/api';
 import DatePicker from '@/components/DatePicker';
+import ImageCropModal from '@/components/ImageCropModal';
 
 interface ProfileEditModalProps {
     isOpen: boolean;
@@ -21,12 +22,17 @@ export default function ProfileEditModal({ isOpen, onClose, onSave, profile, mai
         experienceYears: '',
         technicalSkills: [] as string[],
         softSkills: [] as string[],
-        certifications: [] as { name: string; date: string; institute: string; documentUrl: string }[]
+        certifications: [] as { name: string; date: string; institute: string; documentUrl: string }[],
+        english: 'Fluent',
+        arabic: 'Fluent',
+        francoArabic: 'Fluent'
     });
     const [technicalSkillInput, setTechnicalSkillInput] = useState('');
     const [softSkillInput, setSoftSkillInput] = useState('');
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [profilePicture, setProfilePicture] = useState<string | null>(null);
+    const [cropSrc, setCropSrc] = useState<string | null>(null);
+    const [pfpUploading, setPfpUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const prevIsOpenRef = useRef(false);
 
@@ -38,12 +44,16 @@ export default function ProfileEditModal({ isOpen, onClose, onSave, profile, mai
                 const tech = fp?.technicalSkills;
                 const soft = fp?.softSkills;
                 const legacy = fp?.skills;
+                const lang = fp?.languages || {};
                 setFormData({
                     bio: fp?.bio || '',
                     category: fp?.category || '',
                     experienceYears: String(fp?.experienceYears || 0),
                     technicalSkills: (Array.isArray(tech) && tech.length > 0) ? tech : (Array.isArray(legacy) ? legacy : []),
                     softSkills: Array.isArray(soft) ? soft : [],
+                    english: lang.english || 'Fluent',
+                    arabic: lang.arabic || 'Fluent',
+                    francoArabic: lang.francoArabic || 'Fluent',
                     certifications: certs.map((c: any) => ({
                         name: c.name || '',
                         date: c.date ? (typeof c.date === 'string' ? c.date : c.date?.slice?.(0, 10)) : '',
@@ -87,49 +97,110 @@ export default function ProfileEditModal({ isOpen, onClose, onSave, profile, mai
     };
     const handleRemoveSoftSkill = (s: string) => setFormData({ ...formData, softSkills: formData.softSkills.filter(x => x !== s) });
 
+    const validatePfpFile = (file: File) => {
+        if (file.size > 5 * 1024 * 1024) {
+            setErrors(prev => ({ ...prev, profilePicture: 'Image must be under 5MB' }));
+            return false;
+        }
+        if (!file.type.startsWith('image/')) {
+            setErrors(prev => ({ ...prev, profilePicture: 'Please upload an image' }));
+            return false;
+        }
+        setErrors(prev => ({ ...prev, profilePicture: '' }));
+        return true;
+    };
+
+    const openCropFromFile = (file: File) => {
+        if (!validatePfpFile(file)) return;
+        setCropSrc(URL.createObjectURL(file));
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) {
-            if (file.size > 5 * 1024 * 1024) {
-                setErrors(prev => ({ ...prev, profilePicture: 'Image must be under 5MB' }));
+        if (file) openCropFromFile(file);
+    };
+
+    const openAdjustExistingPhoto = async () => {
+        if (!profilePicture) return;
+        try {
+            const res = await fetch(profilePicture, { mode: 'cors' });
+            if (!res.ok) throw new Error('fetch failed');
+            const blob = await res.blob();
+            if (!blob.type.startsWith('image/')) {
+                setErrors(prev => ({ ...prev, profilePicture: 'Could not load image for cropping' }));
                 return;
             }
-            if (!file.type.startsWith('image/')) {
-                setErrors(prev => ({ ...prev, profilePicture: 'Please upload an image' }));
-                return;
-            }
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setProfilePicture(reader.result as string);
-                setErrors(prev => ({ ...prev, profilePicture: '' }));
-            };
-            reader.readAsDataURL(file);
+            setCropSrc(URL.createObjectURL(blob));
+        } catch {
+            setErrors(prev => ({
+                ...prev,
+                profilePicture: 'Cannot crop remote image (CORS). Use “Change photo” to pick the file again.'
+            }));
+        }
+    };
+
+    const handleCropConfirm = async (blob: Blob) => {
+        if (cropSrc) {
+            URL.revokeObjectURL(cropSrc);
+            setCropSrc(null);
+        }
+        setPfpUploading(true);
+        try {
+            const file = new File([blob], 'profile.jpg', { type: 'image/jpeg' });
+            const url = await api.upload.file(file);
+            setProfilePicture(url);
+            setErrors(prev => ({ ...prev, profilePicture: '' }));
+        } catch {
+            setErrors(prev => ({ ...prev, profilePicture: 'Upload failed' }));
+        } finally {
+            setPfpUploading(false);
         }
     };
 
     const removeProfilePicture = () => {
         setProfilePicture(null);
+        setCropSrc(null);
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!validateForm()) return;
-        onSave({
+        const payload: Record<string, unknown> = {
             bio: formData.bio,
-            category: formData.category || undefined,
             experienceYears: Number(formData.experienceYears),
             technicalSkills: formData.technicalSkills,
             softSkills: formData.softSkills,
             profilePicture: profilePicture || undefined,
-            certifications: formData.certifications.filter(c => c.name?.trim())
-        });
+            certifications: formData.certifications.filter(c => c.name?.trim()),
+            languages: {
+                english: formData.english,
+                arabic: formData.arabic,
+                francoArabic: formData.francoArabic
+            }
+        };
+        if (!profile?.freelancerProfile?.category) {
+            payload.category = formData.category || undefined;
+        }
+        onSave(payload);
         onClose();
     };
 
     if (!isOpen) return null;
 
     return (
+        <>
+        {cropSrc && (
+            <ImageCropModal
+                src={cropSrc}
+                onCancel={() => {
+                    URL.revokeObjectURL(cropSrc);
+                    setCropSrc(null);
+                }}
+                onConfirm={handleCropConfirm}
+            />
+        )}
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
                 {/* Header */}
@@ -147,11 +218,11 @@ export default function ProfileEditModal({ isOpen, onClose, onSave, profile, mai
                             <User className="w-4 h-4 text-gray-500" />
                             <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Photo</h3>
                         </div>
-                        <div className="flex items-center gap-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                             {profilePicture ? (
                                 <div className="relative shrink-0">
                                     <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-[#09BF44]">
-                                        <Image src={profilePicture} alt="Profile" width={80} height={80} className="w-full h-full object-cover" />
+                                        <Image src={profilePicture} alt="Profile" width={80} height={80} className="w-full h-full object-cover" unoptimized />
                                     </div>
                                     <button
                                         type="button"
@@ -165,16 +236,38 @@ export default function ProfileEditModal({ isOpen, onClose, onSave, profile, mai
                                 <button
                                     type="button"
                                     onClick={() => fileInputRef.current?.click()}
-                                    className="w-20 h-20 rounded-full border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-400 hover:border-[#09BF44] hover:bg-[#09BF44]/5 transition-colors shrink-0"
+                                    disabled={pfpUploading}
+                                    className="w-20 h-20 rounded-full border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-400 hover:border-[#09BF44] hover:bg-[#09BF44]/5 transition-colors shrink-0 disabled:opacity-50"
                                 >
                                     <Upload className="w-6 h-6 mb-0.5" />
                                     <span className="text-[10px] font-bold">Add</span>
                                 </button>
                             )}
-                            <div>
+                            <div className="flex-1 min-w-0 space-y-2">
                                 <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                                <p className="text-sm text-gray-500">Optional. Max 5MB. JPG, PNG.</p>
-                                {errors.profilePicture && <p className="text-red-500 text-xs mt-1">{errors.profilePicture}</p>}
+                                <div className="flex flex-wrap gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        disabled={pfpUploading}
+                                        className="text-sm font-bold text-[#09BF44] hover:underline disabled:opacity-50"
+                                    >
+                                        {profilePicture ? 'Change photo' : 'Upload photo'}
+                                    </button>
+                                    {profilePicture && (
+                                        <button
+                                            type="button"
+                                            onClick={openAdjustExistingPhoto}
+                                            disabled={pfpUploading}
+                                            className="text-sm font-bold text-gray-600 hover:underline disabled:opacity-50"
+                                        >
+                                            Resize / crop
+                                        </button>
+                                    )}
+                                </div>
+                                <p className="text-sm text-gray-500">Crop to a square after choosing. Max 5MB.</p>
+                                {pfpUploading && <p className="text-xs text-[#09BF44] font-bold">Uploading…</p>}
+                                {errors.profilePicture && <p className="text-red-500 text-xs">{errors.profilePicture}</p>}
                             </div>
                         </div>
                     </section>
@@ -204,14 +297,20 @@ export default function ProfileEditModal({ isOpen, onClose, onSave, profile, mai
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 mb-1.5">Category</label>
-                                    <select
-                                        value={formData.category}
-                                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                                        className="w-full p-3 rounded-xl border-2 border-gray-100 focus:border-[#09BF44] bg-gray-50 outline-none text-gray-900"
-                                    >
-                                        <option value="">Select</option>
-                                        {mainCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                                    </select>
+                                    {profile?.freelancerProfile?.category ? (
+                                        <p className="w-full p-3 rounded-xl border-2 border-gray-100 bg-gray-100 text-gray-800 font-bold text-sm">
+                                            {profile.freelancerProfile.category}
+                                        </p>
+                                    ) : (
+                                        <select
+                                            value={formData.category}
+                                            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                                            className="w-full p-3 rounded-xl border-2 border-gray-100 focus:border-[#09BF44] bg-gray-50 outline-none text-gray-900"
+                                        >
+                                            <option value="">Select</option>
+                                            {mainCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                        </select>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 mb-1.5">Experience (Years)</label>
@@ -282,6 +381,47 @@ export default function ProfileEditModal({ isOpen, onClose, onSave, profile, mai
                                         ))}
                                     </div>
                                 )}
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-1.5">English</label>
+                                    <select
+                                        value={formData.english}
+                                        onChange={(e) => setFormData({ ...formData, english: e.target.value })}
+                                        className="w-full p-3 rounded-xl border-2 border-gray-100 focus:border-[#09BF44] bg-gray-50 outline-none text-gray-900 text-sm"
+                                    >
+                                        <option value="Fluent">Fluent</option>
+                                        <option value="Intermediate">Intermediate</option>
+                                        <option value="Basic">Basic</option>
+                                        <option value="None">None</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-1.5">Arabic</label>
+                                    <select
+                                        value={formData.arabic}
+                                        onChange={(e) => setFormData({ ...formData, arabic: e.target.value })}
+                                        className="w-full p-3 rounded-xl border-2 border-gray-100 focus:border-[#09BF44] bg-gray-50 outline-none text-gray-900 text-sm"
+                                    >
+                                        <option value="Fluent">Fluent</option>
+                                        <option value="Intermediate">Intermediate</option>
+                                        <option value="Basic">Basic</option>
+                                        <option value="None">None</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-1.5">Franco 3araby</label>
+                                    <select
+                                        value={formData.francoArabic}
+                                        onChange={(e) => setFormData({ ...formData, francoArabic: e.target.value })}
+                                        className="w-full p-3 rounded-xl border-2 border-gray-100 focus:border-[#09BF44] bg-gray-50 outline-none text-gray-900 text-sm"
+                                    >
+                                        <option value="Fluent">Fluent</option>
+                                        <option value="Intermediate">Intermediate</option>
+                                        <option value="Basic">Basic</option>
+                                        <option value="None">None</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </section>
@@ -378,5 +518,6 @@ export default function ProfileEditModal({ isOpen, onClose, onSave, profile, mai
                 </form>
             </div>
         </div>
+        </>
     );
 }

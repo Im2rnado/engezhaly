@@ -22,7 +22,6 @@ export default function FreelancerSidebar({ user, profile, onToggleBusy, toggleB
     const router = useRouter();
     const { showModal } = useModal();
     const pathname = usePathname();
-    const [projects, setProjects] = useState<any[]>([]);
     const [orders, setOrders] = useState<any[]>([]);
     const [myJobsCount, setMyJobsCount] = useState(0);
     const [unreadChats, setUnreadChats] = useState(0);
@@ -31,7 +30,6 @@ export default function FreelancerSidebar({ user, profile, onToggleBusy, toggleB
     useEffect(() => {
         const userId = user?._id || user?.id;
         if (userId) {
-            api.projects.getMyProjects().then(setProjects).catch(() => { });
             api.jobs.getFreelancerJobs()
                 .then((data: any[]) => setMyJobsCount(Array.isArray(data) ? data.length : 0))
                 .catch(() => setMyJobsCount(0));
@@ -97,7 +95,6 @@ export default function FreelancerSidebar({ user, profile, onToggleBusy, toggleB
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'offers' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
                 >
                     <Briefcase className="w-5 h-5" /> My Offers
-                    {projects.length > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{projects.length}</span>}
                 </button>
                 <button
                     onClick={() => {
@@ -112,7 +109,7 @@ export default function FreelancerSidebar({ user, profile, onToggleBusy, toggleB
                     onClick={() => {
                         router.push('/dashboard/freelancer?tab=orders');
                     }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'orders' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'orders' || pathname?.startsWith('/dashboard/freelancer/orders') ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
                 >
                     <ShoppingBag className="w-5 h-5" /> Orders Received
                     {orders.length > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{orders.length}</span>}
@@ -153,7 +150,7 @@ export default function FreelancerSidebar({ user, profile, onToggleBusy, toggleB
                 >
                     <MessageSquare className="w-5 h-5" /> Chats
                     {unreadChats > 0 && (
-                        <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">
+                        <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">
                             {unreadChats > 99 ? '99+' : unreadChats}
                         </span>
                     )}
@@ -190,6 +187,9 @@ export default function FreelancerSidebar({ user, profile, onToggleBusy, toggleB
                         >
                             <div className={`w-6 h-6 bg-white rounded-full transition-transform shadow-sm ${isBusy ? 'translate-x-0' : 'translate-x-8'}`} />
                         </button>
+                        <p className="text-xs text-gray-500 mt-2 leading-relaxed">
+                            By pressing this, you will be busy for new orders, but clients can still view your account.
+                        </p>
                     </div>
                 )}
                 {isPending && (

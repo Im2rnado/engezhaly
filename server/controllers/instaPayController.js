@@ -10,10 +10,11 @@ const ConsultationPayment = require('../models/ConsultationPayment');
 const { createMeetingLink } = require('../services/meetingService');
 const { sendAndLog } = require('../services/mailgunService');
 const emailTemplates = require('../templates/emailTemplates');
+const { ORDER_PLATFORM_FEE_EGP } = require('../config/fees');
+const { emitChatContextRefresh } = require('../services/chatContextRefresh');
 
 const INSTAPAY_PHONE = process.env.INSTAPAY_PHONE || '+201098611731';
 const INSTAPAY_LINK = process.env.INSTAPAY_LINK || 'https://ipn.eg/S/engezhaly/instapay/3mttQG';
-const CLIENT_FEE = 20;
 
 /**
  * POST /api/payments/instapay
@@ -139,7 +140,10 @@ const getPendingInstaPay = async (req, res) => {
                 if (p.screenshotUrl && !existing.screenshotUrl) seen.set(k, p);
             }
         }
-        res.json([...seen.values()]);
+        const withScreenshot = [...seen.values()].filter(
+            (p) => p.screenshotUrl && String(p.screenshotUrl).trim() !== ''
+        );
+        res.json(withScreenshot);
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ msg: 'Server Error' });
@@ -165,10 +169,6 @@ const approveInstaPay = async (req, res) => {
         const meta = payment.meta || {};
         const type = meta.type;
         const amountEGP = payment.amountEGP;
-        const clientFee = type === 'consultation' ? 0 : CLIENT_FEE;
-        const freelancerReceives = type === 'consultation' ? amountEGP : amountEGP - clientFee;
-        const totalClientPaid = amountEGP;
-
         if (type === 'custom_offer' && meta.offerId) {
             const offer = await Offer.findById(meta.offerId).populate('conversationId').populate('senderId');
             if (offer && offer.status === 'pending') {
@@ -178,6 +178,14 @@ const approveInstaPay = async (req, res) => {
                     ? new Date(offer.deliveryDate)
                     : new Date(Date.now() + (offer.deliveryDays || 7) * 24 * 60 * 60 * 1000);
 
+                const revUnlimited = !!offer.revisionsUnlimited;
+                let revNum = 0;
+                if (!revUnlimited) {
+                    const n = Number(offer.revisions);
+                    revNum = Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
+                }
+                const revisionsLine = revUnlimited ? 'Revisions: Unlimited' : `Revisions: ${revNum}`;
+
                 const newOrder = new Order({
                     projectId: null,
                     buyerId: payment.userId,
@@ -185,16 +193,19 @@ const approveInstaPay = async (req, res) => {
                     packageType: 'Custom',
                     offerId: offer._id,
                     amount: freelancerReceivesOffer,
-                    platformFee: CLIENT_FEE,
+                    platformFee: ORDER_PLATFORM_FEE_EGP,
                     status: 'active',
                     deliveryDate,
-                    description: offer.whatsIncluded || 'Custom offer'
+                    description: offer.whatsIncluded || 'Custom offer',
+                    revisions: revNum,
+                    revisionsUnlimited: revUnlimited
                 });
                 await newOrder.save();
 
                 const convId = offer.conversationId?._id || offer.conversationId;
                 if (convId) {
-                    const orderContent = `[Engezhaly Order] Order #${newOrder._id}\n\nCustom offer accepted (${offer.price} EGP).\n\nPlease as a client inform the freelancer what you need in chat.`;
+                    const orderNo = newOrder.orderNumber != null ? String(newOrder.orderNumber) : String(newOrder._id);
+                    const orderContent = `[Engezhaly Order] Order #${orderNo}\n\nCustom offer accepted (${offer.price} EGP).\n${revisionsLine}\n\nPlease as a client inform the freelancer what you need in chat.`;
                     const orderChat = new Chat({
                         conversationId: convId,
                         senderId: payment.userId,
@@ -204,6 +215,8 @@ const approveInstaPay = async (req, res) => {
                     });
                     await orderChat.save();
                     await Conversation.findByIdAndUpdate(convId, { lastMessage: orderContent, lastMessageId: orderChat._id });
+                    const io = req.app?.get('io');
+                    emitChatContextRefresh(io, convId);
                 }
 
                 offer.status = 'accepted';
@@ -216,7 +229,9 @@ const approveInstaPay = async (req, res) => {
                     userId: payment.userId,
                     type: 'payment',
                     amount: -totalClientPaidOffer,
-                    description: `Custom Offer (incl. ${CLIENT_FEE} EGP fee) - held by Engezhaly team`,
+                    description: ORDER_PLATFORM_FEE_EGP > 0
+                        ? `Custom Offer (incl. ${ORDER_PLATFORM_FEE_EGP} EGP fee) - held by Engezhaly team`
+                        : 'Custom Offer - held by Engezhaly team',
                     orderId: newOrder._id,
                     relatedUserId: freelancerId
                 });
@@ -259,6 +274,7 @@ const approveInstaPay = async (req, res) => {
                             isRead: false
                         });
                     }
+                    emitChatContextRefresh(io, convId);
                 }
             }
         } else if (type === 'consultation' && meta.conversationId) {
@@ -366,6 +382,7 @@ const approveInstaPay = async (req, res) => {
                     console.error('[InstaPay] Consultation meeting creation error:', err.message);
                 }
             }
+            emitChatContextRefresh(req.app?.get('io'), meta.conversationId);
         } else if (type === 'project_order' && meta.orderId) {
             const order = await Order.findById(meta.orderId);
             if (order && order.status === 'pending_payment') {
@@ -426,6 +443,7 @@ const approveInstaPay = async (req, res) => {
                             isRead: false
                         });
                     }
+                    emitChatContextRefresh(io, conversation._id);
                 }
             }
         } else if (type === 'job_proposal' && meta.jobId && meta.proposalId) {
@@ -492,6 +510,7 @@ const approveInstaPay = async (req, res) => {
                             isRead: false
                         });
                     }
+                    emitChatContextRefresh(io, jobConversation._id);
                 }
             }
         }

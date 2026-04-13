@@ -27,10 +27,12 @@ const {
     updateJob,
     deleteJob,
     getAllOrders,
+    getDisputedOrders,
     updateOrder,
     getAllTransactions,
     getTopFreelancers,
     sendAdminMessage,
+    createSupportConversation,
     getEmailLogs,
     getWithdrawals,
     completeWithdrawal,
@@ -47,6 +49,7 @@ router.get('/chats', [authVerified, adminAuth], getActiveChats);
 router.put('/chats/:id/freeze', [authVerified, adminAuth], freezeChat);
 router.put('/chats/:id/unfreeze', [authVerified, adminAuth], unfreezeChat);
 router.post('/chats/message', [authVerified, adminAuth], sendAdminMessage);
+router.post('/chats/support', [authVerified, adminAuth], createSupportConversation);
 router.post('/users/:id/strike', [authVerified, adminAuth], addStrike);
 router.put('/freelancers/:id/employee-of-month', [authVerified, adminAuth], toggleEmployeeOfMonth);
 router.get('/insights', [authVerified, adminAuth], getInsights);
@@ -68,6 +71,7 @@ router.put('/jobs/:id', [authVerified, adminAuth], updateJob);
 router.delete('/jobs/:id', [authVerified, adminAuth], deleteJob);
 
 router.get('/orders', [authVerified, adminAuth], getAllOrders);
+router.get('/disputes', [authVerified, adminAuth], getDisputedOrders);
 router.put('/orders/:id', [authVerified, adminAuth], updateOrder);
 
 router.get('/transactions', [authVerified, adminAuth], getAllTransactions);

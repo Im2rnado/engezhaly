@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const authVerified = require('../middleware/authVerified');
 const auth = require('../middleware/auth');
-const { updateProfile, getProfile, getPublicProfile, getReviews, getTopFreelancers, getMyOrders, submitOrderWork, raiseDispute, approveOrder, denyOrder, submitMilestoneWork } = require('../controllers/freelancerController');
+const { updateProfile, getProfile, getPublicProfile, getReviews, getTopFreelancers, getMyOrders, getOrderById, submitOrderWork, raiseDispute, approveOrder, denyOrder, submitMilestoneWork } = require('../controllers/freelancerController');
 
 // @route   PUT api/freelancer/profile
 // @desc    Update freelancer profile (onboarding steps) - auth only, no email verification required
@@ -33,6 +33,7 @@ router.get('/top', getTopFreelancers);
 // @desc    Get freelancer orders
 // @access  Private (Freelancer)
 router.get('/orders', authVerified, getMyOrders);
+router.get('/orders/:id', authVerified, getOrderById);
 
 // @route   POST api/freelancer/orders/:id/submit-work
 // @desc    Submit work for a freelancer project order

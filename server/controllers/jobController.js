@@ -54,9 +54,20 @@ const createJob = async (req, res) => {
 
 const getJobs = async (req, res) => {
     try {
-        const jobs = await Job.find({ status: 'open' }).sort({ createdAt: -1 }).populate('clientId', 'firstName lastName');
+        const query = { status: 'open' };
         const userId = req.user?.id;
         const isFreelancer = req.user?.role === 'freelancer';
+
+        if (userId && isFreelancer) {
+            const me = await User.findById(userId).select('freelancerProfile.category');
+            const cat = me?.freelancerProfile?.category;
+            if (!cat) {
+                return res.json([]);
+            }
+            query.category = cat;
+        }
+
+        const jobs = await Job.find(query).sort({ createdAt: -1 }).populate('clientId', 'firstName lastName');
 
         if (userId && isFreelancer) {
             const enriched = jobs.map((job) => {
@@ -77,7 +88,7 @@ const applyToJob = async (req, res) => {
         if (req.user.role !== 'freelancer') {
             return res.status(403).json({ msg: 'Only freelancers can apply to jobs' });
         }
-        const { price, deliveryDays, revisions, message, milestones } = req.body;
+        const { price, deliveryDays, revisions, revisionsUnlimited, message, milestones } = req.body;
         const jobId = req.params.id;
         const freelancerId = req.user.id;
 
@@ -96,13 +107,41 @@ const applyToJob = async (req, res) => {
             return res.status(400).json({ msg: 'You have already applied to this job' });
         }
 
+        const parsedMilestones = Array.isArray(milestones)
+            ? milestones
+                .filter((m) => m && String(m.name || '').trim())
+                .map((m) => ({
+                    name: String(m.name).trim(),
+                    price: 0,
+                    dueDate: m.dueDate ? new Date(m.dueDate) : undefined
+                }))
+            : [];
+
+        const hasMilestoneDueDates = parsedMilestones.some((m) => m.dueDate && !isNaN(new Date(m.dueDate).getTime()));
+
+        let effectiveDeliveryDays = deliveryDays != null ? Number(deliveryDays) : NaN;
+        if (hasMilestoneDueDates) {
+            const times = parsedMilestones
+                .map((m) => (m.dueDate ? new Date(m.dueDate).getTime() : NaN))
+                .filter((t) => !isNaN(t));
+            const latest = Math.max(...times);
+            const days = Math.ceil((latest - Date.now()) / (24 * 60 * 60 * 1000));
+            effectiveDeliveryDays = Math.max(1, days);
+        } else if (Number.isNaN(effectiveDeliveryDays) || effectiveDeliveryDays < 1) {
+            return res.status(400).json({ msg: 'Delivery days must be at least 1' });
+        }
+
+        const revUnlimited = !!revisionsUnlimited;
+        const revNum = revUnlimited ? 0 : Number(revisions) || 0;
+
         const newProposal = {
             freelancerId,
             price,
-            deliveryDays,
-            revisions: revisions || 0,
+            deliveryDays: effectiveDeliveryDays,
+            revisions: revNum,
+            revisionsUnlimited: revUnlimited,
             message,
-            milestones: milestones || [],
+            milestones: parsedMilestones,
             status: 'pending'
         };
 

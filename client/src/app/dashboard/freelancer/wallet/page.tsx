@@ -8,8 +8,10 @@ import FreelancerSidebar from '@/components/FreelancerSidebar';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 import { api } from '@/lib/api';
 import { formatDateDDMMYYYY } from '@/lib/utils';
+import { WITHDRAWAL_FEE_EGP } from '@/lib/fees';
 
-const WITHDRAWAL_FEE = 20;
+const MIN_RECEIVE_EGP = 50;
+const MIN_WITHDRAW_GROSS = MIN_RECEIVE_EGP + WITHDRAWAL_FEE_EGP;
 
 export default function FreelancerWalletPage() {
     const { showModal } = useModal();
@@ -141,13 +143,25 @@ export default function FreelancerWalletPage() {
 
     const handleWithdraw = async () => {
         const grossAmount = Number(withdrawAmount);
-        const amountToReceive = grossAmount - WITHDRAWAL_FEE;
-        if (isNaN(grossAmount) || grossAmount < 70) {
-            showModal({ title: 'Invalid Amount', message: 'Enter at least 70 EGP (you will receive 50 EGP after fees).', type: 'error' });
+        const amountToReceive = grossAmount - WITHDRAWAL_FEE_EGP;
+        if (isNaN(grossAmount) || grossAmount < MIN_WITHDRAW_GROSS) {
+            showModal({
+                title: 'Invalid Amount',
+                message: WITHDRAWAL_FEE_EGP > 0
+                    ? `Enter at least ${MIN_WITHDRAW_GROSS} EGP (you will receive at least ${MIN_RECEIVE_EGP} EGP after fees).`
+                    : `Enter at least ${MIN_RECEIVE_EGP} EGP.`,
+                type: 'error'
+            });
             return;
         }
-        if (amountToReceive < 50) {
-            showModal({ title: 'Invalid Amount', message: 'After the 20 EGP fee, you must receive at least 50 EGP.', type: 'error' });
+        if (amountToReceive < MIN_RECEIVE_EGP) {
+            showModal({
+                title: 'Invalid Amount',
+                message: WITHDRAWAL_FEE_EGP > 0
+                    ? `After the ${WITHDRAWAL_FEE_EGP} EGP fee, you must receive at least ${MIN_RECEIVE_EGP} EGP.`
+                    : `You must receive at least ${MIN_RECEIVE_EGP} EGP.`,
+                type: 'error'
+            });
             return;
         }
         if (balance < grossAmount) {
@@ -190,7 +204,13 @@ export default function FreelancerWalletPage() {
                 bankName,
                 notes: withdrawNotes.trim() || undefined
             });
-            showModal({ title: 'Withdrawal Requested', message: `You will receive ${amountToReceive} EGP. Admin will process it shortly. (${WITHDRAWAL_FEE} EGP platform fee.)`, type: 'success' });
+            showModal({
+                title: 'Withdrawal Requested',
+                message: WITHDRAWAL_FEE_EGP > 0
+                    ? `You will receive ${amountToReceive} EGP. Admin will process it shortly. (${WITHDRAWAL_FEE_EGP} EGP platform fee.)`
+                    : `You will receive ${amountToReceive} EGP. Admin will process it shortly.`,
+                type: 'success'
+            });
             setShowWithdrawModal(false);
             setWithdrawAmount('');
             setSelectedMethodId(null);
@@ -319,14 +339,18 @@ export default function FreelancerWalletPage() {
                                 </div>
                                 <button
                                     onClick={() => setShowWithdrawModal(true)}
-                                    disabled={balance < 50 + WITHDRAWAL_FEE}
+                                    disabled={balance < MIN_WITHDRAW_GROSS}
                                     className="flex items-center justify-center gap-2 px-6 py-3 bg-[#09BF44] hover:bg-[#07a63a] text-white font-bold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <ArrowDownToLine className="w-5 h-5" />
                                     Withdraw
                                 </button>
                             </div>
-                            <p className="text-xs text-gray-500 mt-3">20 EGP fee applies per withdrawal. Min: 50 EGP.</p>
+                            <p className="text-xs text-gray-500 mt-3">
+                                {WITHDRAWAL_FEE_EGP > 0
+                                    ? `${WITHDRAWAL_FEE_EGP} EGP fee applies per withdrawal. Min: ${MIN_WITHDRAW_GROSS} EGP gross (${MIN_RECEIVE_EGP} EGP to you).`
+                                    : `No withdrawal fee. Min: ${MIN_RECEIVE_EGP} EGP.`}
+                            </p>
                         </div>
 
                         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden mb-8">
@@ -396,13 +420,18 @@ export default function FreelancerWalletPage() {
                                                 <td className="p-4 font-bold text-gray-900">{w.amount} EGP</td>
                                                 <td className="p-4 text-gray-600">{formatMethodName(w.method || '') || '-'}</td>
                                                 <td className="p-4">
-                                                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                                                        w.status === 'completed' ? 'bg-green-100 text-green-700' :
-                                                        w.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                                                        'bg-amber-100 text-amber-700'
-                                                    }`}>
-                                                        {w.status}
-                                                    </span>
+                                                    <div className="space-y-1">
+                                                        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-bold ${
+                                                            w.status === 'completed' ? 'bg-green-100 text-green-700' :
+                                                            w.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                                            'bg-amber-100 text-amber-700'
+                                                        }`}>
+                                                            {w.status === 'rejected' ? 'REJECTED' : w.status}
+                                                        </span>
+                                                        {w.status === 'rejected' && w.rejectReason && (
+                                                            <p className="text-xs text-gray-600 max-w-xs">{w.rejectReason}</p>
+                                                        )}
+                                                    </div>
                                                 </td>
                                                 <td className="p-4 text-gray-500 text-sm">{formatDateDDMMYYYY(w.createdAt)}</td>
                                             </tr>
@@ -425,7 +454,11 @@ export default function FreelancerWalletPage() {
                 <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4" onClick={() => !submitting && setShowWithdrawModal(false)}>
                     <div className="bg-white rounded-2xl w-full max-w-md shadow-xl p-6" onClick={e => e.stopPropagation()}>
                         <h3 className="text-xl font-bold text-gray-900 mb-4">Request Withdrawal</h3>
-                        <p className="text-sm text-gray-500 mb-4">Enter the amount to withdraw. 20 EGP platform fee applies. Min: 70 EGP.</p>
+                        <p className="text-sm text-gray-500 mb-4">
+                            {WITHDRAWAL_FEE_EGP > 0
+                                ? `Enter the amount to withdraw (gross). ${WITHDRAWAL_FEE_EGP} EGP platform fee applies. Min: ${MIN_WITHDRAW_GROSS} EGP.`
+                                : `Enter the amount to withdraw. Min: ${MIN_RECEIVE_EGP} EGP.`}
+                        </p>
 
                         <div className="space-y-4">
                             <div>
@@ -437,9 +470,10 @@ export default function FreelancerWalletPage() {
                                     placeholder="e.g. 70"
                                     className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-[#09BF44] outline-none"
                                 />
-                                {withdrawAmount && Number(withdrawAmount) >= 70 && (
+                                {withdrawAmount && Number(withdrawAmount) >= MIN_RECEIVE_EGP && (
                                     <p className="text-xs text-gray-600 mt-1 font-medium">
-                                        You will receive: {Math.max(0, (Number(withdrawAmount) || 0) - WITHDRAWAL_FEE)} EGP. Platform Fees: {WITHDRAWAL_FEE} EGP
+                                        You will receive: {Math.max(0, (Number(withdrawAmount) || 0) - WITHDRAWAL_FEE_EGP)} EGP.
+                                        {WITHDRAWAL_FEE_EGP > 0 && ` Platform fee: ${WITHDRAWAL_FEE_EGP} EGP`}
                                     </p>
                                 )}
                             </div>

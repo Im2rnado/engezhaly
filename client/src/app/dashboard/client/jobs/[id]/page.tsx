@@ -334,8 +334,30 @@ function JobDetailPageContent() {
                                             <p className="text-sm text-gray-500">
                                                 {proposal.deliveryDays} days delivery
                                             </p>
+                                            <p className="text-sm text-gray-500">
+                                                Revisions: {proposal.revisionsUnlimited ? 'Unlimited' : (proposal.revisions ?? 0)}
+                                            </p>
                                         </div>
                                     </div>
+
+                                    {Array.isArray(proposal.milestones) && proposal.milestones.length > 0 && (
+                                        <div className="mb-4 p-4 bg-indigo-50/80 rounded-xl border border-indigo-100">
+                                            <p className="text-sm font-bold text-indigo-900 mb-2">Proposal milestones</p>
+                                            <ul className="space-y-1.5 text-sm text-indigo-900">
+                                                {proposal.milestones.map((m: any, mi: number) => (
+                                                    <li key={mi}>
+                                                        <span className="font-medium">{m.name}</span>
+                                                        {m.dueDate && (
+                                                            <span className="text-indigo-700"> · Due {new Date(m.dueDate).toLocaleDateString()}</span>
+                                                        )}
+                                                        {m.status && (
+                                                            <span className="text-xs font-bold text-indigo-600 ml-1">({m.status})</span>
+                                                        )}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
 
                                     {proposal.message && (
                                         <div className="mb-4 p-4 bg-gray-50 rounded-xl">

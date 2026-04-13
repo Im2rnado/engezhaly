@@ -69,6 +69,35 @@ const register = async (req, res) => {
         }
 
         if (role === 'freelancer') {
+            if (!starterOffer || typeof starterOffer !== 'object') {
+                return res.status(400).json({ message: 'Starter offer is required for freelancer registration' });
+            }
+            const offerTitle = String(starterOffer.title || '').trim();
+            const offerPackages = Array.isArray(starterOffer.packages) ? starterOffer.packages : [];
+            const basicPkg = offerPackages[0];
+            const basicPrice = Number(basicPkg?.price);
+            const basicDays = Number(basicPkg?.days);
+            if (!offerTitle) {
+                return res.status(400).json({ message: 'Starter offer title is required' });
+            }
+            if (!basicPkg || Number.isNaN(basicPrice) || basicPrice < 300 || Number.isNaN(basicDays) || basicDays < 1) {
+                return res.status(400).json({ message: 'Starter offer Basic package must have price at least 300 EGP and delivery at least 1 day' });
+            }
+
+            if (!languages || typeof languages !== 'object') {
+                return res.status(400).json({ message: 'Languages (English, Arabic, Franco 3araby) are required' });
+            }
+            const langKeys = ['english', 'arabic', 'francoArabic'];
+            for (const key of langKeys) {
+                if (!languages[key] || !String(languages[key]).trim()) {
+                    return res.status(400).json({
+                        message: key === 'francoArabic'
+                            ? 'Franco 3araby fluency is required'
+                            : `${key.charAt(0).toUpperCase() + key.slice(1)} fluency is required`
+                    });
+                }
+            }
+
             userData.freelancerProfile = { status: 'pending' };
             if (profilePicture) userData.freelancerProfile.profilePicture = profilePicture;
             if (dateOfBirth) userData.dateOfBirth = new Date(dateOfBirth);
@@ -109,6 +138,7 @@ const register = async (req, res) => {
                 userData.freelancerProfile.languages = {};
                 if (languages.english) userData.freelancerProfile.languages.english = languages.english;
                 if (languages.arabic) userData.freelancerProfile.languages.arabic = languages.arabic;
+                if (languages.francoArabic) userData.freelancerProfile.languages.francoArabic = languages.francoArabic;
             }
             if (extraLanguages && Array.isArray(extraLanguages)) {
                 userData.freelancerProfile.extraLanguages = extraLanguages.filter(Boolean).map(String);

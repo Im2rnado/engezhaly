@@ -5,6 +5,7 @@ import { Clock, RotateCcw, Check, ArrowRight, Edit, MessageSquare, Phone, Chevro
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { api } from '@/lib/api';
+import { CLIENT_PLATFORM_FEE_EGP } from '@/lib/fees';
 import { useModal } from '@/context/ModalContext';
 import CountdownTimer from './CountdownTimer';
 import AuthModal from './AuthModal';
@@ -163,6 +164,19 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
     const projectMainImage = project.images && project.images.length > 0 ? project.images[0] : null;
     const isBundle = variant === 'bundle';
 
+    const languageTags: string[] = [];
+    const lang = seller?.freelancerProfile?.languages;
+    if (lang?.english && String(lang.english).trim()) languageTags.push('English');
+    if (lang?.arabic && String(lang.arabic).trim()) languageTags.push('Arabic');
+    if (lang?.francoArabic && String(lang.francoArabic).trim()) languageTags.push('Franco Arabic');
+    const extras = seller?.freelancerProfile?.extraLanguages;
+    if (Array.isArray(extras)) {
+        for (const x of extras) {
+            const t = String(x || '').trim();
+            if (t) languageTags.push(t);
+        }
+    }
+
     return (
         <div className={`project-card-container bg-white rounded-2xl shadow-sm border transition-all relative ${isBundle ? 'border-gray-200 p-0' : 'border-gray-200 md:rounded-3xl hover:shadow-lg'}`}>
             {/* Countdown Timer Overlay */}
@@ -198,13 +212,33 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                                 className="relative z-10 border-4 border-white shadow-lg w-12 h-12 md:w-16 md:h-16"
                             />
                         </div>
-                        <div>
+                        <div className="min-w-0">
                             <h4 className="font-bold text-gray-900 text-sm md:text-lg line-clamp-1">{freelancerName}</h4>
+                            {languageTags.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1.5">
+                                    {languageTags.map((tag) => (
+                                        <span key={tag} className="px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 text-[10px] font-bold uppercase tracking-wide">
+                                            {tag}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
                             {sellerIsBusy && (
                                 <span className="inline-block mt-1 px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-bold rounded-full">FREELANCER BUSY</span>
                             )}
                         </div>
                     </div>
+                </div>
+            )}
+
+            {isBundle && (freelancerName || languageTags.length > 0) && (
+                <div className="px-4 md:px-6 pt-3 pb-2 border-b border-gray-200 flex flex-wrap items-center gap-2">
+                    <span className="font-bold text-gray-900 text-sm">{freelancerName}</span>
+                    {languageTags.map((tag) => (
+                        <span key={tag} className="px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 text-[10px] font-bold uppercase tracking-wide">
+                            {tag}
+                        </span>
+                    ))}
                 </div>
             )}
 
@@ -330,7 +364,9 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                         <RotateCcw className="w-4 h-4" />
                         <span className="font-bold">
-                            {currentPackage.revisions === 0 ? 'No' : currentPackage.revisions === 1 ? '1' : currentPackage.revisions || 'Unlimited'} revision{currentPackage.revisions !== 1 ? 's' : ''}
+                            {currentPackage.revisionsUnlimited
+                                ? 'Unlimited revisions'
+                                : `${currentPackage.revisions === 0 ? 'No' : currentPackage.revisions === 1 ? '1' : currentPackage.revisions} revision${currentPackage.revisions !== 1 ? 's' : ''}`}
                         </span>
                     </div>
                 </div>
@@ -413,7 +449,7 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                                                 <p className="text-sm font-bold text-gray-700 mb-2">Selected bundle: <span className="text-[#09BF44]">{currentPackage.type}</span></p>
                                                 <div className="space-y-1.5 text-sm text-gray-600">
                                                     <p><span className="font-semibold">Delivery:</span> {currentPackage.days ?? '—'} days</p>
-                                                    <p><span className="font-semibold">Revisions:</span> {currentPackage.revisions ?? 0}</p>
+                                                    <p><span className="font-semibold">Revisions:</span> {currentPackage.revisionsUnlimited ? 'Unlimited' : (currentPackage.revisions ?? 0)}</p>
                                                     {Array.isArray(currentPackage.features) && currentPackage.features.length > 0 && (
                                                         <div>
                                                             <span className="font-semibold">Features:</span>
@@ -459,7 +495,7 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                                                 <p className="text-sm font-bold text-gray-800 mb-2">Bundle: <span className="text-[#09BF44]">{currentPackage.type}</span></p>
                                                 <div className="space-y-1 text-sm text-gray-600">
                                                     <p><span className="font-semibold">Delivery:</span> {currentPackage.days ?? '—'} days</p>
-                                                    <p><span className="font-semibold">Revisions:</span> {currentPackage.revisions ?? 0}</p>
+                                                    <p><span className="font-semibold">Revisions:</span> {currentPackage.revisionsUnlimited ? 'Unlimited' : (currentPackage.revisions ?? 0)}</p>
                                                     {Array.isArray(currentPackage.features) && currentPackage.features.length > 0 && (
                                                         <div>
                                                             <span className="font-semibold">Features:</span>
@@ -474,7 +510,11 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                                             </div>
                                         )}
                                         <p className="text-sm text-gray-600 mb-2">Total: <strong>{Number(currentPackage.price || 0)} EGP</strong></p>
-                                        <p className="text-xs text-gray-500 mb-4">Platform fee: 20 EGP. The freelancer must approve before work starts.</p>
+                                        {CLIENT_PLATFORM_FEE_EGP > 0 ? (
+                                            <p className="text-xs text-gray-500 mb-4">Platform fee: {CLIENT_PLATFORM_FEE_EGP} EGP. The freelancer must approve before work starts.</p>
+                                        ) : (
+                                            <p className="text-xs text-gray-500 mb-4">The freelancer must approve before work starts.</p>
+                                        )}
                                         <div className="flex gap-2 justify-end">
                                             <button onClick={() => setOrderModalStep('description')} className="px-4 py-2 rounded-xl font-bold text-gray-600 hover:bg-[#09BF44]/10 hover:text-[#09BF44]">Back</button>
                                             <button

@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const WithdrawalRequestSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     amount: { type: Number, required: true }, // Amount freelancer receives (after fee)
-    fee: { type: Number, default: 20 },     // 20 EGP withdrawal fee
+    fee: { type: Number, default: 0 },
     method: { type: String, enum: ['instapay', 'vodafone_cash', 'bank'], required: true },
     // Method-specific details (admin uses these to process)
     phoneNumber: { type: String },          // For InstaPay / Vodafone Cash

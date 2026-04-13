@@ -14,6 +14,7 @@ const OfferSchema = new mongoose.Schema({
         dueDate: { type: Date }
     }], // Optional delivery phases (single payment is offer.price)
     revisions: { type: Number, default: 0 },
+    revisionsUnlimited: { type: Boolean, default: false },
     status: { type: String, enum: ['pending', 'accepted', 'rejected', 'expired'], default: 'pending' },
     acceptedAt: { type: Date },
     expiresAt: { type: Date } // Optional expiration date

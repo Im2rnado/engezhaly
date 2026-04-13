@@ -1,20 +1,24 @@
 "use client";
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { X, Plus, Trash2, FileText } from 'lucide-react';
 import { formatDateDDMMYYYY } from '@/lib/utils';
 import DatePicker from '@/components/DatePicker';
 
+export type CreateOfferPayload = {
+    price: number;
+    deliveryDate?: string;
+    deliveryDays?: number;
+    whatsIncluded: string;
+    revisions: number;
+    revisionsUnlimited: boolean;
+    milestones: Array<{ name: string; price: number; dueDate?: string }>;
+};
+
 interface CreateOfferModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (offer: {
-        price: number;
-        deliveryDate: string;
-        whatsIncluded: string;
-        revisions: number;
-        milestones: Array<{ name: string; price: number; dueDate?: string }>;
-    }) => void;
+    onSubmit: (offer: CreateOfferPayload) => void;
 }
 
 export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOfferModalProps) {
@@ -22,8 +26,26 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
     const [deliveryDate, setDeliveryDate] = useState('');
     const [whatsIncluded, setWhatsIncluded] = useState('');
     const [revisions, setRevisions] = useState('0');
+    const [revisionsUnlimited, setRevisionsUnlimited] = useState(false);
     const [milestones, setMilestones] = useState<Array<{ name: string; dueDate: string }>>([]);
     const [showMilestones, setShowMilestones] = useState(false);
+
+    const normalizedMilestones = useMemo(
+        () =>
+            milestones
+                .filter((m) => m.name.trim())
+                .map((m) => ({
+                    name: m.name.trim(),
+                    price: 0,
+                    dueDate: m.dueDate ? new Date(m.dueDate).toISOString() : undefined
+                })),
+        [milestones]
+    );
+
+    const hasMilestoneDueDates = useMemo(
+        () => normalizedMilestones.some((m) => m.dueDate),
+        [normalizedMilestones]
+    );
 
     if (!isOpen) return null;
 
@@ -31,46 +53,55 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
         e.preventDefault();
 
         const totalPrice = Number(price);
-        const offerData = {
-            price: totalPrice,
-            deliveryDate: deliveryDate,
-            whatsIncluded: whatsIncluded.trim(),
-            revisions: Number(revisions) || 0,
-            milestones: milestones
-                .filter((m) => m.name.trim())
-                .map((m) => ({
-                    name: m.name.trim(),
-                    price: 0,
-                    dueDate: m.dueDate ? new Date(m.dueDate).toISOString() : undefined
-                }))
-        };
+        const revUnlimited = revisionsUnlimited;
+        const revNum = revUnlimited ? 0 : Number(revisions) || 0;
 
         if (totalPrice < 300) {
             alert('Minimum price is 300 EGP');
             return;
         }
 
-        if (!deliveryDate) {
-            alert('Please select a delivery date');
-            return;
-        }
-        const selectedDate = new Date(deliveryDate);
-        if (selectedDate < new Date(new Date().setHours(0, 0, 0, 0))) {
-            alert('Delivery date must be today or later');
-            return;
+        if (!hasMilestoneDueDates) {
+            if (!deliveryDate) {
+                alert('Please select a delivery date');
+                return;
+            }
+            const selectedDate = new Date(deliveryDate);
+            if (selectedDate < new Date(new Date().setHours(0, 0, 0, 0))) {
+                alert('Delivery date must be today or later');
+                return;
+            }
         }
 
-        if (!offerData.whatsIncluded) {
+        if (!whatsIncluded.trim()) {
             alert('Please describe what\'s included');
             return;
         }
 
+        const offerData: CreateOfferPayload = {
+            price: totalPrice,
+            whatsIncluded: whatsIncluded.trim(),
+            revisions: revNum,
+            revisionsUnlimited: revUnlimited,
+            milestones: normalizedMilestones
+        };
+
+        if (hasMilestoneDueDates) {
+            const times = normalizedMilestones
+                .map((m) => (m.dueDate ? new Date(m.dueDate).getTime() : NaN))
+                .filter((t) => !isNaN(t));
+            const latest = new Date(Math.max(...times));
+            offerData.deliveryDate = latest.toISOString();
+        } else {
+            offerData.deliveryDate = new Date(deliveryDate).toISOString();
+        }
+
         onSubmit(offerData);
-        // Reset form
         setPrice('');
         setDeliveryDate('');
         setWhatsIncluded('');
         setRevisions('0');
+        setRevisionsUnlimited(false);
         setMilestones([]);
         setShowMilestones(false);
     };
@@ -90,11 +121,16 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
     };
 
     const finalPrice = Number(price) || 0;
+    const summaryDelivery =
+        hasMilestoneDueDates && normalizedMilestones.length
+            ? formatDateDDMMYYYY(new Date(Math.max(...normalizedMilestones.map((m) => new Date(m.dueDate!).getTime()))).toISOString())
+            : deliveryDate
+                ? formatDateDDMMYYYY(deliveryDate)
+                : '—';
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
             <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl" style={{ height: '90vh', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
-                {/* Header - Fixed */}
                 <div className="flex-shrink-0 bg-white rounded-t-3xl border-b border-gray-200 p-6 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="p-3 bg-[#09BF44]/10 rounded-xl">
@@ -110,11 +146,9 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                     </button>
                 </div>
 
-                {/* Scrollable Content Area */}
                 <div className="modal-scrollable-content" style={{ flex: 1 }}>
                     <div className="p-6">
                         <form onSubmit={handleSubmit} className="space-y-6">
-                            {/* Price */}
                             <div>
                                 <label className="block text-sm font-bold text-gray-900 mb-2">
                                     Total Price (EGP) <span className="text-red-500">*</span>
@@ -132,37 +166,53 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                 </p>
                             </div>
 
-                            {/* Delivery Date */}
+                            {!hasMilestoneDueDates && (
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-2">
+                                        Delivery Date <span className="text-red-500">*</span>
+                                    </label>
+                                    <DatePicker
+                                        value={deliveryDate}
+                                        onChange={setDeliveryDate}
+                                        min={new Date().toISOString().split('T')[0]}
+                                        required
+                                        placeholder="Select delivery date"
+                                        className="w-full"
+                                    />
+                                </div>
+                            )}
+
+                            {hasMilestoneDueDates && (
+                                <div className="p-4 rounded-xl bg-amber-50 border border-amber-100 text-sm text-amber-900 font-medium">
+                                    Delivery date is set automatically from the latest milestone due date.
+                                </div>
+                            )}
+
                             <div>
                                 <label className="block text-sm font-bold text-gray-900 mb-2">
-                                    Delivery Date <span className="text-red-500">*</span>
+                                    Revisions <span className="text-red-500">*</span>
                                 </label>
-                                <DatePicker
-                                    value={deliveryDate}
-                                    onChange={setDeliveryDate}
-                                    min={new Date().toISOString().split('T')[0]}
-                                    required
-                                    placeholder="Select delivery date"
-                                    className="w-full"
-                                />
+                                <select
+                                    value={revisionsUnlimited ? 'unlimited' : 'fixed'}
+                                    onChange={(e) => setRevisionsUnlimited(e.target.value === 'unlimited')}
+                                    className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 focus:border-[#09BF44] outline-none mb-2"
+                                >
+                                    <option value="fixed">Fixed count</option>
+                                    <option value="unlimited">Unlimited</option>
+                                </select>
+                                {!revisionsUnlimited && (
+                                    <input
+                                        type="number"
+                                        value={revisions}
+                                        onChange={(e) => setRevisions(e.target.value)}
+                                        required
+                                        min={0}
+                                        className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:border-[#09BF44] focus:ring-2 focus:ring-[#09BF44]/20 outline-none transition-all"
+                                        placeholder="Enter number (e.g. 3)"
+                                    />
+                                )}
                             </div>
 
-                            {/* Revisions */}
-                            <div>
-                                <label className="block text-sm font-bold text-gray-900 mb-2">
-                                    Number of Revisions <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="number"
-                                    value={revisions}
-                                    onChange={(e) => setRevisions(e.target.value)}
-                                    required
-                                    className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:border-[#09BF44] focus:ring-2 focus:ring-[#09BF44]/20 outline-none transition-all"
-                                    placeholder="Enter number (e.g. 3)"
-                                />
-                            </div>
-
-                            {/* What's Included */}
                             <div>
                                 <label className="block text-sm font-bold text-gray-900 mb-2">
                                     What&apos;s Included <span className="text-red-500">*</span>
@@ -177,7 +227,6 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                 />
                             </div>
 
-                            {/* Delivery milestones */}
                             <div className="p-5 bg-gradient-to-r from-gray-50 to-gray-100/50 border-2 border-gray-200 rounded-xl">
                                 <div className="flex items-center justify-between">
                                     <div>
@@ -197,8 +246,8 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                             }
                                         }}
                                         className={`px-6 py-2.5 rounded-xl font-bold transition-all ${showMilestones
-                                                ? 'bg-[#09BF44] text-white shadow-md shadow-[#09BF44]/20'
-                                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                            ? 'bg-[#09BF44] text-white shadow-md shadow-[#09BF44]/20'
+                                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                                             }`}
                                     >
                                         {showMilestones ? 'Enabled' : 'Enable'}
@@ -266,7 +315,6 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                 </div>
                             )}
 
-                            {/* Summary */}
                             <div className="p-5 bg-gradient-to-r from-gray-50 to-gray-100/50 border-2 border-gray-200 rounded-xl">
                                 <h3 className="text-sm font-bold text-gray-900 mb-4">Offer Summary</h3>
                                 <div className="space-y-2 text-sm">
@@ -276,7 +324,7 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <span className="text-gray-600">Delivery:</span>
-                                        <span className="font-bold text-gray-900">{deliveryDate ? formatDateDDMMYYYY(deliveryDate) : '—'}</span>
+                                        <span className="font-bold text-gray-900">{summaryDelivery}</span>
                                     </div>
                                     {milestones.length > 0 && (
                                         <div className="flex justify-between items-center">
@@ -286,12 +334,11 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                     )}
                                     <div className="flex justify-between items-center">
                                         <span className="text-gray-600">Revisions:</span>
-                                        <span className="font-bold text-gray-900">{revisions || 0}</span>
+                                        <span className="font-bold text-gray-900">{revisionsUnlimited ? 'Unlimited' : revisions || 0}</span>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Actions */}
                             <div className="flex gap-4 pt-4 border-t-2 border-gray-100 pb-2">
                                 <button
                                     type="button"

@@ -76,6 +76,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
         city: '',
         english: 'Fluent',
         arabic: 'Fluent',
+        francoArabic: 'Fluent',
         extraLanguages: '' // Other languages (space or Enter), no fluency
     });
 
@@ -108,9 +109,9 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
         subCategory: '',
         images: [] as string[],
         packages: [
-            { type: 'Basic', price: '', days: '', revisions: '', features: [''] },
-            { type: 'Standard', price: '', days: '', revisions: '', features: [''] },
-            { type: 'Premium', price: '', days: '', revisions: '', features: [''] }
+            { type: 'Basic', price: '', days: '', revisions: '', revisionsUnlimited: false, features: [''] },
+            { type: 'Standard', price: '', days: '', revisions: '', revisionsUnlimited: false, features: [''] },
+            { type: 'Premium', price: '', days: '', revisions: '', revisionsUnlimited: false, features: [''] }
         ]
     });
     const [portfolioItems, setPortfolioItems] = useState<{ title: string; description: string; imageUrl: string; link: string; subCategory: string }[]>([{ title: '', description: '', imageUrl: '', link: '', subCategory: '' }]);
@@ -147,13 +148,13 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             setDocumentUploadingLabel(null);
             setPortfolioImageUploading(null);
             setPortfolioImageProgress(0);
-            setProfessionalInfo({ category: '', experienceYears: '', technicalSkills: '', softSkills: '', bio: '', isStudent: false, certifications: [], universityIdUrl: '', idDocumentUrl: '', city: '', english: 'Fluent', arabic: 'Fluent', extraLanguages: '' });
+            setProfessionalInfo({ category: '', experienceYears: '', technicalSkills: '', softSkills: '', bio: '', isStudent: false, certifications: [], universityIdUrl: '', idDocumentUrl: '', city: '', english: 'Fluent', arabic: 'Fluent', francoArabic: 'Fluent', extraLanguages: '' });
             setSurvey({ disagreementHandling: '', hoursPerDay: '', discoverySource: [], aiUsage: '' });
             setCvUrl('');
             setWithdrawalMethod({ method: 'vodafone_cash', phoneNumber: '', accountNumber: '', bankName: '' });
             setSignupNotes('');
             setSurveyStep(1);
-            setStarterOffer({ title: '', description: '', subCategory: '', images: [], packages: [{ type: 'Basic', price: '', days: '', revisions: '', features: [''] }, { type: 'Standard', price: '', days: '', revisions: '', features: [''] }, { type: 'Premium', price: '', days: '', revisions: '', features: [''] }] });
+            setStarterOffer({ title: '', description: '', subCategory: '', images: [], packages: [{ type: 'Basic', price: '', days: '', revisions: '', revisionsUnlimited: false, features: [''] }, { type: 'Standard', price: '', days: '', revisions: '', revisionsUnlimited: false, features: [''] }, { type: 'Premium', price: '', days: '', revisions: '', revisionsUnlimited: false, features: [''] }] });
             setPortfolioItems([{ title: '', description: '', imageUrl: '', link: '', subCategory: '' }]);
             setAcceptedTerms(false);
         }
@@ -476,7 +477,8 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                     type: p.type,
                     price: Number(p.price) || 300,
                     days: Number(p.days) || 1,
-                    revisions: Number(p.revisions) || 0,
+                    revisions: (p as { revisionsUnlimited?: boolean }).revisionsUnlimited ? 0 : Number(p.revisions) || 0,
+                    revisionsUnlimited: !!(p as { revisionsUnlimited?: boolean }).revisionsUnlimited,
                     features: Array.isArray(p.features) ? p.features.filter((f: string) => f?.trim()) : []
                 }))
             },
@@ -484,11 +486,11 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             signupNotes: signupNotes?.trim() || undefined
         };
         if (professionalInfo.city) profilePayload.city = professionalInfo.city;
-        if (professionalInfo.english || professionalInfo.arabic) {
-            profilePayload.languages = {};
-            if (professionalInfo.english) (profilePayload.languages as Record<string, string>).english = professionalInfo.english;
-            if (professionalInfo.arabic) (profilePayload.languages as Record<string, string>).arabic = professionalInfo.arabic;
-        }
+        profilePayload.languages = {
+            english: professionalInfo.english,
+            arabic: professionalInfo.arabic,
+            francoArabic: professionalInfo.francoArabic
+        };
         const extraLangs = professionalInfo.extraLanguages.trim().split(/\s+/).filter(Boolean);
         if (extraLangs.length > 0) profilePayload.extraLanguages = extraLangs;
         try {
@@ -938,22 +940,18 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                 </div>
                                 <input name="username" placeholder="Username" required onChange={handleChange} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
                                 <input name="email" type="email" placeholder="Email Address" required onChange={handleChange} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-1">Date of Birth</label>
-                                        <DatePicker name="dob" value={formData.dob} onChange={(v) => setFormData(f => ({ ...f, dob: v }))} max={new Date().toISOString().split('T')[0]} placeholder="Date of Birth" className="w-full" required />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-1">Phone Number</label>
-                                        <div className="flex gap-2">
-                                            <select name="phoneCountryCode" onChange={handleChange} value={formData.phoneCountryCode} className="w-48 shrink-0 p-2 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 text-sm">
-                                                {PHONE_COUNTRIES.map((c) => (
-                                                    <option key={c.code} value={c.code}>{getFlagEmoji(c.code)} {c.name} (+{c.callingCode})</option>
-                                                ))}
-                                            </select>
-                                            <input name="phoneNumber" type="tel" placeholder="Number" required onChange={handleChange} value={formData.phoneNumber} className="flex-1 min-w-0 p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
-                                        </div>
-                                    </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-1">Date of Birth</label>
+                                    <DatePicker name="dob" value={formData.dob} onChange={(v) => setFormData(f => ({ ...f, dob: v }))} max={new Date().toISOString().split('T')[0]} placeholder="Date of Birth" className="w-full" required />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="block text-sm font-bold text-gray-700">Phone Number</label>
+                                    <select name="phoneCountryCode" onChange={handleChange} value={formData.phoneCountryCode} className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 text-sm">
+                                        {PHONE_COUNTRIES.map((c) => (
+                                            <option key={c.code} value={c.code}>{getFlagEmoji(c.code)} {c.name} (+{c.callingCode})</option>
+                                        ))}
+                                    </select>
+                                    <input name="phoneNumber" type="tel" placeholder="Phone number" required onChange={handleChange} value={formData.phoneNumber} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
                                 </div>
                                 <div className="relative">
                                     <input name="password" type={showPassword ? "text" : "password"} placeholder="Password (min 6 chars)" required minLength={6} onChange={handleChange} value={formData.password} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400 pr-12" />
@@ -1096,7 +1094,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
 
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-2">Languages</label>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                         <div>
                                             <span className="block text-sm text-gray-500 mb-1">English</span>
                                             <select
@@ -1118,6 +1116,21 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                 value={professionalInfo.arabic}
                                                 onChange={(e) => setProfessionalInfo({ ...professionalInfo, arabic: e.target.value })}
                                                 className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900"
+                                            >
+                                                <option value="Fluent">Fluent</option>
+                                                <option value="Intermediate">Intermediate</option>
+                                                <option value="Basic">Basic</option>
+                                                <option value="None">None</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <span className="block text-sm text-gray-500 mb-1">Franco 3araby</span>
+                                            <select
+                                                name="francoArabic"
+                                                value={professionalInfo.francoArabic}
+                                                onChange={(e) => setProfessionalInfo({ ...professionalInfo, francoArabic: e.target.value })}
+                                                className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900"
+                                                required
                                             >
                                                 <option value="Fluent">Fluent</option>
                                                 <option value="Intermediate">Intermediate</option>
@@ -1529,7 +1542,17 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                 <div className="space-y-2">
                                                     <input type="number" placeholder="Price in EGP (min 300)" value={pkg.price} onChange={(e) => handleStarterOfferPackage(idx, 'price', e.target.value)} className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm placeholder:text-gray-400 placeholder:opacity-70" />
                                                     <input type="number" placeholder="Delivery days" value={pkg.days} onChange={(e) => handleStarterOfferPackage(idx, 'days', e.target.value)} className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm placeholder:text-gray-400 placeholder:opacity-70" />
-                                                    <input type="number" placeholder="Number of revisions" value={pkg.revisions} onChange={(e) => handleStarterOfferPackage(idx, 'revisions', e.target.value)} className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm placeholder:text-gray-400 placeholder:opacity-70" />
+                                                    <select
+                                                        value={(pkg as { revisionsUnlimited?: boolean }).revisionsUnlimited ? 'unlimited' : 'fixed'}
+                                                        onChange={(e) => handleStarterOfferPackage(idx, 'revisionsUnlimited', e.target.value === 'unlimited')}
+                                                        className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm"
+                                                    >
+                                                        <option value="fixed">Revisions: fixed count</option>
+                                                        <option value="unlimited">Revisions: unlimited</option>
+                                                    </select>
+                                                    {!(pkg as { revisionsUnlimited?: boolean }).revisionsUnlimited && (
+                                                        <input type="number" placeholder="Number of revisions" value={pkg.revisions} onChange={(e) => handleStarterOfferPackage(idx, 'revisions', e.target.value)} className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm placeholder:text-gray-400 placeholder:opacity-70" />
+                                                    )}
                                                     <div>
                                                     <label className="text-xs font-bold text-gray-500">Features (press Enter for new line)</label>
                                                     <textarea

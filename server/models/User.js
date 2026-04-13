@@ -51,7 +51,8 @@ const UserSchema = new mongoose.Schema({
         city: { type: String },
         languages: {
             english: { type: String },
-            arabic: { type: String }
+            arabic: { type: String },
+            francoArabic: { type: String } // Franco 3araby — mandatory at signup like English/Arabic
         },
         extraLanguages: [String], // Other languages (name only, no fluency level)
         certificates: [String], // URLs to uploaded files
@@ -82,6 +83,7 @@ const UserSchema = new mongoose.Schema({
                 price: Number,
                 days: Number,
                 revisions: Number,
+                revisionsUnlimited: { type: Boolean, default: false },
                 features: [String]
             }]
         },

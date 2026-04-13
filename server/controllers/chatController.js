@@ -11,6 +11,7 @@ const { sendAndLog } = require('../services/mailgunService');
 const { offerPurchased: offerPurchasedTemplate, offlineChat: offlineChatTemplate, paymentReceiptFreelancer, paymentReceiptClient } = require('../templates/emailTemplates');
 const { isUserInConversation } = require('../services/presence');
 const { emitToUser, isUserOnline } = require('../services/notificationService');
+const { emitChatContextRefresh } = require('../services/chatContextRefresh');
 
 // Helper for curse words - common abusive/profane terms
 const BAD_WORDS = [
@@ -39,6 +40,25 @@ const filterCurseWords = (text) => {
         }
     });
     return { filteredText, isBlurred };
+};
+
+/** Accept only URLs pointing at our /uploads/ files (PDF or image extension). */
+const isAllowedChatAttachmentUrl = (content) => {
+    if (typeof content !== 'string' || !content.trim()) return false;
+    let u;
+    try {
+        u = new URL(content.trim());
+    } catch {
+        return false;
+    }
+    const path = u.pathname || '';
+    const idx = path.indexOf('/uploads/');
+    if (idx === -1) return false;
+    const after = path.slice(idx + '/uploads/'.length);
+    if (!after || after.includes('/') || after.includes('..')) return false;
+    const lower = after.toLowerCase();
+    if (lower.endsWith('.pdf')) return true;
+    return /\.(jpe?g|png|gif|webp)$/.test(lower);
 };
 
 const getConversations = async (req, res) => {
@@ -150,7 +170,9 @@ const getMessages = async (req, res) => {
 
 const sendMessage = async (req, res) => {
     try {
-        const { content, messageType } = req.body;
+        const { content, messageType: rawMessageType } = req.body;
+        const allowedTypes = ['text', 'voice', 'file', 'meeting', 'order'];
+        const messageType = allowedTypes.includes(rawMessageType) ? rawMessageType : 'text';
         let receiverId = req.body.receiverId;
         if (receiverId && typeof receiverId === 'object' && receiverId._id) receiverId = receiverId._id;
         receiverId = (receiverId && String(receiverId).trim()) || null;
@@ -158,6 +180,12 @@ const sendMessage = async (req, res) => {
 
         if (!receiverId || !/^[0-9a-fA-F]{24}$/.test(receiverId)) {
             return res.status(400).json({ msg: 'receiverId is required and must be a valid user ID' });
+        }
+
+        if (messageType === 'file') {
+            if (!isAllowedChatAttachmentUrl(content)) {
+                return res.status(400).json({ msg: 'Invalid or disallowed attachment URL' });
+            }
         }
 
         // 1. Check Global Account Freeze
@@ -200,9 +228,9 @@ const sendMessage = async (req, res) => {
             return res.status(403).json({ msg: 'This freelancer is currently busy and cannot receive messages. Try again when they are available.' });
         }
 
-        // 4. Phone Number Detection (Freeze Logic) - skip for voice messages (content is a URL)
+        // 4. Phone Number Detection (Freeze Logic) - skip for voice/file (content is a URL)
         const phoneRegex = /(\d{11})|(\d{3}\s\d{4}\s\d{4})/;
-        const hasPhone = messageType !== 'voice' && phoneRegex.test(content);
+        const hasPhone = messageType !== 'voice' && messageType !== 'file' && phoneRegex.test(content);
 
         let finalContent = content;
         let isChatFrozen = false;
@@ -214,9 +242,9 @@ const sendMessage = async (req, res) => {
             // TODO: Notify Admin (Socket event or DB flag monitoring)
         }
 
-        // 5. Curse Word Filtering - skip for voice messages (content is audio URL)
+        // 5. Curse Word Filtering - skip for voice/file (content is a URL)
         let isBlurred = false;
-        if (messageType !== 'voice') {
+        if (messageType !== 'voice' && messageType !== 'file') {
             const { filteredText, isBlurred: blurred } = filterCurseWords(finalContent);
             finalContent = filteredText;
             isBlurred = blurred;
@@ -236,7 +264,10 @@ const sendMessage = async (req, res) => {
         await newMsg.save();
 
         // 7. Update Conversation Metadata
-        conversation.lastMessage = messageType === 'voice' ? 'Voice message' : finalContent;
+        conversation.lastMessage =
+            messageType === 'voice' ? 'Voice message' :
+            messageType === 'file' ? 'Attachment' :
+            finalContent;
         conversation.lastMessageId = newMsg._id;
         await conversation.save();
 
@@ -261,7 +292,9 @@ const sendMessage = async (req, res) => {
         // 9. Notify recipient: if online -> push notification; if offline -> email
         const recipientOnline = isUserOnline(req.app, receiverId);
         const senderName = sender ? `${sender.firstName} ${sender.lastName}` : 'Someone';
-        const preview = messageType === 'voice' ? 'Voice message' : (finalContent || '').substring(0, 100);
+        const preview = messageType === 'voice' ? 'Voice message' :
+            messageType === 'file' ? 'Attachment' :
+            (finalContent || '').substring(0, 100);
         const chatLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/chat?conversation=${conversation._id}`;
 
         if (recipientOnline) {
@@ -288,16 +321,12 @@ const sendMessage = async (req, res) => {
 
 const createOffer = async (req, res) => {
     try {
-        const { conversationId, receiverId, price, deliveryDays, deliveryDate, whatsIncluded, milestones } = req.body;
+        const { conversationId, receiverId, price, deliveryDays, deliveryDate, whatsIncluded, milestones, revisions, revisionsUnlimited } = req.body;
         const senderId = req.user.id;
 
         const sender = await User.findById(senderId).select('role firstName lastName freelancerProfile');
         if (!sender || sender.role !== 'freelancer') {
             return res.status(403).json({ msg: 'Only freelancers can create custom offers' });
-        }
-
-        if (!deliveryDate && (!deliveryDays || deliveryDays < 1)) {
-            return res.status(400).json({ msg: 'Provide deliveryDate or deliveryDays (min 1)' });
         }
 
         // Validate conversation exists and user is participant
@@ -318,9 +347,40 @@ const createOffer = async (req, res) => {
                     dueDate: m.dueDate ? new Date(m.dueDate) : undefined
                 }))
             : [];
-        const offerData = { conversationId, senderId, receiverId, price, whatsIncluded, milestones: normalizedMilestones };
+
+        const hasMilestoneDueDates = normalizedMilestones.some(
+            (m) => m.dueDate && !isNaN(new Date(m.dueDate).getTime())
+        );
+
+        if (!hasMilestoneDueDates && !deliveryDate && (!deliveryDays || deliveryDays < 1)) {
+            return res.status(400).json({ msg: 'Provide deliveryDate or deliveryDays (min 1), or milestones with due dates' });
+        }
+
+        const revUnlimited = Boolean(revisionsUnlimited);
+        let revNum = 0;
+        if (!revUnlimited) {
+            const n = Number(revisions);
+            revNum = Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
+        }
+
+        const offerData = {
+            conversationId,
+            senderId,
+            receiverId,
+            price,
+            whatsIncluded,
+            milestones: normalizedMilestones,
+            revisions: revNum,
+            revisionsUnlimited: revUnlimited
+        };
+
         if (deliveryDate) {
             offerData.deliveryDate = new Date(deliveryDate);
+        } else if (hasMilestoneDueDates) {
+            const times = normalizedMilestones
+                .map((m) => (m.dueDate ? new Date(m.dueDate).getTime() : NaN))
+                .filter((t) => !isNaN(t));
+            offerData.deliveryDate = new Date(Math.max(...times));
         } else {
             offerData.deliveryDays = Number(deliveryDays);
         }
@@ -360,6 +420,7 @@ const createOffer = async (req, res) => {
                 isAdmin: false,
                 isRead: false
             });
+            emitChatContextRefresh(io, conversation._id);
         }
 
         const senderName = sender ? `${sender.firstName || ''} ${sender.lastName || ''}`.trim() || 'Freelancer' : 'Someone';
@@ -409,7 +470,6 @@ const acceptOffer = async (req, res) => {
             return res.status(400).json({ msg: 'Offer is no longer pending' });
         }
 
-        const clientFee = 20;
         const totalClientPays = offer.price;
         const amountCents = Math.round(totalClientPays * 100);
 
@@ -424,6 +484,33 @@ const acceptOffer = async (req, res) => {
             amountCents,
             meta: { offerId: offer._id.toString() }
         });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: err.message || 'Server Error' });
+    }
+};
+
+const deleteOffer = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.id;
+
+        const offer = await Offer.findById(id);
+        if (!offer) {
+            return res.status(404).json({ msg: 'Offer not found' });
+        }
+        if (offer.senderId.toString() !== userId) {
+            return res.status(403).json({ msg: 'Only the sender can delete this offer' });
+        }
+        if (offer.status !== 'pending') {
+            return res.status(400).json({ msg: 'Only pending offers can be deleted' });
+        }
+
+        const convId = offer.conversationId;
+        await offer.deleteOne();
+        const io = req.app.get('io');
+        emitChatContextRefresh(io, convId);
+        res.json({ msg: 'Offer deleted' });
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ msg: err.message || 'Server Error' });
@@ -642,6 +729,7 @@ module.exports = {
     sendMessage,
     createOffer,
     acceptOffer,
+    deleteOffer,
     getOffers,
     getConsultationStatus,
     createConsultationMeeting

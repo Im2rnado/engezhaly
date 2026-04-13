@@ -32,9 +32,9 @@ export default function EditProjectPage() {
         subCategory: '',
         images: [] as string[],
         packages: [
-            { type: 'Basic', price: '', days: '', features: [''], revisions: '' },
-            { type: 'Standard', price: '', days: '', features: [''], revisions: '' },
-            { type: 'Premium', price: '', days: '', features: [''], revisions: '' }
+            { type: 'Basic', price: '', days: '', features: [''], revisions: '', revisionsUnlimited: false },
+            { type: 'Standard', price: '', days: '', features: [''], revisions: '', revisionsUnlimited: false },
+            { type: 'Premium', price: '', days: '', features: [''], revisions: '', revisionsUnlimited: false }
         ],
         isActive: true
     });
@@ -65,16 +65,17 @@ export default function EditProjectPage() {
                         setError('This offer\'s category no longer matches your profile. Contact support.');
                     }
                     const defaultPkgs = [
-                        { type: 'Basic', price: '', days: '', features: [''], revisions: '' },
-                        { type: 'Standard', price: '', days: '', features: [''], revisions: '' },
-                        { type: 'Premium', price: '', days: '', features: [''], revisions: '' }
+                        { type: 'Basic', price: '', days: '', features: [''], revisions: '', revisionsUnlimited: false },
+                        { type: 'Standard', price: '', days: '', features: [''], revisions: '', revisionsUnlimited: false },
+                        { type: 'Premium', price: '', days: '', features: [''], revisions: '', revisionsUnlimited: false }
                     ];
                     const srcPkgs = Array.isArray(projectData.packages) && projectData.packages.length > 0 ? projectData.packages : defaultPkgs;
                     const norm = (p: any, i: number) => ({
                         type: p.type || defaultPkgs[i]?.type || 'Basic',
                         price: p.price !== undefined && p.price !== null && String(p.price) !== '' ? String(p.price) : '',
                         days: p.days !== undefined && p.days !== null && String(p.days) !== '' ? String(p.days) : '',
-                        revisions: p.revisions !== undefined && p.revisions !== null && String(p.revisions) !== '' ? String(p.revisions) : '',
+                        revisions: p.revisionsUnlimited ? '' : (p.revisions !== undefined && p.revisions !== null && String(p.revisions) !== '' ? String(p.revisions) : ''),
+                        revisionsUnlimited: !!p.revisionsUnlimited,
                         features: Array.isArray(p.features) && p.features.length ? p.features : ['']
                     });
                     setProjectData({
@@ -145,7 +146,8 @@ export default function EditProjectPage() {
                     ...p,
                     price: Number(p.price),
                     days: Number(p.days),
-                    revisions: Number(p.revisions),
+                    revisions: p.revisionsUnlimited ? 0 : Number(p.revisions),
+                    revisionsUnlimited: !!p.revisionsUnlimited,
                     features: Array.isArray(p.features) ? p.features.filter((f: string) => f && f.trim()) : []
                 }))
             });
@@ -372,15 +374,25 @@ export default function EditProjectPage() {
 
                                                     <div>
                                                         <label className="text-xs font-bold text-gray-500">Revisions</label>
-                                                        <input
-                                                            type="number"
-                                                           
-                                                            required
-                                                            value={pkg.revisions}
-                                                            onChange={(e) => handlePackageChange(idx, 'revisions', e.target.value)}
-                                                            placeholder="Revisions"
-                                                            className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none placeholder:text-gray-400 placeholder:opacity-70"
-                                                        />
+                                                        <select
+                                                            value={pkg.revisionsUnlimited ? 'unlimited' : 'fixed'}
+                                                            onChange={(e) => handlePackageChange(idx, 'revisionsUnlimited', e.target.value === 'unlimited')}
+                                                            className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm mb-1"
+                                                        >
+                                                            <option value="fixed">Fixed count</option>
+                                                            <option value="unlimited">Unlimited</option>
+                                                        </select>
+                                                        {!pkg.revisionsUnlimited && (
+                                                            <input
+                                                                type="number"
+                                                                required
+                                                                min={0}
+                                                                value={pkg.revisions}
+                                                                onChange={(e) => handlePackageChange(idx, 'revisions', e.target.value)}
+                                                                placeholder="Revisions"
+                                                                className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none placeholder:text-gray-400 placeholder:opacity-70"
+                                                            />
+                                                        )}
                                                     </div>
 
                                                     <div>

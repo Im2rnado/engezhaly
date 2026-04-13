@@ -1,15 +1,146 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { io } from 'socket.io-client';
 import Image from 'next/image';
 import { api } from '@/lib/api';
 import { formatStatus, formatDateDDMMYYYY } from '@/lib/utils';
-import { Check, X, Ban, User, Flag, MessageSquare, Award, BarChart3, TrendingUp, Search, Loader2, Briefcase, FileText, ShoppingBag, CreditCard, Trash2, Star, Edit, LogOut, ArrowLeft, Send, Shield, PanelLeft, Mail, Video, ArrowDownToLine, Smartphone, Megaphone, ImagePlus } from 'lucide-react';
+import { Check, X, Ban, User, Flag, MessageSquare, Award, BarChart3, TrendingUp, Search, Loader2, Briefcase, FileText, ShoppingBag, CreditCard, Trash2, Star, Edit, LogOut, ArrowLeft, Send, Shield, PanelLeft, Mail, Video, ArrowDownToLine, Smartphone, Megaphone, ImagePlus, AlertTriangle, UserPlus } from 'lucide-react';
 import { MAIN_CATEGORIES } from '@/lib/categories';
 import { useModal } from '@/context/ModalContext';
 import EditModal from '@/components/EditModal';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
+
+const SOCKET_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.engezhaly.com/api').replace(/\/api$/, '');
+const API_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/api$/, '');
+
+function resolveMediaUrl(url: string) {
+    if (!url || typeof url !== 'string') return '';
+    const u = url.trim();
+    if (u.startsWith('http://') || u.startsWith('https://')) return u;
+    const base = API_ORIGIN || (typeof window !== 'undefined' ? window.location.origin : '');
+    if (!base) return u;
+    return `${base}${u.startsWith('/') ? '' : '/'}${u}`;
+}
+
+function AdminChatBubbles({ messages, selectedChat }: { messages: any[]; selectedChat: any }) {
+    if (!selectedChat) return null;
+    return (
+        <>
+            {messages.map((msg: any) => {
+                const raw = msg.content || '';
+                const isVoice = msg.messageType === 'voice';
+                const isFile = msg.messageType === 'file';
+                const fileSrc = isFile ? resolveMediaUrl(raw) : '';
+                const isAdmin = msg.isAdmin || raw.includes('[Engezhaly Admin]');
+                const isMeeting = msg.isMeeting || msg.messageType === 'meeting' || raw.includes('[Engezhaly Meeting]');
+                const isOrder = msg.messageType === 'order' || raw.includes('[Engezhaly Order]');
+                const isOfferRequest = raw.includes('[Engezhaly Offer Request]');
+                const isCentered = isAdmin || isMeeting || isOrder || isOfferRequest;
+                let content = raw;
+                if (isAdmin) content = content.replace('[Engezhaly Admin]', '').trim();
+                if (isMeeting) content = content.replace('[Engezhaly Meeting]', '').trim();
+                if (isOrder) content = content.replace('[Engezhaly Order]', '').trim();
+                if (isOfferRequest) content = content.replace('[Engezhaly Offer Request]', '').trim();
+                const linkMatch = content.match(/Join here: (https?:\/\/[^\s]+)/);
+                const meetingLink = linkMatch ? linkMatch[1] : null;
+                const senderId = String(msg.senderId?._id || msg.senderId);
+                const participant1Id = selectedChat.participants?.[0]?._id ? String(selectedChat.participants[0]._id) : null;
+                const isFromParticipant1 = participant1Id && senderId === participant1Id;
+                const voiceSrc = isVoice ? resolveMediaUrl(content) : '';
+
+                return (
+                    <div key={msg._id} className={`flex ${isCentered ? 'justify-center' : isFromParticipant1 ? 'justify-start' : 'justify-end'}`}>
+                        <div className={`max-w-[70%] px-4 py-2 rounded-2xl shadow-sm ${isAdmin
+                            ? 'bg-yellow-100 border-2 border-yellow-300 text-gray-900'
+                            : isMeeting
+                                ? 'bg-green-50 border-2 border-[#09BF44]/40 text-gray-900'
+                                : isOrder || isOfferRequest
+                                    ? 'bg-blue-50 border-2 border-blue-200 text-gray-900'
+                                    : isFromParticipant1
+                                        ? 'bg-white border border-gray-200 text-gray-900 rounded-bl-sm'
+                                        : 'bg-[#a7f3d0] text-gray-900 rounded-br-sm'
+                            }`}>
+                            {!isCentered && (
+                                <div className="flex items-center gap-1 mb-1">
+                                    <span className={`text-[10px] font-black uppercase ${isFromParticipant1 ? 'text-gray-400' : 'text-emerald-800'}`}>
+                                        {isFromParticipant1 ? (selectedChat.participants?.[0]?.firstName || 'User 1') : (selectedChat.participants?.[1]?.firstName || 'User 2')} ({isFromParticipant1 ? (selectedChat.participants?.[0]?.role || 'client') : (selectedChat.participants?.[1]?.role || 'freelancer')})
+                                    </span>
+                                </div>
+                            )}
+                            {isOrder && (
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-xs font-bold text-blue-700">Order</span>
+                                </div>
+                            )}
+                            {isOfferRequest && (
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-xs font-bold text-blue-700">Offer request</span>
+                                </div>
+                            )}
+                            {isAdmin && (
+                                <div className="flex items-center gap-2 mb-1">
+                                    <Shield className="w-4 h-4 text-yellow-600" />
+                                    <span className="text-xs font-bold text-yellow-700">Engezhaly Admin</span>
+                                </div>
+                            )}
+                            {isMeeting && (
+                                <div className="flex items-center gap-2 mb-1">
+                                    <Video className="w-4 h-4 text-[#09BF44]" />
+                                    <span className="text-xs font-bold text-[#09BF44]">Video Meeting</span>
+                                </div>
+                            )}
+                            {isVoice ? (
+                                <audio controls src={voiceSrc} className="max-w-full min-w-[200px] h-10 rounded-lg" />
+                            ) : isFile && fileSrc ? (
+                                <div className="space-y-2">
+                                    {/\.(jpe?g|png|gif|webp)(\?|$)/i.test(fileSrc) ? (
+                                        <a href={fileSrc} target="_blank" rel="noopener noreferrer" className="block">
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img src={fileSrc} alt="Attachment" className="max-h-56 max-w-full rounded-lg border border-gray-200 object-contain" />
+                                        </a>
+                                    ) : /\.pdf(\?|$)/i.test(fileSrc) ? (
+                                        <a
+                                            href={fileSrc}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-sm bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-900"
+                                        >
+                                            <FileText className="w-4 h-4 shrink-0" />
+                                            Open PDF
+                                        </a>
+                                    ) : (
+                                        <a href={fileSrc} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-[#09BF44] underline break-all">
+                                            Open file
+                                        </a>
+                                    )}
+                                </div>
+                            ) : (
+                                <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{content}</p>
+                            )}
+                            {meetingLink && (
+                                <a
+                                    href={meetingLink}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-2 mt-2 px-3 py-2 bg-[#09BF44] text-white rounded-xl font-bold text-sm hover:bg-[#07a63a] transition-colors"
+                                >
+                                    <Video className="w-4 h-4" /> Join Meeting
+                                </a>
+                            )}
+                            <div className={`flex items-center justify-end mt-1 ${isAdmin ? 'text-yellow-700' : isMeeting ? 'text-[#09BF44]/80' : isOrder || isOfferRequest ? 'text-blue-600/80' : isFromParticipant1 ? 'text-gray-500' : 'text-emerald-900'}`}>
+                                <span className="text-[10px]">
+                                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })}
+        </>
+    );
+}
 
 function UserDetailPanel({ user, onBack, onEdit, onDelete, onRefresh }: { user: any; onBack: () => void; onEdit: () => void; onDelete: () => void; onRefresh?: () => void }) {
     const { showModal } = useModal();
@@ -308,7 +439,7 @@ function UserDetailPanel({ user, onBack, onEdit, onDelete, onRefresh }: { user: 
 export default function AdminDashboard() {
     const { showModal, hideModal } = useModal();
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'approvals' | 'users' | 'projects' | 'jobs' | 'orders' | 'finance' | 'withdrawals' | 'instapay' | 'chats' | 'strikes' | 'rewards' | 'emails' | 'announcements'>('dashboard');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'approvals' | 'users' | 'projects' | 'jobs' | 'orders' | 'disputes' | 'finance' | 'withdrawals' | 'instapay' | 'chats' | 'strikes' | 'rewards' | 'emails' | 'announcements'>('dashboard');
 
     // Data States
     const [pendingFreelancers, setPendingFreelancers] = useState<any[]>([]);
@@ -355,6 +486,9 @@ export default function AdminDashboard() {
     const [selectedChat, setSelectedChat] = useState<any>(null);
     const [chatMessages, setChatMessages] = useState<any[]>([]);
     const [adminMessageInput, setAdminMessageInput] = useState('');
+    const [socket, setSocket] = useState<any>(null);
+    const selectedConversationIdRef = useRef<string | null>(null);
+    selectedConversationIdRef.current = selectedChat?._id ?? null;
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
     const [financeHideManualTopUp, setFinanceHideManualTopUp] = useState(false);
@@ -370,6 +504,22 @@ export default function AdminDashboard() {
     const [announcementImageUrl, setAnnouncementImageUrl] = useState('');
     const [announcementVideoLink, setAnnouncementVideoLink] = useState('');
     const [creatingAnnouncement, setCreatingAnnouncement] = useState(false);
+
+    const [withdrawRejectTarget, setWithdrawRejectTarget] = useState<any | null>(null);
+    const [withdrawRejectReason, setWithdrawRejectReason] = useState('');
+
+    const [disputes, setDisputes] = useState<any[]>([]);
+    const [disputesLoading, setDisputesLoading] = useState(false);
+    const [selectedDispute, setSelectedDispute] = useState<any | null>(null);
+    const [disputeChatMessages, setDisputeChatMessages] = useState<any[]>([]);
+    const [disputeChatLoading, setDisputeChatLoading] = useState(false);
+
+    const [supportChatModalOpen, setSupportChatModalOpen] = useState(false);
+    const [supportUserQuery, setSupportUserQuery] = useState('');
+    const [supportUserSearchLoading, setSupportUserSearchLoading] = useState(false);
+    const [supportUserPick, setSupportUserPick] = useState<any | null>(null);
+
+    const [managementDetail, setManagementDetail] = useState<{ kind: 'project' | 'job' | 'order'; item: any } | null>(null);
 
     // Fetch Functions
     const fetchPending = async () => {
@@ -424,12 +574,21 @@ export default function AdminDashboard() {
 
         try {
             const participants = selectedChat.participants || [];
-            // Send message once - it will be visible to all participants
-            // Use the first participant as receiverId (required field, but message is visible to all)
-            if (participants.length > 0) {
+            let receiverId: string | undefined;
+            if (selectedChat.kind === 'support' && participants.length >= 2) {
+                const nonTeam = participants.find(
+                    (p: any) => !(p?.firstName === 'Engezhaly' && p?.lastName === 'Team')
+                );
+                receiverId = nonTeam?._id || participants[1]?._id;
+            } else if (participants.length >= 2) {
+                receiverId = participants[1]._id;
+            } else {
+                receiverId = participants[0]?._id;
+            }
+            if (receiverId) {
                 await api.admin.sendAdminMessage({
                     conversationId: selectedChat._id,
-                    receiverId: participants[0]._id,
+                    receiverId,
                     content: adminMessageInput
                 });
             }
@@ -497,6 +656,18 @@ export default function AdminDashboard() {
             console.error('Failed to fetch orders', err);
         } finally {
             setOrdersLoading(false);
+        }
+    };
+
+    const fetchDisputes = async () => {
+        setDisputesLoading(true);
+        try {
+            const data = await api.admin.getDisputes();
+            setDisputes(Array.isArray(data) ? data : []);
+        } catch (err) {
+            console.error('Failed to fetch disputes', err);
+        } finally {
+            setDisputesLoading(false);
         }
     };
 
@@ -586,6 +757,7 @@ export default function AdminDashboard() {
         fetchWithdrawals();
         fetchChats();
         fetchEmailLogs();
+        fetchDisputes();
     }, []);
 
     useEffect(() => {
@@ -600,7 +772,94 @@ export default function AdminDashboard() {
         if (activeTab === 'rewards') fetchTopFreelancers();
         if (activeTab === 'emails') fetchEmailLogs();
         if (activeTab === 'announcements') fetchAnnouncements();
+        if (activeTab === 'disputes') fetchDisputes();
     }, [activeTab, financeHideManualTopUp]);
+
+    useEffect(() => {
+        if (!['projects', 'jobs', 'orders'].includes(activeTab)) setManagementDetail(null);
+    }, [activeTab]);
+
+    useEffect(() => {
+        const convId = selectedDispute?.conversationId;
+        if (!convId) {
+            setDisputeChatMessages([]);
+            return;
+        }
+        let cancelled = false;
+        setDisputeChatLoading(true);
+        api.chat.getMessages(String(convId))
+            .then((data: any[]) => {
+                if (cancelled) return;
+                const formatted = (data || []).map((m: any) => ({
+                    _id: m._id,
+                    content: m.content,
+                    senderId: m.senderId?._id || m.senderId,
+                    isAdmin: m.isAdmin || m.content?.includes('[Engezhaly Admin]'),
+                    isMeeting: m.messageType === 'meeting' || m.content?.includes('[Engezhaly Meeting]'),
+                    messageType: m.messageType,
+                    createdAt: m.createdAt
+                }));
+                setDisputeChatMessages(formatted);
+            })
+            .catch(() => {
+                if (!cancelled) setDisputeChatMessages([]);
+            })
+            .finally(() => {
+                if (!cancelled) setDisputeChatLoading(false);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [selectedDispute?.conversationId]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const token = localStorage.getItem('token') || '';
+        if (!token) return;
+        const newSocket = io(SOCKET_URL, {
+            auth: { token },
+            extraHeaders: { 'x-auth-token': token }
+        });
+        setSocket(newSocket);
+        return () => {
+            newSocket.disconnect();
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!socket || !selectedChat?._id) return;
+        const id = selectedChat._id;
+        socket.emit('join_chat', id);
+        return () => {
+            socket.emit('leave_chat', id);
+        };
+    }, [socket, selectedChat?._id]);
+
+    useEffect(() => {
+        if (!socket) return;
+        const formatIncoming = (msg: any) => ({
+            _id: msg._id,
+            content: msg.content,
+            senderId: msg.senderId?._id || msg.senderId,
+            isAdmin: msg.isAdmin || String(msg.content || '').includes('[Engezhaly Admin]'),
+            isMeeting: msg.messageType === 'meeting' || String(msg.content || '').includes('[Engezhaly Meeting]'),
+            messageType: msg.messageType,
+            createdAt: msg.createdAt || new Date().toISOString()
+        });
+        const onMessage = (msg: any) => {
+            const conv = String(msg.conversationId || '');
+            if (!selectedConversationIdRef.current || conv !== String(selectedConversationIdRef.current)) return;
+            setChatMessages((prev) => {
+                if (prev.some((m) => String(m._id) === String(msg._id))) return prev;
+                return [...prev, formatIncoming(msg)];
+            });
+            fetchChats();
+        };
+        socket.on('message', onMessage);
+        return () => {
+            socket.off('message', onMessage);
+        };
+    }, [socket]);
 
     // Action Handlers
     const handleSearchUser = async () => {
@@ -873,6 +1132,10 @@ export default function AdminDashboard() {
                         <ShoppingBag className="w-5 h-5" /> Orders
                         {orders.length > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{orders.length}</span>}
                     </button>
+                    <button onClick={() => setActiveTab('disputes')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'disputes' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
+                        <AlertTriangle className="w-5 h-5" /> Disputes
+                        {disputes.length > 0 && <span className="ml-auto bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">{disputes.length}</span>}
+                    </button>
                     <button onClick={() => setActiveTab('finance')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'finance' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <CreditCard className="w-5 h-5" /> Finance
                         {transactions.length > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{transactions.length}</span>}
@@ -1048,101 +1311,39 @@ export default function AdminDashboard() {
                     </div>
                 )}
 
-                {/* Management Tabs (Tables) - projects, jobs, orders, finance */}
-                {(activeTab === 'projects' || activeTab === 'jobs' || activeTab === 'orders' || activeTab === 'finance') && (
+                {activeTab === 'finance' && (
                     <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-                        {activeTab === 'finance' && (
-                            <div className="p-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-3">
-                                <h2 className="text-lg font-bold text-gray-900">All Transactions</h2>
-                                <label className="flex items-center gap-2 text-sm font-medium text-gray-600 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={financeHideManualTopUp}
-                                        onChange={(e) => setFinanceHideManualTopUp(e.target.checked)}
-                                        className="rounded border-gray-300 text-[#09BF44] focus:ring-[#09BF44]"
-                                    />
-                                    Hide manual admin top-ups
-                                </label>
-                            </div>
-                        )}
+                        <div className="p-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-3">
+                            <h2 className="text-lg font-bold text-gray-900">All Transactions</h2>
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-600 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={financeHideManualTopUp}
+                                    onChange={(e) => setFinanceHideManualTopUp(e.target.checked)}
+                                    className="rounded border-gray-300 text-[#09BF44] focus:ring-[#09BF44]"
+                                />
+                                Hide manual admin top-ups
+                            </label>
+                        </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm text-left">
                                 <thead className="bg-gray-50 text-gray-500 font-bold uppercase">
                                     <tr>
-                                        {activeTab === 'projects' && <><th className="p-4">Title</th><th className="p-4">Freelancer</th><th className="p-4">Price Range</th><th className="p-4">Actions</th></>}
-                                        {activeTab === 'jobs' && <><th className="p-4">Title</th><th className="p-4">Client</th><th className="p-4">Budget</th><th className="p-4">Actions</th></>}
-                                        {activeTab === 'orders' && <><th className="p-4">ID</th><th className="p-4">Project</th><th className="p-4">Client</th><th className="p-4">Freelancer</th><th className="p-4">Amount</th><th className="p-4">Status</th><th className="p-4">Actions</th></>}
-                                        {activeTab === 'finance' && <><th className="p-4">Type</th><th className="p-4">User</th><th className="p-4">Amount</th><th className="p-4">Status</th><th className="p-4">Date</th></>}
+                                        <th className="p-4">Type</th>
+                                        <th className="p-4">User</th>
+                                        <th className="p-4">Amount</th>
+                                        <th className="p-4">Status</th>
+                                        <th className="p-4">Date</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
-                                    {activeTab === 'projects' && projectsLoading && (
-                                        <tr><td colSpan={4} className="p-8 text-center"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44] mx-auto" /></td></tr>
-                                    )}
-                                    {activeTab === 'projects' && !projectsLoading && projects.length === 0 && (
-                                        <tr><td colSpan={4} className="p-8 text-center text-gray-500">No offers yet.</td></tr>
-                                    )}
-                                    {activeTab === 'projects' && !projectsLoading && projects.map(project => (
-                                        <tr key={project._id} className="hover:bg-gray-50">
-                                            <td className="p-4 font-bold truncate max-w-xs">{project.title}</td>
-                                            <td className="p-4">{project.sellerId?.firstName} {project.sellerId?.lastName}</td>
-                                            <td className="p-4 text-gray-600">{project.packages?.[0]?.price} - {project.packages?.[2]?.price} EGP</td>
-                                            <td className="p-4 flex gap-2">
-                                                <button onClick={() => handleEditProject(project)} className="text-blue-500 hover:bg-blue-50 p-2 rounded"><Edit className="w-4 h-4" /></button>
-                                                <button onClick={() => handleDeleteProject(project._id)} className="text-red-500 hover:bg-red-50 p-2 rounded"><Trash2 className="w-4 h-4" /></button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {activeTab === 'jobs' && jobsLoading && (
-                                        <tr><td colSpan={4} className="p-8 text-center"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44] mx-auto" /></td></tr>
-                                    )}
-                                    {activeTab === 'jobs' && !jobsLoading && jobs.length === 0 && (
-                                        <tr><td colSpan={4} className="p-8 text-center text-gray-500">No jobs yet.</td></tr>
-                                    )}
-                                    {activeTab === 'jobs' && !jobsLoading && jobs.map(job => (
-                                        <tr key={job._id} className="hover:bg-gray-50">
-                                            <td className="p-4 font-bold truncate max-w-xs">{job.title}</td>
-                                            <td className="p-4">{job.clientId?.firstName} {job.clientId?.lastName}</td>
-                                            <td className="p-4 text-gray-600">{job.budgetRange?.min} - {job.budgetRange?.max} EGP</td>
-                                            <td className="p-4 flex gap-2">
-                                                <button onClick={() => handleEditJob(job)} className="text-blue-500 hover:bg-blue-50 p-2 rounded"><Edit className="w-4 h-4" /></button>
-                                                <button onClick={() => handleDeleteJob(job._id)} className="text-red-500 hover:bg-red-50 p-2 rounded"><Trash2 className="w-4 h-4" /></button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {activeTab === 'orders' && ordersLoading && (
-                                        <tr><td colSpan={7} className="p-8 text-center"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44] mx-auto" /></td></tr>
-                                    )}
-                                    {activeTab === 'orders' && !ordersLoading && orders.length === 0 && (
-                                        <tr><td colSpan={7} className="p-8 text-center text-gray-500">No orders yet.</td></tr>
-                                    )}
-                                    {activeTab === 'orders' && !ordersLoading && orders.map(order => (
-                                        <tr key={order._id} className="hover:bg-gray-50">
-                                            <td className="p-4 text-gray-400 text-xs">{order._id.substring(0, 8)}...</td>
-                                            <td className="p-4 font-bold truncate max-w-xs">{order.projectId?.title}</td>
-                                            <td className="p-4">{order.buyerId?.firstName}</td>
-                                            <td className="p-4">{order.sellerId?.firstName}</td>
-                                            <td className="p-4 font-bold text-gray-900">{order.amount} EGP</td>
-                                            <td className="p-4"><span className={`px-2 py-1 rounded text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'disputed' ? 'bg-amber-100 text-amber-700' : order.status === 'refunded' ? 'bg-gray-100 text-gray-700' : 'bg-blue-100 text-blue-700'}`}>{formatStatus(order.status)}</span></td>
-                                            <td className="p-4">
-                                                {order.status === 'disputed' && (
-                                                    <button
-                                                        onClick={() => setDisputeModal({ isOpen: true, order })}
-                                                        className="text-[#09BF44] hover:bg-green-50 px-3 py-1.5 rounded font-bold text-sm flex items-center gap-1"
-                                                    >
-                                                        <Shield className="w-4 h-4" /> Resolve
-                                                    </button>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {activeTab === 'finance' && financeLoading && (
+                                    {financeLoading && (
                                         <tr><td colSpan={5} className="p-8 text-center"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44] mx-auto" /></td></tr>
                                     )}
-                                    {activeTab === 'finance' && !financeLoading && transactions.length === 0 && (
+                                    {!financeLoading && transactions.length === 0 && (
                                         <tr><td colSpan={5} className="p-8 text-center text-gray-500">No transactions yet.</td></tr>
                                     )}
-                                    {activeTab === 'finance' && !financeLoading && transactions.map(tx => (
+                                    {!financeLoading && transactions.map(tx => (
                                         <tr key={tx._id} className="hover:bg-gray-50">
                                             <td className="p-4 capitalize">
                                                 {tx.type}
@@ -1161,6 +1362,395 @@ export default function AdminDashboard() {
                                 </tbody>
                             </table>
                         </div>
+                    </div>
+                )}
+
+                {activeTab === 'projects' && (
+                    <div className="space-y-6">
+                        {!managementDetail || managementDetail.kind !== 'project' ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                                {projectsLoading && (
+                                    <div className="col-span-full flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44]" /></div>
+                                )}
+                                {!projectsLoading && projects.length === 0 && (
+                                    <p className="col-span-full text-center text-gray-500 py-12">No offers yet.</p>
+                                )}
+                                {!projectsLoading && projects.map((project: any) => (
+                                    <button
+                                        key={project._id}
+                                        type="button"
+                                        onClick={() => setManagementDetail({ kind: 'project', item: project })}
+                                        className="text-left bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:border-[#09BF44]/50 hover:shadow-md transition-all"
+                                    >
+                                        <h3 className="font-black text-gray-900 mb-2 line-clamp-2">{project.title}</h3>
+                                        <p className="text-sm text-gray-600">{project.sellerId?.firstName} {project.sellerId?.lastName}</p>
+                                        <p className="text-xs text-gray-500 mt-1">{project.category} · {project.subCategory}</p>
+                                        <p className="text-sm font-bold text-[#09BF44] mt-3">
+                                            {project.packages?.[0]?.price} – {(project.packages?.[2]?.price ?? project.packages?.[1]?.price ?? project.packages?.[0]?.price)} EGP
+                                        </p>
+                                    </button>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 md:p-8">
+                                <button type="button" onClick={() => setManagementDetail(null)} className="flex items-center gap-2 text-gray-600 font-bold mb-6 hover:text-gray-900">
+                                    <ArrowLeft className="w-5 h-5" /> Back to offers
+                                </button>
+                                {(() => {
+                                    const project = managementDetail.item;
+                                    return (
+                                        <>
+                                            <h2 className="text-2xl font-black text-gray-900 mb-2">{project.title}</h2>
+                                            <p className="text-gray-600 mb-4">{project.description || '—'}</p>
+                                            <div className="flex flex-wrap gap-3 mb-6">
+                                                <button type="button" onClick={() => router.push(`/freelancer/${project.sellerId?._id || project.sellerId}`)} className="text-sm font-bold text-[#09BF44] hover:underline">
+                                                    View freelancer profile
+                                                </button>
+                                                <button type="button" onClick={() => handleEditProject(project)} className="text-sm font-bold text-blue-600 hover:underline flex items-center gap-1"><Edit className="w-4 h-4" /> Edit</button>
+                                                <button type="button" onClick={() => handleDeleteProject(project._id)} className="text-sm font-bold text-red-600 hover:underline flex items-center gap-1"><Trash2 className="w-4 h-4" /> Delete</button>
+                                            </div>
+                                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Packages</h4>
+                                            <div className="grid gap-3 sm:grid-cols-3">
+                                                {(project.packages || []).map((pkg: any, i: number) => (
+                                                    <div key={i} className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                                                        <p className="font-black text-gray-900">{pkg.type}</p>
+                                                        <p className="text-[#09BF44] font-bold mt-1">{pkg.price} EGP</p>
+                                                        <p className="text-xs text-gray-500 mt-1">{pkg.days} days · rev. {pkg.revisionsUnlimited ? '∞' : (pkg.revisions ?? 0)}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </>
+                                    );
+                                })()}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {activeTab === 'jobs' && (
+                    <div className="space-y-6">
+                        {!managementDetail || managementDetail.kind !== 'job' ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                                {jobsLoading && (
+                                    <div className="col-span-full flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44]" /></div>
+                                )}
+                                {!jobsLoading && jobs.length === 0 && (
+                                    <p className="col-span-full text-center text-gray-500 py-12">No jobs yet.</p>
+                                )}
+                                {!jobsLoading && jobs.map((job: any) => (
+                                    <button
+                                        key={job._id}
+                                        type="button"
+                                        onClick={() => setManagementDetail({ kind: 'job', item: job })}
+                                        className="text-left bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:border-[#09BF44]/50 hover:shadow-md transition-all"
+                                    >
+                                        <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${job.status === 'open' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>{job.status}</span>
+                                        <h3 className="font-black text-gray-900 mt-2 line-clamp-2">{job.title}</h3>
+                                        <p className="text-sm text-gray-600 mt-1">{job.clientId?.firstName} {job.clientId?.lastName}</p>
+                                        <p className="text-xs text-gray-500 mt-2">Posted {formatDateDDMMYYYY(job.createdAt)} · Due: {job.deadline || '—'}</p>
+                                        <p className="text-sm font-bold text-[#09BF44] mt-2">{job.budgetRange?.min} – {job.budgetRange?.max} EGP</p>
+                                    </button>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 md:p-8 space-y-6">
+                                <button type="button" onClick={() => setManagementDetail(null)} className="flex items-center gap-2 text-gray-600 font-bold hover:text-gray-900">
+                                    <ArrowLeft className="w-5 h-5" /> Back to jobs
+                                </button>
+                                {(() => {
+                                    const job = managementDetail.item;
+                                    const accepted = (job.proposals || []).find((p: any) => p.status === 'accepted');
+                                    return (
+                                        <>
+                                            <div className="flex flex-wrap items-start justify-between gap-4">
+                                                <div>
+                                                    <h2 className="text-2xl font-black text-gray-900">{job.title}</h2>
+                                                    <p className="text-gray-500 text-sm mt-1">Client: {job.clientId?.firstName} {job.clientId?.lastName} · {job.clientId?.email}</p>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <button type="button" onClick={() => handleEditJob(job)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl"><Edit className="w-5 h-5" /></button>
+                                                    <button type="button" onClick={() => handleDeleteJob(job._id)} className="p-2 text-red-600 hover:bg-red-50 rounded-xl"><Trash2 className="w-5 h-5" /></button>
+                                                </div>
+                                            </div>
+                                            <p className="text-gray-700 whitespace-pre-wrap">{job.description}</p>
+                                            <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                                                <div className="bg-gray-50 rounded-xl p-3"><span className="text-gray-400 font-bold text-xs uppercase">Status</span><p className="font-bold">{job.status}</p></div>
+                                                <div className="bg-gray-50 rounded-xl p-3"><span className="text-gray-400 font-bold text-xs uppercase">Posted</span><p className="font-bold">{formatDateDDMMYYYY(job.createdAt)}</p></div>
+                                                <div className="bg-gray-50 rounded-xl p-3"><span className="text-gray-400 font-bold text-xs uppercase">Deadline</span><p className="font-bold">{job.deadline || '—'}</p></div>
+                                                <div className="bg-gray-50 rounded-xl p-3"><span className="text-gray-400 font-bold text-xs uppercase">Budget</span><p className="font-bold">{job.budgetRange?.min} – {job.budgetRange?.max} EGP</p></div>
+                                            </div>
+                                            {job.milestones?.length > 0 && (
+                                                <div>
+                                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Job milestones</h4>
+                                                    <ul className="space-y-2">
+                                                        {job.milestones.map((m: any, i: number) => (
+                                                            <li key={i} className="bg-gray-50 rounded-xl p-3 text-sm">{m.name} — {m.price != null ? `${m.price} EGP` : ''} {m.dueDate ? `· due ${formatDateDDMMYYYY(m.dueDate)}` : ''}</li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                            {accepted && (
+                                                <div>
+                                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Accepted proposal & submissions</h4>
+                                                    <p className="text-sm text-gray-600 mb-2">Freelancer: <button type="button" className="text-[#09BF44] font-bold hover:underline" onClick={() => router.push(`/freelancer/${String(accepted.freelancerId?._id || accepted.freelancerId)}`)}>Open profile</button></p>
+                                                    {(accepted.milestones || []).length > 0 && (
+                                                        <ul className="space-y-2 mb-3">
+                                                            {accepted.milestones.map((m: any, i: number) => (
+                                                                <li key={i} className="bg-blue-50/80 rounded-xl p-3 text-sm border border-blue-100">
+                                                                    <span className="font-bold">{m.name}</span> — {m.status}
+                                                                    {m.submissionNote && <p className="text-gray-600 mt-1">{m.submissionNote}</p>}
+                                                                    {(m.submissionLinks || []).length > 0 && <p className="text-xs text-blue-700 mt-1">{(m.submissionLinks || []).join(', ')}</p>}
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    )}
+                                                    {accepted.workSubmission?.message && (
+                                                        <div className="bg-gray-50 rounded-xl p-4 text-sm">
+                                                            <p className="font-bold text-gray-700 mb-1">Work submission</p>
+                                                            <p className="text-gray-600">{accepted.workSubmission.message}</p>
+                                                            {(accepted.workSubmission.links || []).map((l: string, i: number) => (
+                                                                <a key={i} href={l} target="_blank" rel="noreferrer" className="text-[#09BF44] text-xs block mt-1">{l}</a>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </>
+                                    );
+                                })()}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {activeTab === 'orders' && (
+                    <div className="space-y-6">
+                        {!managementDetail || managementDetail.kind !== 'order' ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                                {ordersLoading && (
+                                    <div className="col-span-full flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44]" /></div>
+                                )}
+                                {!ordersLoading && orders.length === 0 && (
+                                    <p className="col-span-full text-center text-gray-500 py-12">No orders yet.</p>
+                                )}
+                                {!ordersLoading && orders.map((order: any) => (
+                                    <button
+                                        key={order._id}
+                                        type="button"
+                                        onClick={() => setManagementDetail({ kind: 'order', item: order })}
+                                        className="text-left bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:border-[#09BF44]/50 hover:shadow-md transition-all"
+                                    >
+                                        <p className="text-xs text-gray-400 font-mono">#{order.orderNumber ?? String(order._id || '').slice(-6)}</p>
+                                        <h3 className="font-black text-gray-900 mt-1 line-clamp-2">{order.projectId?.title || 'Custom offer'}</h3>
+                                        <p className="text-sm text-gray-600 mt-2">{order.buyerId?.firstName} → {order.sellerId?.firstName}</p>
+                                        <p className="text-sm font-bold text-[#09BF44] mt-2">{order.amount} EGP · {order.packageType}</p>
+                                        <span className={`inline-block mt-2 px-2 py-1 rounded text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'disputed' ? 'bg-amber-100 text-amber-700' : order.status === 'refunded' ? 'bg-gray-100 text-gray-700' : 'bg-blue-100 text-blue-700'}`}>{formatStatus(order.status)}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 md:p-8 space-y-6">
+                                <button type="button" onClick={() => setManagementDetail(null)} className="flex items-center gap-2 text-gray-600 font-bold hover:text-gray-900">
+                                    <ArrowLeft className="w-5 h-5" /> Back to orders
+                                </button>
+                                {(() => {
+                                    const order = managementDetail.item;
+                                    const offer = order.offerId;
+                                    return (
+                                        <>
+                                            <div className="flex flex-wrap justify-between gap-4">
+                                                <div>
+                                                    <h2 className="text-2xl font-black text-gray-900">{order.projectId?.title || 'Custom offer'}</h2>
+                                                    <p className="text-sm text-gray-500 mt-1">Order #{order.orderNumber} · {order.packageType}</p>
+                                                </div>
+                                                <span className={`px-3 py-1 rounded-full text-sm font-bold h-fit ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'disputed' ? 'bg-amber-100 text-amber-700' : order.status === 'refunded' ? 'bg-gray-100 text-gray-700' : 'bg-blue-100 text-blue-700'}`}>{formatStatus(order.status)}</span>
+                                            </div>
+                                            <div className="grid sm:grid-cols-2 gap-4">
+                                                <div className="bg-gray-50 rounded-xl p-4">
+                                                    <p className="text-xs font-bold text-gray-400 uppercase">Client</p>
+                                                    <p className="font-bold">{order.buyerId?.firstName} {order.buyerId?.lastName}</p>
+                                                    <p className="text-sm text-gray-500">{order.buyerId?.email}</p>
+                                                </div>
+                                                <div className="bg-gray-50 rounded-xl p-4">
+                                                    <p className="text-xs font-bold text-gray-400 uppercase">Freelancer</p>
+                                                    <button type="button" onClick={() => router.push(`/freelancer/${order.sellerId?._id || order.sellerId}`)} className="flex items-center gap-3 mt-1 text-left w-full hover:opacity-90">
+                                                        {order.sellerId?.freelancerProfile?.profilePicture ? (
+                                                            <Image src={resolveMediaUrl(order.sellerId.freelancerProfile.profilePicture)} alt="" width={40} height={40} className="rounded-full object-cover" unoptimized />
+                                                        ) : (
+                                                            <div className="w-10 h-10 rounded-full bg-[#09BF44]/20 flex items-center justify-center font-bold text-[#09BF44]">{order.sellerId?.firstName?.[0]}</div>
+                                                        )}
+                                                        <span className="font-bold text-gray-900">{order.sellerId?.firstName} {order.sellerId?.lastName}</span>
+                                                    </button>
+                                                    <p className="text-sm text-gray-500">{order.sellerId?.email}</p>
+                                                </div>
+                                            </div>
+                                            <div className="grid sm:grid-cols-3 gap-3 text-sm">
+                                                <div className="bg-gray-50 rounded-xl p-3"><span className="text-gray-400 font-bold text-xs uppercase">Amount</span><p className="font-black text-[#09BF44]">{order.amount} EGP</p></div>
+                                                <div className="bg-gray-50 rounded-xl p-3"><span className="text-gray-400 font-bold text-xs uppercase">Created</span><p className="font-bold">{formatDateDDMMYYYY(order.createdAt)}</p></div>
+                                                <div className="bg-gray-50 rounded-xl p-3"><span className="text-gray-400 font-bold text-xs uppercase">Delivery due</span><p className="font-bold">{order.deliveryDate ? formatDateDDMMYYYY(order.deliveryDate) : '—'}</p></div>
+                                            </div>
+                                            <p className="text-sm text-gray-600"><span className="font-bold">Revisions:</span> {order.revisionsUnlimited ? 'Unlimited' : (order.revisions ?? 0)}</p>
+                                            {offer?.milestones?.length > 0 && (
+                                                <div>
+                                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Offer milestones</h4>
+                                                    <ul className="space-y-2">
+                                                        {offer.milestones.map((m: any, i: number) => (
+                                                            <li key={i} className="bg-gray-50 rounded-xl p-3 text-sm">{m.name} {m.dueDate ? `· ${formatDateDDMMYYYY(m.dueDate)}` : ''}</li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                            {order.workSubmission?.message || (order.workSubmission?.links || []).length > 0 ? (
+                                                <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4">
+                                                    <h4 className="font-bold text-gray-900 mb-2">Submitted work</h4>
+                                                    {order.workSubmission?.message && <p className="text-sm text-gray-700 whitespace-pre-wrap">{order.workSubmission.message}</p>}
+                                                    {(order.workSubmission?.links || []).map((l: string, i: number) => (
+                                                        <a key={i} href={l} target="_blank" rel="noreferrer" className="text-[#09BF44] text-sm block mt-2">{l}</a>
+                                                    ))}
+                                                    {(order.workSubmission?.files || []).map((f: string, i: number) => (
+                                                        <a key={i} href={resolveMediaUrl(f)} target="_blank" rel="noreferrer" className="text-blue-600 text-sm block mt-1">File {i + 1}</a>
+                                                    ))}
+                                                    {order.workSubmission?.submittedAt && (
+                                                        <p className="text-xs text-gray-500 mt-2">Submitted {formatDateDDMMYYYY(order.workSubmission.submittedAt)}</p>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <p className="text-sm text-gray-500">No work submission recorded yet.</p>
+                                            )}
+                                            {order.status === 'disputed' && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setDisputeModal({ isOpen: true, order })}
+                                                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#09BF44] text-white rounded-xl font-bold text-sm hover:bg-[#07a63a]"
+                                                >
+                                                    <Shield className="w-4 h-4" /> Resolve dispute
+                                                </button>
+                                            )}
+                                        </>
+                                    );
+                                })()}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {activeTab === 'disputes' && (
+                    <div className="space-y-6">
+                        {!selectedDispute ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                                {disputesLoading && (
+                                    <div className="col-span-full flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44]" /></div>
+                                )}
+                                {!disputesLoading && disputes.length === 0 && (
+                                    <p className="col-span-full text-center text-gray-500 py-12">No active disputes.</p>
+                                )}
+                                {!disputesLoading && disputes.map((d: any) => (
+                                    <button
+                                        key={d._id}
+                                        type="button"
+                                        onClick={() => setSelectedDispute(d)}
+                                        className="text-left bg-white rounded-2xl border border-amber-200 shadow-sm p-5 hover:border-amber-400 hover:shadow-md transition-all"
+                                    >
+                                        <div className="flex items-center gap-2 text-amber-700 font-bold text-sm mb-2">
+                                            <AlertTriangle className="w-4 h-4" /> Disputed order
+                                        </div>
+                                        <p className="text-xs text-gray-400 font-mono">#{d.orderNumber}</p>
+                                        <h3 className="font-black text-gray-900 mt-1 line-clamp-2">{d.projectId?.title || 'Custom offer'}</h3>
+                                        <p className="text-sm text-gray-600 mt-2">{d.buyerId?.firstName} vs {d.sellerId?.firstName}</p>
+                                        <p className="text-sm font-bold text-gray-900 mt-2">{d.amount} EGP</p>
+                                        {d.disputeReason && (
+                                            <p className="text-xs text-amber-800 bg-amber-50 rounded-lg p-2 mt-3 line-clamp-3">{d.disputeReason}</p>
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 md:p-8 space-y-6">
+                                <button type="button" onClick={() => setSelectedDispute(null)} className="flex items-center gap-2 text-gray-600 font-bold hover:text-gray-900">
+                                    <ArrowLeft className="w-5 h-5" /> Back to disputes
+                                </button>
+                                <div className="flex flex-wrap justify-between gap-4">
+                                    <div>
+                                        <h2 className="text-2xl font-black text-gray-900">{selectedDispute.projectId?.title || 'Custom offer'}</h2>
+                                        <p className="text-sm text-gray-500 mt-1">Order #{selectedDispute.orderNumber}</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setDisputeModal({ isOpen: true, order: selectedDispute })}
+                                        className="inline-flex items-center gap-2 px-4 py-2 bg-[#09BF44] text-white rounded-xl font-bold text-sm hover:bg-[#07a63a] h-fit"
+                                    >
+                                        <Shield className="w-4 h-4" /> Resolve dispute
+                                    </button>
+                                </div>
+                                {selectedDispute.disputeReason && (
+                                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm">
+                                        <span className="font-bold text-amber-900">Dispute reason: </span>
+                                        <span className="text-amber-900">{selectedDispute.disputeReason}</span>
+                                    </div>
+                                )}
+                                <div className="grid sm:grid-cols-2 gap-4">
+                                    <div className="bg-gray-50 rounded-xl p-4">
+                                        <p className="text-xs font-bold text-gray-400 uppercase">Client</p>
+                                        <p className="font-bold">{selectedDispute.buyerId?.firstName} {selectedDispute.buyerId?.lastName}</p>
+                                        <p className="text-sm text-gray-500">{selectedDispute.buyerId?.email}</p>
+                                    </div>
+                                    <div className="bg-gray-50 rounded-xl p-4">
+                                        <p className="text-xs font-bold text-gray-400 uppercase">Freelancer</p>
+                                        <button type="button" onClick={() => router.push(`/freelancer/${selectedDispute.sellerId?._id || selectedDispute.sellerId}`)} className="flex items-center gap-3 mt-1 text-left w-full hover:opacity-90">
+                                            {selectedDispute.sellerId?.freelancerProfile?.profilePicture ? (
+                                                <Image src={resolveMediaUrl(selectedDispute.sellerId.freelancerProfile.profilePicture)} alt="" width={44} height={44} className="rounded-full object-cover" unoptimized />
+                                            ) : (
+                                                <div className="w-11 h-11 rounded-full bg-[#09BF44]/20 flex items-center justify-center font-bold text-[#09BF44]">{selectedDispute.sellerId?.firstName?.[0]}</div>
+                                            )}
+                                            <span className="font-bold text-gray-900">{selectedDispute.sellerId?.firstName} {selectedDispute.sellerId?.lastName}</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="grid sm:grid-cols-3 gap-3 text-sm">
+                                    <div className="bg-gray-50 rounded-xl p-3"><span className="text-gray-400 font-bold text-xs uppercase">Amount</span><p className="font-black">{selectedDispute.amount} EGP</p></div>
+                                    <div className="bg-gray-50 rounded-xl p-3"><span className="text-gray-400 font-bold text-xs uppercase">Package</span><p className="font-bold">{selectedDispute.packageType}</p></div>
+                                    <div className="bg-gray-50 rounded-xl p-3"><span className="text-gray-400 font-bold text-xs uppercase">Delivery</span><p className="font-bold">{selectedDispute.deliveryDate ? formatDateDDMMYYYY(selectedDispute.deliveryDate) : '—'}</p></div>
+                                </div>
+                                {selectedDispute.offerId?.milestones?.length > 0 && (
+                                    <div>
+                                        <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Milestones (offer)</h4>
+                                        <ul className="space-y-2">
+                                            {selectedDispute.offerId.milestones.map((m: any, i: number) => (
+                                                <li key={i} className="bg-gray-50 rounded-xl p-3 text-sm">{m.name}{m.dueDate ? ` · ${formatDateDDMMYYYY(m.dueDate)}` : ''}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                                {selectedDispute.workSubmission?.message || (selectedDispute.workSubmission?.links || []).length > 0 ? (
+                                    <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4">
+                                        <h4 className="font-bold text-gray-900 mb-2">Submitted work</h4>
+                                        {selectedDispute.workSubmission?.message && <p className="text-sm text-gray-700 whitespace-pre-wrap">{selectedDispute.workSubmission.message}</p>}
+                                        {(selectedDispute.workSubmission?.links || []).map((l: string, i: number) => (
+                                            <a key={i} href={l} target="_blank" rel="noreferrer" className="text-[#09BF44] text-sm block mt-2">{l}</a>
+                                        ))}
+                                    </div>
+                                ) : null}
+                                <div>
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Chat between parties</h4>
+                                    {!selectedDispute.conversationId ? (
+                                        <p className="text-sm text-gray-500">No conversation is linked to this order (e.g. non–custom-offer order).</p>
+                                    ) : disputeChatLoading ? (
+                                        <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44]" /></div>
+                                    ) : (
+                                        <div className="max-h-[420px] overflow-y-auto p-4 space-y-4 bg-gray-50 rounded-2xl border border-gray-100">
+                                            {disputeChatMessages.length === 0 ? (
+                                                <p className="text-center text-gray-400 text-sm py-8">No messages.</p>
+                                            ) : (
+                                                <AdminChatBubbles
+                                                    messages={disputeChatMessages}
+                                                    selectedChat={{ participants: [selectedDispute.buyerId, selectedDispute.sellerId] }}
+                                                />
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -1201,14 +1791,17 @@ export default function AdminDashboard() {
                                                         <span className="block text-xs text-gray-500">{user?.email}</span>
                                                     </td>
                                                     <td className="p-4 font-bold">{w.amount} EGP</td>
-                                                    <td className="p-4 text-gray-600">{w.fee || 20} EGP</td>
+                                                    <td className="p-4 text-gray-600">{Number(w.fee ?? 0)} EGP</td>
                                                     <td className="p-4 capitalize">{w.method?.replace('_', ' ')}</td>
                                                     <td className="p-4 text-gray-600 truncate max-w-[140px]">{details}</td>
                                                     <td className="p-4">
                                                         <span className={`px-2 py-1 rounded text-xs font-bold ${w.status === 'completed' ? 'bg-green-100 text-green-700' :
                                                             w.status === 'rejected' ? 'bg-red-100 text-red-700' :
                                                                 'bg-amber-100 text-amber-700'
-                                                            }`}>{w.status}</span>
+                                                            }`}>{w.status === 'rejected' ? 'REJECTED' : w.status}</span>
+                                                        {w.status === 'rejected' && w.rejectReason && (
+                                                            <p className="text-xs text-gray-600 mt-1 max-w-[200px]">{w.rejectReason}</p>
+                                                        )}
                                                     </td>
                                                     <td className="p-4 text-gray-500">{formatDateDDMMYYYY(w.createdAt)}</td>
                                                     <td className="p-4">
@@ -1230,21 +1823,8 @@ export default function AdminDashboard() {
                                                                 </button>
                                                                 <button
                                                                     onClick={() => {
-                                                                        showModal({
-                                                                            title: 'Reject Withdrawal',
-                                                                            message: 'Rejecting will refund the freelancer their amount + fee. Continue?',
-                                                                            type: 'confirm',
-                                                                            confirmText: 'Reject',
-                                                                            onConfirm: async () => {
-                                                                                try {
-                                                                                    await api.admin.rejectWithdrawal(w._id);
-                                                                                    showModal({ title: 'Rejected', message: 'Withdrawal rejected and freelancer refunded.', type: 'success' });
-                                                                                    fetchWithdrawals();
-                                                                                } catch (e: any) {
-                                                                                    showModal({ title: 'Error', message: e.message, type: 'error' });
-                                                                                }
-                                                                            }
-                                                                        });
+                                                                        setWithdrawRejectTarget(w);
+                                                                        setWithdrawRejectReason('');
                                                                     }}
                                                                     className="text-red-600 hover:bg-red-50 px-3 py-1.5 rounded font-bold text-sm flex items-center gap-1"
                                                                 >
@@ -2111,9 +2691,22 @@ export default function AdminDashboard() {
                     <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-[calc(100vh-12rem)]">
                         {!selectedChat ? (
                             <>
-                                <div className="p-6 border-b border-gray-100 flex justify-between items-center flex-shrink-0">
+                                <div className="p-6 border-b border-gray-100 flex flex-wrap justify-between items-center gap-3 flex-shrink-0">
                                     <h3 className="text-lg font-bold">Active Conversations</h3>
-                                    <span className="text-xs font-bold bg-gray-100 px-3 py-1 rounded-full text-gray-500">{activeChats.length} Active</span>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setSupportChatModalOpen(true);
+                                                setSupportUserQuery('');
+                                                setSupportUserPick(null);
+                                            }}
+                                            className="px-4 py-2 rounded-xl bg-[#09BF44] text-white text-sm font-bold hover:bg-[#07a63a] flex items-center gap-2"
+                                        >
+                                            <UserPlus className="w-4 h-4" /> New support chat
+                                        </button>
+                                        <span className="text-xs font-bold bg-gray-100 px-3 py-1 rounded-full text-gray-500">{activeChats.length} Active</span>
+                                    </div>
                                 </div>
                                 <div className="divide-y divide-gray-100 flex-1 min-h-0 overflow-y-auto">
                                     {chatsLoading ? (
@@ -2126,11 +2719,15 @@ export default function AdminDashboard() {
                                         const participant2 = participants[1];
                                         const participant1Initial = participant1?.firstName?.[0]?.toUpperCase() || 'U';
                                         const participant2Initial = participant2?.firstName?.[0]?.toUpperCase() || 'U';
-                                        const participantNames = participants.length >= 2
-                                            ? `${participant1?.firstName || 'Unknown'} & ${participant2?.firstName || 'Unknown'}`
-                                            : participants.length === 1
-                                                ? `${participant1?.firstName || 'Unknown'}`
-                                                : 'Unknown Users';
+                                        const p1Pic = participant1?.freelancerProfile?.profilePicture || participant1?.clientProfile?.profilePicture;
+                                        const p2Pic = participant2?.freelancerProfile?.profilePicture || participant2?.clientProfile?.profilePicture;
+                                        const participantNames = chat.kind === 'support' && participants.length >= 2
+                                            ? `Engezhaly Team & ${participants.find((p: any) => !(p?.firstName === 'Engezhaly' && p?.lastName === 'Team'))?.firstName || 'User'}`
+                                            : participants.length >= 2
+                                                ? `${participant1?.firstName || 'Unknown'} & ${participant2?.firstName || 'Unknown'}`
+                                                : participants.length === 1
+                                                    ? `${participant1?.firstName || 'Unknown'}`
+                                                    : 'Unknown Users';
 
                                         return (
                                             <div
@@ -2141,19 +2738,28 @@ export default function AdminDashboard() {
                                                 <div className="flex items-center gap-3 flex-1">
                                                     <div className="flex -space-x-2">
                                                         {participants.length > 0 && (
-                                                            <div className="w-10 h-10 bg-blue-100 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold text-blue-600">
-                                                                {participant1Initial}
-                                                            </div>
+                                                            p1Pic ? (
+                                                                <Image src={resolveMediaUrl(p1Pic)} alt="" width={40} height={40} className="w-10 h-10 rounded-full border-2 border-white object-cover" unoptimized />
+                                                            ) : (
+                                                                <div className="w-10 h-10 bg-blue-100 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold text-blue-600">
+                                                                    {participant1Initial}
+                                                                </div>
+                                                            )
                                                         )}
                                                         {participants.length > 1 && (
-                                                            <div className="w-10 h-10 bg-purple-100 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold text-purple-600">
-                                                                {participant2Initial}
-                                                            </div>
+                                                            p2Pic ? (
+                                                                <Image src={resolveMediaUrl(p2Pic)} alt="" width={40} height={40} className="w-10 h-10 rounded-full border-2 border-white object-cover" unoptimized />
+                                                            ) : (
+                                                                <div className="w-10 h-10 bg-purple-100 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold text-purple-600">
+                                                                    {participant2Initial}
+                                                                </div>
+                                                            )
                                                         )}
                                                     </div>
                                                     <div className="flex-1 min-w-0">
                                                         <h4 className="font-bold text-sm text-gray-900 truncate">{participantNames}</h4>
                                                         <p className="text-xs text-gray-500 truncate">
+                                                            {chat.kind === 'support' && <span className="font-bold text-[#09BF44] mr-1">Support</span>}
                                                             {chat.updatedAt ? `Last active ${formatDateDDMMYYYY(chat.updatedAt)}` : 'No activity'}
                                                         </p>
                                                     </div>
@@ -2188,15 +2794,22 @@ export default function AdminDashboard() {
                                     </button>
                                     <div className="flex items-center gap-3 flex-1">
                                         <div className="flex -space-x-2">
-                                            {selectedChat.participants?.map((p: any, idx: number) => (
-                                                <div key={idx} className={`w-10 h-10 ${idx === 0 ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'} rounded-full border-2 border-white flex items-center justify-center text-xs font-bold`}>
-                                                    {p?.firstName?.[0]?.toUpperCase() || 'U'}
-                                                </div>
-                                            ))}
+                                            {selectedChat.participants?.map((p: any, idx: number) => {
+                                                const pic = p?.freelancerProfile?.profilePicture || p?.clientProfile?.profilePicture;
+                                                return pic ? (
+                                                    <Image key={idx} src={resolveMediaUrl(pic)} alt="" width={40} height={40} className={`w-10 h-10 rounded-full border-2 border-white object-cover ${idx === 0 ? '' : ''}`} unoptimized />
+                                                ) : (
+                                                    <div key={idx} className={`w-10 h-10 ${idx === 0 ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'} rounded-full border-2 border-white flex items-center justify-center text-xs font-bold`}>
+                                                        {p?.firstName?.[0]?.toUpperCase() || 'U'}
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                         <div>
                                             <h3 className="font-bold text-gray-900">
-                                                {selectedChat.participants?.map((p: any) => p?.firstName).filter(Boolean).join(' & ') || 'Unknown Users'}
+                                                {selectedChat.kind === 'support' && selectedChat.participants?.length >= 2
+                                                    ? `Engezhaly Team & ${selectedChat.participants.find((p: any) => !(p?.firstName === 'Engezhaly' && p?.lastName === 'Team'))?.firstName || 'User'}`
+                                                    : selectedChat.participants?.map((p: any) => p?.firstName).filter(Boolean).join(' & ') || 'Unknown Users'}
                                             </h3>
                                             {selectedChat.isFrozen && (
                                                 <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1 mt-1">
@@ -2232,69 +2845,7 @@ export default function AdminDashboard() {
 
                                 {/* Messages */}
                                 <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-4 bg-gray-50">
-                                    {chatMessages.map((msg: any) => {
-                                        const isAdmin = msg.isAdmin || msg.content?.includes('[Engezhaly Admin]');
-                                        const isMeeting = msg.isMeeting || msg.messageType === 'meeting' || msg.content?.includes('[Engezhaly Meeting]');
-                                        const isCentered = isAdmin || isMeeting;
-                                        let content = msg.content || '';
-                                        if (isAdmin) content = content.replace('[Engezhaly Admin]', '').trim();
-                                        if (isMeeting) content = content.replace('[Engezhaly Meeting]', '').trim();
-                                        const linkMatch = content.match(/Join here: (https?:\/\/[^\s]+)/);
-                                        const meetingLink = linkMatch ? linkMatch[1] : null;
-                                        const senderId = String(msg.senderId?._id || msg.senderId);
-                                        const participant1Id = selectedChat.participants?.[0]?._id ? String(selectedChat.participants[0]._id) : null;
-                                        const participant2Id = selectedChat.participants?.[1]?._id ? String(selectedChat.participants[1]._id) : null;
-                                        const isFromParticipant1 = participant1Id && senderId === participant1Id;
-
-                                        return (
-                                            <div key={msg._id} className={`flex ${isCentered ? 'justify-center' : isFromParticipant1 ? 'justify-start' : 'justify-end'}`}>
-                                                <div className={`max-w-[70%] px-4 py-2 rounded-2xl shadow-sm ${isAdmin
-                                                    ? 'bg-yellow-100 border-2 border-yellow-300 text-gray-900'
-                                                    : isMeeting
-                                                        ? 'bg-green-50 border-2 border-[#09BF44]/40 text-gray-900'
-                                                        : isFromParticipant1
-                                                            ? 'bg-white border border-gray-200 text-gray-900 rounded-bl-sm'
-                                                            : 'bg-[#a7f3d0] text-gray-900 rounded-br-sm'
-                                                    }`}>
-                                                    {!isAdmin && !isMeeting && (
-                                                        <div className="flex items-center gap-1 mb-1">
-                                                            <span className={`text-[10px] font-black uppercase ${isFromParticipant1 ? 'text-gray-400' : 'text-green-700'}`}>
-                                                                {isFromParticipant1 ? (selectedChat.participants?.[0]?.firstName || 'User 1') : (selectedChat.participants?.[1]?.firstName || 'User 2')} ({isFromParticipant1 ? (selectedChat.participants?.[0]?.role || 'client') : (selectedChat.participants?.[1]?.role || 'freelancer')})
-                                                            </span>
-                                                        </div>
-                                                    )}
-                                                    {isAdmin && (
-                                                        <div className="flex items-center gap-2 mb-1">
-                                                            <Shield className="w-4 h-4 text-yellow-600" />
-                                                            <span className="text-xs font-bold text-yellow-700">Engezhaly Admin</span>
-                                                        </div>
-                                                    )}
-                                                    {isMeeting && (
-                                                        <div className="flex items-center gap-2 mb-1">
-                                                            <Video className="w-4 h-4 text-[#09BF44]" />
-                                                            <span className="text-xs font-bold text-[#09BF44]">Video Meeting</span>
-                                                        </div>
-                                                    )}
-                                                    <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{content}</p>
-                                                    {meetingLink && (
-                                                        <a
-                                                            href={meetingLink}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="inline-flex items-center gap-2 mt-2 px-3 py-2 bg-[#09BF44] text-white rounded-xl font-bold text-sm hover:bg-[#07a63a] transition-colors"
-                                                        >
-                                                            <Video className="w-4 h-4" /> Join Meeting
-                                                        </a>
-                                                    )}
-                                                    <div className={`flex items-center justify-end mt-1 ${isAdmin ? 'text-yellow-700' : isMeeting ? 'text-[#09BF44]/80' : isFromParticipant1 ? 'text-gray-500' : 'text-green-50'}`}>
-                                                        <span className="text-[10px]">
-                                                            {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
+                                    <AdminChatBubbles messages={chatMessages} selectedChat={selectedChat} />
                                     {chatMessages.length === 0 && (
                                         <div className="text-center py-12 text-gray-400">
                                             <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-20" />
@@ -2429,6 +2980,137 @@ export default function AdminDashboard() {
                 />
             )}
 
+            {supportChatModalOpen && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-3xl shadow-xl max-w-md w-full p-6">
+                        <h3 className="text-lg font-bold mb-2">New support chat</h3>
+                        <p className="text-sm text-gray-600 mb-4">Search by username, email, or user ID. A conversation will open between Engezhaly Team and this user.</p>
+                        <div className="flex gap-2 mb-4">
+                            <input
+                                type="text"
+                                value={supportUserQuery}
+                                onChange={(e) => setSupportUserQuery(e.target.value)}
+                                placeholder="Search query"
+                                className="flex-1 border border-gray-200 rounded-xl px-4 py-2 text-sm"
+                            />
+                            <button
+                                type="button"
+                                disabled={supportUserSearchLoading || !supportUserQuery.trim()}
+                                onClick={async () => {
+                                    setSupportUserSearchLoading(true);
+                                    try {
+                                        const u = await api.admin.searchUser(supportUserQuery.trim());
+                                        setSupportUserPick(u);
+                                    } catch {
+                                        setSupportUserPick(null);
+                                        showModal({ title: 'Not found', message: 'No user matched that search.', type: 'error' });
+                                    } finally {
+                                        setSupportUserSearchLoading(false);
+                                    }
+                                }}
+                                className="px-4 py-2 bg-gray-900 text-white rounded-xl font-bold text-sm disabled:opacity-50"
+                            >
+                                {supportUserSearchLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Find'}
+                            </button>
+                        </div>
+                        {supportUserPick && (
+                            <div className="bg-gray-50 rounded-xl p-4 mb-4 border border-gray-100">
+                                <p className="font-bold text-gray-900">{supportUserPick.firstName} {supportUserPick.lastName}</p>
+                                <p className="text-sm text-gray-500">{supportUserPick.email}</p>
+                                <p className="text-xs text-gray-400 mt-1">@{supportUserPick.username} · {supportUserPick.role}</p>
+                            </div>
+                        )}
+                        <div className="flex gap-3">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setSupportChatModalOpen(false);
+                                    setSupportUserPick(null);
+                                    setSupportUserQuery('');
+                                }}
+                                className="flex-1 py-2 rounded-xl font-bold border border-gray-200 hover:bg-gray-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                disabled={!supportUserPick?._id}
+                                onClick={async () => {
+                                    if (!supportUserPick?._id) return;
+                                    try {
+                                        const conv = await api.admin.createSupportConversation(supportUserPick._id);
+                                        setSupportChatModalOpen(false);
+                                        setSupportUserPick(null);
+                                        setSupportUserQuery('');
+                                        await fetchChats();
+                                        await handleSelectChat(conv);
+                                        setActiveTab('chats');
+                                    } catch (e: any) {
+                                        showModal({ title: 'Error', message: e.message || 'Failed to create chat', type: 'error' });
+                                    }
+                                }}
+                                className="flex-1 py-2 rounded-xl font-bold bg-[#09BF44] text-white hover:bg-[#07a63a] disabled:opacity-50"
+                            >
+                                Open chat
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {withdrawRejectTarget && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-3xl shadow-xl max-w-md w-full p-6">
+                        <h3 className="text-lg font-bold mb-2">Reject withdrawal</h3>
+                        <p className="text-gray-600 text-sm mb-4">
+                            The freelancer will be refunded their amount plus fee. A reason is required and will be shown on their wallet page.
+                        </p>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">Rejection reason</label>
+                        <textarea
+                            value={withdrawRejectReason}
+                            onChange={(e) => setWithdrawRejectReason(e.target.value)}
+                            placeholder="Explain why this withdrawal was rejected"
+                            className="w-full border border-gray-200 rounded-xl px-4 py-2 min-h-[100px] text-sm mb-4"
+                            rows={4}
+                        />
+                        <div className="flex gap-3">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setWithdrawRejectTarget(null);
+                                    setWithdrawRejectReason('');
+                                }}
+                                className="flex-1 py-2 rounded-xl font-bold border border-gray-200 hover:bg-gray-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    const r = withdrawRejectReason.trim();
+                                    if (!r) {
+                                        showModal({ title: 'Reason required', message: 'Please enter a rejection reason.', type: 'error' });
+                                        return;
+                                    }
+                                    try {
+                                        await api.admin.rejectWithdrawal(withdrawRejectTarget._id, r);
+                                        showModal({ title: 'Rejected', message: 'Withdrawal rejected and freelancer refunded.', type: 'success' });
+                                        setWithdrawRejectTarget(null);
+                                        setWithdrawRejectReason('');
+                                        fetchWithdrawals();
+                                    } catch (e: any) {
+                                        showModal({ title: 'Error', message: e.message || 'Failed to reject', type: 'error' });
+                                    }
+                                }}
+                                className="flex-1 py-2 rounded-xl font-bold bg-red-600 text-white hover:bg-red-700"
+                            >
+                                Reject
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Dispute Resolution Modal */}
             {disputeModal.isOpen && disputeModal.order && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -2489,6 +3171,7 @@ export default function AdminDashboard() {
                                         setDisputeOutcome('');
                                         setDisputeStatus('completed');
                                         fetchOrders();
+                                        fetchDisputes();
                                     } catch (e: any) {
                                         showModal({ title: 'Error', message: e.message || 'Failed to resolve dispute', type: 'error' });
                                     } finally {

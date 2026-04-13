@@ -11,13 +11,12 @@ const { verifyWebhookHmac } = require('../services/paymobService');
 const { createMeetingLink } = require('../services/meetingService');
 const { sendAndLog } = require('../services/mailgunService');
 const emailTemplates = require('../templates/emailTemplates');
-
-const CLIENT_PLATFORM_FEE = 20; // 20 EGP charged to client on each payment
-// Freelancer receives full amount; 20 EGP withdrawal fee applied when they withdraw
+const { ORDER_PLATFORM_FEE_EGP } = require('../config/fees');
+const { emitChatContextRefresh } = require('../services/chatContextRefresh');
 
 /**
  * Fulfill a completed payment - credit freelancer, create records, etc.
- * Client pays +20 EGP fee; freelancer receives full amount (withdrawal fee applied on withdrawal).
+ * Order.platformFee comes from ORDER_PLATFORM_FEE_EGP (see server/config/fees.js).
  */
 const fulfillCharge = async (pendingCharge, app) => {
     const { meta } = pendingCharge;
@@ -60,6 +59,11 @@ const fulfillCharge = async (pendingCharge, app) => {
                 const { subject, html } = emailTemplates.offerPurchased(client?.firstName || 'A client', job.title, proposal.price, null);
                 sendAndLog(freelancer.email, subject, html, 'offer_purchased');
             }
+            {
+                const clientId = String(job.clientId?._id || job.clientId);
+                const conv = await Conversation.findOne({ participants: { $all: [clientId, String(freelancerId)] } });
+                if (conv) emitChatContextRefresh(app?.get?.('io'), conv._id);
+            }
             break;
         }
         case 'project_order': {
@@ -97,6 +101,11 @@ const fulfillCharge = async (pendingCharge, app) => {
                 const { subject, html } = emailTemplates.offerPurchased(client?.firstName || 'A client', title, order.amount, order._id);
                 sendAndLog(freelancer.email, subject, html, 'offer_purchased');
             }
+            {
+                const buyerId = String(order.buyerId?._id || order.buyerId);
+                const conv = await Conversation.findOne({ participants: { $all: [buyerId, String(freelancerId)] } });
+                if (conv) emitChatContextRefresh(app?.get?.('io'), conv._id);
+            }
             break;
         }
         case 'custom_offer': {
@@ -108,11 +117,19 @@ const fulfillCharge = async (pendingCharge, app) => {
             if (!offer || offer.status !== 'pending') return;
 
             const totalClientPaid = pendingCharge.amountCents / 100;
-            const clientFee = 20;
+            const orderPlatformFee = ORDER_PLATFORM_FEE_EGP;
 
             const orderDeliveryDate = offer.deliveryDate
                 ? new Date(offer.deliveryDate)
                 : new Date(Date.now() + (offer.deliveryDays || 7) * 24 * 60 * 60 * 1000);
+
+            const revUnlimited = !!offer.revisionsUnlimited;
+            let revNum = 0;
+            if (!revUnlimited) {
+                const n = Number(offer.revisions);
+                revNum = Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
+            }
+            const revisionsLine = revUnlimited ? 'Revisions: Unlimited' : `Revisions: ${revNum}`;
 
             const order = new OrderModel({
                 projectId: null,
@@ -121,9 +138,11 @@ const fulfillCharge = async (pendingCharge, app) => {
                 packageType: 'Custom',
                 offerId: offer._id,
                 amount: offer.price,
-                platformFee: clientFee,
+                platformFee: orderPlatformFee,
                 status: 'active',
-                deliveryDate: orderDeliveryDate
+                deliveryDate: orderDeliveryDate,
+                revisions: revNum,
+                revisionsUnlimited: revUnlimited
             });
             await order.save();
 
@@ -132,7 +151,8 @@ const fulfillCharge = async (pendingCharge, app) => {
             if (convId) {
                 const buyerId = String(pendingCharge.userId);
                 const sellerId = String(offer.senderId._id || offer.senderId);
-                const orderContent = `[Engezhaly Order] Order #${order._id}\n\nCustom offer accepted (${offer.price} EGP).\n\nPlease as a client inform the freelancer what you need in chat.`;
+                const orderNo = order.orderNumber != null ? String(order.orderNumber) : String(order._id);
+                const orderContent = `[Engezhaly Order] Order #${orderNo}\n\nCustom offer accepted (${offer.price} EGP).\n${revisionsLine}\n\nPlease as a client inform the freelancer what you need in chat.`;
                 const orderChat = new Chat({
                     conversationId: convId,
                     senderId: buyerId,
@@ -142,6 +162,8 @@ const fulfillCharge = async (pendingCharge, app) => {
                 });
                 await orderChat.save();
                 await Conversation.findByIdAndUpdate(convId, { lastMessage: orderContent, lastMessageId: orderChat._id });
+                const io = app && app.get ? app.get('io') : null;
+                emitChatContextRefresh(io, convId);
             }
 
             offer.status = 'accepted';
@@ -154,7 +176,9 @@ const fulfillCharge = async (pendingCharge, app) => {
                 userId: pendingCharge.userId,
                 type: 'payment',
                 amount: -totalClientPaid,
-                description: `Custom Offer (incl. ${clientFee} EGP fee) - held by Engezhaly team`,
+                description: orderPlatformFee > 0
+                    ? `Custom Offer (incl. ${orderPlatformFee} EGP fee) - held by Engezhaly team`
+                    : 'Custom Offer - held by Engezhaly team',
                 orderId: order._id,
                 relatedUserId: sellerId
             });
@@ -284,6 +308,7 @@ const fulfillCharge = async (pendingCharge, app) => {
                 const { subject, html } = emailTemplates.offerPurchased(client?.firstName || 'A client', 'Video Consultation', amount, null);
                 sendAndLog(freelancer.email, subject, html, 'offer_purchased');
             }
+            emitChatContextRefresh(app?.get?.('io'), conversationId);
             break;
         }
         case 'add_card':

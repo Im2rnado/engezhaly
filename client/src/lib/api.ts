@@ -139,6 +139,45 @@ export const api = {
                 xhr.onerror = () => reject(new Error('Cannot reach server. Ensure the API is running and NEXT_PUBLIC_API_URL matches (e.g. http://localhost:6767/api).'));
                 xhr.send(form);
             });
+        },
+        /** PDF or image only; uses strict server route for chat attachments. */
+        chatFile: async (file: File, options?: { onProgress?: (percent: number) => void }): Promise<string> => {
+            const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+            if (!token) throw new Error('You must be logged in to send attachments');
+            const uploadPath = `${API_URL}/upload/chat`;
+            const form = new FormData();
+            form.append('file', file);
+            const onProgress = options?.onProgress;
+
+            return new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', uploadPath);
+                xhr.setRequestHeader('x-auth-token', token);
+
+                if (onProgress) {
+                    xhr.upload.onprogress = (e) => {
+                        const percent = e.lengthComputable ? Math.round((e.loaded / e.total) * 100) : 50;
+                        onProgress(percent);
+                    };
+                }
+
+                xhr.onload = () => {
+                    try {
+                        const result = JSON.parse(xhr.responseText || '{}');
+                        if (xhr.status >= 200 && xhr.status < 300) return resolve(result.url);
+                        if (xhr.status === 401) {
+                            handleSessionExpired();
+                            reject(new Error('Session expired. Please log in again.'));
+                            return;
+                        }
+                        reject(new Error(result.message || result.msg || 'Upload failed'));
+                    } catch {
+                        reject(new Error('Upload failed'));
+                    }
+                };
+                xhr.onerror = () => reject(new Error('Cannot reach server. Ensure the API is running and NEXT_PUBLIC_API_URL matches (e.g. http://localhost:6767/api).'));
+                xhr.send(form);
+            });
         }
     },
     freelancer: {
@@ -201,6 +240,15 @@ export const api = {
             if (!res.ok) throw new Error('Failed to fetch freelancer orders');
             return res.json();
         },
+        getOrder: async (id: string) => {
+            const res = await fetch(`${API_URL}/freelancer/orders/${id}`, {
+                method: 'GET',
+                headers: getHeaders()
+            });
+            const result = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(result.msg || 'Failed to fetch order');
+            return result;
+        },
         submitOrderWork: async (id: string, data: any) => {
             const res = await fetch(`${API_URL}/freelancer/orders/${id}/submit-work`, {
                 method: 'POST',
@@ -211,7 +259,7 @@ export const api = {
             if (!res.ok) throw new Error(result.msg || 'Failed to submit work');
             return result;
         },
-        submitMilestoneWork: async (jobId: string, milestoneIdx: number, data: { note?: string; files?: string[] }) => {
+        submitMilestoneWork: async (jobId: string, milestoneIdx: number, data: { note?: string; message?: string; files?: string[]; links?: string[] }) => {
             const res = await fetch(`${API_URL}/freelancer/jobs/${jobId}/milestones/${milestoneIdx}/submit`, {
                 method: 'POST',
                 headers: getHeaders(),
@@ -568,6 +616,15 @@ export const api = {
             if (!res.ok) throw new Error('Failed to accept offer');
             return res.json();
         },
+        deleteOffer: async (offerId: string) => {
+            const res = await fetch(`${API_URL}/chat/offers/${offerId}`, {
+                method: 'DELETE',
+                headers: getHeaders(),
+            });
+            const result = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(result.msg || 'Failed to delete offer');
+            return result;
+        },
         getOffers: async (conversationId: string) => {
             const res = await fetch(`${API_URL}/chat/offers/${conversationId}`, {
                 method: 'GET',
@@ -663,6 +720,24 @@ export const api = {
                 body: JSON.stringify(data)
             });
             if (!res.ok) throw new Error('Failed to send admin message');
+            return res.json();
+        },
+        createSupportConversation: async (userId: string) => {
+            const res = await fetch(`${API_URL}/admin/chats/support`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify({ userId })
+            });
+            const result = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(result.msg || 'Failed to create support chat');
+            return result;
+        },
+        getDisputes: async () => {
+            const res = await fetch(`${API_URL}/admin/disputes`, {
+                method: 'GET',
+                headers: getHeaders()
+            });
+            if (!res.ok) throw new Error('Failed to fetch disputes');
             return res.json();
         },
         addStrike: async (id: string) => {

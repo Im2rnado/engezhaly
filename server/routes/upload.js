@@ -25,8 +25,23 @@ const upload = multer({
     }
 });
 
+/** Chat attachments only: PDF + images, max 10MB (same limit as general upload). */
+const chatUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 },
+    fileFilter: (_req, file, cb) => {
+        const ok =
+            file.mimetype.startsWith('image/') ||
+            file.mimetype === 'application/pdf' ||
+            file.mimetype === 'application/x-pdf';
+        if (ok) cb(null, true);
+        else cb(new Error('Chat attachments must be a PDF or image'));
+    }
+});
+
 const router = express.Router();
 router.post('/', auth, upload.single('file'), uploadFile);
+router.post('/chat', auth, chatUpload.single('file'), uploadFile);
 // Signup upload - no auth required (user not yet registered)
 router.post('/signup', upload.single('file'), uploadFile);
 module.exports = router;

@@ -26,6 +26,7 @@ const JobSchema = new mongoose.Schema({
         price: Number,
         deliveryDays: Number,
         revisions: { type: Number, default: 0 },
+        revisionsUnlimited: { type: Boolean, default: false },
         message: String,
         milestones: [{
             name: { type: String, required: true },
@@ -33,7 +34,8 @@ const JobSchema = new mongoose.Schema({
             dueDate: { type: Date },
             status: { type: String, enum: ['pending', 'submitted', 'done'], default: 'pending' },
             submissionNote: { type: String },
-            submissionFiles: [String]
+            submissionFiles: [String],
+            submissionLinks: [String]
         }],
         status: { type: String, enum: ['pending', 'accepted', 'rejected'], default: 'pending' },
         workSubmission: {

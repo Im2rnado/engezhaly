@@ -12,7 +12,8 @@ const ProjectSchema = new mongoose.Schema({
         price: { type: Number, required: true, min: 300 },
         days: { type: Number, required: true },
         features: [{ type: String }],
-        revisions: { type: Number, default: 0 }
+        revisions: { type: Number, default: 0 },
+        revisionsUnlimited: { type: Boolean, default: false }
     }],
     consultationPrice: { type: Number, default: 100 }, // EGP per video/voice consultation - overrides freelancer default when set
     isActive: { type: Boolean, default: true }

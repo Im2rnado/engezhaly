@@ -5,9 +5,9 @@ const Conversation = require('../models/Conversation');
 const WithdrawalRequest = require('../models/WithdrawalRequest');
 const { sendAndLog } = require('../services/mailgunService');
 const { depositReceipt } = require('../templates/emailTemplates');
+const { WITHDRAWAL_FEE_EGP, WALLET_TOPUP_FEE_EGP } = require('../config/fees');
 
 const DEFAULT_CONSULTATION_AMOUNT = 100;
-const WITHDRAWAL_FEE = 20;
 
 // Mock Deposit (Top Up)
 const topUpWallet = async (req, res) => {
@@ -17,11 +17,11 @@ const topUpWallet = async (req, res) => {
 
         if (amount <= 0) return res.status(400).json({ msg: 'Invalid amount' });
 
-        // Simulate Payment Processing (e.g. Stripe/Paymob)
-        const fee = 20; // Fixed fee on top-up
+        const fee = WALLET_TOPUP_FEE_EGP;
         const netAmount = amount - fee;
 
-        if (netAmount <= 0) return res.status(400).json({ msg: 'Amount too low to cover fees' });
+        if (fee > 0 && netAmount <= 0) return res.status(400).json({ msg: 'Amount too low to cover fees' });
+        if (amount <= 0) return res.status(400).json({ msg: 'Invalid amount' });
 
         const user = await User.findById(userId);
         if (!user) return res.status(404).json({ msg: 'User not found' });
@@ -40,15 +40,16 @@ const topUpWallet = async (req, res) => {
         });
         await deposit.save();
 
-        // Log Transaction (Fee)
-        const feeTx = new Transaction({
-            userId,
-            type: 'fee',
-            amount: -fee,
-            description: 'Top-up Fee',
-            status: 'completed'
-        });
-        await feeTx.save();
+        if (fee > 0) {
+            const feeTx = new Transaction({
+                userId,
+                type: 'fee',
+                amount: -fee,
+                description: 'Top-up Fee',
+                status: 'completed'
+            });
+            await feeTx.save();
+        }
 
         // Send receipt email
         const userWithEmail = await User.findById(userId).select('email');
@@ -186,12 +187,14 @@ const createWithdrawalRequest = async (req, res) => {
             return res.status(400).json({ msg: 'Invalid withdrawal method. Use instapay, vodafone_cash, or bank' });
         }
 
-        const totalDeducted = amount + WITHDRAWAL_FEE;
+        const totalDeducted = amount + WITHDRAWAL_FEE_EGP;
         const balance = user.walletBalance || 0;
 
         if (balance < totalDeducted) {
             return res.status(400).json({
-                msg: `Insufficient balance. You need ${totalDeducted} EGP (${amount} + ${WITHDRAWAL_FEE} EGP fee). Your balance: ${balance} EGP`
+                msg: WITHDRAWAL_FEE_EGP > 0
+                    ? `Insufficient balance. You need ${totalDeducted} EGP (${amount} + ${WITHDRAWAL_FEE_EGP} EGP fee). Your balance: ${balance} EGP`
+                    : `Insufficient balance. You need ${totalDeducted} EGP. Your balance: ${balance} EGP`
             });
         }
 
@@ -208,7 +211,7 @@ const createWithdrawalRequest = async (req, res) => {
         const withdrawal = new WithdrawalRequest({
             userId,
             amount,
-            fee: WITHDRAWAL_FEE,
+            fee: WITHDRAWAL_FEE_EGP,
             method,
             phoneNumber: phoneNumber || undefined,
             accountNumber: accountNumber || undefined,
@@ -222,7 +225,9 @@ const createWithdrawalRequest = async (req, res) => {
             userId,
             type: 'withdrawal',
             amount: -totalDeducted,
-            description: `Withdrawal request (${amount} EGP + ${WITHDRAWAL_FEE} EGP fee) - pending`,
+            description: WITHDRAWAL_FEE_EGP > 0
+                ? `Withdrawal request (${amount} EGP + ${WITHDRAWAL_FEE_EGP} EGP fee) - pending`
+                : `Withdrawal request (${amount} EGP) - pending`,
             status: 'pending',
             referenceId: withdrawal._id.toString()
         });

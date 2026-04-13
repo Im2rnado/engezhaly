@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { X, Upload, Loader2, CheckCircle } from 'lucide-react';
 import { api } from '@/lib/api';
 import Image from 'next/image';
+import ImageCropModal from '@/components/ImageCropModal';
 
 interface ClientProfileEditModalProps {
     isOpen: boolean;
@@ -22,6 +23,8 @@ export default function ClientProfileEditModal({ isOpen, onClose, profile, onSav
         profilePicture: '' as string
     });
     const [pfpUploading, setPfpUploading] = useState(false);
+    const [cropSrc, setCropSrc] = useState<string | null>(null);
+    const pfpInputRef = useRef<HTMLInputElement>(null);
     const prevIsOpenRef = useRef(false);
 
     useEffect(() => {
@@ -40,20 +43,47 @@ export default function ClientProfileEditModal({ isOpen, onClose, profile, onSav
         prevIsOpenRef.current = isOpen;
     }, [isOpen, profile]);
 
-    const handlePfpUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+    const openCropFromFile = (file: File) => {
         if (file.size > 5 * 1024 * 1024) return;
         if (!file.type.startsWith('image/')) return;
+        setCropSrc(URL.createObjectURL(file));
+        if (pfpInputRef.current) pfpInputRef.current.value = '';
+    };
+
+    const handlePfpFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) openCropFromFile(file);
+    };
+
+    const openAdjustExistingPhoto = async () => {
+        const url = formData.profilePicture;
+        if (!url) return;
+        try {
+            const res = await fetch(url, { mode: 'cors' });
+            if (!res.ok) throw new Error('fetch failed');
+            const blob = await res.blob();
+            if (!blob.type.startsWith('image/')) return;
+            setCropSrc(URL.createObjectURL(blob));
+        } catch {
+            // fall back: ask user to re-pick
+            pfpInputRef.current?.click();
+        }
+    };
+
+    const handleCropConfirm = async (blob: Blob) => {
+        if (cropSrc) {
+            URL.revokeObjectURL(cropSrc);
+            setCropSrc(null);
+        }
         setPfpUploading(true);
         try {
-            const url = await api.upload.file(file);
-            setFormData((prev) => ({ ...prev, profilePicture: url }));
+            const file = new File([blob], 'profile.jpg', { type: 'image/jpeg' });
+            const uploadedUrl = await api.upload.file(file);
+            setFormData((prev) => ({ ...prev, profilePicture: uploadedUrl }));
         } catch {
             // ignore
         } finally {
             setPfpUploading(false);
-            e.target.value = '';
         }
     };
 
@@ -65,6 +95,17 @@ export default function ClientProfileEditModal({ isOpen, onClose, profile, onSav
     if (!isOpen) return null;
 
     return (
+        <>
+        {cropSrc && (
+            <ImageCropModal
+                src={cropSrc}
+                onCancel={() => {
+                    URL.revokeObjectURL(cropSrc);
+                    setCropSrc(null);
+                }}
+                onConfirm={handleCropConfirm}
+            />
+        )}
         <div className="fixed inset-0 bg-black/50 z-100 flex items-center justify-center p-4">
             <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                 <div className="sticky top-0 bg-white border-b border-gray-100 p-6 flex justify-between items-center">
@@ -77,25 +118,40 @@ export default function ClientProfileEditModal({ isOpen, onClose, profile, onSav
                 <form onSubmit={handleSubmit} className="p-6 space-y-6">
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-2">Profile Picture</label>
-                        <div className="flex items-center gap-4">
-                            <label className="flex flex-col items-center justify-center w-24 h-24 border-2 border-dashed border-gray-300 rounded-full cursor-pointer hover:border-[#09BF44] transition-colors bg-gray-50 overflow-hidden shrink-0">
-                                <input type="file" accept="image/*" className="hidden" onChange={handlePfpUpload} />
+                        <input ref={pfpInputRef} type="file" accept="image/*" className="hidden" onChange={handlePfpFileInput} />
+                        <div className="flex flex-wrap items-center gap-4">
+                            <button
+                                type="button"
+                                onClick={() => pfpInputRef.current?.click()}
+                                className="flex flex-col items-center justify-center w-24 h-24 border-2 border-dashed border-gray-300 rounded-full hover:border-[#09BF44] transition-colors bg-gray-50 overflow-hidden shrink-0"
+                            >
                                 {pfpUploading ? (
                                     <Loader2 className="w-8 h-8 text-[#09BF44] animate-spin" />
                                 ) : formData.profilePicture ? (
-                                    <Image src={formData.profilePicture} alt="Profile" width={96} height={96} className="w-full h-full object-cover" />
+                                    <Image src={formData.profilePicture} alt="Profile" width={96} height={96} className="w-full h-full object-cover" unoptimized />
                                 ) : (
-                                    <div className="flex flex-col items-center text-gray-400">
+                                    <div className="flex flex-col items-center text-gray-400 pointer-events-none">
                                         <Upload className="w-8 h-8 mb-1" />
                                         <span className="text-xs">Add photo</span>
                                     </div>
                                 )}
-                            </label>
-                            {formData.profilePicture && !pfpUploading && (
-                                <button type="button" onClick={() => setFormData((p) => ({ ...p, profilePicture: '' }))} className="text-sm text-red-600 font-bold hover:underline">
-                                    Remove
+                            </button>
+                            <div className="flex flex-col gap-2 text-sm">
+                                <button type="button" onClick={() => pfpInputRef.current?.click()} className="font-bold text-[#09BF44] hover:underline text-left">
+                                    {formData.profilePicture ? 'Change photo' : 'Upload photo'}
                                 </button>
-                            )}
+                                {formData.profilePicture && (
+                                    <button type="button" onClick={openAdjustExistingPhoto} className="font-bold text-gray-600 hover:underline text-left">
+                                        Resize / crop
+                                    </button>
+                                )}
+                                {formData.profilePicture && !pfpUploading && (
+                                    <button type="button" onClick={() => setFormData((p) => ({ ...p, profilePicture: '' }))} className="text-red-600 font-bold hover:underline text-left">
+                                        Remove
+                                    </button>
+                                )}
+                                <p className="text-xs text-gray-500">Max 5MB. Crop to a square after choosing.</p>
+                            </div>
                         </div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -172,5 +228,6 @@ export default function ClientProfileEditModal({ isOpen, onClose, profile, onSav
                 </form>
             </div>
         </div>
+        </>
     );
 }

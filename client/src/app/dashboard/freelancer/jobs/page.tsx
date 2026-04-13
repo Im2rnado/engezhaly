@@ -27,8 +27,9 @@ export default function MyJobsPage() {
         files: [] as File[]
     });
     const [milestoneSubmitModal, setMilestoneSubmitModal] = useState<{ job: any; milestoneIdx: number } | null>(null);
-    const [milestoneNote, setMilestoneNote] = useState('');
+    const [milestoneWork, setMilestoneWork] = useState({ message: '', links: '', files: [] as File[] });
     const [milestoneSubmitting, setMilestoneSubmitting] = useState(false);
+    const [milestoneUploadProgress, setMilestoneUploadProgress] = useState<number | null>(null);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -124,21 +125,38 @@ export default function MyJobsPage() {
     const handleSubmitMilestone = async () => {
         if (!milestoneSubmitModal) return;
         setMilestoneSubmitting(true);
+        setMilestoneUploadProgress(null);
         try {
+            const fileUrls: string[] = [];
+            const files = milestoneWork.files;
+            if (files.length > 0) {
+                for (let i = 0; i < files.length; i++) {
+                    const url = await api.upload.file(files[i], {
+                        onProgress: (p) => setMilestoneUploadProgress(Math.round(((i + p / 100) / files.length) * 100))
+                    });
+                    fileUrls.push(url);
+                }
+            }
+            setMilestoneUploadProgress(100);
+            const links = milestoneWork.links
+                .split(/[\n, ]+/)
+                .map((l) => l.trim())
+                .filter(Boolean);
             await api.freelancer.submitMilestoneWork(
                 milestoneSubmitModal.job._id,
                 milestoneSubmitModal.milestoneIdx,
-                { note: milestoneNote, files: [] }
+                { message: milestoneWork.message, note: milestoneWork.message, links, files: fileUrls }
             );
             showModal({ title: 'Success', message: 'Milestone work submitted!', type: 'success' });
             setMilestoneSubmitModal(null);
-            setMilestoneNote('');
+            setMilestoneWork({ message: '', links: '', files: [] });
             const myJobsData = await api.jobs.getFreelancerJobs().catch(() => []);
             setMyJobs(myJobsData);
         } catch (err: any) {
             showModal({ title: 'Error', message: err.message || 'Failed to submit milestone', type: 'error' });
         } finally {
             setMilestoneSubmitting(false);
+            setMilestoneUploadProgress(null);
         }
     };
 
@@ -282,7 +300,10 @@ export default function MyJobsPage() {
                                                                         </span>
                                                                         {m.status !== 'done' && (
                                                                             <button
-                                                                                onClick={() => { setMilestoneSubmitModal({ job, milestoneIdx: idx }); setMilestoneNote(''); }}
+                                                                                onClick={() => {
+                                                                                    setMilestoneSubmitModal({ job, milestoneIdx: idx });
+                                                                                    setMilestoneWork({ message: '', links: '', files: [] });
+                                                                                }}
                                                                                 className="text-xs bg-[#09BF44] text-white px-3 py-1 rounded-lg font-bold hover:bg-[#07a63a]"
                                                                             >
                                                                                 {m.status === 'submitted' ? 'Resubmit' : 'Submit'}
@@ -430,7 +451,7 @@ export default function MyJobsPage() {
                 {/* Milestone Submission Modal */}
                 {milestoneSubmitModal && (
                     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                        <div className="bg-white p-6 rounded-3xl max-w-md w-full shadow-2xl">
+                        <div className="bg-white p-6 rounded-3xl max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto">
                             <div className="flex items-center justify-between mb-4">
                                 <h2 className="text-xl font-bold text-gray-900">Submit Milestone</h2>
                                 <button onClick={() => setMilestoneSubmitModal(null)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
@@ -443,18 +464,41 @@ export default function MyJobsPage() {
                             <p className="text-xs text-gray-500 mb-4">The client will be notified but cannot approve/release payment for this milestone individually. Full payment is released at the end.</p>
                             <div className="space-y-3">
                                 <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-1">Notes (optional)</label>
+                                    <label className="block text-sm font-bold text-gray-700 mb-1">Message / notes</label>
                                     <textarea
-                                        value={milestoneNote}
-                                        onChange={(e) => setMilestoneNote(e.target.value)}
+                                        value={milestoneWork.message}
+                                        onChange={(e) => setMilestoneWork((w) => ({ ...w, message: e.target.value }))}
                                         rows={3}
                                         placeholder="Describe what you completed for this milestone..."
-                                        className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none resize-none"
+                                        className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none resize-none text-gray-900"
                                     />
                                 </div>
-                                <div className="flex gap-3">
-                                    <button onClick={() => setMilestoneSubmitModal(null)} className="flex-1 bg-gray-100 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-200">Cancel</button>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-1">Links (comma, space, or new line)</label>
+                                    <textarea
+                                        value={milestoneWork.links}
+                                        onChange={(e) => setMilestoneWork((w) => ({ ...w, links: e.target.value }))}
+                                        rows={2}
+                                        className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none resize-none text-gray-900"
+                                        placeholder="https://..."
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-1">Files</label>
+                                    <input
+                                        type="file"
+                                        multiple
+                                        onChange={(e) => setMilestoneWork((w) => ({ ...w, files: Array.from(e.target.files || []) }))}
+                                        className="w-full p-2 bg-gray-50 rounded-xl border-2 border-transparent text-sm"
+                                    />
+                                </div>
+                                {milestoneUploadProgress !== null && milestoneWork.files.length > 0 && (
+                                    <p className="text-xs font-bold text-[#09BF44]">Uploading… {milestoneUploadProgress}%</p>
+                                )}
+                                <div className="flex gap-3 pt-2">
+                                    <button type="button" onClick={() => setMilestoneSubmitModal(null)} className="flex-1 bg-gray-100 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-200">Cancel</button>
                                     <button
+                                        type="button"
                                         onClick={handleSubmitMilestone}
                                         disabled={milestoneSubmitting}
                                         className="flex-1 bg-[#09BF44] text-white font-bold py-3 rounded-xl hover:bg-[#07a63a] disabled:opacity-70 flex items-center justify-center gap-2"

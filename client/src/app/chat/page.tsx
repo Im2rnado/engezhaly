@@ -4,7 +4,6 @@ import { Suspense, useEffect, useState, useRef, useCallback, useMemo } from 'rea
 import { useSearchParams, useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
 import { Send, Video, Paperclip, FileText, CheckCircle, XCircle, MessageSquare, Shield, PanelLeft, ArrowLeft, Loader2, Mic, Square, Trash2, ScrollText, Link as LinkIcon, Clock } from 'lucide-react';
-import Image from 'next/image';
 import { api } from '@/lib/api';
 import { formatDateDDMMYYYY } from '@/lib/utils';
 import { useModal } from '@/context/ModalContext';
@@ -20,6 +19,33 @@ import FreelancerSidebar from '@/components/FreelancerSidebar';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 
 const SOCKET_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.engezhaly.com/api').replace(/\/api$/, '');
+const API_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/api$/, '');
+
+function resolveChatMediaUrl(url: string) {
+    if (!url || typeof url !== 'string') return '';
+    const u = url.trim();
+    if (u.startsWith('http://') || u.startsWith('https://')) return u;
+    const base = API_ORIGIN || (typeof window !== 'undefined' ? window.location.origin : '');
+    if (!base) return u;
+    return `${base}${u.startsWith('/') ? '' : '/'}${u}`;
+}
+
+function chatAttachmentIsImageUrl(url: string) {
+    try {
+        const p = new URL(url).pathname.toLowerCase();
+        return /\.(jpe?g|png|gif|webp)$/.test(p);
+    } catch {
+        return /\.(jpe?g|png|gif|webp)(\?|$)/i.test(url);
+    }
+}
+
+function chatAttachmentIsPdfUrl(url: string) {
+    try {
+        return new URL(url).pathname.toLowerCase().endsWith('.pdf');
+    } catch {
+        return /\.pdf(\?|$)/i.test(url);
+    }
+}
 
 function ChatPageContent() {
     const router = useRouter();
@@ -58,13 +84,17 @@ function ChatPageContent() {
     const [recordingSeconds, setRecordingSeconds] = useState(0);
     const [pendingVoiceRecording, setPendingVoiceRecording] = useState<{ blob: Blob; file: File; durationSeconds: number; objectUrl: string } | null>(null);
     const [sendingVoice, setSendingVoice] = useState(false);
+    const [sendingChatFile, setSendingChatFile] = useState(false);
     const [showRulesModal, setShowRulesModal] = useState(false);
+    const chatFileInputRef = useRef<HTMLInputElement>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const recordingChunksRef = useRef<Blob[]>([]);
     const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
     const stopVoiceRecordingRef = useRef<() => void | Promise<void>>(() => {});
     const pendingVoiceUrlRef = useRef<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const messagesScrollRef = useRef<HTMLDivElement>(null);
+    const didInitialScrollRef = useRef(false);
 
     const VOICE_MAX_DURATION_SEC = 120; // 2 minutes
     const resolveUserId = useCallback(() => {
@@ -86,6 +116,7 @@ function ChatPageContent() {
             const formatted = (messagesData || []).map((m: any) => {
                 const senderId = m.senderId?._id || m.senderId;
                 const isAdmin = m.isAdmin || m.content?.includes('[Engezhaly Admin]');
+                const isMeeting = m.messageType === 'meeting' || m.content?.includes('[Engezhaly Meeting]');
                 return {
                     _id: m._id,
                     text: m.content,
@@ -95,6 +126,7 @@ function ChatPageContent() {
                     messageType: m.messageType,
                     isRead: !!m.isRead,
                     isAdmin: isAdmin,
+                    isMeeting: isMeeting,
                     isBlurred: !!m.isBlurred
                 };
             });
@@ -103,6 +135,53 @@ function ChatPageContent() {
             console.error(e);
         }
     }, [conversationId, resolveUserId]);
+
+    const refreshConversationContext = useCallback(async () => {
+        if (!conversationId) return;
+        await refreshChatMessagesAndOffers();
+        api.chat.getConsultationStatus(conversationId).then(setConsultationStatus).catch(() => {});
+        const stored = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
+        const partnerId = activeChat?.partnerId ? String(activeChat.partnerId?._id ?? activeChat.partnerId) : '';
+        if (!partnerId) return;
+        if (stored.role === 'freelancer') {
+            api.freelancer.getMyOrders().then((orders: any[]) => {
+                const pending = orders.find(
+                    (o) => o.status === 'pending_approval' && String(o.buyerId?._id ?? o.buyerId) === partnerId
+                );
+                setPendingOrderForChat(pending || null);
+            }).catch(() => setPendingOrderForChat(null));
+        }
+        if (stored.role === 'client') {
+            api.client.getPendingWorkToApprove(partnerId).then((data: any) => {
+                if (data?.order || data?.job || data?.activeJobForNav) {
+                    setPendingWorkToApprove({
+                        order: data.order || null,
+                        job: data.job || null,
+                        activeJobForNav: data.activeJobForNav || null
+                    });
+                } else {
+                    setPendingWorkToApprove(null);
+                }
+            }).catch(() => setPendingWorkToApprove(null));
+            api.client.getMyOrders().then((orders: any[]) => {
+                const pendingPay = orders.find(
+                    (o) => o.status === 'pending_payment' && String(o.sellerId?._id ?? o.sellerId) === partnerId
+                );
+                setPendingPaymentOrder(pendingPay || null);
+                const pendingAppr = orders.find(
+                    (o) => o.status === 'pending_approval' && String(o.sellerId?._id ?? o.sellerId) === partnerId
+                );
+                setPendingApprovalOrder(pendingAppr || null);
+            }).catch(() => {
+                setPendingPaymentOrder(null);
+                setPendingApprovalOrder(null);
+            });
+        }
+    }, [conversationId, activeChat, refreshChatMessagesAndOffers]);
+
+    useEffect(() => {
+        didInitialScrollRef.current = false;
+    }, [conversationId]);
 
     useEffect(() => {
         // Get current user
@@ -462,8 +541,36 @@ function ChatPageContent() {
     }, [offers, messages]);
 
     useEffect(() => {
+        if (mergedFeed.length === 0) return;
+        const el = messagesScrollRef.current;
+        if (!didInitialScrollRef.current) {
+            if (el) {
+                const snap = () => {
+                    el.scrollTop = el.scrollHeight;
+                };
+                snap();
+                requestAnimationFrame(() => {
+                    snap();
+                    requestAnimationFrame(snap);
+                });
+                didInitialScrollRef.current = true;
+            }
+            return;
+        }
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages, offers]);
+    }, [mergedFeed.length, conversationId, messages, offers]);
+
+    useEffect(() => {
+        if (!socket) return;
+        const onCtx = (payload: { conversationId?: string }) => {
+            if (payload?.conversationId && conversationId && String(payload.conversationId) !== String(conversationId)) return;
+            refreshConversationContext();
+        };
+        socket.on('chat_context_refresh', onCtx);
+        return () => {
+            socket.off('chat_context_refresh', onCtx);
+        };
+    }, [socket, conversationId, refreshConversationContext]);
 
     const startVoiceRecording = useCallback(async () => {
         if (!activeChat || activeChat.isFrozen) return;
@@ -588,6 +695,88 @@ function ChatPageContent() {
             setSendingVoice(false);
         }
     }, [activeChat, pendingVoiceRecording, resolveUserId, showModal]);
+
+    const handleChatAttachmentSelected = useCallback(
+        async (e: React.ChangeEvent<HTMLInputElement>) => {
+            const file = e.target.files?.[0];
+            if (e.target) e.target.value = '';
+            if (!file || !activeChat) return;
+
+            if (activeChat.isFrozen) {
+                showModal({
+                    title: 'Conversation Frozen',
+                    message: 'This conversation has been frozen. You cannot send attachments.',
+                    type: 'error'
+                });
+                return;
+            }
+            if (activeChat.partnerIsBusy && currentUser?.role === 'client') {
+                showModal({
+                    title: 'Freelancer Busy',
+                    message: 'This freelancer is currently busy and cannot receive messages.',
+                    type: 'error'
+                });
+                return;
+            }
+
+            const maxBytes = 10 * 1024 * 1024;
+            if (file.size > maxBytes) {
+                showModal({ title: 'File too large', message: 'Attachments must be 10MB or smaller.', type: 'error' });
+                return;
+            }
+            const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+            const isImage = file.type.startsWith('image/');
+            if (!isPdf && !isImage) {
+                showModal({ title: 'Invalid file', message: 'Only PDF and image files can be sent in chat.', type: 'error' });
+                return;
+            }
+
+            const receiverId = activeChat.partnerId?._id ?? activeChat.partnerId;
+            const userId = resolveUserId();
+            if (!receiverId) {
+                showModal({ title: 'Error', message: 'Cannot send attachment: no recipient selected.', type: 'error' });
+                return;
+            }
+
+            setSendingChatFile(true);
+            try {
+                const url = await api.upload.chatFile(file);
+                await api.chat.sendMessage({ receiverId, content: url, messageType: 'file' });
+                const data = await api.chat.getMessages(activeChat.id);
+                const formatted = data.map((m: any) => {
+                    const senderId = m.senderId?._id || m.senderId;
+                    const isAdmin = m.isAdmin || m.content?.includes('[Engezhaly Admin]');
+                    const isMeeting = m.messageType === 'meeting' || m.content?.includes('[Engezhaly Meeting]');
+                    return {
+                        _id: m._id,
+                        text: m.content,
+                        sender: String(senderId) === String(userId) ? 'me' : 'them',
+                        senderId: senderId,
+                        timestamp: m.createdAt,
+                        messageType: m.messageType,
+                        isRead: !!m.isRead,
+                        isAdmin: isAdmin,
+                        isMeeting: isMeeting,
+                        isBlurred: !!m.isBlurred
+                    };
+                });
+                setMessages(formatted);
+                api.chat.getConversations().then((dataConv: any) => {
+                    if (Array.isArray(dataConv)) {
+                        setChats(dataConv);
+                        const updatedChat = dataConv.find((c: any) => c.id === activeChat.id);
+                        if (updatedChat) setActiveChat(updatedChat);
+                    }
+                }).catch(console.error);
+            } catch (err: any) {
+                console.error(err);
+                showModal({ title: 'Error', message: err.message || 'Failed to send attachment', type: 'error' });
+            } finally {
+                setSendingChatFile(false);
+            }
+        },
+        [activeChat, currentUser?.role, resolveUserId, showModal]
+    );
 
     useEffect(() => {
         stopVoiceRecordingRef.current = stopVoiceRecording;
@@ -717,6 +906,19 @@ function ChatPageContent() {
         }
     };
 
+    const handleDeleteOffer = async (offerId: string) => {
+        if (!conversationId) return;
+        if (!confirm('Delete this pending offer?')) return;
+        try {
+            await api.chat.deleteOffer(offerId);
+            const offersData = await api.chat.getOffers(conversationId);
+            setOffers(offersData || []);
+            showModal({ title: 'Deleted', message: 'Offer removed.', type: 'success' });
+        } catch (err: any) {
+            showModal({ title: 'Error', message: err.message || 'Failed to delete offer', type: 'error' });
+        }
+    };
+
     const handleCreateOffer = async (offerData: any) => {
         if (!activeChat || !conversationId) return;
 
@@ -727,10 +929,17 @@ function ChatPageContent() {
         }
 
         try {
+            const { deliveryDate, deliveryDays, revisions, revisionsUnlimited, milestones, whatsIncluded, price } = offerData;
             await api.chat.createOffer({
                 conversationId,
                 receiverId,
-                ...offerData
+                price,
+                whatsIncluded,
+                milestones,
+                revisions,
+                revisionsUnlimited,
+                ...(deliveryDate ? { deliveryDate } : {}),
+                ...(deliveryDays != null ? { deliveryDays } : {})
             });
 
             // Refresh offers and messages
@@ -1441,7 +1650,7 @@ function ChatPageContent() {
                                 )}
 
                                 {/* Messages and offers (merged by timestamp) */}
-                                <div style={{ overflowY: 'auto', overflowX: 'hidden' }} className="flex-1 p-3 md:p-6 space-y-4 bg-linear-to-b from-gray-50 to-white rounded-b-2xl md:rounded-b-3xl min-h-0">
+                                <div ref={messagesScrollRef} style={{ overflowY: 'auto', overflowX: 'hidden' }} className="flex-1 p-3 md:p-6 space-y-4 bg-linear-to-b from-gray-50 to-white rounded-b-2xl md:rounded-b-3xl min-h-0">
                                     {mergedFeed.map((item) => {
                                         if (item.type === 'offer') {
                                             const offer = item.data;
@@ -1452,41 +1661,45 @@ function ChatPageContent() {
 
                                         return (
                                                 <div key={item.id} className={`flex ${isMyOffer ? 'justify-end' : 'justify-start'}`}>
-                                                    <div className={`p-4 rounded-2xl md:rounded-3xl shadow-sm relative min-w-50 max-w-[85%] md:max-w-[70%] ${isMyOffer
+                                                    <div className={`min-w-0 p-4 rounded-2xl md:rounded-3xl shadow-sm relative max-w-[85%] md:max-w-[min(92%,42rem)] ${isMyOffer
                                                         ? 'bg-[#09BF44] text-white border-[#09BF44]'
                                                         : 'bg-white border-[#09BF44]/20'
                                                     }`}>
-                                                    <div className="flex items-center gap-2 mb-3">
-                                                        <FileText className={`w-5 h-5 ${isMyOffer ? 'text-white' : 'text-[#09BF44]'}`} />
+                                                    <div className="flex items-center gap-2 mb-3 flex-wrap">
+                                                        <FileText className={`w-5 h-5 shrink-0 ${isMyOffer ? 'text-white' : 'text-[#09BF44]'}`} />
                                                         <span className={`font-bold text-base ${isMyOffer ? 'text-white' : 'text-gray-900'}`}>
                                                             Custom Offer
                                                         </span>
                                                         {offer.status === 'accepted' && (
-                                                            <CheckCircle className={`w-5 h-5 ml-auto ${isMyOffer ? 'text-white' : 'text-green-600'}`} />
+                                                            <CheckCircle className={`w-5 h-5 ml-auto shrink-0 ${isMyOffer ? 'text-white' : 'text-green-600'}`} />
                                                         )}
                                                         {offer.status === 'rejected' && (
-                                                            <XCircle className={`w-5 h-5 ml-auto ${isMyOffer ? 'text-white' : 'text-red-600'}`} />
+                                                            <XCircle className={`w-5 h-5 ml-auto shrink-0 ${isMyOffer ? 'text-white' : 'text-red-600'}`} />
                                                         )}
                                                     </div>
 
-                                                    <div className={`space-y-3 mb-4 ${isMyOffer ? 'text-white/95' : 'text-gray-700'}`}>
-                                                        <div className="flex items-center justify-between bg-white/10 rounded-xl p-3">
-                                                            <span className="text-sm font-bold">Price:</span>
-                                                            <span className="text-lg font-black">{offer.price} EGP</span>
+                                                    <div className={`space-y-3 mb-4 min-w-0 ${isMyOffer ? 'text-white/95' : 'text-gray-700'}`}>
+                                                        <div className={`flex items-center justify-between rounded-xl p-3 ${isMyOffer ? 'bg-white/10' : 'bg-gray-50'}`}>
+                                                            <span className="text-sm font-bold shrink-0">Price:</span>
+                                                            <span className="text-lg font-black truncate ml-2">{offer.price} EGP</span>
                                                         </div>
-                                                        <div className="flex items-center justify-between">
-                                                            <span className="text-sm font-bold">Delivery:</span>
-                                                                <span className="text-sm font-medium">
+                                                        <div className="flex items-center justify-between gap-2 min-w-0">
+                                                            <span className="text-sm font-bold shrink-0">Delivery:</span>
+                                                                <span className="text-sm font-medium text-right break-words [overflow-wrap:anywhere]">
                                                                     {offer.deliveryDate ? formatDateDDMMYYYY(offer.deliveryDate) : (offer.deliveryDays ? `${offer.deliveryDays} days` : '—')}
                                                                 </span>
                                                         </div>
-                                                        <div className="flex items-center justify-between">
+                                                        <div className="flex items-center justify-between gap-2">
                                                             <span className="text-sm font-bold">Revisions:</span>
-                                                            <span className="text-sm font-medium">{offer.revisions || 0}</span>
+                                                            <span className="text-sm font-medium">
+                                                                {offer.revisionsUnlimited ? 'Unlimited' : String(Number(offer.revisions ?? 0))}
+                                                            </span>
                                                         </div>
-                                                        <div className="pt-3 border-t border-white/20">
+                                                        <div className={`pt-3 border-t min-w-0 ${isMyOffer ? 'border-white/20' : 'border-gray-200'}`}>
                                                             <p className="text-sm font-bold mb-2">What&apos;s Included:</p>
-                                                            <p className="text-sm leading-relaxed">{offer.whatsIncluded}</p>
+                                                            <div className={`text-sm leading-relaxed max-h-48 overflow-y-auto break-words [overflow-wrap:anywhere] ${isMyOffer ? '' : 'text-gray-800'}`}>
+                                                                {offer.whatsIncluded}
+                                                            </div>
                                                         </div>
                                                         {offer.milestones && offer.milestones.length > 0 && (
                                                             <div className="pt-3 border-t border-white/20">
@@ -1505,6 +1718,15 @@ function ChatPageContent() {
                                                         )}
                                                     </div>
 
+                                                    {isMyOffer && offer.status === 'pending' && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleDeleteOffer(offer._id)}
+                                                            className="w-full mt-2 flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 text-white font-bold py-2.5 rounded-xl text-sm transition-colors"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" /> Delete offer
+                                                        </button>
+                                                    )}
                                                     {canAccept && (
                                                         <button
                                                                 onClick={() => handleAcceptOffer(offer)}
@@ -1531,6 +1753,8 @@ function ChatPageContent() {
 
                                         const msg = item.data;
                                         const isVoice = msg.messageType === 'voice';
+                                        const isFile = msg.messageType === 'file';
+                                        const fileSrc = isFile ? resolveChatMediaUrl(msg.text || '') : '';
                                         const isAdmin = msg.isAdmin || msg.text?.includes('[Engezhaly Admin]');
                                         const isMeeting = msg.isMeeting || msg.messageType === 'meeting' || msg.text?.includes('[Engezhaly Meeting]');
                                         const isOrder = msg.messageType === 'order' || msg.text?.includes('[Engezhaly Order]');
@@ -1575,6 +1799,42 @@ function ChatPageContent() {
                                                     )}
                                                     {isVoice ? (
                                                         <audio controls src={msg.text} className="max-w-full min-w-[200px] h-10 rounded-lg" />
+                                                    ) : isFile && fileSrc ? (
+                                                        <div className="space-y-2">
+                                                            {chatAttachmentIsImageUrl(fileSrc) ? (
+                                                                <a href={fileSrc} target="_blank" rel="noopener noreferrer" className="block">
+                                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                    <img
+                                                                        src={fileSrc}
+                                                                        alt="Attachment"
+                                                                        className={`max-h-56 max-w-full rounded-lg object-contain border ${msg.sender === 'me' ? 'border-white/25' : 'border-gray-200'}`}
+                                                                    />
+                                                                </a>
+                                                            ) : chatAttachmentIsPdfUrl(fileSrc) ? (
+                                                                <a
+                                                                    href={fileSrc}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-sm border ${
+                                                                        msg.sender === 'me'
+                                                                            ? 'bg-white/15 hover:bg-white/25 border-white/30'
+                                                                            : 'bg-gray-50 hover:bg-gray-100 border-gray-200 text-gray-900'
+                                                                    }`}
+                                                                >
+                                                                    <FileText className="w-4 h-4 shrink-0" />
+                                                                    Open PDF
+                                                                </a>
+                                                            ) : (
+                                                                <a
+                                                                    href={fileSrc}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className={`text-sm font-bold underline break-all ${msg.sender === 'me' ? '' : 'text-[#09BF44]'}`}
+                                                                >
+                                                                    Open file
+                                                                </a>
+                                                            )}
+                                                        </div>
                                                     ) : (
                                                         <p className={`text-sm md:text-base leading-relaxed break-words whitespace-pre-wrap ${msg.isBlurred ? 'blur-sm select-none' : ''}`}>{content}</p>
                                                     )}
@@ -1661,8 +1921,25 @@ function ChatPageContent() {
                                             </div>
                                         ) : (
                                             <form onSubmit={sendMessage} className="flex items-center gap-2 md:gap-3 bg-gray-50 p-2 rounded-2xl border-2 border-gray-200 focus-within:border-[#09BF44] focus-within:ring-2 focus-within:ring-[#09BF44]/20 transition-all flex-1 min-w-0">
-                                            <button type="button" disabled={activeChat.isFrozen || (activeChat.partnerIsBusy && currentUser?.role === 'client')} className="p-2.5 text-gray-400 hover:text-[#09BF44] hover:bg-white rounded-xl transition-all shrink-0 disabled:opacity-50 disabled:cursor-not-allowed">
-                                                <Paperclip className="w-5 h-5" />
+                                            <input
+                                                ref={chatFileInputRef}
+                                                type="file"
+                                                accept="application/pdf,image/*"
+                                                className="hidden"
+                                                onChange={handleChatAttachmentSelected}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => chatFileInputRef.current?.click()}
+                                                disabled={
+                                                    sendingChatFile ||
+                                                    activeChat.isFrozen ||
+                                                    (activeChat.partnerIsBusy && currentUser?.role === 'client')
+                                                }
+                                                className="p-2.5 text-gray-400 hover:text-[#09BF44] hover:bg-white rounded-xl transition-all shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                aria-label="Attach PDF or image"
+                                            >
+                                                {sendingChatFile ? <Loader2 className="w-5 h-5 animate-spin" /> : <Paperclip className="w-5 h-5" />}
                                             </button>
                                             <input
                                                 type="text"

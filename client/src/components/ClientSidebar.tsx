@@ -130,7 +130,7 @@ export default function ClientSidebar({ user, activeTab, mobileOpen = false, onC
                 >
                     <MessageSquare className="w-5 h-5" /> Chats
                     {unreadChats > 0 && (
-                        <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">
+                        <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">
                             {unreadChats > 99 ? '99+' : unreadChats}
                         </span>
                     )}

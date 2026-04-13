@@ -2,9 +2,25 @@ const User = require('../models/User');
 const Order = require('../models/Order');
 const Job = require('../models/Job');
 const Chat = require('../models/Chat');
+const { emitChatContextRefresh } = require('../services/chatContextRefresh');
 const Conversation = require('../models/Conversation');
 const { sendAndLog } = require('../services/mailgunService');
 const { orderApproved, orderDenied, workSubmitted } = require('../templates/emailTemplates');
+
+/** If order.revision fields were missing but linked offer has them, expose offer values (read path fix). */
+const orderWithRevisionFallback = (order) => {
+    const o = order.toObject ? order.toObject({ virtuals: true }) : { ...order };
+    if (o.offerId && typeof o.offerId === 'object') {
+        const off = o.offerId;
+        const orderEmpty = !o.revisionsUnlimited && (o.revisions === undefined || o.revisions === null || Number(o.revisions) === 0);
+        const offerHas = !!off.revisionsUnlimited || (Number(off.revisions) > 0);
+        if (orderEmpty && offerHas) {
+            o.revisions = off.revisionsUnlimited ? 0 : Math.max(0, Math.floor(Number(off.revisions) || 0));
+            o.revisionsUnlimited = !!off.revisionsUnlimited;
+        }
+    }
+    return o;
+};
 
 const updateProfile = async (req, res) => {
     try {
@@ -44,8 +60,10 @@ const updateProfile = async (req, res) => {
             return res.status(403).json({ msg: 'Access denied. User is not a freelancer.' });
         }
 
-        // Update fields
-        if (category !== undefined) user.freelancerProfile.category = category;
+        // Category is fixed after first signup — never change via profile update
+        if (category !== undefined && !user.freelancerProfile?.category) {
+            user.freelancerProfile.category = category;
+        }
         if (experienceYears !== undefined) {
             const expNum = Number(experienceYears);
             if (isNaN(expNum) || expNum < 0 || expNum > 100) {
@@ -79,6 +97,7 @@ const updateProfile = async (req, res) => {
             user.freelancerProfile.languages = user.freelancerProfile.languages || {};
             if (languages.english !== undefined) user.freelancerProfile.languages.english = languages.english;
             if (languages.arabic !== undefined) user.freelancerProfile.languages.arabic = languages.arabic;
+            if (languages.francoArabic !== undefined) user.freelancerProfile.languages.francoArabic = languages.francoArabic;
         }
         if (extraLanguages !== undefined && Array.isArray(extraLanguages)) {
             user.freelancerProfile.extraLanguages = extraLanguages.filter(Boolean).map(String);
@@ -314,12 +333,35 @@ const getMyOrders = async (req, res) => {
         const orders = await Order.find({ sellerId: freelancerId })
             .populate('projectId', 'title packages subCategory')
             .populate('buyerId', 'firstName lastName email')
+            .populate('offerId', 'revisions revisionsUnlimited')
             .sort({ createdAt: -1 });
 
-        res.json(orders);
+        res.json(orders.map((ord) => orderWithRevisionFallback(ord)));
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
+    }
+};
+
+const getOrderById = async (req, res) => {
+    try {
+        const freelancerId = req.user.id;
+        const order = await Order.findById(req.params.id)
+            .populate('projectId', 'title packages subCategory description')
+            .populate('buyerId', 'firstName lastName email')
+            .populate('offerId');
+
+        if (!order) {
+            return res.status(404).json({ msg: 'Order not found' });
+        }
+        if (String(order.sellerId) !== String(freelancerId)) {
+            return res.status(403).json({ msg: 'Not authorized to view this order' });
+        }
+
+        res.json(orderWithRevisionFallback(order));
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: err.message || 'Server Error' });
     }
 };
 
@@ -443,6 +485,7 @@ const approveOrder = async (req, res) => {
                     isRead: false
                 });
             }
+            emitChatContextRefresh(io, conversation._id);
         }
 
         res.json(populated);
@@ -485,6 +528,40 @@ const denyOrder = async (req, res) => {
             .populate('projectId', 'title packages subCategory')
             .populate('buyerId', 'firstName lastName email');
 
+        // Sync order denial to chat (mirror approveOrder)
+        const conversation = await Conversation.findOne({
+            participants: { $all: [String(order.buyerId._id), String(freelancerId)] }
+        });
+        if (conversation) {
+            const chatMsg = new Chat({
+                conversationId: conversation._id,
+                senderId: freelancerId,
+                receiverId: order.buyerId._id,
+                content: `[Engezhaly Order] Freelancer has declined this order request.`,
+                messageType: 'order',
+                isAdmin: false
+            });
+            await chatMsg.save();
+            await Conversation.findByIdAndUpdate(conversation._id, {
+                lastMessage: chatMsg.content,
+                lastMessageId: chatMsg._id
+            });
+            const io = req.app?.get('io');
+            if (io) {
+                io.to(`conversation:${conversation._id}`).emit('message', {
+                    _id: chatMsg._id,
+                    conversationId: conversation._id,
+                    senderId: freelancerId,
+                    content: chatMsg.content,
+                    messageType: 'order',
+                    createdAt: chatMsg.createdAt,
+                    isAdmin: false,
+                    isRead: false
+                });
+            }
+            emitChatContextRefresh(io, conversation._id);
+        }
+
         res.json(populated);
     } catch (err) {
         console.error(err.message);
@@ -496,7 +573,7 @@ const submitMilestoneWork = async (req, res) => {
     try {
         const freelancerId = req.user.id;
         const { jobId, milestoneIdx } = req.params;
-        const { note, files } = req.body;
+        const { note, message, files, links } = req.body;
 
         const job = await Job.findById(jobId);
         if (!job) return res.status(404).json({ msg: 'Job not found' });
@@ -515,8 +592,16 @@ const submitMilestoneWork = async (req, res) => {
 
         const milestone = acceptedProposal.milestones[idx];
         milestone.status = 'submitted';
-        milestone.submissionNote = note || '';
+        const text = String(message || note || '').trim();
+        milestone.submissionNote = text;
         milestone.submissionFiles = Array.isArray(files) ? files : [];
+        let linkArr = [];
+        if (Array.isArray(links)) {
+            linkArr = links.filter(Boolean).map(String);
+        } else if (typeof links === 'string' && links.trim()) {
+            linkArr = links.split(/[\n,]+/).map((s) => s.trim()).filter(Boolean);
+        }
+        milestone.submissionLinks = linkArr;
         acceptedProposal.milestones[idx] = milestone;
 
         job.markModified('proposals');
@@ -536,6 +621,7 @@ module.exports = {
     getReviews,
     getTopFreelancers,
     getMyOrders,
+    getOrderById,
     submitOrderWork,
     raiseDispute,
     approveOrder,

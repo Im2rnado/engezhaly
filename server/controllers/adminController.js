@@ -1,3 +1,6 @@
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const User = require('../models/User');
 const Conversation = require('../models/Conversation');
 const EmailLog = require('../models/EmailLog');
@@ -121,12 +124,42 @@ const unstarFreelancer = async (req, res) => {
     }
 };
 
+async function getOrCreateSupportTeamUser() {
+    const envId = process.env.SUPPORT_TEAM_USER_ID;
+    if (envId && mongoose.Types.ObjectId.isValid(envId)) {
+        const existing = await User.findById(envId).select('_id');
+        if (existing) return existing._id;
+    }
+    let user = await User.findOne({ username: 'engezhaly_team_system' }).select('_id');
+    if (user) return user._id;
+    const salt = await bcrypt.genSalt(10);
+    const randomPass = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), salt);
+    const front = (process.env.FRONTEND_URL || '').replace(/\/$/, '');
+    const logoPath = front ? `${front}/logos/logo-green.png` : '/logos/logo-green.png';
+    user = await User.create({
+        firstName: 'Engezhaly',
+        lastName: 'Team',
+        username: 'engezhaly_team_system',
+        email: `engezhaly.team.support@${crypto.randomBytes(4).toString('hex')}.internal`,
+        password: randomPass,
+        role: 'freelancer',
+        emailVerified: true,
+        freelancerProfile: {
+            status: 'approved',
+            category: 'Development & Tech',
+            profilePicture: logoPath,
+            bio: 'Official Engezhaly support. Messages here are from our team.'
+        }
+    });
+    return user._id;
+}
+
 const getActiveChats = async (req, res) => {
     try {
         const conversations = await Conversation.find()
             .sort({ isFrozen: -1, updatedAt: -1 })
-            .limit(50)
-            .populate('participants', 'firstName lastName role')
+            .limit(80)
+            .populate('participants', 'firstName lastName role freelancerProfile.profilePicture clientProfile.profilePicture')
             .populate('lastMessageId', 'content');
 
         // Format conversations to include sender/receiver info
@@ -137,6 +170,7 @@ const getActiveChats = async (req, res) => {
             
             return {
                 _id: conv._id,
+                kind: conv.kind || 'direct',
                 isFrozen: conv.isFrozen,
                 lastMessage: conv.lastMessage,
                 content: conv.lastMessageId?.content || conv.lastMessage || 'No messages yet',
@@ -195,11 +229,24 @@ const sendAdminMessage = async (req, res) => {
             return res.status(404).json({ msg: 'Conversation not found' });
         }
 
+        const teamId = await getOrCreateSupportTeamUser();
+        const parts = (conversation.participants || []).map((p) => String(p));
+        let chatSenderId = adminId;
+        let chatReceiverId = receiverId;
+        if (conversation.kind === 'support') {
+            chatSenderId = teamId;
+            const customerId = parts.find((p) => p !== String(teamId));
+            if (!customerId) {
+                return res.status(400).json({ msg: 'Invalid support conversation participants' });
+            }
+            chatReceiverId = customerId;
+        }
+
         // Create admin message (bypass frozen status)
         const newMsg = new Chat({
             conversationId: conversation._id,
-            senderId: adminId,
-            receiverId: receiverId,
+            senderId: chatSenderId,
+            receiverId: chatReceiverId,
             content: `[Engezhaly Admin] ${content}`,
             messageType: 'text',
             isAdmin: true // Flag to identify admin messages
@@ -219,7 +266,7 @@ const sendAdminMessage = async (req, res) => {
             io.to(roomId).emit('message', {
                 _id: newMsg._id,
                 conversationId: conversation._id,
-                senderId: adminId,
+                senderId: chatSenderId,
                 content: newMsg.content,
                 messageType: 'text',
                 createdAt: newMsg.createdAt,
@@ -229,6 +276,54 @@ const sendAdminMessage = async (req, res) => {
         }
 
         res.json(newMsg);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+}
+
+const createSupportConversation = async (req, res) => {
+    try {
+        const { userId } = req.body || {};
+        if (!userId || !mongoose.Types.ObjectId.isValid(String(userId))) {
+            return res.status(400).json({ msg: 'Valid userId is required' });
+        }
+        const customer = await User.findById(userId).select('role');
+        if (!customer) return res.status(404).json({ msg: 'User not found' });
+        if (customer.role === 'admin') {
+            return res.status(400).json({ msg: 'Cannot open support chat with an admin account' });
+        }
+        const teamId = await getOrCreateSupportTeamUser();
+        const candidates = await Conversation.find({
+            kind: 'support',
+            participants: { $all: [teamId, userId] }
+        });
+        let conv = candidates.find((c) => (c.participants || []).length === 2);
+        if (!conv) {
+            conv = new Conversation({
+                kind: 'support',
+                participants: [teamId, userId],
+                lastMessage: ''
+            });
+            await conv.save();
+        }
+        const populated = await Conversation.findById(conv._id)
+            .populate('participants', 'firstName lastName role freelancerProfile.profilePicture clientProfile.profilePicture')
+            .populate('lastMessageId', 'content')
+            .lean();
+        const participants = populated.participants || [];
+        res.json({
+            _id: populated._id,
+            kind: populated.kind || 'support',
+            isFrozen: populated.isFrozen,
+            lastMessage: populated.lastMessage,
+            content: populated.lastMessageId?.content || populated.lastMessage || 'No messages yet',
+            updatedAt: populated.updatedAt,
+            createdAt: populated.createdAt,
+            participants,
+            senderId: participants[0],
+            receiverId: participants[1]
+        });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
@@ -402,7 +497,10 @@ const deleteUser = async (req, res) => {
 
 const getAllProjects = async (req, res) => {
     try {
-        const projects = await Project.find().populate('sellerId', 'firstName lastName');
+        const projects = await Project.find()
+            .populate('sellerId', 'firstName lastName email username freelancerProfile.profilePicture')
+            .sort({ createdAt: -1 })
+            .lean();
         res.json(projects);
     } catch (err) {
         console.error(err.message);
@@ -435,7 +533,10 @@ const deleteProject = async (req, res) => {
 
 const getAllJobs = async (req, res) => {
     try {
-        const jobs = await Job.find().populate('clientId', 'firstName lastName');
+        const jobs = await Job.find()
+            .populate('clientId', 'firstName lastName email username')
+            .sort({ createdAt: -1 })
+            .lean();
         res.json(jobs);
     } catch (err) {
         console.error(err.message);
@@ -469,10 +570,33 @@ const deleteJob = async (req, res) => {
 const getAllOrders = async (req, res) => {
     try {
         const orders = await Order.find()
-            .populate('buyerId', 'firstName lastName')
-            .populate('sellerId', 'firstName lastName')
-            .populate('projectId', 'title');
+            .populate('buyerId', 'firstName lastName email username freelancerProfile.profilePicture')
+            .populate('sellerId', 'firstName lastName email username freelancerProfile.profilePicture')
+            .populate('projectId', 'title description category')
+            .populate('offerId')
+            .sort({ createdAt: -1 })
+            .lean();
         res.json(orders);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+const getDisputedOrders = async (req, res) => {
+    try {
+        const orders = await Order.find({ status: 'disputed' })
+            .populate('buyerId', 'firstName lastName email username freelancerProfile.profilePicture')
+            .populate('sellerId', 'firstName lastName email username freelancerProfile.profilePicture')
+            .populate('projectId', 'title description category')
+            .populate({ path: 'offerId', select: 'price milestones revisions revisionsUnlimited deliveryDate conversationId whatsIncluded' })
+            .sort({ updatedAt: -1 })
+            .lean();
+        const enriched = orders.map((o) => ({
+            ...o,
+            conversationId: o.offerId?.conversationId || null
+        }));
+        res.json(enriched);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
@@ -660,6 +784,10 @@ const completeWithdrawal = async (req, res) => {
 const rejectWithdrawal = async (req, res) => {
     try {
         const { reason } = req.body || {};
+        const reasonStr = reason != null ? String(reason).trim() : '';
+        if (!reasonStr) {
+            return res.status(400).json({ msg: 'Rejection reason is required' });
+        }
         const withdrawal = await WithdrawalRequest.findById(req.params.id);
         if (!withdrawal) return res.status(404).json({ msg: 'Withdrawal not found' });
         if (withdrawal.status !== 'pending') return res.status(400).json({ msg: 'Only pending withdrawals can be rejected' });
@@ -667,10 +795,10 @@ const rejectWithdrawal = async (req, res) => {
         withdrawal.status = 'rejected';
         withdrawal.processedAt = new Date();
         withdrawal.processedBy = req.user.id;
-        withdrawal.rejectReason = reason;
+        withdrawal.rejectReason = reasonStr;
         await withdrawal.save();
 
-        const refundAmount = withdrawal.amount + (withdrawal.fee || 20);
+        const refundAmount = withdrawal.amount + Number(withdrawal.fee ?? 0);
         const user = await User.findById(withdrawal.userId);
         if (user) {
             user.walletBalance = (user.walletBalance || 0) + refundAmount;
@@ -722,10 +850,12 @@ module.exports = {
     updateJob,
     deleteJob,
     getAllOrders,
+    getDisputedOrders,
     updateOrder,
     getAllTransactions,
     getTopFreelancers,
     sendAdminMessage,
+    createSupportConversation,
     getEmailLogs,
     getWithdrawals,
     completeWithdrawal,
