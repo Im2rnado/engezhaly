@@ -332,21 +332,33 @@ function ClientDashboardContent() {
                                 {orders.length > 0 ? (
                                     <div className="space-y-4">
                                         {orders.slice(0, 5).map((order) => (
-                                            <div key={order._id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                                                <div>
-                                                    <h4 className="font-bold text-gray-900">{order.projectId?.title || 'Offer'}</h4>
-                                                    <p className="text-sm text-gray-500">Freelancer: {order.sellerId?.firstName} {order.sellerId?.lastName}</p>
-                                                    {order.status === 'active' && order.deliveryDate && (
-                                                        <div className="mt-2">
-                                                            <CountdownTimer deadline={order.deliveryDate} variant="inline" />
-                                                        </div>
-                                                    )}
+                                            <div key={order._id} className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                                                <div className="flex items-center justify-between">
+                                                    <div>
+                                                        <h4 className="font-bold text-gray-900">{order.projectId?.title || 'Offer'}</h4>
+                                                        <p className="text-sm text-gray-500">Freelancer: {order.sellerId?.firstName} {order.sellerId?.lastName}</p>
+                                                        {order.status === 'active' && order.deliveryDate && (
+                                                            <div className="mt-2">
+                                                                <CountdownTimer deadline={order.deliveryDate} variant="inline" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="font-black text-gray-900">{order.amount} EGP</p>
+                                                        <span className={`inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'disputed' ? 'bg-amber-100 text-amber-700' : order.status === 'refunded' ? 'bg-gray-100 text-gray-700' : order.status === 'pending_approval' || order.status === 'pending_payment' ? 'bg-amber-100 text-amber-700' : order.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                                                            {formatStatus(order.status)}
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                                <div className="text-right">
-                                                    <p className="font-black text-gray-900">{order.amount} EGP</p>
-                                                    <span className={`px-2 py-1 rounded text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
-                                                        {formatStatus(order.status)}
+                                                <div className="flex flex-wrap gap-3 mt-3 pt-3 border-t border-gray-200">
+                                                    <span className="text-xs text-gray-500 font-bold">
+                                                        Ordered {formatDateDDMMYYYY(order.createdAt)}
                                                     </span>
+                                                    {order.deliveryDate && (
+                                                        <span className="text-xs text-gray-500 font-bold">
+                                                            Delivery {formatDateDDMMYYYY(order.deliveryDate)}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                         ))}
@@ -451,172 +463,233 @@ function ClientDashboardContent() {
                     </div>
                 )}
 
-                {activeTab === 'orders' && (
-                    <div className="space-y-4">
-                        {orders.length > 0 ? (
-                            orders.map((order) => (
-                                <div key={order._id} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
-                                    <div className="flex justify-between items-start gap-4 mb-4">
-                                        <div className="flex-1">
-                                            <h4 className="text-xl font-bold text-gray-900">{order.projectId?.title || 'Offer'}</h4>
-                                            <p className="text-gray-500 text-sm mt-1">
-                                                Freelancer: {order.sellerId?.firstName} {order.sellerId?.lastName}
-                                            </p>
-                                            {order.status === 'active' && order.deliveryDate && (
-                                                <div className="mt-2">
-                                                    <CountdownTimer deadline={order.deliveryDate} variant="inline" />
+                {activeTab === 'orders' && (() => {
+                    const activeList = orders.filter((o: any) =>
+                        ['pending_approval', 'pending_payment', 'active', 'disputed'].includes(o.status)
+                    );
+                    const finishedList = orders.filter((o: any) => ['completed', 'refunded'].includes(o.status));
+
+                    const orderStatusBadgeClass = (status: string) =>
+                        status === 'completed'
+                            ? 'bg-green-100 text-green-700'
+                            : status === 'disputed'
+                              ? 'bg-amber-100 text-amber-700'
+                              : status === 'refunded'
+                                ? 'bg-gray-100 text-gray-700'
+                                : status === 'pending_approval' || status === 'pending_payment'
+                                  ? 'bg-amber-100 text-amber-700'
+                                  : status === 'active'
+                                    ? 'bg-blue-100 text-blue-700'
+                                    : 'bg-red-100 text-red-700';
+
+                    const ClientOrderCard = ({ order }: { order: any }) => (
+                        <div className="w-full bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:border-[#09BF44]/40 hover:shadow-md transition-all">
+                            <div className="flex items-start justify-between gap-3 mb-2">
+                                <div className="min-w-0">
+                                    <h4 className="text-lg font-bold text-gray-900 truncate">{order.projectId?.title || (order.offerId ? 'Custom offer' : 'Order')}</h4>
+                                    <p className="text-sm text-gray-500 mt-0.5">
+                                        {order.sellerId?.firstName} {order.sellerId?.lastName}
+                                    </p>
+                                    {order.status === 'active' && order.deliveryDate && (
+                                        <div className="mt-2">
+                                            <CountdownTimer deadline={order.deliveryDate} variant="inline" />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="text-right shrink-0">
+                                    <p className="text-lg font-black text-gray-900">{order.amount} EGP</p>
+                                    <span className={`inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${orderStatusBadgeClass(order.status)}`}>
+                                        {formatStatus(order.status)}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="flex flex-wrap gap-2 text-xs text-gray-500 font-bold">
+                                <span>{order.packageType}</span>
+                                <span>·</span>
+                                <span>Ordered {formatDateDDMMYYYY(order.createdAt)}</span>
+                                {order.deliveryDate && (
+                                    <>
+                                        <span>·</span>
+                                        <span>Delivery {formatDateDDMMYYYY(order.deliveryDate)}</span>
+                                    </>
+                                )}
+                            </div>
+                            {order.status === 'active' && order.workSubmission && (order.workSubmission.message || (order.workSubmission.links?.length > 0) || (order.workSubmission.files?.length > 0)) && (
+                                <div className="mt-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
+                                    <button
+                                        type="button"
+                                        onClick={() => setExpandedDelivery(expandedDelivery === order._id ? null : order._id)}
+                                        className="flex items-center gap-2 text-sm font-bold text-gray-700 hover:text-[#09BF44] transition-colors"
+                                    >
+                                        <CheckCircle className="w-4 h-4 text-[#09BF44]" />
+                                        Work delivered {expandedDelivery === order._id ? '− hide' : '+ view'}
+                                    </button>
+                                    {expandedDelivery === order._id && (
+                                        <div className="mt-3 space-y-2 text-sm text-gray-600">
+                                            {order.workSubmission.message && <p className="whitespace-pre-wrap">{order.workSubmission.message}</p>}
+                                            {Array.isArray(order.workSubmission.links) && order.workSubmission.links.length > 0 && (
+                                                <div>
+                                                    <span className="font-semibold">Links:</span>
+                                                    <ul className="list-disc list-inside mt-1">
+                                                        {order.workSubmission.links.map((link: string, i: number) => (
+                                                            <li key={i}><a href={link} target="_blank" rel="noopener noreferrer" className="text-[#09BF44] hover:underline">{link}</a></li>
+                                                        ))}
+                                                    </ul>
                                                 </div>
                                             )}
-                                        </div>
-                                        <div className="text-right shrink-0">
-                                            <p className="text-xl font-black text-gray-900">{order.amount} EGP</p>
-                                            <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'disputed' ? 'bg-amber-100 text-amber-700' : order.status === 'refunded' ? 'bg-gray-100 text-gray-700' : order.status === 'pending_payment' ? 'bg-amber-100 text-amber-700' : order.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
-                                                {formatStatus(order.status)}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    {order.status === 'active' && order.workSubmission && (order.workSubmission.message || (order.workSubmission.links?.length > 0) || (order.workSubmission.files?.length > 0)) && (
-                                        <div className="mt-4 p-4 rounded-xl bg-gray-50 border border-gray-200">
-                                            <button
-                                                onClick={() => setExpandedDelivery(expandedDelivery === order._id ? null : order._id)}
-                                                className="flex items-center gap-2 text-sm font-bold text-gray-700 hover:text-[#09BF44] transition-colors"
-                                            >
-                                                <CheckCircle className="w-4 h-4 text-[#09BF44]" />
-                                                Work delivered {expandedDelivery === order._id ? '− hide' : '+ view'}
-                                            </button>
-                                            {expandedDelivery === order._id && (
-                                                <div className="mt-3 space-y-2 text-sm text-gray-600">
-                                                    {order.workSubmission.message && <p className="whitespace-pre-wrap">{order.workSubmission.message}</p>}
-                                                    {Array.isArray(order.workSubmission.links) && order.workSubmission.links.length > 0 && (
-                                                        <div>
-                                                            <span className="font-semibold">Links:</span>
-                                                            <ul className="list-disc list-inside mt-1">
-                                                                {order.workSubmission.links.map((link: string, i: number) => (
-                                                                    <li key={i}><a href={link} target="_blank" rel="noopener noreferrer" className="text-[#09BF44] hover:underline">{link}</a></li>
-                                                                ))}
-                                                            </ul>
-                                                        </div>
-                                                    )}
-                                                    {Array.isArray(order.workSubmission.files) && order.workSubmission.files.length > 0 && (
-                                                        <div>
-                                                            <span className="font-semibold">Files:</span>
-                                                            <ul className="list-disc list-inside mt-1">
-                                                                {order.workSubmission.files.map((url: string, i: number) => (
-                                                                    <li key={i}><a href={url} target="_blank" rel="noopener noreferrer" className="text-[#09BF44] hover:underline">File {i + 1}</a></li>
-                                                                ))}
-                                                            </ul>
-                                                        </div>
-                                                    )}
+                                            {Array.isArray(order.workSubmission.files) && order.workSubmission.files.length > 0 && (
+                                                <div>
+                                                    <span className="font-semibold">Files:</span>
+                                                    <ul className="list-disc list-inside mt-1">
+                                                        {order.workSubmission.files.map((url: string, i: number) => (
+                                                            <li key={i}><a href={url} target="_blank" rel="noopener noreferrer" className="text-[#09BF44] hover:underline">File {i + 1}</a></li>
+                                                        ))}
+                                                    </ul>
                                                 </div>
                                             )}
                                         </div>
                                     )}
-                                    <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-gray-100">
-                                        <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-bold">
-                                            {order.packageType}
+                                </div>
+                            )}
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-4 pt-4 border-t border-gray-100">
+                                {order.status === 'pending_payment' && (
+                                    order.hasPendingInstaPay ? (
+                                        <span className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold bg-amber-100 text-amber-800">
+                                            <Clock className="w-4 h-4 shrink-0" /> Pending verification
                                         </span>
-                                        <span className="text-xs text-gray-500 font-bold">
-                                            Ordered {formatDateDDMMYYYY(order.createdAt)}
-                                        </span>
-                                        {order.status === 'pending_payment' && (
-                                            order.hasPendingInstaPay ? (
-                                                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-amber-100 text-amber-800">
-                                                    <Clock className="w-4 h-4" /> Pending verification
-                                                </span>
-                                            ) : (
-                                                <button
-                                                    onClick={async () => {
-                                                        const totalPays = order.amount || 0;
-                                                        const amountCents = Math.round(totalPays * 100);
-                                                        const callbackUrl = typeof window !== 'undefined'
-                                                            ? `${window.location.origin}/dashboard/client?tab=orders&payment_success=1`
-                                                            : undefined;
-                                                        const body = {
-                                                            type: 'project_order' as const,
-                                                            amountCents,
-                                                            callbackSuccessUrl: callbackUrl,
-                                                            orderId: order._id
-                                                        };
-                                                        const paid = await payWithWalletIfPossible(body, () => {
-                                                            showModal({ title: 'Payment Successful', message: 'Payment deducted from your wallet balance.', type: 'success' });
-                                                            fetchOrders();
-                                                        });
-                                                        if (paid) return;
-                                                        setPaymentChoiceConfig(body);
-                                                    }}
-                                                    className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-4 py-2 rounded-xl text-sm font-bold"
-                                                >
-                                                    Pay Now
-                                                </button>
-                                            )
-                                        )}
-                                        {order.status === 'active' && (
-                                            <>
-                                                {order.workSubmission && (order.workSubmission.message || (order.workSubmission.links?.length > 0) || (order.workSubmission.files?.length > 0)) && (
-                                                    <button
-                                                        onClick={async () => {
-                                                            if (!confirm('Approve the delivered work and mark this order as completed?')) return;
-                                                            setActionLoadingOrderId(order._id);
-                                                            try {
-                                                                await api.client.approveDelivery(order._id);
-                                                                showModal({ title: 'Order Completed', message: 'Thank you! You can now leave a review.', type: 'success' });
-                                                                fetchOrders();
-                                                            } catch (e: any) {
-                                                                showModal({ title: 'Error', message: e.message || 'Failed to approve delivery', type: 'error' });
-                                                            } finally {
-                                                                setActionLoadingOrderId(null);
-                                                            }
-                                                        }}
-                                                        disabled={actionLoadingOrderId === order._id}
-                                                        className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-                                                    >
-                                                        {actionLoadingOrderId === order._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />} Approve & Release Payment
-                                                    </button>
-                                                )}
-                                                <button
-                                                    onClick={async () => {
-                                                        if (!confirm('Raise a dispute? Our team will review and resolve it.')) return;
-                                                        setActionLoadingOrderId(order._id);
-                                                        try {
-                                                            await api.client.raiseDispute(order._id);
-                                                            showModal({ title: 'Dispute Raised', message: 'Our team will review and resolve it shortly.', type: 'success' });
-                                                            fetchOrders();
-                                                        } catch (e: any) {
-                                                            showModal({ title: 'Error', message: e.message || 'Failed to raise dispute', type: 'error' });
-                                                        } finally {
-                                                            setActionLoadingOrderId(null);
-                                                        }
-                                                    }}
-                                                    disabled={actionLoadingOrderId === order._id}
-                                                    className="text-amber-600 hover:text-amber-700 text-xs font-bold flex items-center gap-1 disabled:opacity-70 disabled:cursor-not-allowed"
-                                                >
-                                                    {actionLoadingOrderId === order._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Flag className="w-3.5 h-3.5" />} Raise Dispute
-                                                </button>
-                                            </>
-                                        )}
-                                        {order.status === 'completed' && order.rating == null && (
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                const totalPays = order.amount || 0;
+                                                const amountCents = Math.round(totalPays * 100);
+                                                const callbackUrl = typeof window !== 'undefined'
+                                                    ? `${window.location.origin}/dashboard/client?tab=orders&payment_success=1`
+                                                    : undefined;
+                                                const body = {
+                                                    type: 'project_order' as const,
+                                                    amountCents,
+                                                    callbackSuccessUrl: callbackUrl,
+                                                    orderId: order._id
+                                                };
+                                                const paid = await payWithWalletIfPossible(body, () => {
+                                                    showModal({ title: 'Payment Successful', message: 'Payment deducted from your wallet balance.', type: 'success' });
+                                                    fetchOrders();
+                                                });
+                                                if (paid) return;
+                                                setPaymentChoiceConfig(body);
+                                            }}
+                                            className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-4 py-2 rounded-xl text-sm font-bold"
+                                        >
+                                            Pay Now
+                                        </button>
+                                    )
+                                )}
+                                {order.status === 'active' && (
+                                    <>
+                                        {order.workSubmission && (order.workSubmission.message || (order.workSubmission.links?.length > 0) || (order.workSubmission.files?.length > 0)) && (
                                             <button
-                                                onClick={() => {
-                                                    setReviewModal({ type: 'order', order });
-                                                    setReviewRating(5);
-                                                    setReviewText('');
+                                                type="button"
+                                                onClick={async () => {
+                                                    if (!confirm('Approve the delivered work and mark this order as completed?')) return;
+                                                    setActionLoadingOrderId(order._id);
+                                                    try {
+                                                        await api.client.approveDelivery(order._id);
+                                                        showModal({ title: 'Order Completed', message: 'Thank you! You can now leave a review.', type: 'success' });
+                                                        fetchOrders();
+                                                    } catch (e: any) {
+                                                        showModal({ title: 'Error', message: e.message || 'Failed to approve delivery', type: 'error' });
+                                                    } finally {
+                                                        setActionLoadingOrderId(null);
+                                                    }
                                                 }}
-                                                className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2"
+                                                disabled={actionLoadingOrderId === order._id}
+                                                className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                                             >
-                                                <Star className="w-4 h-4" /> Leave Review
+                                                {actionLoadingOrderId === order._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />} Approve & Release Payment
                                             </button>
                                         )}
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-12 text-center text-gray-400">
-                                <ShoppingBag className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                                <p>No orders yet.</p>
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                if (!confirm('Raise a dispute? Our team will review and resolve it.')) return;
+                                                setActionLoadingOrderId(order._id);
+                                                try {
+                                                    await api.client.raiseDispute(order._id);
+                                                    showModal({ title: 'Dispute Raised', message: 'Our team will review and resolve it shortly.', type: 'success' });
+                                                    fetchOrders();
+                                                } catch (e: any) {
+                                                    showModal({ title: 'Error', message: e.message || 'Failed to raise dispute', type: 'error' });
+                                                } finally {
+                                                    setActionLoadingOrderId(null);
+                                                }
+                                            }}
+                                            disabled={actionLoadingOrderId === order._id}
+                                            className="text-amber-600 hover:text-amber-700 text-xs font-bold flex items-center gap-1 px-2 py-2 rounded-xl hover:bg-amber-50 disabled:opacity-70 disabled:cursor-not-allowed"
+                                        >
+                                            {actionLoadingOrderId === order._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Flag className="w-3.5 h-3.5" />} Raise Dispute
+                                        </button>
+                                    </>
+                                )}
+                                {order.status === 'completed' && order.rating == null && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setReviewModal({ type: 'order', order });
+                                            setReviewRating(5);
+                                            setReviewText('');
+                                        }}
+                                        className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2"
+                                    >
+                                        <Star className="w-4 h-4" /> Leave Review
+                                    </button>
+                                )}
                             </div>
-                        )}
-                    </div>
-                )}
+                        </div>
+                    );
+
+                    if (orders.length === 0) {
+                        return (
+                            <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center text-gray-400">
+                                <ShoppingBag className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                                <p className="font-medium">No orders yet.</p>
+                            </div>
+                        );
+                    }
+
+                    return (
+                        <div className="space-y-10">
+                            <section>
+                                <h3 className="text-lg font-black text-gray-900 mb-4">Active</h3>
+                                {activeList.length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {activeList.map((order: any) => (
+                                            <ClientOrderCard key={order._id} order={order} />
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center text-gray-400 text-sm font-medium">
+                                        No active orders.
+                                    </div>
+                                )}
+                            </section>
+                            <section>
+                                <h3 className="text-lg font-black text-gray-900 mb-4">Finished</h3>
+                                {finishedList.length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {finishedList.map((order: any) => (
+                                            <ClientOrderCard key={order._id} order={order} />
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center text-gray-400 text-sm font-medium">
+                                        No finished orders yet.
+                                    </div>
+                                )}
+                            </section>
+                        </div>
+                    );
+                })()}
 
                 {activeTab === 'wallet' && (
                     <div className="space-y-6">

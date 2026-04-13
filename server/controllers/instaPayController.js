@@ -205,7 +205,7 @@ const approveInstaPay = async (req, res) => {
                 const convId = offer.conversationId?._id || offer.conversationId;
                 if (convId) {
                     const orderNo = newOrder.orderNumber != null ? String(newOrder.orderNumber) : String(newOrder._id);
-                    const orderContent = `[Engezhaly Order] Order #${orderNo}\n\nCustom offer accepted (${offer.price} EGP).\n${revisionsLine}\n\nPlease as a client inform the freelancer what you need in chat.`;
+                    const orderContent = `[Engezhaly Order] Order #${orderNo}\n\nCustom offer successfully accepted (Paid ${offer.price} EGP).\n${revisionsLine}\n\nTo track your order, please visit My Orders in the dashboard.`;
                     const orderChat = new Chat({
                         conversationId: convId,
                         senderId: payment.userId,

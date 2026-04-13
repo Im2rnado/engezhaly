@@ -471,6 +471,35 @@ const acceptOffer = async (req, res) => {
     }
 };
 
+const rejectOffer = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.id;
+
+        const offer = await Offer.findById(id);
+        if (!offer) {
+            return res.status(404).json({ msg: 'Offer not found' });
+        }
+        if (offer.receiverId.toString() !== userId) {
+            return res.status(403).json({ msg: 'Not authorized to deny this offer' });
+        }
+        if (offer.status !== 'pending') {
+            return res.status(400).json({ msg: 'Offer is no longer pending' });
+        }
+
+        offer.status = 'rejected';
+        await offer.save();
+
+        const io = req.app.get('io');
+        emitChatContextRefresh(io, offer.conversationId);
+
+        res.json(offer);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: err.message || 'Server Error' });
+    }
+};
+
 const deleteOffer = async (req, res) => {
     try {
         const { id } = req.params;
@@ -710,6 +739,7 @@ module.exports = {
     sendMessage,
     createOffer,
     acceptOffer,
+    rejectOffer,
     deleteOffer,
     getOffers,
     getConsultationStatus,

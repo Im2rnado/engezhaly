@@ -79,6 +79,7 @@ function ChatPageContent() {
     const [pendingWorkToApprove, setPendingWorkToApprove] = useState<{ order?: any; job?: any; activeJobForNav?: any } | null>(null);
     const [pendingOrderAction, setPendingOrderAction] = useState<'approve' | 'deny' | null>(null);
     const [acceptingOfferId, setAcceptingOfferId] = useState<string | null>(null);
+    const [denyingOfferId, setDenyingOfferId] = useState<string | null>(null);
     const [busyToggling, setBusyToggling] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
     const [recordingSeconds, setRecordingSeconds] = useState(0);
@@ -919,6 +920,22 @@ function ChatPageContent() {
         }
     };
 
+    const handleDenyOffer = async (offerId: string) => {
+        if (!conversationId) return;
+        if (!confirm('Deny this offer? The freelancer can send a new one anytime.')) return;
+        setDenyingOfferId(offerId);
+        try {
+            await api.chat.rejectOffer(offerId);
+            const offersData = await api.chat.getOffers(conversationId);
+            setOffers(offersData || []);
+            showModal({ title: 'Offer denied', message: 'The freelancer can send a new offer when you’re ready.', type: 'info' });
+        } catch (err: any) {
+            showModal({ title: 'Error', message: err.message || 'Failed to deny offer', type: 'error' });
+        } finally {
+            setDenyingOfferId(null);
+        }
+    };
+
     const handleCreateOffer = async (offerData: any) => {
         if (!activeChat || !conversationId) return;
 
@@ -1657,7 +1674,11 @@ function ChatPageContent() {
                                             const currentUserId = resolveUserId();
                                             const isMyOffer =
                                                 String(offer.senderId?._id || offer.senderId) === String(currentUserId);
-                                        const canAccept = !isMyOffer && offer.status === 'pending';
+                                            const canRespondAsClient =
+                                                currentUser?.role === 'client' &&
+                                                !isMyOffer &&
+                                                offer.status === 'pending';
+                                            const offerActionBusy = !!acceptingOfferId || !!denyingOfferId;
 
                                         return (
                                                 <div key={item.id} className={`flex w-full min-w-0 ${isMyOffer ? 'justify-end' : 'justify-start'}`}>
@@ -1731,14 +1752,37 @@ function ChatPageContent() {
                                                         )}
                                                     </div>
 
-                                                    {canAccept && (
-                                                        <button
+                                                    {canRespondAsClient && (
+                                                        <div className="flex flex-col sm:flex-row gap-2 w-full">
+                                                            <button
+                                                                type="button"
                                                                 onClick={() => handleAcceptOffer(offer)}
-                                                            disabled={!!acceptingOfferId}
-                                                            className="w-full bg-white text-[#09BF44] font-bold py-3 rounded-xl hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
-                                                        >
-                                                            Accept Offer
-                                                        </button>
+                                                                disabled={offerActionBusy}
+                                                                className="flex-1 bg-[#09BF44] text-white font-bold py-3 rounded-xl hover:bg-[#07a63a] transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
+                                                            >
+                                                                {acceptingOfferId === offer._id ? (
+                                                                    <span className="inline-flex items-center justify-center gap-2">
+                                                                        <Loader2 className="w-4 h-4 animate-spin" /> Processing…
+                                                                    </span>
+                                                                ) : (
+                                                                    'Accept offer'
+                                                                )}
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleDenyOffer(offer._id)}
+                                                                disabled={offerActionBusy}
+                                                                className="flex-1 bg-red-600 text-white font-bold py-3 rounded-xl hover:bg-red-700 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
+                                                            >
+                                                                {denyingOfferId === offer._id ? (
+                                                                    <span className="inline-flex items-center justify-center gap-2">
+                                                                        <Loader2 className="w-4 h-4 animate-spin" /> Processing…
+                                                                    </span>
+                                                                ) : (
+                                                                    'Deny offer'
+                                                                )}
+                                                            </button>
+                                                        </div>
                                                     )}
                                                     {offer.status === 'accepted' && (
                                                         <div className="text-center text-sm font-bold opacity-80 py-2">
@@ -1746,8 +1790,8 @@ function ChatPageContent() {
                                                         </div>
                                                     )}
                                                     {offer.status === 'rejected' && (
-                                                        <div className="text-center text-sm font-bold opacity-80 py-2">
-                                                            ✗ Offer Rejected
+                                                        <div className={`text-center text-sm font-bold py-2 ${isMyOffer ? 'text-white/95' : 'text-red-600'}`}>
+                                                            Offer denied by client
                                                         </div>
                                                     )}
                                                 </div>

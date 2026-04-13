@@ -616,6 +616,15 @@ export const api = {
             if (!res.ok) throw new Error('Failed to accept offer');
             return res.json();
         },
+        rejectOffer: async (offerId: string) => {
+            const res = await fetch(`${API_URL}/chat/offers/${offerId}/reject`, {
+                method: 'POST',
+                headers: getHeaders(),
+            });
+            const result = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(result.msg || 'Failed to deny offer');
+            return result;
+        },
         deleteOffer: async (offerId: string) => {
             const res = await fetch(`${API_URL}/chat/offers/${offerId}`, {
                 method: 'DELETE',
@@ -695,6 +704,14 @@ export const api = {
                 method: 'GET',
                 headers: getHeaders()
             });
+            return res.json();
+        },
+        getChatOffers: async (conversationId: string) => {
+            const res = await fetch(`${API_URL}/admin/chats/${conversationId}/offers`, {
+                method: 'GET',
+                headers: getHeaders()
+            });
+            if (!res.ok) throw new Error('Failed to fetch chat offers');
             return res.json();
         },
         freezeChat: async (id: string) => {

@@ -12,6 +12,7 @@ const Transaction = require('../models/Transaction');
 const Project = require('../models/Project');
 const Job = require('../models/Job');
 const Order = require('../models/Order');
+const Offer = require('../models/Offer');
 const WithdrawalRequest = require('../models/WithdrawalRequest');
 const WithdrawalMethod = require('../models/WithdrawalMethod');
 
@@ -218,6 +219,27 @@ const unfreezeChat = async (req, res) => {
         res.status(500).send('Server Error');
     }
 }
+
+const getConversationOffers = async (req, res) => {
+    try {
+        const { conversationId } = req.params;
+        if (!mongoose.Types.ObjectId.isValid(String(conversationId))) {
+            return res.status(400).json({ msg: 'Invalid conversation id' });
+        }
+        const conversation = await Conversation.findById(conversationId);
+        if (!conversation) {
+            return res.status(404).json({ msg: 'Conversation not found' });
+        }
+        const offers = await Offer.find({ conversationId })
+            .populate('senderId', 'firstName lastName role')
+            .populate('receiverId', 'firstName lastName role')
+            .sort({ createdAt: 1 });
+        res.json(offers);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: err.message || 'Server Error' });
+    }
+};
 
 const sendAdminMessage = async (req, res) => {
     try {
@@ -860,6 +882,7 @@ module.exports = {
     getActiveChats,
     freezeChat,
     unfreezeChat,
+    getConversationOffers,
     addStrike,
     toggleEmployeeOfMonth,
     getInsights,

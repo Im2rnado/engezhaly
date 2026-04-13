@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
 import Image from 'next/image';
 import { api } from '@/lib/api';
 import { formatStatus, formatDateDDMMYYYY } from '@/lib/utils';
-import { Check, X, Ban, User, Flag, MessageSquare, Award, BarChart3, TrendingUp, Search, Loader2, Briefcase, FileText, ShoppingBag, CreditCard, Trash2, Star, Edit, LogOut, ArrowLeft, Send, Shield, PanelLeft, Mail, Video, ArrowDownToLine, Smartphone, Megaphone, ImagePlus, AlertTriangle, UserPlus } from 'lucide-react';
+import { Check, X, Ban, User, Flag, MessageSquare, Award, BarChart3, TrendingUp, Search, Loader2, Briefcase, FileText, ShoppingBag, CreditCard, Trash2, Star, Edit, LogOut, ArrowLeft, Send, Shield, PanelLeft, Mail, Video, ArrowDownToLine, Smartphone, Megaphone, ImagePlus, AlertTriangle, UserPlus, CheckCircle, XCircle } from 'lucide-react';
 import { MAIN_CATEGORIES } from '@/lib/categories';
 import { useModal } from '@/context/ModalContext';
 import EditModal from '@/components/EditModal';
@@ -24,120 +24,219 @@ function resolveMediaUrl(url: string) {
     return `${base}${u.startsWith('/') ? '' : '/'}${u}`;
 }
 
+function AdminChatMessageRow({ msg, selectedChat }: { msg: any; selectedChat: any }) {
+    const raw = msg.content || '';
+    const isVoice = msg.messageType === 'voice';
+    const isFile = msg.messageType === 'file';
+    const fileSrc = isFile ? resolveMediaUrl(raw) : '';
+    const isAdmin = msg.isAdmin || raw.includes('[Engezhaly Admin]');
+    const isMeeting = msg.isMeeting || msg.messageType === 'meeting' || raw.includes('[Engezhaly Meeting]');
+    const isOrder = msg.messageType === 'order' || raw.includes('[Engezhaly Order]');
+    const isOfferRequest = raw.includes('[Engezhaly Offer Request]');
+    const isCentered = isAdmin || isMeeting || isOrder || isOfferRequest;
+    let content = raw;
+    if (isAdmin) content = content.replace('[Engezhaly Admin]', '').trim();
+    if (isMeeting) content = content.replace('[Engezhaly Meeting]', '').trim();
+    if (isOrder) content = content.replace('[Engezhaly Order]', '').trim();
+    if (isOfferRequest) content = content.replace('[Engezhaly Offer Request]', '').trim();
+    const linkMatch = content.match(/Join here: (https?:\/\/[^\s]+)/);
+    const meetingLink = linkMatch ? linkMatch[1] : null;
+    const senderId = String(msg.senderId?._id || msg.senderId);
+    const participant1Id = selectedChat.participants?.[0]?._id ? String(selectedChat.participants[0]._id) : null;
+    const isFromParticipant1 = participant1Id && senderId === participant1Id;
+    const voiceSrc = isVoice ? resolveMediaUrl(content) : '';
+
+    return (
+        <div className={`flex ${isCentered ? 'justify-center' : isFromParticipant1 ? 'justify-start' : 'justify-end'}`}>
+            <div className={`max-w-[70%] px-4 py-2 rounded-2xl shadow-sm ${isAdmin
+                ? 'bg-yellow-100 border-2 border-yellow-300 text-gray-900'
+                : isMeeting
+                    ? 'bg-green-50 border-2 border-[#09BF44]/40 text-gray-900'
+                    : isOrder || isOfferRequest
+                        ? 'bg-blue-50 border-2 border-blue-200 text-gray-900'
+                        : isFromParticipant1
+                            ? 'bg-white border border-gray-200 text-gray-900 rounded-bl-sm'
+                            : 'bg-[#a7f3d0] text-gray-900 rounded-br-sm'
+                }`}>
+                {!isCentered && (
+                    <div className="flex items-center gap-1 mb-1">
+                        <span className={`text-[10px] font-black uppercase ${isFromParticipant1 ? 'text-gray-400' : 'text-emerald-800'}`}>
+                            {isFromParticipant1 ? (selectedChat.participants?.[0]?.firstName || 'User 1') : (selectedChat.participants?.[1]?.firstName || 'User 2')} ({isFromParticipant1 ? (selectedChat.participants?.[0]?.role || 'client') : (selectedChat.participants?.[1]?.role || 'freelancer')})
+                        </span>
+                    </div>
+                )}
+                {isOrder && (
+                    <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-bold text-blue-700">Order</span>
+                    </div>
+                )}
+                {isOfferRequest && (
+                    <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-bold text-blue-700">Offer request</span>
+                    </div>
+                )}
+                {isAdmin && (
+                    <div className="flex items-center gap-2 mb-1">
+                        <Shield className="w-4 h-4 text-yellow-600" />
+                        <span className="text-xs font-bold text-yellow-700">Engezhaly Admin</span>
+                    </div>
+                )}
+                {isMeeting && (
+                    <div className="flex items-center gap-2 mb-1">
+                        <Video className="w-4 h-4 text-[#09BF44]" />
+                        <span className="text-xs font-bold text-[#09BF44]">Video Meeting</span>
+                    </div>
+                )}
+                {isVoice ? (
+                    <audio controls src={voiceSrc} className="max-w-full min-w-[200px] h-10 rounded-lg" />
+                ) : isFile && fileSrc ? (
+                    <div className="space-y-2">
+                        {/\.(jpe?g|png|gif|webp)(\?|$)/i.test(fileSrc) ? (
+                            <a href={fileSrc} target="_blank" rel="noopener noreferrer" className="block">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={fileSrc} alt="Attachment" className="max-h-56 max-w-full rounded-lg border border-gray-200 object-contain" />
+                            </a>
+                        ) : /\.pdf(\?|$)/i.test(fileSrc) ? (
+                            <a
+                                href={fileSrc}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-sm bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-900"
+                            >
+                                <FileText className="w-4 h-4 shrink-0" />
+                                Open PDF
+                            </a>
+                        ) : (
+                            <a href={fileSrc} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-[#09BF44] underline break-all">
+                                Open file
+                            </a>
+                        )}
+                    </div>
+                ) : (
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{content}</p>
+                )}
+                {meetingLink && (
+                    <a
+                        href={meetingLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 mt-2 px-3 py-2 bg-[#09BF44] text-white rounded-xl font-bold text-sm hover:bg-[#07a63a] transition-colors"
+                    >
+                        <Video className="w-4 h-4" /> Join Meeting
+                    </a>
+                )}
+                <div className={`flex items-center justify-end mt-1 ${isAdmin ? 'text-yellow-700' : isMeeting ? 'text-[#09BF44]/80' : isOrder || isOfferRequest ? 'text-blue-600/80' : isFromParticipant1 ? 'text-gray-500' : 'text-emerald-900'}`}>
+                    <span className="text-[10px]">
+                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function AdminChatMergedFeed({ messages, offers, selectedChat }: { messages: any[]; offers: any[]; selectedChat: any }) {
+    const items = useMemo(() => {
+        const offerItems = (offers || []).map((o: any) => ({
+            type: 'offer' as const,
+            id: `offer-${o._id}`,
+            sortTime: o.createdAt ? new Date(o.createdAt).getTime() : 0,
+            data: o
+        }));
+        const msgItems = (messages || []).map((m: any) => ({
+            type: 'message' as const,
+            id: String(m._id),
+            sortTime: m.createdAt ? new Date(m.createdAt).getTime() : 0,
+            data: m
+        }));
+        return [...offerItems, ...msgItems].sort((a, b) => a.sortTime - b.sortTime);
+    }, [offers, messages]);
+
+    if (!selectedChat) return null;
+
+    return (
+        <>
+            {items.map((item) => {
+                if (item.type === 'offer') {
+                    const offer = item.data;
+                    const from = offer.senderId;
+                    const to = offer.receiverId;
+                    return (
+                        <div key={item.id} className="flex justify-center w-full">
+                            <div className="w-full max-w-xl p-4 rounded-2xl border-2 border-[#09BF44]/25 bg-white shadow-sm">
+                                <div className="flex items-center gap-2 mb-2 w-full min-w-0">
+                                    <FileText className="w-5 h-5 shrink-0 text-[#09BF44]" />
+                                    <span className="font-bold text-base text-gray-900 truncate">Custom offer</span>
+                                    <div className="ml-auto flex items-center gap-1 shrink-0">
+                                        {offer.status === 'accepted' && <CheckCircle className="w-5 h-5 text-green-600" />}
+                                        {offer.status === 'rejected' && <XCircle className="w-5 h-5 text-red-600" />}
+                                        {offer.status === 'pending' && (
+                                            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">Pending</span>
+                                        )}
+                                    </div>
+                                </div>
+                                <p className="text-xs text-gray-500 mb-3">
+                                    From {from?.firstName || '—'} {from?.lastName || ''} → {to?.firstName || '—'} {to?.lastName || ''}
+                                </p>
+                                <div className="space-y-3 mb-2 text-gray-700">
+                                    <div className="flex items-center justify-between rounded-xl p-3 bg-gray-50">
+                                        <span className="text-sm font-bold shrink-0">Price:</span>
+                                        <span className="text-lg font-black truncate ml-2">{offer.price} EGP</span>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-2 min-w-0">
+                                        <span className="text-sm font-bold shrink-0">Delivery:</span>
+                                        <span className="text-sm font-medium text-right break-words [overflow-wrap:anywhere]">
+                                            {offer.deliveryDate ? formatDateDDMMYYYY(offer.deliveryDate) : (offer.deliveryDays ? `${offer.deliveryDays} days` : '—')}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="text-sm font-bold">Revisions:</span>
+                                        <span className="text-sm font-medium">
+                                            {offer.revisionsUnlimited ? 'Unlimited' : String(Number(offer.revisions ?? 0))}
+                                        </span>
+                                    </div>
+                                    <div className="pt-3 border-t border-gray-200 min-w-0">
+                                        <p className="text-sm font-bold mb-2 text-gray-900">What&apos;s included:</p>
+                                        <div className="text-sm leading-relaxed max-h-48 overflow-y-auto break-words [overflow-wrap:anywhere] text-gray-800">
+                                            {offer.whatsIncluded}
+                                        </div>
+                                    </div>
+                                    {offer.milestones && offer.milestones.length > 0 && (
+                                        <div className="pt-3 border-t border-gray-200">
+                                            <p className="text-sm font-bold mb-1 text-gray-900">Delivery milestones</p>
+                                            <p className="text-xs text-gray-500 mb-2">For scheduling only—payment is the total above, once.</p>
+                                            {offer.milestones.map((milestone: any, idx: number) => (
+                                                <div key={idx} className="text-xs mb-1.5 text-gray-700">
+                                                    {milestone.name}
+                                                    {milestone.dueDate && ` · Due ${formatDateDDMMYYYY(milestone.dueDate)}`}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                {offer.status === 'accepted' && (
+                                    <p className="text-center text-sm font-bold text-green-700 py-2">Offer accepted</p>
+                                )}
+                                {offer.status === 'rejected' && (
+                                    <p className="text-center text-sm font-bold text-red-600 py-2">Offer denied by client</p>
+                                )}
+                            </div>
+                        </div>
+                    );
+                }
+                return <AdminChatMessageRow key={item.id} msg={item.data} selectedChat={selectedChat} />;
+            })}
+        </>
+    );
+}
+
 function AdminChatBubbles({ messages, selectedChat }: { messages: any[]; selectedChat: any }) {
     if (!selectedChat) return null;
     return (
         <>
-            {messages.map((msg: any) => {
-                const raw = msg.content || '';
-                const isVoice = msg.messageType === 'voice';
-                const isFile = msg.messageType === 'file';
-                const fileSrc = isFile ? resolveMediaUrl(raw) : '';
-                const isAdmin = msg.isAdmin || raw.includes('[Engezhaly Admin]');
-                const isMeeting = msg.isMeeting || msg.messageType === 'meeting' || raw.includes('[Engezhaly Meeting]');
-                const isOrder = msg.messageType === 'order' || raw.includes('[Engezhaly Order]');
-                const isOfferRequest = raw.includes('[Engezhaly Offer Request]');
-                const isCentered = isAdmin || isMeeting || isOrder || isOfferRequest;
-                let content = raw;
-                if (isAdmin) content = content.replace('[Engezhaly Admin]', '').trim();
-                if (isMeeting) content = content.replace('[Engezhaly Meeting]', '').trim();
-                if (isOrder) content = content.replace('[Engezhaly Order]', '').trim();
-                if (isOfferRequest) content = content.replace('[Engezhaly Offer Request]', '').trim();
-                const linkMatch = content.match(/Join here: (https?:\/\/[^\s]+)/);
-                const meetingLink = linkMatch ? linkMatch[1] : null;
-                const senderId = String(msg.senderId?._id || msg.senderId);
-                const participant1Id = selectedChat.participants?.[0]?._id ? String(selectedChat.participants[0]._id) : null;
-                const isFromParticipant1 = participant1Id && senderId === participant1Id;
-                const voiceSrc = isVoice ? resolveMediaUrl(content) : '';
-
-                return (
-                    <div key={msg._id} className={`flex ${isCentered ? 'justify-center' : isFromParticipant1 ? 'justify-start' : 'justify-end'}`}>
-                        <div className={`max-w-[70%] px-4 py-2 rounded-2xl shadow-sm ${isAdmin
-                            ? 'bg-yellow-100 border-2 border-yellow-300 text-gray-900'
-                            : isMeeting
-                                ? 'bg-green-50 border-2 border-[#09BF44]/40 text-gray-900'
-                                : isOrder || isOfferRequest
-                                    ? 'bg-blue-50 border-2 border-blue-200 text-gray-900'
-                                    : isFromParticipant1
-                                        ? 'bg-white border border-gray-200 text-gray-900 rounded-bl-sm'
-                                        : 'bg-[#a7f3d0] text-gray-900 rounded-br-sm'
-                            }`}>
-                            {!isCentered && (
-                                <div className="flex items-center gap-1 mb-1">
-                                    <span className={`text-[10px] font-black uppercase ${isFromParticipant1 ? 'text-gray-400' : 'text-emerald-800'}`}>
-                                        {isFromParticipant1 ? (selectedChat.participants?.[0]?.firstName || 'User 1') : (selectedChat.participants?.[1]?.firstName || 'User 2')} ({isFromParticipant1 ? (selectedChat.participants?.[0]?.role || 'client') : (selectedChat.participants?.[1]?.role || 'freelancer')})
-                                    </span>
-                                </div>
-                            )}
-                            {isOrder && (
-                                <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-xs font-bold text-blue-700">Order</span>
-                                </div>
-                            )}
-                            {isOfferRequest && (
-                                <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-xs font-bold text-blue-700">Offer request</span>
-                                </div>
-                            )}
-                            {isAdmin && (
-                                <div className="flex items-center gap-2 mb-1">
-                                    <Shield className="w-4 h-4 text-yellow-600" />
-                                    <span className="text-xs font-bold text-yellow-700">Engezhaly Admin</span>
-                                </div>
-                            )}
-                            {isMeeting && (
-                                <div className="flex items-center gap-2 mb-1">
-                                    <Video className="w-4 h-4 text-[#09BF44]" />
-                                    <span className="text-xs font-bold text-[#09BF44]">Video Meeting</span>
-                                </div>
-                            )}
-                            {isVoice ? (
-                                <audio controls src={voiceSrc} className="max-w-full min-w-[200px] h-10 rounded-lg" />
-                            ) : isFile && fileSrc ? (
-                                <div className="space-y-2">
-                                    {/\.(jpe?g|png|gif|webp)(\?|$)/i.test(fileSrc) ? (
-                                        <a href={fileSrc} target="_blank" rel="noopener noreferrer" className="block">
-                                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                                            <img src={fileSrc} alt="Attachment" className="max-h-56 max-w-full rounded-lg border border-gray-200 object-contain" />
-                                        </a>
-                                    ) : /\.pdf(\?|$)/i.test(fileSrc) ? (
-                                        <a
-                                            href={fileSrc}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-sm bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-900"
-                                        >
-                                            <FileText className="w-4 h-4 shrink-0" />
-                                            Open PDF
-                                        </a>
-                                    ) : (
-                                        <a href={fileSrc} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-[#09BF44] underline break-all">
-                                            Open file
-                                        </a>
-                                    )}
-                                </div>
-                            ) : (
-                                <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{content}</p>
-                            )}
-                            {meetingLink && (
-                                <a
-                                    href={meetingLink}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-2 mt-2 px-3 py-2 bg-[#09BF44] text-white rounded-xl font-bold text-sm hover:bg-[#07a63a] transition-colors"
-                                >
-                                    <Video className="w-4 h-4" /> Join Meeting
-                                </a>
-                            )}
-                            <div className={`flex items-center justify-end mt-1 ${isAdmin ? 'text-yellow-700' : isMeeting ? 'text-[#09BF44]/80' : isOrder || isOfferRequest ? 'text-blue-600/80' : isFromParticipant1 ? 'text-gray-500' : 'text-emerald-900'}`}>
-                                <span className="text-[10px]">
-                                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                );
-            })}
+            {messages.map((msg: any) => (
+                <AdminChatMessageRow key={msg._id} msg={msg} selectedChat={selectedChat} />
+            ))}
         </>
     );
 }
@@ -485,6 +584,7 @@ export default function AdminDashboard() {
     // Chats states
     const [selectedChat, setSelectedChat] = useState<any>(null);
     const [chatMessages, setChatMessages] = useState<any[]>([]);
+    const [chatOffers, setChatOffers] = useState<any[]>([]);
     const [adminMessageInput, setAdminMessageInput] = useState('');
     const [socket, setSocket] = useState<any>(null);
     const selectedConversationIdRef = useRef<string | null>(null);
@@ -543,11 +643,13 @@ export default function AdminDashboard() {
         }
     };
 
-    const fetchChatMessages = async (conversationId: string) => {
+    const fetchChatMessages = useCallback(async (conversationId: string) => {
         try {
-            const data = await api.chat.getMessages(conversationId);
-            // Format messages for display
-            const formatted = data.map((m: any) => ({
+            const [data, offersData] = await Promise.all([
+                api.chat.getMessages(conversationId),
+                api.admin.getChatOffers(conversationId).catch(() => [])
+            ]);
+            const formatted = (data || []).map((m: any) => ({
                 _id: m._id,
                 content: m.content,
                 senderId: m.senderId?._id || m.senderId,
@@ -557,11 +659,12 @@ export default function AdminDashboard() {
                 createdAt: m.createdAt
             }));
             setChatMessages(formatted);
+            setChatOffers(Array.isArray(offersData) ? offersData : []);
         } catch (err) {
             console.error('Failed to fetch chat messages', err);
             showModal({ title: 'Error', message: 'Failed to load messages', type: 'error' });
         }
-    };
+    }, [showModal]);
 
     const handleSelectChat = async (chat: any) => {
         setSelectedChat(chat);
@@ -860,6 +963,19 @@ export default function AdminDashboard() {
             socket.off('message', onMessage);
         };
     }, [socket]);
+
+    useEffect(() => {
+        if (!socket) return;
+        const onCtx = (payload: { conversationId?: string }) => {
+            const cid = selectedConversationIdRef.current;
+            if (!cid || !payload?.conversationId || String(payload.conversationId) !== String(cid)) return;
+            fetchChatMessages(cid);
+        };
+        socket.on('chat_context_refresh', onCtx);
+        return () => {
+            socket.off('chat_context_refresh', onCtx);
+        };
+    }, [socket, fetchChatMessages]);
 
     // Action Handlers
     const handleSearchUser = async () => {
@@ -2787,6 +2903,7 @@ export default function AdminDashboard() {
                                         onClick={() => {
                                             setSelectedChat(null);
                                             setChatMessages([]);
+                                            setChatOffers([]);
                                         }}
                                         className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
                                     >
@@ -2845,8 +2962,8 @@ export default function AdminDashboard() {
 
                                 {/* Messages */}
                                 <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-4 bg-gray-50">
-                                    <AdminChatBubbles messages={chatMessages} selectedChat={selectedChat} />
-                                    {chatMessages.length === 0 && (
+                                    <AdminChatMergedFeed messages={chatMessages} offers={chatOffers} selectedChat={selectedChat} />
+                                    {chatMessages.length === 0 && chatOffers.length === 0 && (
                                         <div className="text-center py-12 text-gray-400">
                                             <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-20" />
                                             <p>No messages yet.</p>
