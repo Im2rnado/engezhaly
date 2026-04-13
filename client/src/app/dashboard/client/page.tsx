@@ -15,6 +15,7 @@ import CountdownTimer from '@/components/CountdownTimer';
 import PaymobCheckoutModal from '@/components/PaymobCheckoutModal';
 import PaymentChoiceModal from '@/components/PaymentChoiceModal';
 import { payWithWalletIfPossible } from '@/lib/payWithWalletIfPossible';
+import { formatEgyptianPhoneForDisplay } from '@/lib/phoneUtils';
 
 function ClientDashboardContent() {
     const { showModal } = useModal();
@@ -774,7 +775,7 @@ function ClientDashboardContent() {
                                     </div>
                                     <div>
                                         <label className="text-sm font-bold text-gray-500 mb-2 block">Phone Number</label>
-                                        <p className="text-gray-900 font-bold">{profile.phoneNumber || 'Not set'}</p>
+                                        <p className="text-gray-900 font-bold">{formatEgyptianPhoneForDisplay(profile.phoneNumber) || 'Not set'}</p>
                                     </div>
                                     <div>
                                         <label className="text-sm font-bold text-gray-500 mb-2 block">Business Type</label>

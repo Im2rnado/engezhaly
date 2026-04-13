@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, ArrowRight, Code, Palette, TrendingUp, Video, Sparkles, PenTool, Mic, Search, Briefcase, ShieldCheck, Star, Loader2, CheckCircle2, Zap } from "lucide-react";
@@ -22,78 +22,38 @@ const stagger: Variants = {
   visible: { opacity: 1, transition: { staggerChildren: 0.05 } }
 };
 
-const Word = ({ children, progress, range }: { children: React.ReactNode, progress: any, range: [number, number] }) => {
-  const opacity = useTransform(progress, range, [0.15, 1]);
-  return <motion.span style={{ opacity }}>{children}</motion.span>;
+const staggerSlow: Variants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.15 } }
 };
 
-const ScrollRevealText = ({
-  text,
-  renderLineBreaks = false,
-}: { text: string; renderLineBreaks?: boolean }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start 85%", "end 50%"],
-  });
+const slideInRight: Variants = {
+  hidden: { opacity: 0, x: 50 },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.6, ease: "easeOut" } }
+};
 
-  if (renderLineBreaks) {
-    // Split on \n to preserve line breaks
-    const lines = text.split("\n");
-    let wordIndex = 0;
-    const allWords = text.split(/\s+/).filter(Boolean);
-    return (
-      <div
-        ref={containerRef}
-        className="text-3xl md:text-4xl lg:text-5xl text-gray-900 font-black leading-none items-center justify-center flex flex-col gap-y-2 mb-12 mx-auto max-w-[85%]"
-      >
-        {lines.map((line, lineIdx) => {
-          // Preserve empty lines for multiple \n\ns
-          if (line.trim() === "") {
-            return <br key={`br-${lineIdx}`} />;
-          }
-          // Split line into words (preserve original spacing, but collapse)
-          const words = line.split(" ").filter(Boolean);
-          return (
-            <div
-              key={lineIdx}
-              className="flex flex-wrap gap-x-2 md:gap-x-3 items-center justify-center"
-            >
-              {words.map((word, i) => {
-                // Calculate animation range relative to all words
-                const start = wordIndex / allWords.length;
-                const end = start + 1 / allWords.length;
-                wordIndex++;
-                return (
-                  <Word key={i} progress={scrollYProgress} range={[start, end]}>
-                    {word}
-                  </Word>
-                );
-              })}
-            </div>
-          );
-        })}
-      </div>
-    );
-  } else {
-    const words = text.split(" ");
-    return (
-      <div
-        ref={containerRef}
-        className="text-3xl md:text-4xl lg:text-5xl text-gray-900 font-black leading-none items-center justify-center flex flex-wrap gap-x-2 md:gap-x-3 gap-y-2 mb-12 mx-auto max-w-[85%]"
-      >
-        {words.map((word, i) => {
-          const start = i / words.length;
-          const end = start + 1 / words.length;
-          return (
-            <Word key={i} progress={scrollYProgress} range={[start, end]}>
-              {word}
-            </Word>
-          );
-        })}
-      </div>
-    );
-  }
+const ParallaxLogo = () => {
+  const { scrollYProgress } = useScroll();
+  // Stronger parallax: starts high up (hidden under the previous section) and moves down to center
+  const y = useTransform(scrollYProgress, [0.8, 1], ["-60%", "0%"]);
+  const opacity = useTransform(scrollYProgress, [0.8, 1], [0, 1]);
+  const scale = useTransform(scrollYProgress, [0.8, 1], [0.8, 1.05]);
+
+  return (
+    <section className="relative h-[40vh] md:h-[60vh] bg-linear-to-b from-gray-50 to-emerald-50 overflow-hidden flex items-center justify-center -mt-10 pt-10 z-10">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#09BF44]/15 via-transparent to-transparent pointer-events-none opacity-60"></div>
+      <motion.div style={{ y, opacity, scale }} className="relative z-10 flex flex-col items-center justify-center">
+        <Image
+          src="/logos/logo-green.png"
+          alt="Engezhaly"
+          width={600}
+          height={165}
+          className="w-[280px] md:w-[450px] lg:w-[600px] h-auto drop-shadow-xl"
+          priority
+        />
+      </motion.div>
+    </section>
+  );
 };
 
 export default function Home() {
@@ -156,7 +116,7 @@ export default function Home() {
         <div className="absolute top-0 right-[-10%] w-[800px] h-[800px] rounded-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#09BF44]/15 via-transparent to-transparent pointer-events-none"></div>
         <div className="absolute bottom-[-20%] left-[-5%] w-[600px] h-[600px] rounded-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/40 via-transparent to-transparent pointer-events-none"></div>
 
-        <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6 py-16 md:py-28 flex flex-col md:flex-row items-center relative z-10 gap-12">
+        <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6 py-16 md:py-26 flex flex-col md:flex-row items-center relative z-10 gap-12">
           <motion.div
             initial="hidden"
             animate="visible"
@@ -271,51 +231,101 @@ export default function Home() {
       </section>
 
       {/* About Section */}
-      <section className="relative bg-white py-24 overflow-hidden">
-        {/* Subtle background decoration */}
+      <section className="relative bg-gray-50 py-24 md:py-24 overflow-hidden border-y border-gray-200">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#09BF44]/8 to-transparent"></div>
-          <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#09BF44]/6 to-transparent"></div>
+          <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#09BF44]/5 to-transparent"></div>
+          <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#09BF44]/5 to-transparent"></div>
         </div>
-        <div className="relative max-w-[90%] mx-auto px-4">
-          {/* Eyebrow */}
-          <motion.p
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeIn}
-            className="text-center text-[#09BF44] font-black text-lg uppercase tracking-[0.2em] mb-12"
-          >
-            About Engezhaly
-          </motion.p>
+        <div className="relative max-w-7xl mx-auto px-4 md:px-6">
+          <div className="flex flex-col md:flex-row gap-12 md:gap-20 items-center">
+            <div className="flex-1 space-y-8">
+              <div>
+                <motion.p
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true }}
+                  variants={fadeIn}
+                  className="text-[#09BF44] font-black text-sm uppercase tracking-[0.2em] mb-3"
+                >
+                  About Engezhaly
+                </motion.p>
+                <motion.h2
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true }}
+                  variants={fadeIn}
+                  className="text-4xl md:text-5xl lg:text-6xl font-black text-gray-900 leading-[1.1] tracking-tight"
+                >
+                  We’re built <span className="text-[#09BF44]">different.</span>
+                </motion.h2>
+              </div>
+              
+              <motion.div
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                variants={fadeIn}
+                className="space-y-6 text-lg md:text-xl text-gray-600 leading-relaxed"
+              >
+                <p>
+                  Egypt is moving fast. People are building brands, launching businesses, and chasing ideas. You need the right people beside you — people who deliver quality, speed, and fair prices.
+                </p>
+                <p>
+                  That’s exactly why Engezhaly exists. Chat with freelancers, build custom deals, and pay only when you’re satisfied. Everything is done through one clean platform built for YOU.
+                </p>
+                <p className="font-bold text-gray-900">
+                  The future of freelancing in the Middle East starts here.
+                </p>
+              </motion.div>
+            </div>
 
-          {/* Description lines — staggered word-by-line reveal */}
-          <div className="mx-auto text-center my-16">
-            <ScrollRevealText text={
-              `We’re not your typical freelancing platform. We’re built different.\n\n` +
-              `Egypt is moving fast. People are building brands, launching businesses, chasing ideas. And they need the right people beside them that care about quality, speed and price.\n\n` +
-              `That’s exactly why Engezhaly exists.\n\n` +
-              `Handpicked freelancers. Protected payments. Zero drama. Everything done through one clean platform built for YOU.\n\n` +
-              `We’re not just here for Egypt. We’re coming for the whole Middle East.`
-            } renderLineBreaks />
+            <div className="flex-1 w-full">
+              <motion.div
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: "-50px" }}
+                variants={staggerSlow}
+                className="grid gap-4"
+              >
+                {[
+                  { icon: Star, title: "Handpicked Freelancers", desc: "We vet our talent to ensure you get the best quality work." },
+                  { icon: ShieldCheck, title: "Protected Payments", desc: "Your money is held safely until you approve the final delivery." },
+                  { icon: Zap, title: "Zero Drama", desc: "Clear communication, custom deals, and a support team that has your back." }
+                ].map((item, idx) => (
+                  <motion.div
+                    key={idx}
+                    variants={slideInRight}
+                    className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex gap-5 items-start group hover:border-[#09BF44]/30 transition-colors"
+                  >
+                    <div className="p-3 bg-gray-50 rounded-2xl group-hover:bg-[#09BF44]/10 transition-colors shrink-0">
+                      <item.icon className="w-6 h-6 text-gray-400 group-hover:text-[#09BF44] transition-colors" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 text-lg mb-1">{item.title}</h3>
+                      <p className="text-gray-600 text-sm leading-relaxed">{item.desc}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </div>
           </div>
 
-          <div className="flex flex-col items-center justify-center mt-24">
+          <div className="flex flex-col items-center justify-center mt-20">
             <button 
               onClick={() => setShowSecret(!showSecret)}
-              className="w-48 h-12 rounded-full bg-gray-50 hover:bg-gray-100 flex items-center justify-center transition-colors mb-6 text-gray-400 hover:text-[#09BF44]"
+              className="px-6 py-3 rounded-full bg-white border border-gray-200 hover:border-[#09BF44]/30 hover:bg-gray-50 flex items-center justify-center transition-all mb-6 text-gray-500 hover:text-[#09BF44] font-bold text-sm shadow-sm"
             >
-              <Sparkles className="w-5 h-5 mr-3" /> Secret Message
+              <Sparkles className="w-4 h-4 mr-2" /> Secret Message
             </button>
             
             {showSecret && (
               <motion.div 
                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                className="bg-gradient-to-r from-[#09BF44]/10 to-emerald-500/10 px-8 py-4 rounded-2xl border border-[#09BF44]/20 shadow-sm"
+                className="bg-gradient-to-r from-[#09BF44]/10 to-emerald-500/10 px-8 py-5 rounded-3xl border border-[#09BF44]/20 shadow-sm max-w-2xl text-center"
               >
-                <p className="text-xl md:text-2xl font-black text-[#09BF44] text-center">
-                  "W ehna ma3ko min awel matna2y freelancer le8ayet mat5od el sho8l.😉"
+                <p className="text-xl md:text-2xl font-black text-[#09BF44]">
+                  &quot;W ehna ma3ko min awel matna2o el freelancer le8ayet matestelmo el sho8l 😉&quot;
                 </p>
               </motion.div>
             )}
@@ -635,7 +645,7 @@ export default function Home() {
       </section>
 
       {/* Jobs Section */}
-      <section id="jobs-section" className="bg-white py-24 pb-32">
+      <section id="jobs-section" className="bg-white py-24 pb-32 relative z-20 shadow-[0_20px_50px_rgba(0,0,0,0.06)]">
         <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeIn} className="flex flex-col sm:flex-row sm:items-end justify-between mb-12 gap-4">
             <div>
@@ -745,6 +755,9 @@ export default function Home() {
           )}
         </div>
       </section>
+
+      {/* Parallax Logo Section before footer */}
+      <ParallaxLogo />
 
     </main>
   );

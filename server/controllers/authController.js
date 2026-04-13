@@ -18,6 +18,7 @@ async function hasValidEmailDomain(email) {
 const jwt = require('jsonwebtoken');
 const { sendAndLog } = require('../services/mailgunService');
 const { verification: verificationTemplate, passwordReset: passwordResetTemplate } = require('../templates/emailTemplates');
+const { isValidEgyptianE164 } = require('../utils/phoneValidation');
 
 const register = async (req, res) => {
     try {
@@ -30,6 +31,9 @@ const register = async (req, res) => {
         const hasMX = await hasValidEmailDomain(emailNorm);
         if (!hasMX) {
             return res.status(400).json({ message: 'Email domain does not appear to accept mail. Please use a valid email address.' });
+        }
+        if (!phoneNumber || !isValidEgyptianE164(phoneNumber)) {
+            return res.status(400).json({ message: 'Phone number must be a valid Egyptian mobile (11 digits starting with 01, e.g. 01xxxxxxxxx).' });
         }
         // Case-insensitive duplicate check (handles legacy mixed-case emails)
         const emailRegex = new RegExp(`^${(emailNorm || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');

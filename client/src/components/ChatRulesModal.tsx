@@ -8,14 +8,13 @@ interface ChatRulesModalProps {
 }
 
 const CHAT_RULES = [
-    "If any conflict happens between client and freelancer, we will only be able to review the deal description and chat messages done through Engezhaly.",
-    "Be respectful and professional at all times.",
-    "Do not share personal contact information (phone, email, social media) before completing a deal through Engezhaly.",
-    "All payments must be processed through Engezhaly — do not accept or request payments outside the platform.",
-    "Do not spam, harass, or send unsolicited messages.",
-    "Keep conversations focused on work-related topics.",
+    "If any conflict happens between client and freelancer, we will only be able to review the deal description and chat messages done through Engezhaly. So, make sure all details were in the chat.",
+    "No outside contact with clients. Violations result in payment deduction and account suspension or termination.",
+    "Do not share personal contact information (phone, email) or messaging will be frozen automatically.",
+    "Always be respectful and professional at all times.",
+    "All payments must be processed through Engezhaly to ensure safe transactions.",
     "Report any suspicious or inappropriate behavior to the support team.",
-    "You can submit your work using: a link to your project, a Google Drive or Dropbox link, or by uploading the deliverable directly.",
+    "Submit your work using: a link to your project, a Google Drive link or Dropbox link, or by uploading the deliverable directly.",
     "Violations may result in account suspension or termination.",
 ];
 

@@ -42,11 +42,6 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
         [milestones]
     );
 
-    const hasMilestoneDueDates = useMemo(
-        () => normalizedMilestones.some((m) => m.dueDate),
-        [normalizedMilestones]
-    );
-
     if (!isOpen) return null;
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -61,13 +56,32 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
             return;
         }
 
-        if (!hasMilestoneDueDates) {
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+
+        if (showMilestones) {
+            if (normalizedMilestones.length === 0) {
+                alert('Add at least one delivery milestone with a name and due date');
+                return;
+            }
+            for (const m of normalizedMilestones) {
+                if (!m.dueDate) {
+                    alert('Each milestone must have a due date');
+                    return;
+                }
+                const d = new Date(m.dueDate);
+                if (isNaN(d.getTime()) || d < todayStart) {
+                    alert('Each milestone due date must be today or later');
+                    return;
+                }
+            }
+        } else {
             if (!deliveryDate) {
                 alert('Please select a delivery date');
                 return;
             }
             const selectedDate = new Date(deliveryDate);
-            if (selectedDate < new Date(new Date().setHours(0, 0, 0, 0))) {
+            if (selectedDate < todayStart) {
                 alert('Delivery date must be today or later');
                 return;
             }
@@ -83,13 +97,11 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
             whatsIncluded: whatsIncluded.trim(),
             revisions: revNum,
             revisionsUnlimited: revUnlimited,
-            milestones: normalizedMilestones
+            milestones: showMilestones ? normalizedMilestones : []
         };
 
-        if (hasMilestoneDueDates) {
-            const times = normalizedMilestones
-                .map((m) => (m.dueDate ? new Date(m.dueDate).getTime() : NaN))
-                .filter((t) => !isNaN(t));
+        if (showMilestones) {
+            const times = normalizedMilestones.map((m) => new Date(m.dueDate!).getTime());
             const latest = new Date(Math.max(...times));
             offerData.deliveryDate = latest.toISOString();
         } else {
@@ -122,7 +134,7 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
 
     const finalPrice = Number(price) || 0;
     const summaryDelivery =
-        hasMilestoneDueDates && normalizedMilestones.length
+        showMilestones && normalizedMilestones.length
             ? formatDateDDMMYYYY(new Date(Math.max(...normalizedMilestones.map((m) => new Date(m.dueDate!).getTime()))).toISOString())
             : deliveryDate
                 ? formatDateDDMMYYYY(deliveryDate)
@@ -166,7 +178,7 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                 </p>
                             </div>
 
-                            {!hasMilestoneDueDates && (
+                            {!showMilestones && (
                                 <div>
                                     <label className="block text-sm font-bold text-gray-900 mb-2">
                                         Delivery Date <span className="text-red-500">*</span>
@@ -182,9 +194,9 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                 </div>
                             )}
 
-                            {hasMilestoneDueDates && (
+                            {showMilestones && (
                                 <div className="p-4 rounded-xl bg-amber-50 border border-amber-100 text-sm text-amber-900 font-medium">
-                                    Delivery date is set automatically from the latest milestone due date.
+                                    Delivery date is set automatically from the latest milestone due date. Each milestone needs a due date.
                                 </div>
                             )}
 
@@ -303,7 +315,7 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                                         <DatePicker
                                                             value={milestone.dueDate}
                                                             onChange={(v) => updateMilestone(index, 'dueDate', v)}
-                                                            placeholder="Target due date (optional)"
+                                                            placeholder="Due date *"
                                                             min={new Date().toISOString().split('T')[0]}
                                                             className="w-full"
                                                         />
@@ -326,7 +338,7 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                         <span className="text-gray-600">Delivery:</span>
                                         <span className="font-bold text-gray-900">{summaryDelivery}</span>
                                     </div>
-                                    {milestones.length > 0 && (
+                                    {showMilestones && milestones.length > 0 && (
                                         <div className="flex justify-between items-center">
                                             <span className="text-gray-600">Delivery milestones:</span>
                                             <span className="font-bold text-gray-900">{milestones.length}</span>

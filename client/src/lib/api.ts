@@ -1137,5 +1137,17 @@ export const api = {
                 return result;
             }
         }
+    },
+    contact: {
+        submit: async (data: { name: string; email: string; subject: string; message: string }) => {
+            const res = await fetch(`${API_URL}/contact`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(result.msg || 'Failed to send message');
+            return result as { msg: string };
+        }
     }
 };

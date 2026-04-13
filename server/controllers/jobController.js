@@ -117,18 +117,23 @@ const applyToJob = async (req, res) => {
                 }))
             : [];
 
-        const hasMilestoneDueDates = parsedMilestones.some((m) => m.dueDate && !isNaN(new Date(m.dueDate).getTime()));
-
-        let effectiveDeliveryDays = deliveryDays != null ? Number(deliveryDays) : NaN;
-        if (hasMilestoneDueDates) {
-            const times = parsedMilestones
-                .map((m) => (m.dueDate ? new Date(m.dueDate).getTime() : NaN))
-                .filter((t) => !isNaN(t));
+        let effectiveDeliveryDays;
+        if (parsedMilestones.length > 0) {
+            const missingDue = parsedMilestones.some(
+                (m) => !m.dueDate || isNaN(new Date(m.dueDate).getTime())
+            );
+            if (missingDue) {
+                return res.status(400).json({ msg: 'Each milestone must have a valid due date' });
+            }
+            const times = parsedMilestones.map((m) => new Date(m.dueDate).getTime());
             const latest = Math.max(...times);
             const days = Math.ceil((latest - Date.now()) / (24 * 60 * 60 * 1000));
             effectiveDeliveryDays = Math.max(1, days);
-        } else if (Number.isNaN(effectiveDeliveryDays) || effectiveDeliveryDays < 1) {
-            return res.status(400).json({ msg: 'Delivery days must be at least 1' });
+        } else {
+            effectiveDeliveryDays = deliveryDays != null ? Number(deliveryDays) : NaN;
+            if (Number.isNaN(effectiveDeliveryDays) || effectiveDeliveryDays < 1) {
+                return res.status(400).json({ msg: 'Delivery days must be at least 1' });
+            }
         }
 
         const revUnlimited = !!revisionsUnlimited;

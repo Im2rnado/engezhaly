@@ -348,12 +348,13 @@ const createOffer = async (req, res) => {
                 }))
             : [];
 
-        const hasMilestoneDueDates = normalizedMilestones.some(
-            (m) => m.dueDate && !isNaN(new Date(m.dueDate).getTime())
-        );
-
-        if (!hasMilestoneDueDates && !deliveryDate && (!deliveryDays || deliveryDays < 1)) {
-            return res.status(400).json({ msg: 'Provide deliveryDate or deliveryDays (min 1), or milestones with due dates' });
+        if (normalizedMilestones.length > 0) {
+            const missingDue = normalizedMilestones.some(
+                (m) => !m.dueDate || isNaN(new Date(m.dueDate).getTime())
+            );
+            if (missingDue) {
+                return res.status(400).json({ msg: 'Each milestone must have a valid due date' });
+            }
         }
 
         const revUnlimited = Boolean(revisionsUnlimited);
@@ -374,15 +375,17 @@ const createOffer = async (req, res) => {
             revisionsUnlimited: revUnlimited
         };
 
-        if (deliveryDate) {
-            offerData.deliveryDate = new Date(deliveryDate);
-        } else if (hasMilestoneDueDates) {
-            const times = normalizedMilestones
-                .map((m) => (m.dueDate ? new Date(m.dueDate).getTime() : NaN))
-                .filter((t) => !isNaN(t));
+        if (normalizedMilestones.length > 0) {
+            const times = normalizedMilestones.map((m) => new Date(m.dueDate).getTime());
             offerData.deliveryDate = new Date(Math.max(...times));
+        } else if (deliveryDate) {
+            offerData.deliveryDate = new Date(deliveryDate);
         } else {
-            offerData.deliveryDays = Number(deliveryDays);
+            const d = Number(deliveryDays);
+            if (!Number.isFinite(d) || d < 1) {
+                return res.status(400).json({ msg: 'Provide a delivery date, delivery days (min 1), or milestones with due dates' });
+            }
+            offerData.deliveryDays = d;
         }
 
         // Create offer
@@ -390,41 +393,19 @@ const createOffer = async (req, res) => {
 
         await offer.save();
 
-        const subCategory = sender?.freelancerProfile?.category || 'Offer';
         const priceStr = Number(price).toLocaleString('en-EG');
-        const offerContent = `[Engezhaly Custom Offer] ${subCategory}\n${priceStr} EGP — Tap to view and accept in chat.\n${(whatsIncluded || '').substring(0, 200)}${String(whatsIncluded || '').length > 200 ? '…' : ''}`;
-
-        const offerMessage = new Chat({
-            conversationId,
-            senderId,
-            receiverId,
-            content: offerContent,
-            messageType: 'text'
-        });
-        await offerMessage.save();
-
-        conversation.lastMessage = offerContent;
-        conversation.lastMessageId = offerMessage._id;
+        const lastPreview = `Custom offer · ${priceStr} EGP`;
+        conversation.lastMessage = lastPreview;
+        conversation.lastMessageId = null;
         await conversation.save();
 
         const io = req.app.get('io');
         if (io) {
-            const roomId = `conversation:${conversation._id}`;
-            io.to(roomId).emit('message', {
-                _id: offerMessage._id,
-                conversationId: conversation._id,
-                senderId: offerMessage.senderId,
-                content: offerContent,
-                messageType: 'text',
-                createdAt: offerMessage.createdAt,
-                isAdmin: false,
-                isRead: false
-            });
             emitChatContextRefresh(io, conversation._id);
         }
 
         const senderName = sender ? `${sender.firstName || ''} ${sender.lastName || ''}`.trim() || 'Freelancer' : 'Someone';
-        const preview = offerContent.substring(0, 100);
+        const preview = lastPreview;
         const chatLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/chat?conversation=${conversation._id}`;
         if (isUserOnline(req.app, receiverId)) {
             emitToUser(req.app, receiverId, {

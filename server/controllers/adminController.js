@@ -5,7 +5,8 @@ const User = require('../models/User');
 const Conversation = require('../models/Conversation');
 const EmailLog = require('../models/EmailLog');
 const { sendAndLog } = require('../services/mailgunService');
-const { freelancerApproved: freelancerApprovedTemplate, disputeResolved: disputeResolvedTemplate } = require('../templates/emailTemplates');
+const { freelancerApproved: freelancerApprovedTemplate, disputeResolved: disputeResolvedTemplate, offlineChat: offlineChatTemplate } = require('../templates/emailTemplates');
+const { emitToUser, isUserOnline } = require('../services/notificationService');
 const Chat = require('../models/Chat');
 const Transaction = require('../models/Transaction');
 const Project = require('../models/Project');
@@ -273,6 +274,31 @@ const sendAdminMessage = async (req, res) => {
                 isAdmin: true,
                 isRead: false
             });
+        }
+
+        // Same as regular chat: push if online, otherwise offline email (was missing for admin messages)
+        const receiverIdStr = String(chatReceiverId);
+        const preview = String(content || '').substring(0, 100);
+        const chatLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/chat?conversation=${conversation._id}`;
+        const senderDisplay = 'Engezhaly Team';
+
+        if (isUserOnline(req.app, receiverIdStr)) {
+            emitToUser(req.app, receiverIdStr, {
+                title: `New message from ${senderDisplay}`,
+                message: preview,
+                link: chatLink,
+                type: 'chat'
+            });
+        } else {
+            const receiverUser = await User.findById(receiverIdStr).select('email');
+            if (receiverUser?.email) {
+                const { subject, html } = offlineChatTemplate(senderDisplay, preview, conversation._id);
+                sendAndLog(receiverUser.email, subject, html, 'offline_chat', {
+                    conversationId: conversation._id,
+                    senderId: chatSenderId,
+                    receiverId: receiverIdStr
+                }).catch((err) => console.error('[Admin Chat] Offline email failed:', err.message));
+            }
         }
 
         res.json(newMsg);

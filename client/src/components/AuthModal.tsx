@@ -10,6 +10,7 @@ import { MAIN_CATEGORIES, CATEGORIES } from '@/lib/categories';
 import { PHONE_COUNTRIES, validatePhone, formatPhoneE164, getFlagEmoji } from '@/lib/phoneUtils';
 import DatePicker from '@/components/DatePicker';
 import ImageCropModal from '@/components/ImageCropModal';
+import VimeoStarterOfferEmbed from '@/components/VimeoStarterOfferEmbed';
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -577,729 +578,873 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
 
     return (
         <>
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4">
-            <div className={`relative w-full bg-white rounded-2xl md:rounded-3xl shadow-2xl max-h-[92vh] md:max-h-[90vh] flex flex-col overflow-hidden ${step === 'freelancer-step-3-offer' ? 'max-w-4xl' : 'max-w-2xl'}`}>
-                <div ref={scrollContainerRef} className="overflow-y-auto flex-1 px-4 md:px-8 pb-6 md:pb-8 min-h-0 pt-2">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4">
+                <div className={`relative w-full bg-white rounded-2xl md:rounded-3xl shadow-2xl max-h-[92vh] md:max-h-[90vh] flex flex-col overflow-hidden ${step === 'freelancer-step-3-offer' ? 'max-w-4xl' : 'max-w-2xl'}`}>
+                    <div ref={scrollContainerRef} className="overflow-y-auto flex-1 px-4 md:px-8 pb-6 md:pb-8 min-h-0 pt-2">
 
-                    {step === 'role-selection' && (
-                        <div className="text-center py-2 md:py-4">
-                            <div className="flex items-center justify-between gap-3 mb-4">
-                                <div className="flex-1" />
-                                <div className="flex items-center justify-center gap-3">
-                                    <h2 className="text-2xl md:text-4xl font-black text-gray-900">Join</h2>
-                                    <Image
-                                        src="/logos/logo-green.png"
-                                        alt="Engezhaly"
-                                        width={240}
-                                        height={66}
-                                        className="h-14 md:h-20 w-auto"
-                                        priority
-                                    />
-                                </div>
-                                <div className="flex-1 flex justify-end">
-                                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors -m-2">
-                                        <X className="w-5 h-5 text-gray-500" />
-                                    </button>
-                                </div>
-                            </div>
-                            <p className="text-base md:text-xl text-gray-600 mb-6 md:mb-12">How do you want to use the platform?</p>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                                <button
-                                    onClick={() => { setStep('client-auth'); }}
-                                    className="group flex flex-col items-center justify-center p-6 md:p-10 border-2 border-gray-100 rounded-2xl md:rounded-3xl hover:border-[#09BF44] hover:bg-green-50/50 transition-all duration-300"
-                                >
-                                    <div className="w-16 h-16 md:w-24 md:h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4 md:mb-6 group-hover:bg-[#09BF44] transition-colors">
-                                        <User className="w-8 h-8 md:w-12 md:h-12 text-gray-600 group-hover:text-white" />
+                        {step === 'role-selection' && (
+                            <div className="text-center py-2 md:py-4">
+                                <div className="flex items-center justify-between gap-3 mb-4">
+                                    <div className="flex-1" />
+                                    <div className="flex items-center justify-center gap-3">
+                                        <h2 className="text-2xl md:text-4xl font-black text-gray-900">Join</h2>
+                                        <Image
+                                            src="/logos/logo-green.png"
+                                            alt="Engezhaly"
+                                            width={240}
+                                            height={66}
+                                            className="h-14 md:h-20 w-auto"
+                                            priority
+                                        />
                                     </div>
-                                    <h3 className="text-xl md:text-2xl font-bold text-gray-900">I&apos;m Hiring</h3>
-                                    <p className="text-sm md:text-base text-gray-500 mt-2 font-medium">Find talent & get work done</p>
-                                </button>
-
-                                <button
-                                    onClick={() => { setStep('freelancer-step-1'); }}
-                                    className="group flex flex-col items-center justify-center p-6 md:p-10 border-2 border-gray-100 rounded-2xl md:rounded-3xl hover:border-[#09BF44] hover:bg-green-50/50 transition-all duration-300"
-                                >
-                                    <div className="w-16 h-16 md:w-24 md:h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4 md:mb-6 group-hover:bg-[#09BF44] transition-colors">
-                                        <Briefcase className="w-8 h-8 md:w-12 md:h-12 text-gray-600 group-hover:text-white" />
+                                    <div className="flex-1 flex justify-end">
+                                        <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors -m-2">
+                                            <X className="w-5 h-5 text-gray-500" />
+                                        </button>
                                     </div>
-                                    <h3 className="text-xl md:text-2xl font-bold text-gray-900">I Want to Freelance</h3>
-                                    <p className="text-sm md:text-base text-gray-500 mt-2 font-medium">Sell your services & earn</p>
-                                </button>
-                            </div>
-
-                            <div className="mt-6 md:mt-8">
-                                <p className="text-gray-600">
-                                    Already have an account?{' '}
-                                    <button onClick={() => setStep('login')} className="text-[#09BF44] font-bold hover:underline">
-                                        Log In
-                                    </button>
-                                </p>
-                            </div>
-                        </div>
-                    )}
-
-                    {step === 'login' && (
-                        <div className="py-3 md:py-4">
-                            <div className="flex items-center justify-between gap-3 mb-6">
-                                <div className="flex-1" />
-                                <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Welcome Back</h2>
-                                <div className="flex-1 flex justify-end">
-                                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors -m-2">
-                                        <X className="w-5 h-5 text-gray-500" />
-                                    </button>
                                 </div>
-                            </div>
-                            <p className="text-center text-gray-600 mb-8">Sign in to your account to continue</p>
+                                <p className="text-base md:text-xl text-gray-600 mb-6 md:mb-12">How do you want to use the platform?</p>
 
-                            <form onSubmit={handleLoginSubmit} className="space-y-5">
-                                <div>
-                                    <input
-                                        name="identifier"
-                                        placeholder="Email, Username, or Phone"
-                                        required
-                                        value={formData.identifier}
-                                        onChange={handleChange}
-                                        className="w-full p-3 md:p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400"
-                                    />
-                                </div>
-                                <div className="relative">
-                                    <input
-                                        name="password"
-                                        type={showPassword ? "text" : "password"}
-                                        placeholder="Password"
-                                        required
-                                        value={formData.password}
-                                        onChange={handleChange}
-                                        className="w-full p-3 md:p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium pr-12 text-gray-900 placeholder:text-gray-400"
-                                    />
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                                     <button
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                                        onClick={() => { setStep('client-auth'); }}
+                                        className="group flex flex-col items-center justify-center p-6 md:p-10 border-2 border-gray-100 rounded-2xl md:rounded-3xl hover:border-[#09BF44] hover:bg-green-50/50 transition-all duration-300"
                                     >
-                                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                        <div className="w-16 h-16 md:w-24 md:h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4 md:mb-6 group-hover:bg-[#09BF44] transition-colors">
+                                            <User className="w-8 h-8 md:w-12 md:h-12 text-gray-600 group-hover:text-white" />
+                                        </div>
+                                        <h3 className="text-xl md:text-2xl font-bold text-gray-900">I&apos;m Hiring</h3>
+                                        <p className="text-sm md:text-base text-gray-500 mt-2 font-medium">Find talent & get work done</p>
                                     </button>
-                                </div>
 
-                                <div className="flex items-center justify-between">
                                     <button
-                                        type="button"
-                                        onClick={() => setStep('forgot-password')}
-                                        className="text-sm text-[#09BF44] font-bold hover:underline"
+                                        onClick={() => { setStep('freelancer-step-1'); }}
+                                        className="group flex flex-col items-center justify-center p-6 md:p-10 border-2 border-gray-100 rounded-2xl md:rounded-3xl hover:border-[#09BF44] hover:bg-green-50/50 transition-all duration-300"
                                     >
-                                        Forgot Password?
+                                        <div className="w-16 h-16 md:w-24 md:h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4 md:mb-6 group-hover:bg-[#09BF44] transition-colors">
+                                            <Briefcase className="w-8 h-8 md:w-12 md:h-12 text-gray-600 group-hover:text-white" />
+                                        </div>
+                                        <h3 className="text-xl md:text-2xl font-bold text-gray-900">I Want to Freelance</h3>
+                                        <p className="text-sm md:text-base text-gray-500 mt-2 font-medium">Sell your services & earn</p>
                                     </button>
                                 </div>
 
-                                {error && (
-                                    <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center gap-2 text-sm">
-                                        <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                                        {error}
-                                    </div>
-                                )}
-
-                                <button disabled={loading} type="submit" className="w-full bg-[#09BF44] hover:bg-[#07a63a] text-white font-bold text-base md:text-lg p-3 md:p-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg">
-                                    {loading && <Loader2 className="w-5 h-5 animate-spin" />}
-                                    {loading ? 'Signing in...' : 'Sign In'}
-                                </button>
-                            </form>
-
-                            <div className="mt-6 text-center">
-                                <p className="text-gray-600">
-                                    Don&apos;t have an account?{' '}
-                                    <button onClick={() => setStep('role-selection')} className="text-[#09BF44] font-bold hover:underline">
-                                        Sign Up
-                                    </button>
-                                </p>
-                            </div>
-                        </div>
-                    )}
-
-                    {step === 'forgot-password' && (
-                        <div className="py-3 md:py-4">
-                            <div className="flex items-center justify-between gap-3 mb-4">
-                                <div className="flex-1" />
-                                <Image
-                                    src="/logos/logo-green.png"
-                                    alt="Engezhaly"
-                                    width={200}
-                                    height={55}
-                                    className="h-12 md:h-16 w-auto"
-                                    priority
-                                />
-                                <div className="flex-1 flex justify-end">
-                                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors -m-2">
-                                        <X className="w-5 h-5 text-gray-500" />
-                                    </button>
+                                <div className="mt-6 md:mt-8">
+                                    <p className="text-gray-600">
+                                        Already have an account?{' '}
+                                        <button onClick={() => setStep('login')} className="text-[#09BF44] font-bold hover:underline">
+                                            Log In
+                                        </button>
+                                    </p>
                                 </div>
                             </div>
-                            <h2 className="text-2xl md:text-3xl font-bold text-center mb-2">Forgot Password?</h2>
-                            <p className="text-center text-gray-600 mb-8">Enter your email address and we&apos;ll send you a link to reset your password.</p>
+                        )}
 
-                            <form onSubmit={handleForgotPassword} className="space-y-5">
-                                <input
-                                    type="email"
-                                    placeholder="Email Address"
-                                    required
-                                    value={forgotPasswordEmail}
-                                    onChange={(e) => setForgotPasswordEmail(e.target.value)}
-                                    className="w-full p-3 md:p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400"
-                                />
-
-                                {error && (
-                                    <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center gap-2 text-sm">
-                                        <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                                        {error}
+                        {step === 'login' && (
+                            <div className="py-3 md:py-4">
+                                <div className="flex items-center justify-between gap-3 mb-6">
+                                    <div className="flex-1" />
+                                    <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Welcome Back</h2>
+                                    <div className="flex-1 flex justify-end">
+                                        <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors -m-2">
+                                            <X className="w-5 h-5 text-gray-500" />
+                                        </button>
                                     </div>
-                                )}
+                                </div>
+                                <p className="text-center text-gray-600 mb-8">Sign in to your account to continue</p>
 
-                                <button disabled={loading} type="submit" className="w-full bg-[#09BF44] hover:bg-[#07a63a] text-white font-bold text-base md:text-lg p-3 md:p-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg">
-                                    {loading && <Loader2 className="w-5 h-5 animate-spin" />}
-                                    {loading ? 'Sending...' : 'Send Reset Link'}
-                                </button>
-                            </form>
+                                <form onSubmit={handleLoginSubmit} className="space-y-5">
+                                    <div>
+                                        <input
+                                            name="identifier"
+                                            placeholder="Email, Username, or Phone"
+                                            required
+                                            value={formData.identifier}
+                                            onChange={handleChange}
+                                            className="w-full p-3 md:p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400"
+                                        />
+                                    </div>
+                                    <div className="relative">
+                                        <input
+                                            name="password"
+                                            type={showPassword ? "text" : "password"}
+                                            placeholder="Password"
+                                            required
+                                            value={formData.password}
+                                            onChange={handleChange}
+                                            className="w-full p-3 md:p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium pr-12 text-gray-900 placeholder:text-gray-400"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                                        >
+                                            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                        </button>
+                                    </div>
 
-                            <div className="mt-6 text-center">
-                                <button onClick={() => { setStep('login'); setError(''); setForgotPasswordEmail(''); }} className="text-gray-600 hover:text-gray-900 font-medium">
-                                    ← Back to Sign In
-                                </button>
+                                    <div className="flex items-center justify-between">
+                                        <button
+                                            type="button"
+                                            onClick={() => setStep('forgot-password')}
+                                            className="text-sm text-[#09BF44] font-bold hover:underline"
+                                        >
+                                            Forgot Password?
+                                        </button>
+                                    </div>
+
+                                    {error && (
+                                        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center gap-2 text-sm">
+                                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                                            {error}
+                                        </div>
+                                    )}
+
+                                    <button disabled={loading} type="submit" className="w-full bg-[#09BF44] hover:bg-[#07a63a] text-white font-bold text-base md:text-lg p-3 md:p-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg">
+                                        {loading && <Loader2 className="w-5 h-5 animate-spin" />}
+                                        {loading ? 'Signing in...' : 'Sign In'}
+                                    </button>
+                                </form>
+
+                                <div className="mt-6 text-center">
+                                    <p className="text-gray-600">
+                                        Don&apos;t have an account?{' '}
+                                        <button onClick={() => setStep('role-selection')} className="text-[#09BF44] font-bold hover:underline">
+                                            Sign Up
+                                        </button>
+                                    </p>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {step === 'client-auth' && (
-                        <div className="py-3 md:py-4">
-                            <div className="flex items-center justify-between gap-3 mb-4">
-                                <div className="flex-1" />
-                                <div className="flex items-center gap-3">
-                                    <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Join</h2>
+                        {step === 'forgot-password' && (
+                            <div className="py-3 md:py-4">
+                                <div className="flex items-center justify-between gap-3 mb-4">
+                                    <div className="flex-1" />
                                     <Image
                                         src="/logos/logo-green.png"
                                         alt="Engezhaly"
                                         width={200}
                                         height={55}
-                                        className="h-14 md:h-20 w-auto"
+                                        className="h-12 md:h-16 w-auto"
                                         priority
                                     />
+                                    <div className="flex-1 flex justify-end">
+                                        <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors -m-2">
+                                            <X className="w-5 h-5 text-gray-500" />
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="flex-1 flex justify-end">
-                                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors -m-2">
-                                        <X className="w-5 h-5 text-gray-500" />
+                                <h2 className="text-2xl md:text-3xl font-bold text-center mb-2">Forgot Password?</h2>
+                                <p className="text-center text-gray-600 mb-8">Enter your email address and we&apos;ll send you a link to reset your password.</p>
+
+                                <form onSubmit={handleForgotPassword} className="space-y-5">
+                                    <input
+                                        type="email"
+                                        placeholder="Email Address"
+                                        required
+                                        value={forgotPasswordEmail}
+                                        onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                                        className="w-full p-3 md:p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400"
+                                    />
+
+                                    {error && (
+                                        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center gap-2 text-sm">
+                                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                                            {error}
+                                        </div>
+                                    )}
+
+                                    <button disabled={loading} type="submit" className="w-full bg-[#09BF44] hover:bg-[#07a63a] text-white font-bold text-base md:text-lg p-3 md:p-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg">
+                                        {loading && <Loader2 className="w-5 h-5 animate-spin" />}
+                                        {loading ? 'Sending...' : 'Send Reset Link'}
+                                    </button>
+                                </form>
+
+                                <div className="mt-6 text-center">
+                                    <button onClick={() => { setStep('login'); setError(''); setForgotPasswordEmail(''); }} className="text-gray-600 hover:text-gray-900 font-medium">
+                                        ← Back to Sign In
                                     </button>
                                 </div>
                             </div>
-                            <p className="text-center text-gray-600 mb-8">Create your client account to start posting jobs and hiring freelancers.</p>
+                        )}
 
-                            <form onSubmit={handleClientSubmit} className="space-y-4">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <input name="firstName" placeholder="First Name" required onChange={handleChange} value={formData.firstName} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
-                                    <input name="lastName" placeholder="Last Name" required onChange={handleChange} value={formData.lastName} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
+                        {step === 'client-auth' && (
+                            <div className="py-3 md:py-4">
+                                <div className="flex items-center justify-between gap-3 mb-4">
+                                    <div className="flex-1" />
+                                    <div className="flex items-center gap-3">
+                                        <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Join</h2>
+                                        <Image
+                                            src="/logos/logo-green.png"
+                                            alt="Engezhaly"
+                                            width={200}
+                                            height={55}
+                                            className="h-14 md:h-20 w-auto"
+                                            priority
+                                        />
+                                    </div>
+                                    <div className="flex-1 flex justify-end">
+                                        <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors -m-2">
+                                            <X className="w-5 h-5 text-gray-500" />
+                                        </button>
+                                    </div>
                                 </div>
-                                {/* Profile Picture Upload */}
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Profile Picture *</label>
-                                    <p className="text-xs text-gray-500 mb-2">Please show your face properly.</p>
-                                    {profilePicture ? (
-                                        <div className="relative inline-block">
-                                            <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-[#09BF44] bg-gray-100">
-                                                <Image src={profilePicture} alt="Profile" width={96} height={96} className="w-full h-full object-cover" unoptimized />
+                                <p className="text-center text-gray-600 mb-8">Create your client account to start posting jobs and hiring freelancers.</p>
+
+                                <form onSubmit={handleClientSubmit} className="space-y-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <input name="firstName" placeholder="First Name" required onChange={handleChange} value={formData.firstName} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
+                                        <input name="lastName" placeholder="Last Name" required onChange={handleChange} value={formData.lastName} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
+                                    </div>
+                                    {/* Profile Picture Upload */}
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">Profile Picture *</label>
+                                        <p className="text-xs text-gray-500 mb-2">Please show your face properly.</p>
+                                        {profilePicture ? (
+                                            <div className="relative inline-block">
+                                                <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-[#09BF44] bg-gray-100">
+                                                    <Image src={profilePicture} alt="Profile" width={96} height={96} className="w-full h-full object-cover" unoptimized />
+                                                </div>
+                                                <button type="button" onClick={removeProfilePicture} className="absolute -top-1 -right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors">
+                                                    <XIcon className="w-3 h-3" />
+                                                </button>
                                             </div>
-                                            <button type="button" onClick={removeProfilePicture} className="absolute -top-1 -right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors">
-                                                <XIcon className="w-3 h-3" />
+                                        ) : (
+                                            <div
+                                                onClick={() => !profilePictureUploading && fileInputRef.current?.click()}
+                                                className={`relative p-4 border-2 border-dashed rounded-xl text-center transition-colors ${profilePictureUploading ? 'border-[#09BF44] bg-green-50 cursor-wait' : 'border-gray-200 text-gray-500 hover:border-[#09BF44] hover:bg-green-50 cursor-pointer'}`}
+                                            >
+                                                {profilePictureUploading ? (
+                                                    <>
+                                                        <Loader2 className="w-6 h-6 mx-auto mb-2 text-[#09BF44] animate-spin" />
+                                                        <p className="text-sm font-bold text-[#09BF44]">Uploading... {profilePictureProgress}%</p>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Upload className="w-6 h-6 mx-auto mb-2 text-gray-400" />
+                                                        <p className="text-sm font-bold">Click to upload profile photo</p>
+                                                        <p className="text-xs text-gray-400 mt-1">Max 5MB</p>
+                                                    </>
+                                                )}
+                                            </div>
+                                        )}
+                                        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                                    </div>
+                                    <input name="username" placeholder="Username" required onChange={handleChange} value={formData.username} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
+                                    <input name="email" type="email" placeholder="Email Address" required onChange={handleChange} value={formData.email} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
+                                    <div className="flex gap-2">
+                                        <select name="phoneCountryCode" onChange={handleChange} value={formData.phoneCountryCode} className="w-48 shrink-0 p-2 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 text-sm">
+                                            {PHONE_COUNTRIES.map((c) => (
+                                                <option key={c.code} value={c.code}>{getFlagEmoji(c.code)} {c.name} (+{c.callingCode})</option>
+                                            ))}
+                                        </select>
+                                        <input name="phoneNumber" type="tel" inputMode="numeric" autoComplete="tel-national" placeholder={formData.phoneCountryCode === 'EG' ? '01XXXXXXXXX' : 'Phone number'} required onChange={handleChange} value={formData.phoneNumber} className="flex-1 min-w-0 p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
+                                    </div>
+                                    {formData.phoneCountryCode === 'EG' && (
+                                        <p className="text-xs text-gray-500 -mt-2">Egyptian mobile: exactly 11 digits starting with 01.</p>
+                                    )}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div className="relative">
+                                            <input name="password" type={showPassword ? "text" : "password"} placeholder="Password (min 6 chars)" required minLength={6} onChange={handleChange} value={formData.password} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400 pr-12" />
+                                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                                                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                             </button>
                                         </div>
-                                    ) : (
-                                        <div
-                                            onClick={() => !profilePictureUploading && fileInputRef.current?.click()}
-                                            className={`relative p-4 border-2 border-dashed rounded-xl text-center transition-colors ${profilePictureUploading ? 'border-[#09BF44] bg-green-50 cursor-wait' : 'border-gray-200 text-gray-500 hover:border-[#09BF44] hover:bg-green-50 cursor-pointer'}`}
-                                        >
-                                            {profilePictureUploading ? (
-                                                <>
-                                                    <Loader2 className="w-6 h-6 mx-auto mb-2 text-[#09BF44] animate-spin" />
-                                                    <p className="text-sm font-bold text-[#09BF44]">Uploading... {profilePictureProgress}%</p>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Upload className="w-6 h-6 mx-auto mb-2 text-gray-400" />
-                                                    <p className="text-sm font-bold">Click to upload profile photo</p>
-                                                    <p className="text-xs text-gray-400 mt-1">Max 5MB</p>
-                                                </>
-                                            )}
+                                        <select name="businessType" onChange={handleChange} value={formData.businessType} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900">
+                                            <option value="personal">Personal</option>
+                                            <option value="company">Company</option>
+                                        </select>
+                                    </div>
+                                    {formData.businessType === 'company' && (
+                                        <div className="space-y-4 p-4 bg-gray-50 rounded-xl border-2 border-gray-100">
+                                            <input name="companyName" placeholder="Company Name *" required onChange={handleChange} value={formData.companyName} className="w-full p-4 bg-white rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
+                                            <textarea name="companyDescription" placeholder="Company Description (optional)" rows={2} onChange={handleChange} value={formData.companyDescription} className="w-full p-4 bg-white rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400 resize-none" />
+                                            <input name="position" placeholder="Your Position (optional)" onChange={handleChange} value={formData.position} className="w-full p-4 bg-white rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <input name="linkedIn" placeholder="LinkedIn URL" onChange={handleChange} value={formData.linkedIn} className="w-full p-3 bg-white rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400 text-sm" />
+                                                <input name="instagram" placeholder="Instagram URL" onChange={handleChange} value={formData.instagram} className="w-full p-3 bg-white rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400 text-sm" />
+                                                <input name="facebook" placeholder="Facebook URL" onChange={handleChange} value={formData.facebook} className="w-full p-3 bg-white rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400 text-sm" />
+                                                <input name="tiktok" placeholder="TikTok URL" onChange={handleChange} value={formData.tiktok} className="w-full p-3 bg-white rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400 text-sm" />
+                                            </div>
                                         </div>
                                     )}
-                                    <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+
+                                    <label className="flex items-start gap-3 cursor-pointer">
+                                        <input type="checkbox" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="mt-1 w-5 h-5 rounded border-2 border-gray-300 text-[#09BF44] focus:ring-[#09BF44]" />
+                                        <span className="text-sm text-gray-700">
+                                            I agree to the{' '}
+                                            <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-[#09BF44] font-bold hover:underline">Terms and Conditions</a>
+                                            {' '}and{' '}
+                                            <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#09BF44] font-bold hover:underline">Privacy Policy</a>
+                                        </span>
+                                    </label>
+
+                                    {error && (
+                                        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center gap-2 text-sm">
+                                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                                            {error}
+                                        </div>
+                                    )}
+
+                                    <button disabled={loading} type="submit" className="w-full bg-[#09BF44] hover:bg-[#07a63a] text-white font-bold text-base md:text-lg p-3 md:p-4 rounded-xl transition-all flex items-center justify-center gap-2">
+                                        {loading && <Loader2 className="w-5 h-5 animate-spin" />}
+                                        Create Account
+                                    </button>
+                                </form>
+                                <div className="mt-4 text-center">
+                                    <p className="text-gray-600">
+                                        Already have an account?{' '}
+                                        <button onClick={() => setStep('login')} className="text-[#09BF44] font-bold hover:underline">
+                                            Log In
+                                        </button>
+                                    </p>
                                 </div>
-                                <input name="username" placeholder="Username" required onChange={handleChange} value={formData.username} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
-                                <input name="email" type="email" placeholder="Email Address" required onChange={handleChange} value={formData.email} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
-                                <div className="flex gap-2">
-                                    <select name="phoneCountryCode" onChange={handleChange} value={formData.phoneCountryCode} className="w-48 shrink-0 p-2 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 text-sm">
-                                        {PHONE_COUNTRIES.map((c) => (
-                                            <option key={c.code} value={c.code}>{getFlagEmoji(c.code)} {c.name} (+{c.callingCode})</option>
-                                        ))}
-                                    </select>
-                                    <input name="phoneNumber" type="tel" placeholder="Phone number" required onChange={handleChange} value={formData.phoneNumber} className="flex-1 min-w-0 p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
+                                <button onClick={() => setStep('role-selection')} className="mt-6 text-gray-500 hover:text-gray-900 font-medium">Back to Selection</button>
+                            </div>
+                        )}
+
+                        {step === 'freelancer-step-1' && (
+                            <div className="py-3 md:py-4">
+                                <div className="flex items-center justify-between gap-3 mb-4">
+                                    <div className="flex-1" />
+                                    <div className="flex items-center gap-3">
+                                        <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Join</h2>
+                                        <Image
+                                            src="/logos/logo-green.png"
+                                            alt="Engezhaly"
+                                            width={200}
+                                            height={55}
+                                            className="h-14 md:h-20 w-auto"
+                                            priority
+                                        />
+                                    </div>
+                                    <div className="flex-1 flex justify-end">
+                                        <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors -m-2">
+                                            <X className="w-5 h-5 text-gray-500" />
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {/* Progress Bar */}
+                                <div className="bg-gray-100 h-2 w-full rounded-full mb-6">
+                                    <div className="bg-[#09BF44] h-full rounded-full transition-all duration-500" style={{ width: '16.67%' }} />
+                                </div>
+                                <div className="flex items-center justify-center gap-2 mb-4 text-sm font-bold text-gray-400 uppercase tracking-wider">
+                                    <span className="text-[#09BF44]">Step 1</span>
+                                    <span>/</span>
+                                    <span>6</span>
+                                </div>
+                                <h3 className="text-xl md:text-2xl font-bold text-center mb-2">Personal Information</h3>
+                                <p className="text-center text-gray-600 mb-8">Let&apos;s get your profile started.</p>
+
+                                <form onSubmit={handleFreelancerStep1Submit} className="space-y-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <input name="firstName" placeholder="First Name" required onChange={handleChange} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
+                                        <input name="lastName" placeholder="Last Name" required onChange={handleChange} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
+                                    </div>
+                                    <input name="username" placeholder="Username" required onChange={handleChange} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
+                                    <input name="email" type="email" placeholder="Email Address" required onChange={handleChange} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-1">Date of Birth</label>
+                                        <DatePicker name="dob" value={formData.dob} onChange={(v) => setFormData(f => ({ ...f, dob: v }))} max={new Date().toISOString().split('T')[0]} placeholder="Date of Birth" className="w-full" required />
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <select name="phoneCountryCode" onChange={handleChange} value={formData.phoneCountryCode} className="w-48 shrink-0 p-2 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 text-sm">
+                                            {PHONE_COUNTRIES.map((c) => (
+                                                <option key={c.code} value={c.code}>{getFlagEmoji(c.code)} {c.name} (+{c.callingCode})</option>
+                                            ))}
+                                        </select>
+                                        <input name="phoneNumber" type="tel" inputMode="numeric" autoComplete="tel-national" placeholder={formData.phoneCountryCode === 'EG' ? '01XXXXXXXXX' : 'Phone number'} required onChange={handleChange} value={formData.phoneNumber} className="flex-1 min-w-0 p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
+                                    </div>
+                                    {formData.phoneCountryCode === 'EG' && (
+                                        <p className="text-xs text-gray-500 -mt-2">Egyptian mobile: exactly 11 digits starting with 01.</p>
+                                    )}
                                     <div className="relative">
                                         <input name="password" type={showPassword ? "text" : "password"} placeholder="Password (min 6 chars)" required minLength={6} onChange={handleChange} value={formData.password} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400 pr-12" />
                                         <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
                                             {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                         </button>
                                     </div>
-                                    <select name="businessType" onChange={handleChange} value={formData.businessType} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900">
-                                        <option value="personal">Personal</option>
-                                        <option value="company">Company</option>
-                                    </select>
-                                </div>
-                                {formData.businessType === 'company' && (
-                                    <div className="space-y-4 p-4 bg-gray-50 rounded-xl border-2 border-gray-100">
-                                        <input name="companyName" placeholder="Company Name *" required onChange={handleChange} value={formData.companyName} className="w-full p-4 bg-white rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
-                                        <textarea name="companyDescription" placeholder="Company Description (optional)" rows={2} onChange={handleChange} value={formData.companyDescription} className="w-full p-4 bg-white rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400 resize-none" />
-                                        <input name="position" placeholder="Your Position (optional)" onChange={handleChange} value={formData.position} className="w-full p-4 bg-white rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <input name="linkedIn" placeholder="LinkedIn URL" onChange={handleChange} value={formData.linkedIn} className="w-full p-3 bg-white rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400 text-sm" />
-                                            <input name="instagram" placeholder="Instagram URL" onChange={handleChange} value={formData.instagram} className="w-full p-3 bg-white rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400 text-sm" />
-                                            <input name="facebook" placeholder="Facebook URL" onChange={handleChange} value={formData.facebook} className="w-full p-3 bg-white rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400 text-sm" />
-                                            <input name="tiktok" placeholder="TikTok URL" onChange={handleChange} value={formData.tiktok} className="w-full p-3 bg-white rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400 text-sm" />
+
+                                    {/* Profile Picture Upload */}
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">Profile Picture *</label>
+                                        <p className="text-xs text-gray-500 mb-2">Please show your face properly.</p>
+                                        {profilePicture ? (
+                                            <div className="relative">
+                                                <div className="w-32 h-32 mx-auto rounded-full overflow-hidden border-4 border-[#09BF44] bg-gray-100">
+                                                    <Image
+                                                        src={profilePicture}
+                                                        alt="Profile preview"
+                                                        width={128}
+                                                        height={128}
+                                                        className="w-full h-full object-cover"
+                                                        unoptimized
+                                                    />
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={removeProfilePicture}
+                                                    className="absolute top-0 right-1/2 translate-x-16 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                                >
+                                                    <XIcon className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div
+                                                onClick={() => !profilePictureUploading && fileInputRef.current?.click()}
+                                                className={`relative p-6 border-2 border-dashed rounded-xl text-center transition-colors ${profilePictureUploading ? 'border-[#09BF44] bg-green-50 cursor-wait' : 'border-gray-200 text-gray-500 hover:border-[#09BF44] hover:bg-green-50 cursor-pointer'}`}
+                                            >
+                                                {profilePictureUploading ? (
+                                                    <>
+                                                        <Loader2 className="w-8 h-8 mx-auto mb-2 text-[#09BF44] animate-spin" />
+                                                        <p className="text-sm font-bold text-[#09BF44] mb-2">Uploading... {profilePictureProgress}%</p>
+                                                        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                                            <div className="h-full bg-[#09BF44] transition-all duration-300" style={{ width: `${profilePictureProgress}%` }} />
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                                                        <p className="text-sm font-bold">Click to upload profile photo</p>
+                                                        <p className="text-xs text-gray-400 mt-1">Max 5MB</p>
+                                                    </>
+                                                )}
+                                            </div>
+                                        )}
+                                        <input
+                                            ref={fileInputRef}
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleImageUpload}
+                                            className="hidden"
+                                        />
+                                    </div>
+
+                                    {error && (
+                                        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center gap-2 text-sm">
+                                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                                            {error}
                                         </div>
-                                    </div>
-                                )}
+                                    )}
 
-                                <label className="flex items-start gap-3 cursor-pointer">
-                                    <input type="checkbox" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="mt-1 w-5 h-5 rounded border-2 border-gray-300 text-[#09BF44] focus:ring-[#09BF44]" />
-                                    <span className="text-sm text-gray-700">
-                                        I agree to the{' '}
-                                        <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-[#09BF44] font-bold hover:underline">Terms and Conditions</a>
-                                        {' '}and{' '}
-                                        <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#09BF44] font-bold hover:underline">Privacy Policy</a>
-                                    </span>
-                                </label>
-
-                                {error && (
-                                    <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center gap-2 text-sm">
-                                        <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                                        {error}
-                                    </div>
-                                )}
-
-                                <button disabled={loading} type="submit" className="w-full bg-[#09BF44] hover:bg-[#07a63a] text-white font-bold text-base md:text-lg p-3 md:p-4 rounded-xl transition-all flex items-center justify-center gap-2">
-                                    {loading && <Loader2 className="w-5 h-5 animate-spin" />}
-                                    Create Account
-                                </button>
-                            </form>
-                            <div className="mt-4 text-center">
-                                <p className="text-gray-600">
-                                    Already have an account?{' '}
-                                    <button onClick={() => setStep('login')} className="text-[#09BF44] font-bold hover:underline">
-                                        Log In
+                                    <button disabled={loading} type="submit" className="w-full bg-[#09BF44] hover:bg-[#07a63a] text-white font-bold text-base md:text-lg p-3 md:p-4 rounded-xl transition-all flex items-center justify-center gap-2">
+                                        {loading && <Loader2 className="w-5 h-5 animate-spin" />}
+                                        Next: Professional Info
+                                        <ChevronRight className="w-5 h-5" />
                                     </button>
-                                </p>
-                            </div>
-                            <button onClick={() => setStep('role-selection')} className="mt-6 text-gray-500 hover:text-gray-900 font-medium">Back to Selection</button>
-                        </div>
-                    )}
-
-                    {step === 'freelancer-step-1' && (
-                        <div className="py-3 md:py-4">
-                            <div className="flex items-center justify-between gap-3 mb-4">
-                                <div className="flex-1" />
-                                <div className="flex items-center gap-3">
-                                    <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Join</h2>
-                                    <Image
-                                        src="/logos/logo-green.png"
-                                        alt="Engezhaly"
-                                        width={200}
-                                        height={55}
-                                        className="h-14 md:h-20 w-auto"
-                                        priority
-                                    />
+                                </form>
+                                <div className="mt-4 text-center">
+                                    <p className="text-gray-600">
+                                        Already have an account?{' '}
+                                        <button onClick={() => setStep('login')} className="text-[#09BF44] font-bold hover:underline">
+                                            Log In
+                                        </button>
+                                    </p>
                                 </div>
-                                <div className="flex-1 flex justify-end">
-                                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors -m-2">
+                                <button onClick={() => setStep('role-selection')} className="mt-6 text-gray-500 hover:text-gray-900 font-medium">Back to Selection</button>
+                            </div>
+                        )}
+
+                        {/* FREELANCER STEP 2: Professional Info */}
+                        {step === 'freelancer-step-2' && (
+                            <div className="py-3 md:py-4">
+                                <div className="flex items-center justify-between gap-3 mb-4">
+                                    <Image src="/logos/logo-green.png" alt="Engezhaly" width={120} height={33} className="h-8 w-auto" priority />
+                                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors shrink-0 -m-2 ml-auto">
                                         <X className="w-5 h-5 text-gray-500" />
                                     </button>
                                 </div>
-                            </div>
-                            {/* Progress Bar */}
-                            <div className="bg-gray-100 h-2 w-full rounded-full mb-6">
-                                <div className="bg-[#09BF44] h-full rounded-full transition-all duration-500" style={{ width: '16.67%' }} />
-                            </div>
-                            <div className="flex items-center justify-center gap-2 mb-4 text-sm font-bold text-gray-400 uppercase tracking-wider">
-                                <span className="text-[#09BF44]">Step 1</span>
-                                <span>/</span>
-                                <span>6</span>
-                            </div>
-                            <h3 className="text-xl md:text-2xl font-bold text-center mb-2">Personal Information</h3>
-                            <p className="text-center text-gray-600 mb-8">Let&apos;s get your profile started.</p>
+                                {/* Progress Bar */}
+                                <div className="bg-gray-100 h-2 w-full rounded-full mb-6">
+                                    <div className="bg-[#09BF44] h-full rounded-full transition-all duration-500" style={{ width: '33.33%' }} />
+                                </div>
+                                <div className="flex items-center justify-center gap-2 mb-4 text-sm font-bold text-gray-400 uppercase tracking-wider">
+                                    <span className="text-[#09BF44]">Step 2</span>
+                                    <span>/</span>
+                                    <span>6</span>
+                                </div>
+                                <h3 className="text-xl md:text-2xl font-bold text-center mb-2">Professional Info</h3>
+                                <p className="text-center text-gray-600 mb-8">Tell us about your skills and experience.</p>
 
-                            <form onSubmit={handleFreelancerStep1Submit} className="space-y-4">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <input name="firstName" placeholder="First Name" required onChange={handleChange} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
-                                    <input name="lastName" placeholder="Last Name" required onChange={handleChange} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
-                                </div>
-                                <input name="username" placeholder="Username" required onChange={handleChange} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
-                                <input name="email" type="email" placeholder="Email Address" required onChange={handleChange} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-1">Date of Birth</label>
-                                    <DatePicker name="dob" value={formData.dob} onChange={(v) => setFormData(f => ({ ...f, dob: v }))} max={new Date().toISOString().split('T')[0]} placeholder="Date of Birth" className="w-full" required />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="block text-sm font-bold text-gray-700">Phone Number</label>
-                                    <select name="phoneCountryCode" onChange={handleChange} value={formData.phoneCountryCode} className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 text-sm">
-                                        {PHONE_COUNTRIES.map((c) => (
-                                            <option key={c.code} value={c.code}>{getFlagEmoji(c.code)} {c.name} (+{c.callingCode})</option>
-                                        ))}
-                                    </select>
-                                    <input name="phoneNumber" type="tel" placeholder="Phone number" required onChange={handleChange} value={formData.phoneNumber} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
-                                </div>
-                                <div className="relative">
-                                    <input name="password" type={showPassword ? "text" : "password"} placeholder="Password (min 6 chars)" required minLength={6} onChange={handleChange} value={formData.password} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400 pr-12" />
-                                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
-                                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                                    </button>
-                                </div>
+                                {error && <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center gap-2 text-sm mb-4"><div className="w-2 h-2 bg-red-500 rounded-full"></div>{error}</div>}
 
-                                {/* Profile Picture Upload */}
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Profile Picture *</label>
-                                    <p className="text-xs text-gray-500 mb-2">Please show your face properly.</p>
-                                    {profilePicture ? (
-                                        <div className="relative">
-                                            <div className="w-32 h-32 mx-auto rounded-full overflow-hidden border-4 border-[#09BF44] bg-gray-100">
-                                                <Image
-                                                    src={profilePicture}
-                                                    alt="Profile preview"
-                                                    width={128}
-                                                    height={128}
-                                                    className="w-full h-full object-cover"
-                                                    unoptimized
-                                                />
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={removeProfilePicture}
-                                                className="absolute top-0 right-1/2 translate-x-16 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                                            >
-                                                <XIcon className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div
-                                            onClick={() => !profilePictureUploading && fileInputRef.current?.click()}
-                                            className={`relative p-6 border-2 border-dashed rounded-xl text-center transition-colors ${profilePictureUploading ? 'border-[#09BF44] bg-green-50 cursor-wait' : 'border-gray-200 text-gray-500 hover:border-[#09BF44] hover:bg-green-50 cursor-pointer'}`}
+                                <form onSubmit={handleStep2Submit} className="space-y-5">
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">Category</label>
+                                        <select
+                                            name="category"
+                                            required
+                                            value={professionalInfo.category}
+                                            onChange={handleProfessionalChange}
+                                            className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900"
                                         >
-                                            {profilePictureUploading ? (
-                                                <>
-                                                    <Loader2 className="w-8 h-8 mx-auto mb-2 text-[#09BF44] animate-spin" />
-                                                    <p className="text-sm font-bold text-[#09BF44] mb-2">Uploading... {profilePictureProgress}%</p>
-                                                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                                                        <div className="h-full bg-[#09BF44] transition-all duration-300" style={{ width: `${profilePictureProgress}%` }} />
+                                            <option value="">Select a Category</option>
+                                            {MAIN_CATEGORIES.map((cat) => (
+                                                <option key={cat} value={cat}>{cat}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">City</label>
+                                        <input
+                                            type="text"
+                                            name="city"
+                                            placeholder="e.g. Cairo, Alexandria"
+                                            value={professionalInfo.city}
+                                            onChange={(e) => setProfessionalInfo({ ...professionalInfo, city: e.target.value })}
+                                            className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">Languages</label>
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                            <div>
+                                                <span className="block text-sm text-gray-500 mb-1">English</span>
+                                                <select
+                                                    name="english"
+                                                    value={professionalInfo.english}
+                                                    onChange={(e) => setProfessionalInfo({ ...professionalInfo, english: e.target.value })}
+                                                    className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900"
+                                                >
+                                                    <option value="Fluent">Fluent</option>
+                                                    <option value="Intermediate">Intermediate</option>
+                                                    <option value="Basic">Basic</option>
+                                                    <option value="None">None</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <span className="block text-sm text-gray-500 mb-1">Arabic</span>
+                                                <select
+                                                    name="arabic"
+                                                    value={professionalInfo.arabic}
+                                                    onChange={(e) => setProfessionalInfo({ ...professionalInfo, arabic: e.target.value })}
+                                                    className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900"
+                                                >
+                                                    <option value="Fluent">Fluent</option>
+                                                    <option value="Intermediate">Intermediate</option>
+                                                    <option value="Basic">Basic</option>
+                                                    <option value="None">None</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <span className="block text-sm text-gray-500 mb-1">Franco 3araby</span>
+                                                <select
+                                                    name="francoArabic"
+                                                    value={professionalInfo.francoArabic}
+                                                    onChange={(e) => setProfessionalInfo({ ...professionalInfo, francoArabic: e.target.value })}
+                                                    className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900"
+                                                    required
+                                                >
+                                                    <option value="Fluent">Fluent</option>
+                                                    <option value="Intermediate">Intermediate</option>
+                                                    <option value="Basic">Basic</option>
+                                                    <option value="None">None</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div className="mt-3">
+                                            <span className="block text-sm text-gray-500 mb-1">Other languages (optional, no fluency level)</span>
+                                            {(() => {
+                                                const parts = professionalInfo.extraLanguages.split(/\s+/);
+                                                const completedTags = parts.slice(0, -1).filter(Boolean);
+                                                const currentWord = parts.length > 0 ? (parts[parts.length - 1] ?? '') : '';
+                                                const prefix = completedTags.length ? completedTags.join(' ') + ' ' : '';
+                                                return (
+                                                    <div className="flex flex-wrap items-center gap-2 w-full p-3 py-2.5 min-h-11 bg-gray-50 rounded-xl border-2 border-transparent focus-within:border-[#09BF44] focus-within:bg-white outline-none transition-all font-medium text-gray-900">
+                                                        {completedTags.map((tag) => (
+                                                            <span key={tag} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-700">
+                                                                {tag}
+                                                            </span>
+                                                        ))}
+                                                        <input
+                                                            type="text"
+                                                            placeholder="e.g. French, German (space or Enter to add)"
+                                                            value={currentWord}
+                                                            onChange={(e) => setProfessionalInfo({ ...professionalInfo, extraLanguages: prefix + e.target.value })}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') {
+                                                                    e.preventDefault();
+                                                                    setProfessionalInfo({ ...professionalInfo, extraLanguages: (prefix + currentWord).trim() + ' ' });
+                                                                } else if (e.key === 'Backspace' && !currentWord && completedTags.length > 0) {
+                                                                    e.preventDefault();
+                                                                    setProfessionalInfo({ ...professionalInfo, extraLanguages: completedTags.slice(0, -1).join(' ') });
+                                                                }
+                                                            }}
+                                                            className="flex-1 min-w-30 py-1 bg-transparent border-0 outline-none placeholder:text-gray-400 text-sm"
+                                                        />
                                                     </div>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                                                    <p className="text-sm font-bold">Click to upload profile photo</p>
-                                                    <p className="text-xs text-gray-400 mt-1">Max 5MB</p>
-                                                </>
-                                            )}
-                                        </div>
-                                    )}
-                                    <input
-                                        ref={fileInputRef}
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handleImageUpload}
-                                        className="hidden"
-                                    />
-                                </div>
-
-                                {error && (
-                                    <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center gap-2 text-sm">
-                                        <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                                        {error}
-                                    </div>
-                                )}
-
-                                <button disabled={loading} type="submit" className="w-full bg-[#09BF44] hover:bg-[#07a63a] text-white font-bold text-base md:text-lg p-3 md:p-4 rounded-xl transition-all flex items-center justify-center gap-2">
-                                    {loading && <Loader2 className="w-5 h-5 animate-spin" />}
-                                    Next: Professional Info
-                                    <ChevronRight className="w-5 h-5" />
-                                </button>
-                            </form>
-                            <div className="mt-4 text-center">
-                                <p className="text-gray-600">
-                                    Already have an account?{' '}
-                                    <button onClick={() => setStep('login')} className="text-[#09BF44] font-bold hover:underline">
-                                        Log In
-                                    </button>
-                                </p>
-                            </div>
-                            <button onClick={() => setStep('role-selection')} className="mt-6 text-gray-500 hover:text-gray-900 font-medium">Back to Selection</button>
-                        </div>
-                    )}
-
-                    {/* FREELANCER STEP 2: Professional Info */}
-                    {step === 'freelancer-step-2' && (
-                        <div className="py-3 md:py-4">
-                            <div className="flex items-center justify-between gap-3 mb-4">
-                                <Image src="/logos/logo-green.png" alt="Engezhaly" width={120} height={33} className="h-8 w-auto" priority />
-                                <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors shrink-0 -m-2 ml-auto">
-                                    <X className="w-5 h-5 text-gray-500" />
-                                </button>
-                            </div>
-                            {/* Progress Bar */}
-                            <div className="bg-gray-100 h-2 w-full rounded-full mb-6">
-                                <div className="bg-[#09BF44] h-full rounded-full transition-all duration-500" style={{ width: '33.33%' }} />
-                            </div>
-                            <div className="flex items-center justify-center gap-2 mb-4 text-sm font-bold text-gray-400 uppercase tracking-wider">
-                                <span className="text-[#09BF44]">Step 2</span>
-                                <span>/</span>
-                                <span>6</span>
-                            </div>
-                            <h3 className="text-xl md:text-2xl font-bold text-center mb-2">Professional Info</h3>
-                            <p className="text-center text-gray-600 mb-8">Tell us about your skills and experience.</p>
-
-                            {error && <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center gap-2 text-sm mb-4"><div className="w-2 h-2 bg-red-500 rounded-full"></div>{error}</div>}
-
-                            <form onSubmit={handleStep2Submit} className="space-y-5">
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Category</label>
-                                    <select
-                                        name="category"
-                                        required
-                                        value={professionalInfo.category}
-                                        onChange={handleProfessionalChange}
-                                        className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900"
-                                    >
-                                        <option value="">Select a Category</option>
-                                        {MAIN_CATEGORIES.map((cat) => (
-                                            <option key={cat} value={cat}>{cat}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">City</label>
-                                    <input
-                                        type="text"
-                                        name="city"
-                                        placeholder="e.g. Cairo, Alexandria"
-                                        value={professionalInfo.city}
-                                        onChange={(e) => setProfessionalInfo({ ...professionalInfo, city: e.target.value })}
-                                        className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Languages</label>
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                        <div>
-                                            <span className="block text-sm text-gray-500 mb-1">English</span>
-                                            <select
-                                                name="english"
-                                                value={professionalInfo.english}
-                                                onChange={(e) => setProfessionalInfo({ ...professionalInfo, english: e.target.value })}
-                                                className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900"
-                                            >
-                                                <option value="Fluent">Fluent</option>
-                                                <option value="Intermediate">Intermediate</option>
-                                                <option value="Basic">Basic</option>
-                                                <option value="None">None</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <span className="block text-sm text-gray-500 mb-1">Arabic</span>
-                                            <select
-                                                name="arabic"
-                                                value={professionalInfo.arabic}
-                                                onChange={(e) => setProfessionalInfo({ ...professionalInfo, arabic: e.target.value })}
-                                                className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900"
-                                            >
-                                                <option value="Fluent">Fluent</option>
-                                                <option value="Intermediate">Intermediate</option>
-                                                <option value="Basic">Basic</option>
-                                                <option value="None">None</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <span className="block text-sm text-gray-500 mb-1">Franco 3araby</span>
-                                            <select
-                                                name="francoArabic"
-                                                value={professionalInfo.francoArabic}
-                                                onChange={(e) => setProfessionalInfo({ ...professionalInfo, francoArabic: e.target.value })}
-                                                className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900"
-                                                required
-                                            >
-                                                <option value="Fluent">Fluent</option>
-                                                <option value="Intermediate">Intermediate</option>
-                                                <option value="Basic">Basic</option>
-                                                <option value="None">None</option>
-                                            </select>
+                                                );
+                                            })()}
                                         </div>
                                     </div>
-                                    <div className="mt-3">
-                                        <span className="block text-sm text-gray-500 mb-1">Other languages (optional, no fluency level)</span>
+
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">Describe Yourself</label>
+                                        <textarea
+                                            name="bio"
+                                            required
+                                            placeholder="Tell clients about your expertise..."
+                                            value={professionalInfo.bio}
+                                            onChange={(e) => setProfessionalInfo({ ...professionalInfo, bio: e.target.value })}
+                                            className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400 h-32 resize-none"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">Years of Experience</label>
+                                        <input type="number" name="experienceYears" required value={professionalInfo.experienceYears} onChange={handleProfessionalChange} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">Technical Skills (e.g. React, Photoshop, SEO)</label>
                                         {(() => {
-                                            const parts = professionalInfo.extraLanguages.split(/\s+/);
+                                            const parts = professionalInfo.technicalSkills.split(/\s+/);
                                             const completedTags = parts.slice(0, -1).filter(Boolean);
                                             const currentWord = parts.length > 0 ? (parts[parts.length - 1] ?? '') : '';
                                             const prefix = completedTags.length ? completedTags.join(' ') + ' ' : '';
                                             return (
-                                                <div className="flex flex-wrap items-center gap-2 w-full p-3 py-2.5 min-h-11 bg-gray-50 rounded-xl border-2 border-transparent focus-within:border-[#09BF44] focus-within:bg-white outline-none transition-all font-medium text-gray-900">
+                                                <div className="flex flex-wrap items-center gap-2 w-full p-3 py-2.5 min-h-13 bg-gray-50 rounded-xl border-2 border-transparent focus-within:border-[#09BF44] focus-within:bg-white outline-none transition-all font-medium text-gray-900">
                                                     {completedTags.map((tag) => (
-                                                        <span key={tag} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-700">
+                                                        <span key={tag} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-[#09BF44] text-white">
                                                             {tag}
                                                         </span>
                                                     ))}
                                                     <input
                                                         type="text"
-                                                        placeholder="e.g. French, German (space or Enter to add)"
+                                                        placeholder={completedTags.length === 0 ? 'space or Enter between items' : ''}
                                                         value={currentWord}
-                                                        onChange={(e) => setProfessionalInfo({ ...professionalInfo, extraLanguages: prefix + e.target.value })}
+                                                        onChange={(e) => setProfessionalInfo({ ...professionalInfo, technicalSkills: prefix + e.target.value })}
                                                         onKeyDown={(e) => {
                                                             if (e.key === 'Enter') {
                                                                 e.preventDefault();
-                                                                setProfessionalInfo({ ...professionalInfo, extraLanguages: (prefix + currentWord).trim() + ' ' });
+                                                                setProfessionalInfo({ ...professionalInfo, technicalSkills: (prefix + currentWord).trim() + ' ' });
                                                             } else if (e.key === 'Backspace' && !currentWord && completedTags.length > 0) {
                                                                 e.preventDefault();
-                                                                setProfessionalInfo({ ...professionalInfo, extraLanguages: completedTags.slice(0, -1).join(' ') });
+                                                                setProfessionalInfo({ ...professionalInfo, technicalSkills: completedTags.slice(0, -1).join(' ') });
                                                             }
                                                         }}
-                                                        className="flex-1 min-w-30 py-1 bg-transparent border-0 outline-none placeholder:text-gray-400 text-sm"
+                                                        className="flex-1 min-w-30 py-1 bg-transparent border-0 outline-none placeholder:text-gray-400"
                                                     />
                                                 </div>
                                             );
                                         })()}
                                     </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Describe Yourself</label>
-                                    <textarea
-                                        name="bio"
-                                        required
-                                        placeholder="Tell clients about your expertise..."
-                                        value={professionalInfo.bio}
-                                        onChange={(e) => setProfessionalInfo({ ...professionalInfo, bio: e.target.value })}
-                                        className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400 h-32 resize-none"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Years of Experience</label>
-                                    <input type="number" name="experienceYears" required value={professionalInfo.experienceYears} onChange={handleProfessionalChange} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Technical Skills (e.g. React, Photoshop, SEO)</label>
-                                    {(() => {
-                                        const parts = professionalInfo.technicalSkills.split(/\s+/);
-                                        const completedTags = parts.slice(0, -1).filter(Boolean);
-                                        const currentWord = parts.length > 0 ? (parts[parts.length - 1] ?? '') : '';
-                                        const prefix = completedTags.length ? completedTags.join(' ') + ' ' : '';
-                                        return (
-                                            <div className="flex flex-wrap items-center gap-2 w-full p-3 py-2.5 min-h-13 bg-gray-50 rounded-xl border-2 border-transparent focus-within:border-[#09BF44] focus-within:bg-white outline-none transition-all font-medium text-gray-900">
-                                                {completedTags.map((tag) => (
-                                                    <span key={tag} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-[#09BF44] text-white">
-                                                        {tag}
-                                                    </span>
-                                                ))}
-                                                <input
-                                                    type="text"
-                                                    placeholder={completedTags.length === 0 ? 'space or Enter between items' : ''}
-                                                    value={currentWord}
-                                                    onChange={(e) => setProfessionalInfo({ ...professionalInfo, technicalSkills: prefix + e.target.value })}
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === 'Enter') {
-                                                            e.preventDefault();
-                                                            setProfessionalInfo({ ...professionalInfo, technicalSkills: (prefix + currentWord).trim() + ' ' });
-                                                        } else if (e.key === 'Backspace' && !currentWord && completedTags.length > 0) {
-                                                            e.preventDefault();
-                                                            setProfessionalInfo({ ...professionalInfo, technicalSkills: completedTags.slice(0, -1).join(' ') });
-                                                        }
-                                                    }}
-                                                    className="flex-1 min-w-30 py-1 bg-transparent border-0 outline-none placeholder:text-gray-400"
-                                                />
-                                            </div>
-                                        );
-                                    })()}
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Soft Skills (e.g. Communication, Time Management)</label>
-                                    {(() => {
-                                        const parts = professionalInfo.softSkills.split(/\s+/);
-                                        const completedTags = parts.slice(0, -1).filter(Boolean);
-                                        const currentWord = parts.length > 0 ? (parts[parts.length - 1] ?? '') : '';
-                                        const prefix = completedTags.length ? completedTags.join(' ') + ' ' : '';
-                                        return (
-                                            <div className="flex flex-wrap items-center gap-2 w-full p-3 py-2.5 min-h-13 bg-gray-50 rounded-xl border-2 border-transparent focus-within:border-[#09BF44] focus-within:bg-white outline-none transition-all font-medium text-gray-900">
-                                                {completedTags.map((tag) => (
-                                                    <span key={tag} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-500 text-white">
-                                                        {tag}
-                                                    </span>
-                                                ))}
-                                                <input
-                                                    type="text"
-                                                    placeholder={completedTags.length === 0 ? 'optional' : ''}
-                                                    value={currentWord}
-                                                    onChange={(e) => setProfessionalInfo({ ...professionalInfo, softSkills: prefix + e.target.value })}
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === 'Enter') {
-                                                            e.preventDefault();
-                                                            setProfessionalInfo({ ...professionalInfo, softSkills: (prefix + currentWord).trim() + ' ' });
-                                                        } else if (e.key === 'Backspace' && !currentWord && completedTags.length > 0) {
-                                                            e.preventDefault();
-                                                            setProfessionalInfo({ ...professionalInfo, softSkills: completedTags.slice(0, -1).join(' ') });
-                                                        }
-                                                    }}
-                                                    className="flex-1 min-w-30 py-1 bg-transparent border-0 outline-none placeholder:text-gray-400"
-                                                />
-                                            </div>
-                                        );
-                                    })()}
-                                </div>
-
-                                <div className="flex items-center gap-3">
-                                    <span className="font-medium text-gray-700">Are you a student?</span>
-                                    <div className="flex gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => setProfessionalInfo((prev) => ({ ...prev, isStudent: true, certifications: [] }))}
-                                            className={`px-4 py-1 text-sm rounded-lg font-bold border-2 transition-all ${professionalInfo.isStudent ? 'bg-green-100 border-[#09BF44] text-[#09BF44]' : 'bg-gray-50 border-transparent hover:border-gray-200'}`}
-                                        >
-                                            Yes
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setProfessionalInfo((prev) => ({ ...prev, isStudent: false, universityIdUrl: '' }))}
-                                            className={`px-4 py-1 text-sm rounded-lg font-bold border-2 transition-all ${!professionalInfo.isStudent ? 'bg-green-100 border-[#09BF44] text-[#09BF44]' : 'bg-gray-50 border-transparent hover:border-gray-200'}`}
-                                        >
-                                            No
-                                        </button>
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">Soft Skills (e.g. Communication, Time Management)</label>
+                                        {(() => {
+                                            const parts = professionalInfo.softSkills.split(/\s+/);
+                                            const completedTags = parts.slice(0, -1).filter(Boolean);
+                                            const currentWord = parts.length > 0 ? (parts[parts.length - 1] ?? '') : '';
+                                            const prefix = completedTags.length ? completedTags.join(' ') + ' ' : '';
+                                            return (
+                                                <div className="flex flex-wrap items-center gap-2 w-full p-3 py-2.5 min-h-13 bg-gray-50 rounded-xl border-2 border-transparent focus-within:border-[#09BF44] focus-within:bg-white outline-none transition-all font-medium text-gray-900">
+                                                    {completedTags.map((tag) => (
+                                                        <span key={tag} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-500 text-white">
+                                                            {tag}
+                                                        </span>
+                                                    ))}
+                                                    <input
+                                                        type="text"
+                                                        placeholder={completedTags.length === 0 ? 'optional' : ''}
+                                                        value={currentWord}
+                                                        onChange={(e) => setProfessionalInfo({ ...professionalInfo, softSkills: prefix + e.target.value })}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                                e.preventDefault();
+                                                                setProfessionalInfo({ ...professionalInfo, softSkills: (prefix + currentWord).trim() + ' ' });
+                                                            } else if (e.key === 'Backspace' && !currentWord && completedTags.length > 0) {
+                                                                e.preventDefault();
+                                                                setProfessionalInfo({ ...professionalInfo, softSkills: completedTags.slice(0, -1).join(' ') });
+                                                            }
+                                                        }}
+                                                        className="flex-1 min-w-30 py-1 bg-transparent border-0 outline-none placeholder:text-gray-400"
+                                                    />
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
-                                </div>
 
-                                <div className="grid grid-cols-1 gap-4">
-                                    {professionalInfo.isStudent ? (
+                                    <div className="flex items-center gap-3">
+                                        <span className="font-medium text-gray-700">Are you a student?</span>
+                                        <div className="flex gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => setProfessionalInfo((prev) => ({ ...prev, isStudent: true, certifications: [] }))}
+                                                className={`px-4 py-1 text-sm rounded-lg font-bold border-2 transition-all ${professionalInfo.isStudent ? 'bg-green-100 border-[#09BF44] text-[#09BF44]' : 'bg-gray-50 border-transparent hover:border-gray-200'}`}
+                                            >
+                                                Yes
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setProfessionalInfo((prev) => ({ ...prev, isStudent: false, universityIdUrl: '' }))}
+                                                className={`px-4 py-1 text-sm rounded-lg font-bold border-2 transition-all ${!professionalInfo.isStudent ? 'bg-green-100 border-[#09BF44] text-[#09BF44]' : 'bg-gray-50 border-transparent hover:border-gray-200'}`}
+                                            >
+                                                No
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-4">
+                                        {professionalInfo.isStudent ? (
+                                            <div>
+                                                <label className="block text-sm font-bold text-gray-700 mb-2">Upload University ID (image/pdf)</label>
+                                                {professionalInfo.universityIdUrl ? (
+                                                    <div className="flex items-center gap-3 p-4 bg-green-50 border-2 border-[#09BF44]/40 rounded-xl">
+                                                        <CheckCircle className="w-6 h-6 text-[#09BF44] shrink-0" />
+                                                        <span className="flex-1 text-sm font-bold text-gray-800">University ID uploaded successfully</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setProfessionalInfo((prev) => ({ ...prev, universityIdUrl: '' }))}
+                                                            className="p-1.5 rounded-lg hover:bg-red-100 text-red-600"
+                                                            aria-label="Remove file"
+                                                        >
+                                                            <XIcon className="w-5 h-5" />
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <label className={`block p-4 rounded-xl border-2 border-dashed transition-colors ${documentUploadingLabel === 'universityId' ? 'border-[#09BF44] bg-green-50 cursor-wait' : 'bg-gray-50 border-gray-200 hover:border-[#09BF44]/50 cursor-pointer'}`}>
+                                                        <input
+                                                            type="file"
+                                                            accept="image/*,.pdf"
+                                                            onChange={async (e) => {
+                                                                const file = e.target.files?.[0];
+                                                                if (!file) return;
+                                                                setError('');
+                                                                setDocumentUploadingLabel('universityId');
+                                                                setDocumentUploadProgress(0);
+                                                                try {
+                                                                    const url = await api.upload.file(file, { onProgress: (p) => setDocumentUploadProgress(p) });
+                                                                    setProfessionalInfo((prev) => ({ ...prev, universityIdUrl: url }));
+                                                                } catch (err: any) {
+                                                                    setError(err.message || 'Upload failed');
+                                                                } finally {
+                                                                    setDocumentUploadingLabel(null);
+                                                                    setDocumentUploadProgress(null);
+                                                                }
+                                                                e.target.value = '';
+                                                            }}
+                                                            disabled={!!documentUploadingLabel}
+                                                            className="hidden"
+                                                        />
+                                                        {documentUploadingLabel === 'universityId' ? (
+                                                            <div className="flex flex-col gap-2">
+                                                                <span className="flex items-center gap-2 text-sm font-medium text-[#09BF44]">
+                                                                    <Loader2 className="w-5 h-5 animate-spin" /> Uploading... {documentUploadProgress ?? 0}%
+                                                                </span>
+                                                                <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                                                    <div className="h-full bg-[#09BF44] transition-all duration-300" style={{ width: `${documentUploadProgress ?? 0}%` }} />
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                                                                <Upload className="w-5 h-5" /> Click to upload University ID
+                                                            </span>
+                                                        )}
+                                                    </label>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div>
+                                                <label className="block text-sm font-bold text-gray-700 mb-2">Certifications</label>
+                                                <p className="text-xs text-gray-500 mb-2">Name, date, institute. Optional: upload document (visible to admins only).</p>
+                                                {professionalInfo.certifications.map((cert, idx) => (
+                                                    <div key={idx} className="flex flex-wrap gap-2 mb-3 p-3 bg-gray-50 rounded-xl">
+                                                        <input
+                                                            value={cert.name}
+                                                            onChange={(e) => {
+                                                                const next = [...professionalInfo.certifications];
+                                                                next[idx] = { ...next[idx], name: e.target.value };
+                                                                setProfessionalInfo({ ...professionalInfo, certifications: next });
+                                                            }}
+                                                            placeholder="Certification name"
+                                                            className="flex-1 min-w-30 p-2 rounded-lg border border-gray-200 text-sm"
+                                                        />
+                                                        <DatePicker
+                                                            value={cert.date}
+                                                            onChange={(v) => {
+                                                                const next = [...professionalInfo.certifications];
+                                                                next[idx] = { ...next[idx], date: v };
+                                                                setProfessionalInfo({ ...professionalInfo, certifications: next });
+                                                            }}
+                                                            placeholder="Date"
+                                                            max={new Date().toISOString().split('T')[0]}
+                                                            className="w-36 p-2 rounded-lg border border-gray-200 text-sm"
+                                                        />
+                                                        <input
+                                                            value={cert.institute}
+                                                            onChange={(e) => {
+                                                                const next = [...professionalInfo.certifications];
+                                                                next[idx] = { ...next[idx], institute: e.target.value };
+                                                                setProfessionalInfo({ ...professionalInfo, certifications: next });
+                                                            }}
+                                                            placeholder="Institute"
+                                                            className="flex-1 min-w-30 p-2 rounded-lg border border-gray-200 text-sm"
+                                                        />
+                                                        <label className="px-3 py-2 rounded-lg border border-gray-200 text-sm font-medium cursor-pointer hover:bg-gray-100">
+                                                            <input
+                                                                type="file"
+                                                                accept="image/*,.pdf"
+                                                                className="hidden"
+                                                                onChange={async (e) => {
+                                                                    const file = e.target.files?.[0];
+                                                                    if (!file) return;
+                                                                    setError('');
+                                                                    setDocumentUploadingLabel('certificate');
+                                                                    setDocumentUploadProgress(0);
+                                                                    try {
+                                                                        const url = await api.upload.file(file, { forSignup: true, onProgress: (p) => setDocumentUploadProgress(p) });
+                                                                        const next = [...professionalInfo.certifications];
+                                                                        next[idx] = { ...next[idx], documentUrl: url };
+                                                                        setProfessionalInfo({ ...professionalInfo, certifications: next });
+                                                                    } catch (err: any) {
+                                                                        setError(err.message || 'Upload failed');
+                                                                    } finally {
+                                                                        setDocumentUploadingLabel(null);
+                                                                        setDocumentUploadProgress(null);
+                                                                    }
+                                                                    e.target.value = '';
+                                                                }}
+                                                            />
+                                                            {cert.documentUrl ? '✓ Doc' : 'Upload'}
+                                                        </label>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setProfessionalInfo({ ...professionalInfo, certifications: professionalInfo.certifications.filter((_, i) => i !== idx) })}
+                                                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                                                        >
+                                                            <XIcon className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setProfessionalInfo({ ...professionalInfo, certifications: [...professionalInfo.certifications, { name: '', date: '', institute: '', documentUrl: '' }] })}
+                                                    className="text-sm font-bold text-[#09BF44] hover:text-[#07a63a] flex items-center gap-1"
+                                                >
+                                                    <Plus className="w-4 h-4" /> Add Certification
+                                                </button>
+                                            </div>
+                                        )}
                                         <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Upload University ID (image/pdf)</label>
-                                            {professionalInfo.universityIdUrl ? (
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Government ID (required, only admins see this) (image/pdf)</label>
+                                            {professionalInfo.idDocumentUrl ? (
                                                 <div className="flex items-center gap-3 p-4 bg-green-50 border-2 border-[#09BF44]/40 rounded-xl">
                                                     <CheckCircle className="w-6 h-6 text-[#09BF44] shrink-0" />
-                                                    <span className="flex-1 text-sm font-bold text-gray-800">University ID uploaded successfully</span>
+                                                    <span className="flex-1 text-sm font-bold text-gray-800">Government ID uploaded</span>
                                                     <button
                                                         type="button"
-                                                        onClick={() => setProfessionalInfo((prev) => ({ ...prev, universityIdUrl: '' }))}
+                                                        onClick={() => setProfessionalInfo((prev) => ({ ...prev, idDocumentUrl: '' }))}
                                                         className="p-1.5 rounded-lg hover:bg-red-100 text-red-600"
-                                                        aria-label="Remove file"
+                                                        aria-label="Remove"
                                                     >
                                                         <XIcon className="w-5 h-5" />
                                                     </button>
                                                 </div>
                                             ) : (
-                                                <label className={`block p-4 rounded-xl border-2 border-dashed transition-colors ${documentUploadingLabel === 'universityId' ? 'border-[#09BF44] bg-green-50 cursor-wait' : 'bg-gray-50 border-gray-200 hover:border-[#09BF44]/50 cursor-pointer'}`}>
+                                                <label className={`block p-4 rounded-xl border-2 border-dashed transition-colors ${documentUploadingLabel === 'idDocument' ? 'border-[#09BF44] bg-green-50 cursor-wait' : 'bg-gray-50 border-gray-200 hover:border-[#09BF44]/50 cursor-pointer'}`}>
                                                     <input
                                                         type="file"
                                                         accept="image/*,.pdf"
@@ -1307,11 +1452,11 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                             const file = e.target.files?.[0];
                                                             if (!file) return;
                                                             setError('');
-                                                            setDocumentUploadingLabel('universityId');
+                                                            setDocumentUploadingLabel('idDocument');
                                                             setDocumentUploadProgress(0);
                                                             try {
                                                                 const url = await api.upload.file(file, { onProgress: (p) => setDocumentUploadProgress(p) });
-                                                                setProfessionalInfo((prev) => ({ ...prev, universityIdUrl: url }));
+                                                                setProfessionalInfo((prev) => ({ ...prev, idDocumentUrl: url }));
                                                             } catch (err: any) {
                                                                 setError(err.message || 'Upload failed');
                                                             } finally {
@@ -1323,7 +1468,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                         disabled={!!documentUploadingLabel}
                                                         className="hidden"
                                                     />
-                                                    {documentUploadingLabel === 'universityId' ? (
+                                                    {documentUploadingLabel === 'idDocument' ? (
                                                         <div className="flex flex-col gap-2">
                                                             <span className="flex items-center gap-2 text-sm font-medium text-[#09BF44]">
                                                                 <Loader2 className="w-5 h-5 animate-spin" /> Uploading... {documentUploadProgress ?? 0}%
@@ -1334,611 +1479,478 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                         </div>
                                                     ) : (
                                                         <span className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                                                            <Upload className="w-5 h-5" /> Click to upload University ID
+                                                            <Upload className="w-5 h-5" /> Click to upload ID Document
                                                         </span>
                                                     )}
                                                 </label>
                                             )}
                                         </div>
-                                    ) : (
+                                    </div>
+
+                                    <button type="submit" className="w-full bg-[#09BF44] hover:bg-[#07a63a] text-white font-bold text-base md:text-lg p-3 md:p-4 rounded-xl transition-all flex items-center justify-center gap-2">
+                                        Next: Portfolio <ChevronRight className="w-5 h-5" />
+                                    </button>
+                                </form>
+                            </div>
+                        )}
+
+                        {/* FREELANCER STEP 5: Starter Offer */}
+                        {step === 'freelancer-step-3-offer' && (
+                            <div className="py-3 md:py-4">
+                                <div className="flex items-center justify-between gap-3 mb-4">
+                                    <Image src="/logos/logo-green.png" alt="Engezhaly" width={120} height={33} className="h-8 w-auto" priority />
+                                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors shrink-0 -m-2 ml-auto">
+                                        <X className="w-5 h-5 text-gray-500" />
+                                    </button>
+                                </div>
+                                <div className="bg-gray-100 h-2 w-full rounded-full mb-6">
+                                    <div className="bg-[#09BF44] h-full rounded-full transition-all" style={{ width: '83.33%' }} />
+                                </div>
+                                <div className="flex items-center justify-center gap-2 mb-4 text-sm font-bold text-gray-400 uppercase tracking-wider">
+                                    <span className="text-[#09BF44]">Step 5</span><span>/</span><span>6</span>
+                                </div>
+                                <h3 className="text-xl md:text-2xl font-bold text-center mb-2">Starter Offer</h3>
+                                <p className="text-center text-gray-600 mb-4">Create your first offer. It will be published once your account is verified and approved.</p>
+
+                                <div className="mb-6 max-h-[min(40vh,320px)] overflow-y-auto pr-1 -mx-1">
+                                    <VimeoStarterOfferEmbed
+                                        compact
+                                        title="Watch this quick guide before you fill in your offer"
+                                    />
+                                </div>
+
+                                {error && <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center gap-2 text-sm mb-4"><div className="w-2 h-2 bg-red-500 rounded-full"></div>{error}</div>}
+
+                                <div className="space-y-6">
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">Offer Title</label>
+                                        <input type="text" value={starterOffer.title} onChange={(e) => handleStarterOfferChange('title', e.target.value)} placeholder="I will design a professional logo..." className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">About this offer</label>
+                                        <textarea value={starterOffer.description} onChange={(e) => handleStarterOfferChange('description', e.target.value)} placeholder="Describe what you will deliver..." rows={3} className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none resize-none" />
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Certifications</label>
-                                            <p className="text-xs text-gray-500 mb-2">Name, date, institute. Optional: upload document (visible to admins only).</p>
-                                            {professionalInfo.certifications.map((cert, idx) => (
-                                                <div key={idx} className="flex flex-wrap gap-2 mb-3 p-3 bg-gray-50 rounded-xl">
-                                                    <input
-                                                        value={cert.name}
-                                                        onChange={(e) => {
-                                                            const next = [...professionalInfo.certifications];
-                                                            next[idx] = { ...next[idx], name: e.target.value };
-                                                            setProfessionalInfo({ ...professionalInfo, certifications: next });
-                                                        }}
-                                                        placeholder="Certification name"
-                                                        className="flex-1 min-w-30 p-2 rounded-lg border border-gray-200 text-sm"
-                                                    />
-                                                    <DatePicker
-                                                        value={cert.date}
-                                                        onChange={(v) => {
-                                                            const next = [...professionalInfo.certifications];
-                                                            next[idx] = { ...next[idx], date: v };
-                                                            setProfessionalInfo({ ...professionalInfo, certifications: next });
-                                                        }}
-                                                        placeholder="Date"
-                                                        max={new Date().toISOString().split('T')[0]}
-                                                        className="w-36 p-2 rounded-lg border border-gray-200 text-sm"
-                                                    />
-                                                    <input
-                                                        value={cert.institute}
-                                                        onChange={(e) => {
-                                                            const next = [...professionalInfo.certifications];
-                                                            next[idx] = { ...next[idx], institute: e.target.value };
-                                                            setProfessionalInfo({ ...professionalInfo, certifications: next });
-                                                        }}
-                                                        placeholder="Institute"
-                                                        className="flex-1 min-w-30 p-2 rounded-lg border border-gray-200 text-sm"
-                                                    />
-                                                    <label className="px-3 py-2 rounded-lg border border-gray-200 text-sm font-medium cursor-pointer hover:bg-gray-100">
-                                                        <input
-                                                            type="file"
-                                                            accept="image/*,.pdf"
-                                                            className="hidden"
-                                                            onChange={async (e) => {
-                                                                const file = e.target.files?.[0];
-                                                                if (!file) return;
-                                                                setError('');
-                                                                setDocumentUploadingLabel('certificate');
-                                                                setDocumentUploadProgress(0);
-                                                                try {
-                                                                    const url = await api.upload.file(file, { forSignup: true, onProgress: (p) => setDocumentUploadProgress(p) });
-                                                                    const next = [...professionalInfo.certifications];
-                                                                    next[idx] = { ...next[idx], documentUrl: url };
-                                                                    setProfessionalInfo({ ...professionalInfo, certifications: next });
-                                                                } catch (err: any) {
-                                                                    setError(err.message || 'Upload failed');
-                                                                } finally {
-                                                                    setDocumentUploadingLabel(null);
-                                                                    setDocumentUploadProgress(null);
-                                                                }
-                                                                e.target.value = '';
-                                                            }}
-                                                        />
-                                                        {cert.documentUrl ? '✓ Doc' : 'Upload'}
-                                                    </label>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setProfessionalInfo({ ...professionalInfo, certifications: professionalInfo.certifications.filter((_, i) => i !== idx) })}
-                                                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                                                    >
-                                                        <XIcon className="w-4 h-4" />
-                                                    </button>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Category</label>
+                                            <div className="w-full p-3 bg-gray-100 rounded-xl text-gray-700 font-medium">{professionalInfo.category || '—'}</div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Sub Category</label>
+                                            <select value={starterOffer.subCategory} onChange={(e) => handleStarterOfferChange('subCategory', e.target.value)} className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none">
+                                                <option value="">Select subcategory</option>
+                                                {(() => {
+                                                    const subs = professionalInfo.category ? (CATEGORIES as Record<string, readonly string[]>)[professionalInfo.category] : null;
+                                                    return Array.isArray(subs) ? subs.map((sub: string) => <option key={sub} value={sub}>{sub}</option>) : null;
+                                                })()}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">Packages (min 300 EGP)</label>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            {starterOffer.packages.map((pkg, idx) => (
+                                                <div key={pkg.type} className="border-2 border-gray-100 p-4 rounded-xl">
+                                                    <h5 className="font-bold text-sm text-[#09BF44] mb-3 uppercase">{pkg.type}</h5>
+                                                    <div className="space-y-2">
+                                                        <input type="number" placeholder="Price in EGP (min 300)" value={pkg.price} onChange={(e) => handleStarterOfferPackage(idx, 'price', e.target.value)} className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm placeholder:text-gray-400 placeholder:opacity-70" />
+                                                        <input type="number" placeholder="Delivery days" value={pkg.days} onChange={(e) => handleStarterOfferPackage(idx, 'days', e.target.value)} className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm placeholder:text-gray-400 placeholder:opacity-70" />
+                                                        <select
+                                                            value={(pkg as { revisionsUnlimited?: boolean }).revisionsUnlimited ? 'unlimited' : 'fixed'}
+                                                            onChange={(e) => handleStarterOfferPackage(idx, 'revisionsUnlimited', e.target.value === 'unlimited')}
+                                                            className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm"
+                                                        >
+                                                            <option value="fixed">Revisions: fixed count</option>
+                                                            <option value="unlimited">Revisions: unlimited</option>
+                                                        </select>
+                                                        {!(pkg as { revisionsUnlimited?: boolean }).revisionsUnlimited && (
+                                                            <input type="number" placeholder="Number of revisions" value={pkg.revisions} onChange={(e) => handleStarterOfferPackage(idx, 'revisions', e.target.value)} className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm placeholder:text-gray-400 placeholder:opacity-70" />
+                                                        )}
+                                                        <div>
+                                                            <label className="text-xs font-bold text-gray-500">Features (press Enter for new line)</label>
+                                                            <textarea
+                                                                placeholder="Feature 1&#10;Feature 2&#10;Feature 3"
+                                                                value={(Array.isArray(pkg.features) ? pkg.features : ['']).join('\n')}
+                                                                onChange={(e) => {
+                                                                    const arr = e.target.value.split('\n');
+                                                                    handleStarterOfferFeatures(idx, arr.length ? arr : ['']);
+                                                                }}
+                                                                rows={2}
+                                                                className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm min-h-18 resize-y"
+                                                            />
+                                                            {Array.isArray(pkg.features) && pkg.features.filter(Boolean).length > 0 && (
+                                                                <div className="flex flex-wrap gap-2 mt-2">
+                                                                    {pkg.features.filter(Boolean).map((f, i) => (
+                                                                        <span key={i} className="inline-flex items-center gap-1 px-2 py-1 bg-[#09BF44]/10 text-[#09BF44] rounded-lg text-xs font-medium">{f}</span>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             ))}
-                                            <button
-                                                type="button"
-                                                onClick={() => setProfessionalInfo({ ...professionalInfo, certifications: [...professionalInfo.certifications, { name: '', date: '', institute: '', documentUrl: '' }] })}
-                                                className="text-sm font-bold text-[#09BF44] hover:text-[#07a63a] flex items-center gap-1"
-                                            >
-                                                <Plus className="w-4 h-4" /> Add Certification
-                                            </button>
                                         </div>
-                                    )}
-                                    <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-2">Government ID (required, only admins see this) (image/pdf)</label>
-                                        {professionalInfo.idDocumentUrl ? (
-                                            <div className="flex items-center gap-3 p-4 bg-green-50 border-2 border-[#09BF44]/40 rounded-xl">
-                                                <CheckCircle className="w-6 h-6 text-[#09BF44] shrink-0" />
-                                                <span className="flex-1 text-sm font-bold text-gray-800">Government ID uploaded</span>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setProfessionalInfo((prev) => ({ ...prev, idDocumentUrl: '' }))}
-                                                    className="p-1.5 rounded-lg hover:bg-red-100 text-red-600"
-                                                    aria-label="Remove"
-                                                >
-                                                    <XIcon className="w-5 h-5" />
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <label className={`block p-4 rounded-xl border-2 border-dashed transition-colors ${documentUploadingLabel === 'idDocument' ? 'border-[#09BF44] bg-green-50 cursor-wait' : 'bg-gray-50 border-gray-200 hover:border-[#09BF44]/50 cursor-pointer'}`}>
+                                    </div>
+                                    <p className="text-xs text-gray-500">This will be published once your account is verified and approved.</p>
+                                    <div className="flex flex-col sm:flex-row gap-3">
+                                        <button type="button" onClick={() => setStep('freelancer-step-3b')} className="flex-1 bg-gray-100 text-gray-600 font-bold p-4 rounded-xl hover:bg-gray-200">Back</button>
+                                        <button type="button" onClick={() => {
+                                            if (!starterOffer.title.trim()) { setError('Please add an offer title.'); return; }
+                                            const basicPkg = starterOffer.packages[0];
+                                            if (!basicPkg.price || Number(basicPkg.price) < 300) { setError('Basic package price must be at least 300 EGP.'); return; }
+                                            if (!basicPkg.days || Number(basicPkg.days) < 1) { setError('Basic package must have at least 1 delivery day.'); return; }
+                                            setError('');
+                                            setSurveyStep(1);
+                                            setStep('freelancer-step-3-survey');
+                                        }} className="flex-1 bg-[#09BF44] text-white font-bold p-4 rounded-xl hover:bg-[#07a63a] flex items-center justify-center gap-2">
+                                            Next: Survey <ChevronRight className="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* FREELANCER STEP 6: Survey (last step) */}
+                        {step === 'freelancer-step-3-survey' && (
+                            <div className="py-3 md:py-4">
+                                <div className="flex items-center justify-between gap-3 mb-4">
+                                    <Image src="/logos/logo-green.png" alt="Engezhaly" width={120} height={33} className="h-8 w-auto" priority />
+                                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors shrink-0 -m-2 ml-auto">
+                                        <X className="w-5 h-5 text-gray-500" />
+                                    </button>
+                                </div>
+                                <div className="bg-gray-100 h-2 w-full rounded-full mb-6">
+                                    <div className="bg-[#09BF44] h-full rounded-full transition-all" style={{ width: '100%' }} />
+                                </div>
+                                <div className="flex items-center justify-center gap-2 mb-4 text-sm font-bold text-gray-400 uppercase tracking-wider">
+                                    <span className="text-[#09BF44]">Step 6</span><span>/</span><span>6</span> · Question {surveyStep}/5
+                                </div>
+                                <h3 className="text-xl md:text-2xl font-bold text-center mb-2">Survey</h3>
+
+                                {error && <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center gap-2 text-sm mb-4"><div className="w-2 h-2 bg-red-500 rounded-full"></div>{error}</div>}
+
+                                <div className="space-y-6">
+                                    {surveyStep <= 4 && SURVEY_QUESTIONS.slice(surveyStep - 1, surveyStep).map((q) => (
+                                        <div key={q.key}>
+                                            <label className="block font-medium text-gray-700 mb-3">{q.label}</label>
+                                            {q.type === 'multi-select' ? (
+                                                <div className="flex flex-wrap gap-2">
+                                                    {q.options?.map((opt) => {
+                                                        const selected = (survey.discoverySource as string[]).includes(opt);
+                                                        return (
+                                                            <button
+                                                                key={opt}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const current = survey.discoverySource as string[];
+                                                                    const next = selected ? current.filter((s) => s !== opt) : [...current, opt];
+                                                                    setSurvey({ ...survey, discoverySource: next });
+                                                                }}
+                                                                className={`px-4 py-2.5 rounded-xl font-medium text-sm transition-all ${selected
+                                                                    ? 'bg-[#09BF44] text-white border-2 border-[#09BF44]'
+                                                                    : 'bg-gray-50 text-gray-700 border-2 border-gray-200 hover:border-[#09BF44]/50 hover:bg-[#09BF44]/5'
+                                                                    }`}
+                                                            >
+                                                                {opt}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            ) : q.type === 'select' ? (
+                                                <select value={survey[q.key]} onChange={(e) => setSurvey({ ...survey, [q.key]: e.target.value })} className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none">
+                                                    <option value="">Select...</option>
+                                                    {q.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                                </select>
+                                            ) : q.type === 'radio' ? (
+                                                <div className="space-y-2">
+                                                    {q.options?.map(opt => (
+                                                        <label key={opt} className="flex items-center gap-3 p-3 rounded-xl border-2 border-transparent hover:border-gray-200 has-checked:border-[#09BF44] cursor-pointer">
+                                                            <input type="radio" name="hoursPerDay" value={opt} checked={survey[q.key] === opt} onChange={(e) => setSurvey({ ...survey, [q.key]: e.target.value })} className="w-4 h-4 text-[#09BF44]" />
+                                                            <span>{opt}</span>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <input type="text" value={survey[q.key]} onChange={(e) => setSurvey({ ...survey, [q.key]: e.target.value })} placeholder="Your answer..." className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none" />
+                                            )}
+                                        </div>
+                                    ))}
+                                    {surveyStep === 5 && (
+                                        <div>
+                                            <label className="block font-medium text-gray-700 mb-2">Upload your CV (optional)</label>
+                                            <p className="text-sm text-gray-500 mb-3">Your CV is for admin review only and will not be shown publicly on your profile.</p>
+                                            <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#09BF44] transition-colors bg-gray-50">
                                                 <input
                                                     type="file"
-                                                    accept="image/*,.pdf"
+                                                    accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                                    className="hidden"
                                                     onChange={async (e) => {
                                                         const file = e.target.files?.[0];
                                                         if (!file) return;
-                                                        setError('');
-                                                        setDocumentUploadingLabel('idDocument');
-                                                        setDocumentUploadProgress(0);
-                                                        try {
-                                                            const url = await api.upload.file(file, { onProgress: (p) => setDocumentUploadProgress(p) });
-                                                            setProfessionalInfo((prev) => ({ ...prev, idDocumentUrl: url }));
-                                                        } catch (err: any) {
-                                                            setError(err.message || 'Upload failed');
-                                                        } finally {
-                                                            setDocumentUploadingLabel(null);
-                                                            setDocumentUploadProgress(null);
+
+                                                        if (file.size > 10 * 1024 * 1024) {
+                                                            setError('CV file size must be less than 10MB');
+                                                            return;
                                                         }
-                                                        e.target.value = '';
+
+                                                        setError('');
+                                                        setCvUploading(true);
+                                                        try {
+                                                            const url = await api.upload.file(file, { forSignup: true });
+                                                            setCvUrl(url);
+                                                        } catch (err: any) {
+                                                            setError(err.message || 'CV upload failed');
+                                                        } finally {
+                                                            setCvUploading(false);
+                                                            e.target.value = '';
+                                                        }
                                                     }}
-                                                    disabled={!!documentUploadingLabel}
-                                                    className="hidden"
                                                 />
-                                                {documentUploadingLabel === 'idDocument' ? (
-                                                    <div className="flex flex-col gap-2">
-                                                        <span className="flex items-center gap-2 text-sm font-medium text-[#09BF44]">
-                                                            <Loader2 className="w-5 h-5 animate-spin" /> Uploading... {documentUploadProgress ?? 0}%
-                                                        </span>
-                                                        <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                                                            <div className="h-full bg-[#09BF44] transition-all duration-300" style={{ width: `${documentUploadProgress ?? 0}%` }} />
-                                                        </div>
-                                                    </div>
+                                                {cvUploading ? (
+                                                    <Loader2 className="w-8 h-8 text-[#09BF44] animate-spin" />
+                                                ) : cvUrl ? (
+                                                    <div className="flex items-center gap-2 text-[#09BF44] font-medium"><CheckCircle className="w-5 h-5" /> CV uploaded</div>
                                                 ) : (
-                                                    <span className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                                                        <Upload className="w-5 h-5" /> Click to upload ID Document
-                                                    </span>
+                                                    <div className="flex flex-col items-center gap-1 text-gray-500"><Upload className="w-6 h-6" /><span className="text-sm">PDF or DOC</span></div>
                                                 )}
                                             </label>
+                                        </div>
+                                    )}
+                                    {surveyStep === 5 && (
+                                        <label className="flex items-start gap-3 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={acceptedTerms}
+                                                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                                                className="mt-1 w-5 h-5 rounded border-2 border-gray-300 text-[#09BF44] focus:ring-[#09BF44]"
+                                            />
+                                            <span className="text-sm text-gray-700">
+                                                I agree to the{' '}
+                                                <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-[#09BF44] font-bold hover:underline">Terms and Conditions</a>
+                                                {' '}and{' '}
+                                                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#09BF44] font-bold hover:underline">Privacy Policy</a>
+                                            </span>
+                                        </label>
+                                    )}
+                                    <div className="flex flex-col sm:flex-row gap-3">
+                                        <button type="button" onClick={() => surveyStep > 1 ? setSurveyStep(s => s - 1) : setStep('freelancer-step-3-offer')} className="flex-1 bg-gray-100 text-gray-600 font-bold p-4 rounded-xl hover:bg-gray-200">Back</button>
+                                        {surveyStep < 5 ? (
+                                            <button type="button" onClick={() => setSurveyStep(s => s + 1)} className="flex-1 bg-[#09BF44] text-white font-bold p-4 rounded-xl hover:bg-[#07a63a] flex items-center justify-center gap-2">
+                                                Next <ChevronRight className="w-5 h-5" />
+                                            </button>
+                                        ) : (
+                                            <button type="button" onClick={handleFinalSubmit} disabled={loading} className="flex-1 bg-[#09BF44] text-white font-bold p-4 rounded-xl hover:bg-[#07a63a] flex items-center justify-center gap-2">
+                                                {loading && <Loader2 className="w-5 h-5 animate-spin" />}
+                                                Submit Application
+                                            </button>
                                         )}
                                     </div>
                                 </div>
-
-                                <button type="submit" className="w-full bg-[#09BF44] hover:bg-[#07a63a] text-white font-bold text-base md:text-lg p-3 md:p-4 rounded-xl transition-all flex items-center justify-center gap-2">
-                                    Next: Portfolio <ChevronRight className="w-5 h-5" />
-                                </button>
-                            </form>
-                        </div>
-                    )}
-
-                    {/* FREELANCER STEP 5: Starter Offer */}
-                    {step === 'freelancer-step-3-offer' && (
-                        <div className="py-3 md:py-4">
-                            <div className="flex items-center justify-between gap-3 mb-4">
-                                <Image src="/logos/logo-green.png" alt="Engezhaly" width={120} height={33} className="h-8 w-auto" priority />
-                                <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors shrink-0 -m-2 ml-auto">
-                                    <X className="w-5 h-5 text-gray-500" />
-                                </button>
                             </div>
-                            <div className="bg-gray-100 h-2 w-full rounded-full mb-6">
-                                <div className="bg-[#09BF44] h-full rounded-full transition-all" style={{ width: '83.33%' }} />
-                            </div>
-                            <div className="flex items-center justify-center gap-2 mb-4 text-sm font-bold text-gray-400 uppercase tracking-wider">
-                                <span className="text-[#09BF44]">Step 5</span><span>/</span><span>6</span>
-                            </div>
-                            <h3 className="text-xl md:text-2xl font-bold text-center mb-2">Starter Offer</h3>
-                            <p className="text-center text-gray-600 mb-6">Create your first offer. It will be published once your account is verified and approved.</p>
+                        )}
 
-                            {error && <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center gap-2 text-sm mb-4"><div className="w-2 h-2 bg-red-500 rounded-full"></div>{error}</div>}
+                        {/* FREELANCER STEP 3: Portfolio */}
+                        {step === 'freelancer-step-3a' && (
+                            <div className="py-3 md:py-4">
+                                <div className="flex items-center justify-between gap-3 mb-4">
+                                    <Image src="/logos/logo-green.png" alt="Engezhaly" width={120} height={33} className="h-8 w-auto" priority />
+                                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors shrink-0 -m-2 ml-auto">
+                                        <X className="w-5 h-5 text-gray-500" />
+                                    </button>
+                                </div>
+                                <div className="bg-gray-100 h-2 w-full rounded-full mb-6">
+                                    <div className="bg-[#09BF44] h-full rounded-full transition-all" style={{ width: '50%' }} />
+                                </div>
+                                <div className="flex items-center justify-center gap-2 mb-4 text-sm font-bold text-gray-400 uppercase tracking-wider">
+                                    <span className="text-[#09BF44]">Step 3</span><span>/</span><span>6</span>
+                                </div>
+                                <h3 className="text-xl md:text-2xl font-bold text-center mb-2">Portfolio</h3>
+                                <p className="text-center text-gray-600 mb-6">Add 1–3 projects to showcase your work. (Optional)</p>
 
-                            <div className="space-y-6">
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Offer Title</label>
-                                    <input type="text" value={starterOffer.title} onChange={(e) => handleStarterOfferChange('title', e.target.value)} placeholder="I will design a professional logo..." className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none" />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">About this offer</label>
-                                    <textarea value={starterOffer.description} onChange={(e) => handleStarterOfferChange('description', e.target.value)} placeholder="Describe what you will deliver..." rows={3} className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none resize-none" />
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-2">Category</label>
-                                        <div className="w-full p-3 bg-gray-100 rounded-xl text-gray-700 font-medium">{professionalInfo.category || '—'}</div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-2">Sub Category</label>
-                                        <select value={starterOffer.subCategory} onChange={(e) => handleStarterOfferChange('subCategory', e.target.value)} className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none">
-                                            <option value="">Select subcategory</option>
-                                            {(() => {
-                                                const subs = professionalInfo.category ? (CATEGORIES as Record<string, readonly string[]>)[professionalInfo.category] : null;
-                                                return Array.isArray(subs) ? subs.map((sub: string) => <option key={sub} value={sub}>{sub}</option>) : null;
-                                            })()}
-                                        </select>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Packages (min 300 EGP)</label>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        {starterOffer.packages.map((pkg, idx) => (
-                                            <div key={pkg.type} className="border-2 border-gray-100 p-4 rounded-xl">
-                                                <h5 className="font-bold text-sm text-[#09BF44] mb-3 uppercase">{pkg.type}</h5>
-                                                <div className="space-y-2">
-                                                    <input type="number" placeholder="Price in EGP (min 300)" value={pkg.price} onChange={(e) => handleStarterOfferPackage(idx, 'price', e.target.value)} className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm placeholder:text-gray-400 placeholder:opacity-70" />
-                                                    <input type="number" placeholder="Delivery days" value={pkg.days} onChange={(e) => handleStarterOfferPackage(idx, 'days', e.target.value)} className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm placeholder:text-gray-400 placeholder:opacity-70" />
-                                                    <select
-                                                        value={(pkg as { revisionsUnlimited?: boolean }).revisionsUnlimited ? 'unlimited' : 'fixed'}
-                                                        onChange={(e) => handleStarterOfferPackage(idx, 'revisionsUnlimited', e.target.value === 'unlimited')}
-                                                        className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm"
-                                                    >
-                                                        <option value="fixed">Revisions: fixed count</option>
-                                                        <option value="unlimited">Revisions: unlimited</option>
-                                                    </select>
-                                                    {!(pkg as { revisionsUnlimited?: boolean }).revisionsUnlimited && (
-                                                        <input type="number" placeholder="Number of revisions" value={pkg.revisions} onChange={(e) => handleStarterOfferPackage(idx, 'revisions', e.target.value)} className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm placeholder:text-gray-400 placeholder:opacity-70" />
-                                                    )}
-                                                    <div>
-                                                    <label className="text-xs font-bold text-gray-500">Features (press Enter for new line)</label>
-                                                    <textarea
-                                                        placeholder="Feature 1&#10;Feature 2&#10;Feature 3"
-                                                        value={(Array.isArray(pkg.features) ? pkg.features : ['']).join('\n')}
-                                                        onChange={(e) => {
-                                                            const arr = e.target.value.split('\n');
-                                                            handleStarterOfferFeatures(idx, arr.length ? arr : ['']);
-                                                        }}
-                                                        rows={2}
-                                                        className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm min-h-18 resize-y"
-                                                    />
-                                                    {Array.isArray(pkg.features) && pkg.features.filter(Boolean).length > 0 && (
-                                                        <div className="flex flex-wrap gap-2 mt-2">
-                                                            {pkg.features.filter(Boolean).map((f, i) => (
-                                                                <span key={i} className="inline-flex items-center gap-1 px-2 py-1 bg-[#09BF44]/10 text-[#09BF44] rounded-lg text-xs font-medium">{f}</span>
-                                                            ))}
+                                {error && <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center gap-2 text-sm mb-4"><div className="w-2 h-2 bg-red-500 rounded-full"></div>{error}</div>}
+
+                                {(() => {
+                                    const subCategories: string[] = professionalInfo.category && (CATEGORIES as Record<string, readonly string[]>)[professionalInfo.category]
+                                        ? [...(CATEGORIES as Record<string, readonly string[]>)[professionalInfo.category]]
+                                        : [];
+                                    return (
+                                        <div className="space-y-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                {portfolioItems.map((item, idx) => (
+                                                    <div key={idx} className="group bg-white rounded-2xl border-2 border-gray-100 overflow-hidden hover:border-[#09BF44]/30 transition-all duration-200 shadow-sm hover:shadow-md">
+                                                        <div className="relative aspect-video bg-gray-100">
+                                                            {item.imageUrl ? (
+                                                                <>
+                                                                    <Image src={item.imageUrl} alt={item.title || 'Portfolio'} fill className="object-cover" sizes="(max-width: 768px) 100vw, 400px" />
+                                                                    <label className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                                                                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handlePortfolioImageUpload(e, idx)} disabled={portfolioImageUploading !== null} />
+                                                                        <Upload className="w-8 h-8 text-white mb-1" />
+                                                                        <span className="text-xs font-bold text-white">Change</span>
+                                                                    </label>
+                                                                </>
+                                                            ) : (
+                                                                <label className={`absolute inset-0 flex flex-col items-center justify-center cursor-pointer transition-colors ${portfolioImageUploading === idx ? 'bg-[#09BF44]/10' : 'hover:bg-gray-50'}`}>
+                                                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handlePortfolioImageUpload(e, idx)} disabled={portfolioImageUploading !== null} />
+                                                                    {portfolioImageUploading === idx ? (
+                                                                        <div className="text-center">
+                                                                            <Loader2 className="w-10 h-10 animate-spin text-[#09BF44] mx-auto" />
+                                                                            <span className="text-sm font-bold text-[#09BF44] block mt-2">{portfolioImageProgress}%</span>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="text-center text-gray-400">
+                                                                            <ImageIcon className="w-12 h-12 mx-auto mb-2" />
+                                                                            <span className="text-sm font-bold">Click to upload</span>
+                                                                        </div>
+                                                                    )}
+                                                                </label>
+                                                            )}
+                                                            {item.subCategory && (
+                                                                <span className="absolute top-2 left-2 px-2 py-1 bg-black/60 text-white text-xs font-bold rounded-lg">{item.subCategory}</span>
+                                                            )}
+                                                            {portfolioItems.length > 1 && (
+                                                                <button type="button" onClick={() => setPortfolioItems(prev => prev.filter((_, i) => i !== idx))} className="absolute top-2 right-2 p-1.5 rounded-lg bg-red-500/90 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600" aria-label="Remove">
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </button>
+                                                            )}
                                                         </div>
-                                                    )}
-                                                </div>
-                                                </div>
+                                                        <div className="p-4 space-y-3">
+                                                            <input value={item.title} onChange={(e) => setPortfolioItems(prev => { const n = [...prev]; n[idx] = { ...n[idx], title: e.target.value }; return n; })} placeholder="Project title" className="w-full px-3 py-2 rounded-xl border-2 border-transparent bg-gray-50 focus:bg-white focus:border-[#09BF44] outline-none font-bold text-gray-900 placeholder:text-gray-400 transition-colors" />
+                                                            {subCategories.length > 0 && (
+                                                                <select value={item.subCategory} onChange={(e) => setPortfolioItems(prev => { const n = [...prev]; n[idx] = { ...n[idx], subCategory: e.target.value }; return n; })} className="w-full px-3 py-2 rounded-xl border-2 border-transparent bg-gray-50 focus:bg-white focus:border-[#09BF44] outline-none text-sm text-gray-700">
+                                                                    <option value="">Select subcategory</option>
+                                                                    {subCategories.map((sub) => <option key={sub} value={sub}>{sub}</option>)}
+                                                                </select>
+                                                            )}
+                                                            <textarea value={item.description} onChange={(e) => setPortfolioItems(prev => { const n = [...prev]; n[idx] = { ...n[idx], description: e.target.value }; return n; })} placeholder="Brief description of this work..." rows={2} className="w-full px-3 py-2 rounded-xl border-2 border-transparent bg-gray-50 focus:bg-white focus:border-[#09BF44] outline-none text-sm text-gray-700 resize-none placeholder:text-gray-400" />
+                                                            <input value={item.link} onChange={(e) => setPortfolioItems(prev => { const n = [...prev]; n[idx] = { ...n[idx], link: e.target.value }; return n; })} placeholder="Project link (optional)" className="w-full px-3 py-2 rounded-xl border-2 border-transparent bg-gray-50 focus:bg-white focus:border-[#09BF44] outline-none text-sm text-gray-600 placeholder:text-gray-400" />
+                                                        </div>
+                                                    </div>
+                                                ))}
                                             </div>
-                                        ))}
+                                            {portfolioItems.length < 3 && (
+                                                <button type="button" onClick={() => setPortfolioItems(prev => [...prev, { title: '', description: '', imageUrl: '', link: '', subCategory: '' }])} className="w-full py-4 border-2 border-dashed border-[#07a63a] rounded-xl text-[#07a63a] font-bold text-lg hover:border-[#09BF44] hover:text-[#09BF44] hover:bg-[#09BF44]/10 transition-all flex items-center justify-center gap-3">
+                                                    <Plus className="w-6 h-6" /> Add another project
+                                                </button>
+                                            )}
+                                            <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                                                <button type="button" onClick={() => setStep('freelancer-step-2')} className="flex-1 bg-gray-100 text-gray-600 font-bold p-4 rounded-xl hover:bg-gray-200">Back</button>
+                                                <button type="button" onClick={() => setStep('freelancer-step-3b')} className="flex-1 bg-[#09BF44] text-white font-bold p-4 rounded-xl hover:bg-[#07a63a] flex items-center justify-center gap-2">
+                                                    Next: Withdrawal <ChevronRight className="w-5 h-5" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+                        )}
+
+                        {/* FREELANCER STEP 4: Withdrawal Method */}
+                        {step === 'freelancer-step-3b' && (
+                            <div className="py-3 md:py-4">
+                                <div className="flex items-center justify-between gap-3 mb-4">
+                                    <Image src="/logos/logo-green.png" alt="Engezhaly" width={120} height={33} className="h-8 w-auto" priority />
+                                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors shrink-0 -m-2 ml-auto">
+                                        <X className="w-5 h-5 text-gray-500" />
+                                    </button>
+                                </div>
+                                <div className="bg-gray-100 h-2 w-full rounded-full mb-6">
+                                    <div className="bg-[#09BF44] h-full rounded-full transition-all duration-500" style={{ width: '66.67%' }} />
+                                </div>
+                                <div className="flex items-center justify-center gap-2 mb-4 text-sm font-bold text-gray-400 uppercase tracking-wider">
+                                    <span className="text-[#09BF44]">Step 4</span>
+                                    <span>/</span>
+                                    <span>6</span>
+                                </div>
+                                <h3 className="text-xl md:text-2xl font-bold text-center mb-2">Where would you like your money transferred?</h3>
+                                <p className="text-center text-gray-600 mb-6">Add Vodafone Cash, InstaPay, or bank account to receive withdrawals.</p>
+
+                                {error && <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center gap-2 text-sm mb-4"><div className="w-2 h-2 bg-red-500 rounded-full"></div>{error}</div>}
+
+                                <div className="space-y-6 mb-6">
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">Type</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {(['vodafone_cash', 'instapay', 'bank'] as const).map(m => (
+                                                <button key={m} type="button" onClick={() => setWithdrawalMethod({ ...withdrawalMethod, method: m })} className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-colors ${withdrawalMethod.method === m ? 'bg-[#09BF44] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                                                    {m.replace('_', ' ').toUpperCase()}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    {(withdrawalMethod.method === 'instapay' || withdrawalMethod.method === 'vodafone_cash') && (
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-1">Phone Number</label>
+                                            <input type="tel" value={withdrawalMethod.phoneNumber} onChange={(e) => setWithdrawalMethod({ ...withdrawalMethod, phoneNumber: e.target.value })} placeholder="01XXXXXXXXX" className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none" />
+                                        </div>
+                                    )}
+                                    {withdrawalMethod.method === 'bank' && (
+                                        <>
+                                            <div>
+                                                <label className="block text-sm font-bold text-gray-700 mb-1">Account Number</label>
+                                                <input type="text" value={withdrawalMethod.accountNumber} onChange={(e) => setWithdrawalMethod({ ...withdrawalMethod, accountNumber: e.target.value })} placeholder="Account number" className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-bold text-gray-700 mb-1">Bank Name</label>
+                                                <input type="text" value={withdrawalMethod.bankName} onChange={(e) => setWithdrawalMethod({ ...withdrawalMethod, bankName: e.target.value })} placeholder="e.g. CIB, NBE" className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none" />
+                                            </div>
+                                        </>
+                                    )}
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-1">Do you have any notes? (optional)</label>
+                                        <textarea value={signupNotes} onChange={(e) => setSignupNotes(e.target.value)} placeholder="Anything else you'd like us to know..." rows={3} className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none resize-none" />
                                     </div>
                                 </div>
-                                <p className="text-xs text-gray-500">This will be published once your account is verified and approved.</p>
-                                <div className="flex flex-col sm:flex-row gap-3">
-                                    <button type="button" onClick={() => setStep('freelancer-step-3b')} className="flex-1 bg-gray-100 text-gray-600 font-bold p-4 rounded-xl hover:bg-gray-200">Back</button>
-                                    <button type="button" onClick={() => {
-                                        if (!starterOffer.title.trim()) { setError('Please add an offer title.'); return; }
-                                        const basicPkg = starterOffer.packages[0];
-                                        if (!basicPkg.price || Number(basicPkg.price) < 300) { setError('Basic package price must be at least 300 EGP.'); return; }
-                                        if (!basicPkg.days || Number(basicPkg.days) < 1) { setError('Basic package must have at least 1 delivery day.'); return; }
-                                        setError('');
-                                        setSurveyStep(1);
-                                        setStep('freelancer-step-3-survey');
-                                    }} className="flex-1 bg-[#09BF44] text-white font-bold p-4 rounded-xl hover:bg-[#07a63a] flex items-center justify-center gap-2">
-                                        Next: Survey <ChevronRight className="w-5 h-5" />
+
+                                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                                    <button onClick={() => setStep('freelancer-step-3a')} className="flex-1 bg-gray-100 text-gray-600 font-bold p-4 rounded-xl hover:bg-gray-200 transition-all">Back</button>
+                                    <button onClick={() => setStep('freelancer-step-3-offer')} className="flex-1 bg-[#09BF44] text-white font-bold p-4 rounded-xl hover:bg-[#07a63a] transition-all flex items-center justify-center gap-2">
+                                        Next: Starter Offer <ChevronRight className="w-5 h-5" />
                                     </button>
                                 </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {/* FREELANCER STEP 6: Survey (last step) */}
-                    {step === 'freelancer-step-3-survey' && (
-                        <div className="py-3 md:py-4">
-                            <div className="flex items-center justify-between gap-3 mb-4">
-                                <Image src="/logos/logo-green.png" alt="Engezhaly" width={120} height={33} className="h-8 w-auto" priority />
-                                <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors shrink-0 -m-2 ml-auto">
-                                    <X className="w-5 h-5 text-gray-500" />
-                                </button>
-                            </div>
-                            <div className="bg-gray-100 h-2 w-full rounded-full mb-6">
-                                <div className="bg-[#09BF44] h-full rounded-full transition-all" style={{ width: '100%' }} />
-                            </div>
-                            <div className="flex items-center justify-center gap-2 mb-4 text-sm font-bold text-gray-400 uppercase tracking-wider">
-                                <span className="text-[#09BF44]">Step 6</span><span>/</span><span>6</span> · Question {surveyStep}/5
-                            </div>
-                            <h3 className="text-xl md:text-2xl font-bold text-center mb-2">Survey</h3>
-
-                            {error && <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center gap-2 text-sm mb-4"><div className="w-2 h-2 bg-red-500 rounded-full"></div>{error}</div>}
-
-                            <div className="space-y-6">
-                                {surveyStep <= 4 && SURVEY_QUESTIONS.slice(surveyStep - 1, surveyStep).map((q) => (
-                                    <div key={q.key}>
-                                        <label className="block font-medium text-gray-700 mb-3">{q.label}</label>
-                                        {q.type === 'multi-select' ? (
-                                            <div className="flex flex-wrap gap-2">
-                                                {q.options?.map((opt) => {
-                                                    const selected = (survey.discoverySource as string[]).includes(opt);
-                                                    return (
-                                                        <button
-                                                            key={opt}
-                                                            type="button"
-                                                            onClick={() => {
-                                                                const current = survey.discoverySource as string[];
-                                                                const next = selected ? current.filter((s) => s !== opt) : [...current, opt];
-                                                                setSurvey({ ...survey, discoverySource: next });
-                                                            }}
-                                                            className={`px-4 py-2.5 rounded-xl font-medium text-sm transition-all ${
-                                                                selected
-                                                                    ? 'bg-[#09BF44] text-white border-2 border-[#09BF44]'
-                                                                    : 'bg-gray-50 text-gray-700 border-2 border-gray-200 hover:border-[#09BF44]/50 hover:bg-[#09BF44]/5'
-                                                            }`}
-                                                        >
-                                                            {opt}
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                        ) : q.type === 'select' ? (
-                                            <select value={survey[q.key]} onChange={(e) => setSurvey({ ...survey, [q.key]: e.target.value })} className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none">
-                                                <option value="">Select...</option>
-                                                {q.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                                            </select>
-                                        ) : q.type === 'radio' ? (
-                                            <div className="space-y-2">
-                                                {q.options?.map(opt => (
-                                                    <label key={opt} className="flex items-center gap-3 p-3 rounded-xl border-2 border-transparent hover:border-gray-200 has-checked:border-[#09BF44] cursor-pointer">
-                                                        <input type="radio" name="hoursPerDay" value={opt} checked={survey[q.key] === opt} onChange={(e) => setSurvey({ ...survey, [q.key]: e.target.value })} className="w-4 h-4 text-[#09BF44]" />
-                                                        <span>{opt}</span>
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <input type="text" value={survey[q.key]} onChange={(e) => setSurvey({ ...survey, [q.key]: e.target.value })} placeholder="Your answer..." className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none" />
-                                        )}
-                                    </div>
-                                ))}
-                                {surveyStep === 5 && (
-                                    <div>
-                                        <label className="block font-medium text-gray-700 mb-2">Upload your CV (optional)</label>
-                                        <p className="text-sm text-gray-500 mb-3">Your CV is for admin review only and will not be shown publicly on your profile.</p>
-                                        <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#09BF44] transition-colors bg-gray-50">
-                                            <input 
-                                                type="file" 
-                                                accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
-                                                className="hidden" 
-                                                onChange={async (e) => {
-                                                    const file = e.target.files?.[0];
-                                                    if (!file) return;
-                                                    
-                                                    if (file.size > 10 * 1024 * 1024) {
-                                                        setError('CV file size must be less than 10MB');
-                                                        return;
-                                                    }
-
-                                                    setError('');
-                                                    setCvUploading(true);
-                                                    try {
-                                                        const url = await api.upload.file(file, { forSignup: true });
-                                                        setCvUrl(url);
-                                                    } catch (err: any) {
-                                                        setError(err.message || 'CV upload failed');
-                                                    } finally {
-                                                        setCvUploading(false);
-                                                        e.target.value = '';
-                                                    }
-                                                }} 
-                                            />
-                                            {cvUploading ? (
-                                                <Loader2 className="w-8 h-8 text-[#09BF44] animate-spin" />
-                                            ) : cvUrl ? (
-                                                <div className="flex items-center gap-2 text-[#09BF44] font-medium"><CheckCircle className="w-5 h-5" /> CV uploaded</div>
-                                            ) : (
-                                                <div className="flex flex-col items-center gap-1 text-gray-500"><Upload className="w-6 h-6" /><span className="text-sm">PDF or DOC</span></div>
-                                            )}
-                                        </label>
-                                    </div>
-                                )}
-                                {surveyStep === 5 && (
-                                    <label className="flex items-start gap-3 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={acceptedTerms}
-                                            onChange={(e) => setAcceptedTerms(e.target.checked)}
-                                            className="mt-1 w-5 h-5 rounded border-2 border-gray-300 text-[#09BF44] focus:ring-[#09BF44]"
-                                        />
-                                        <span className="text-sm text-gray-700">
-                                            I agree to the{' '}
-                                            <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-[#09BF44] font-bold hover:underline">Terms and Conditions</a>
-                                            {' '}and{' '}
-                                            <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#09BF44] font-bold hover:underline">Privacy Policy</a>
-                                        </span>
-                                    </label>
-                                )}
-                                <div className="flex flex-col sm:flex-row gap-3">
-                                    <button type="button" onClick={() => surveyStep > 1 ? setSurveyStep(s => s - 1) : setStep('freelancer-step-3-offer')} className="flex-1 bg-gray-100 text-gray-600 font-bold p-4 rounded-xl hover:bg-gray-200">Back</button>
-                                    {surveyStep < 5 ? (
-                                        <button type="button" onClick={() => setSurveyStep(s => s + 1)} className="flex-1 bg-[#09BF44] text-white font-bold p-4 rounded-xl hover:bg-[#07a63a] flex items-center justify-center gap-2">
-                                            Next <ChevronRight className="w-5 h-5" />
-                                        </button>
-                                    ) : (
-                                        <button type="button" onClick={handleFinalSubmit} disabled={loading} className="flex-1 bg-[#09BF44] text-white font-bold p-4 rounded-xl hover:bg-[#07a63a] flex items-center justify-center gap-2">
-                                            {loading && <Loader2 className="w-5 h-5 animate-spin" />}
-                                            Submit Application
-                                        </button>
-                                    )}
+                        {/* FREELANCER STEP 4: Under Review */}
+                        {step === 'freelancer-step-4' && (
+                            <div className="text-center py-12">
+                                <div className="flex justify-end mb-4">
+                                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors -m-2">
+                                        <X className="w-5 h-5 text-gray-500" />
+                                    </button>
                                 </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* FREELANCER STEP 3: Portfolio */}
-                    {step === 'freelancer-step-3a' && (
-                        <div className="py-3 md:py-4">
-                            <div className="flex items-center justify-between gap-3 mb-4">
-                                <Image src="/logos/logo-green.png" alt="Engezhaly" width={120} height={33} className="h-8 w-auto" priority />
-                                <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors shrink-0 -m-2 ml-auto">
-                                    <X className="w-5 h-5 text-gray-500" />
-                                </button>
-                            </div>
-                            <div className="bg-gray-100 h-2 w-full rounded-full mb-6">
-                                <div className="bg-[#09BF44] h-full rounded-full transition-all" style={{ width: '50%' }} />
-                            </div>
-                            <div className="flex items-center justify-center gap-2 mb-4 text-sm font-bold text-gray-400 uppercase tracking-wider">
-                                <span className="text-[#09BF44]">Step 3</span><span>/</span><span>6</span>
-                            </div>
-                            <h3 className="text-xl md:text-2xl font-bold text-center mb-2">Portfolio</h3>
-                            <p className="text-center text-gray-600 mb-6">Add 1–3 projects to showcase your work. (Optional)</p>
-
-                            {error && <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center gap-2 text-sm mb-4"><div className="w-2 h-2 bg-red-500 rounded-full"></div>{error}</div>}
-
-                            {(() => {
-                                const subCategories: string[] = professionalInfo.category && (CATEGORIES as Record<string, readonly string[]>)[professionalInfo.category]
-                                    ? [...(CATEGORIES as Record<string, readonly string[]>)[professionalInfo.category]]
-                                    : [];
-                                return (
-                                    <div className="space-y-4">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            {portfolioItems.map((item, idx) => (
-                                                <div key={idx} className="group bg-white rounded-2xl border-2 border-gray-100 overflow-hidden hover:border-[#09BF44]/30 transition-all duration-200 shadow-sm hover:shadow-md">
-                                                    <div className="relative aspect-video bg-gray-100">
-                                                        {item.imageUrl ? (
-                                                            <>
-                                                                <Image src={item.imageUrl} alt={item.title || 'Portfolio'} fill className="object-cover" sizes="(max-width: 768px) 100vw, 400px" />
-                                                                <label className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                                                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handlePortfolioImageUpload(e, idx)} disabled={portfolioImageUploading !== null} />
-                                                                    <Upload className="w-8 h-8 text-white mb-1" />
-                                                                    <span className="text-xs font-bold text-white">Change</span>
-                                                                </label>
-                                                            </>
-                                                        ) : (
-                                                            <label className={`absolute inset-0 flex flex-col items-center justify-center cursor-pointer transition-colors ${portfolioImageUploading === idx ? 'bg-[#09BF44]/10' : 'hover:bg-gray-50'}`}>
-                                                                <input type="file" accept="image/*" className="hidden" onChange={(e) => handlePortfolioImageUpload(e, idx)} disabled={portfolioImageUploading !== null} />
-                                                                {portfolioImageUploading === idx ? (
-                                                                    <div className="text-center">
-                                                                        <Loader2 className="w-10 h-10 animate-spin text-[#09BF44] mx-auto" />
-                                                                        <span className="text-sm font-bold text-[#09BF44] block mt-2">{portfolioImageProgress}%</span>
-                                                                    </div>
-                                                                ) : (
-                                                                    <div className="text-center text-gray-400">
-                                                                        <ImageIcon className="w-12 h-12 mx-auto mb-2" />
-                                                                        <span className="text-sm font-bold">Click to upload</span>
-                                                                    </div>
-                                                                )}
-                                                            </label>
-                                                        )}
-                                                        {item.subCategory && (
-                                                            <span className="absolute top-2 left-2 px-2 py-1 bg-black/60 text-white text-xs font-bold rounded-lg">{item.subCategory}</span>
-                                                        )}
-                                                        {portfolioItems.length > 1 && (
-                                                            <button type="button" onClick={() => setPortfolioItems(prev => prev.filter((_, i) => i !== idx))} className="absolute top-2 right-2 p-1.5 rounded-lg bg-red-500/90 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600" aria-label="Remove">
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                    <div className="p-4 space-y-3">
-                                                        <input value={item.title} onChange={(e) => setPortfolioItems(prev => { const n = [...prev]; n[idx] = { ...n[idx], title: e.target.value }; return n; })} placeholder="Project title" className="w-full px-3 py-2 rounded-xl border-2 border-transparent bg-gray-50 focus:bg-white focus:border-[#09BF44] outline-none font-bold text-gray-900 placeholder:text-gray-400 transition-colors" />
-                                                        {subCategories.length > 0 && (
-                                                            <select value={item.subCategory} onChange={(e) => setPortfolioItems(prev => { const n = [...prev]; n[idx] = { ...n[idx], subCategory: e.target.value }; return n; })} className="w-full px-3 py-2 rounded-xl border-2 border-transparent bg-gray-50 focus:bg-white focus:border-[#09BF44] outline-none text-sm text-gray-700">
-                                                                <option value="">Select subcategory</option>
-                                                                {subCategories.map((sub) => <option key={sub} value={sub}>{sub}</option>)}
-                                                            </select>
-                                                        )}
-                                                        <textarea value={item.description} onChange={(e) => setPortfolioItems(prev => { const n = [...prev]; n[idx] = { ...n[idx], description: e.target.value }; return n; })} placeholder="Brief description of this work..." rows={2} className="w-full px-3 py-2 rounded-xl border-2 border-transparent bg-gray-50 focus:bg-white focus:border-[#09BF44] outline-none text-sm text-gray-700 resize-none placeholder:text-gray-400" />
-                                                        <input value={item.link} onChange={(e) => setPortfolioItems(prev => { const n = [...prev]; n[idx] = { ...n[idx], link: e.target.value }; return n; })} placeholder="Project link (optional)" className="w-full px-3 py-2 rounded-xl border-2 border-transparent bg-gray-50 focus:bg-white focus:border-[#09BF44] outline-none text-sm text-gray-600 placeholder:text-gray-400" />
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        {portfolioItems.length < 3 && (
-                                            <button type="button" onClick={() => setPortfolioItems(prev => [...prev, { title: '', description: '', imageUrl: '', link: '', subCategory: '' }])} className="w-full py-4 border-2 border-dashed border-[#07a63a] rounded-xl text-[#07a63a] font-bold text-lg hover:border-[#09BF44] hover:text-[#09BF44] hover:bg-[#09BF44]/10 transition-all flex items-center justify-center gap-3">
-                                                <Plus className="w-6 h-6" /> Add another project
-                                            </button>
-                                        )}
-                                        <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                                            <button type="button" onClick={() => setStep('freelancer-step-2')} className="flex-1 bg-gray-100 text-gray-600 font-bold p-4 rounded-xl hover:bg-gray-200">Back</button>
-                                            <button type="button" onClick={() => setStep('freelancer-step-3b')} className="flex-1 bg-[#09BF44] text-white font-bold p-4 rounded-xl hover:bg-[#07a63a] flex items-center justify-center gap-2">
-                                                Next: Withdrawal <ChevronRight className="w-5 h-5" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                );
-                            })()}
-                        </div>
-                    )}
-
-                    {/* FREELANCER STEP 4: Withdrawal Method */}
-                    {step === 'freelancer-step-3b' && (
-                        <div className="py-3 md:py-4">
-                            <div className="flex items-center justify-between gap-3 mb-4">
-                                <Image src="/logos/logo-green.png" alt="Engezhaly" width={120} height={33} className="h-8 w-auto" priority />
-                                <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors shrink-0 -m-2 ml-auto">
-                                    <X className="w-5 h-5 text-gray-500" />
-                                </button>
-                            </div>
-                            <div className="bg-gray-100 h-2 w-full rounded-full mb-6">
-                                <div className="bg-[#09BF44] h-full rounded-full transition-all duration-500" style={{ width: '66.67%' }} />
-                            </div>
-                            <div className="flex items-center justify-center gap-2 mb-4 text-sm font-bold text-gray-400 uppercase tracking-wider">
-                                <span className="text-[#09BF44]">Step 4</span>
-                                <span>/</span>
-                                <span>6</span>
-                            </div>
-                            <h3 className="text-xl md:text-2xl font-bold text-center mb-2">Where would you like your money transferred?</h3>
-                            <p className="text-center text-gray-600 mb-6">Add Vodafone Cash, InstaPay, or bank account to receive withdrawals.</p>
-
-                            {error && <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center gap-2 text-sm mb-4"><div className="w-2 h-2 bg-red-500 rounded-full"></div>{error}</div>}
-
-                            <div className="space-y-6 mb-6">
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Type</label>
-                                    <div className="flex flex-wrap gap-2">
-                                        {(['vodafone_cash', 'instapay', 'bank'] as const).map(m => (
-                                            <button key={m} type="button" onClick={() => setWithdrawalMethod({ ...withdrawalMethod, method: m })} className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-colors ${withdrawalMethod.method === m ? 'bg-[#09BF44] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-                                                {m.replace('_', ' ').toUpperCase()}
-                                            </button>
-                                        ))}
-                                    </div>
+                                <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                    <CheckCircle className="w-12 h-12 text-[#09BF44]" />
                                 </div>
-                                {(withdrawalMethod.method === 'instapay' || withdrawalMethod.method === 'vodafone_cash') && (
-                                    <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-1">Phone Number</label>
-                                        <input type="tel" value={withdrawalMethod.phoneNumber} onChange={(e) => setWithdrawalMethod({ ...withdrawalMethod, phoneNumber: e.target.value })} placeholder="01XXXXXXXXX" className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none" />
-                                    </div>
-                                )}
-                                {withdrawalMethod.method === 'bank' && (
-                                    <>
-                                        <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-1">Account Number</label>
-                                            <input type="text" value={withdrawalMethod.accountNumber} onChange={(e) => setWithdrawalMethod({ ...withdrawalMethod, accountNumber: e.target.value })} placeholder="Account number" className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-1">Bank Name</label>
-                                            <input type="text" value={withdrawalMethod.bankName} onChange={(e) => setWithdrawalMethod({ ...withdrawalMethod, bankName: e.target.value })} placeholder="e.g. CIB, NBE" className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none" />
-                                        </div>
-                                    </>
-                                )}
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-1">Do you have any notes? (optional)</label>
-                                    <textarea value={signupNotes} onChange={(e) => setSignupNotes(e.target.value)} placeholder="Anything else you'd like us to know..." rows={3} className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none resize-none" />
-                                </div>
-                            </div>
-
-                            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                                <button onClick={() => setStep('freelancer-step-3a')} className="flex-1 bg-gray-100 text-gray-600 font-bold p-4 rounded-xl hover:bg-gray-200 transition-all">Back</button>
-                                <button onClick={() => setStep('freelancer-step-3-offer')} className="flex-1 bg-[#09BF44] text-white font-bold p-4 rounded-xl hover:bg-[#07a63a] transition-all flex items-center justify-center gap-2">
-                                    Next: Starter Offer <ChevronRight className="w-5 h-5" />
+                                <h2 className="text-3xl font-black text-gray-900 mb-4">Profile Under Review!</h2>
+                                <p className="text-lg text-gray-600 mb-4 max-w-lg mx-auto">
+                                    Our team is reviewing your application. You will be notified once your profile is approved and you can start creating offers.
+                                </p>
+                                <p className="text-sm text-gray-500 mb-8 max-w-lg mx-auto">
+                                    Please check your email to verify your account. Once approved, log in again to access your dashboard.
+                                </p>
+                                <button
+                                    onClick={() => {
+                                        onClose();
+                                        // Reload so header re-reads from localStorage (we cleared it for pending freelancers)
+                                        window.location.href = '/';
+                                    }}
+                                    className="bg-[#09BF44] text-white font-bold px-8 py-3 rounded-full hover:bg-[#07a63a] transition-colors"
+                                >
+                                    Go Home
                                 </button>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {/* FREELANCER STEP 4: Under Review */}
-                    {step === 'freelancer-step-4' && (
-                        <div className="text-center py-12">
-                            <div className="flex justify-end mb-4">
-                                <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors -m-2">
-                                    <X className="w-5 h-5 text-gray-500" />
-                                </button>
-                            </div>
-                            <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                                <CheckCircle className="w-12 h-12 text-[#09BF44]" />
-                            </div>
-                            <h2 className="text-3xl font-black text-gray-900 mb-4">Profile Under Review!</h2>
-                            <p className="text-lg text-gray-600 mb-4 max-w-lg mx-auto">
-                                Our team is reviewing your application. You will be notified once your profile is approved and you can start creating offers.
-                            </p>
-                            <p className="text-sm text-gray-500 mb-8 max-w-lg mx-auto">
-                                Please check your email to verify your account. Once approved, log in again to access your dashboard.
-                            </p>
-                            <button
-                                onClick={() => {
-                                    onClose();
-                                    // Reload so header re-reads from localStorage (we cleared it for pending freelancers)
-                                    window.location.href = '/';
-                                }}
-                                className="bg-[#09BF44] text-white font-bold px-8 py-3 rounded-full hover:bg-[#07a63a] transition-colors"
-                            >
-                                Go Home
-                            </button>
-                        </div>
-                    )}
-
+                    </div>
                 </div>
             </div>
-        </div>
-        {cropSrc && (
-            <ImageCropModal
-                src={cropSrc}
-                onConfirm={handleCropConfirm}
-                onCancel={() => setCropSrc(null)}
-            />
-        )}
+            {cropSrc && (
+                <ImageCropModal
+                    src={cropSrc}
+                    onConfirm={handleCropConfirm}
+                    onCancel={() => setCropSrc(null)}
+                />
+            )}
         </>
     );
 }

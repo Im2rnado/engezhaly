@@ -89,6 +89,7 @@ app.use('/api/payments', require('./routes/payments'));
 app.use('/api/withdrawal-methods', require('./routes/withdrawalMethods'));
 app.use('/api/upload', require('./routes/upload'));
 app.use('/api/announcements', require('./routes/announcements'));
+app.use('/api/contact', require('./routes/contact'));
 
 app.get('/', (req, res) => {
     res.send('Engezhaly API is running');

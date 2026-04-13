@@ -5,6 +5,7 @@ import { X, Upload, Loader2, CheckCircle } from 'lucide-react';
 import { api } from '@/lib/api';
 import Image from 'next/image';
 import ImageCropModal from '@/components/ImageCropModal';
+import { validatePhone, formatPhoneE164, e164ToEgyptianNationalInput } from '@/lib/phoneUtils';
 
 interface ClientProfileEditModalProps {
     isOpen: boolean;
@@ -34,7 +35,7 @@ export default function ClientProfileEditModal({ isOpen, onClose, profile, onSav
                     firstName: profile.firstName || '',
                     lastName: profile.lastName || '',
                     email: profile.email || '',
-                    phoneNumber: profile.phoneNumber || '',
+                    phoneNumber: e164ToEgyptianNationalInput(profile.phoneNumber) || '',
                     businessType: profile.businessType || 'personal',
                     profilePicture: profile.clientProfile?.profilePicture || ''
                 });
@@ -89,7 +90,16 @@ export default function ClientProfileEditModal({ isOpen, onClose, profile, onSav
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave(formData);
+        if (!validatePhone(formData.phoneNumber, 'EG')) {
+            alert('Enter a valid Egyptian mobile number: exactly 11 digits starting with 01.');
+            return;
+        }
+        const e164 = formatPhoneE164(formData.phoneNumber, 'EG');
+        if (!e164) {
+            alert('Enter a valid Egyptian mobile number: exactly 11 digits starting with 01.');
+            return;
+        }
+        onSave({ ...formData, phoneNumber: e164 });
     };
 
     if (!isOpen) return null;
@@ -192,10 +202,16 @@ export default function ClientProfileEditModal({ isOpen, onClose, profile, onSav
                         <label className="block text-sm font-bold text-gray-700 mb-2">Phone Number</label>
                         <input
                             type="tel"
+                            inputMode="numeric"
+                            autoComplete="tel-national"
+                            placeholder="01XXXXXXXXX (11 digits)"
+                            maxLength={11}
                             value={formData.phoneNumber}
-                            onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                            onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value.replace(/\D/g, '').slice(0, 11) })}
                             className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none"
+                            required
                         />
+                        <p className="text-xs text-gray-500 mt-1">Egyptian mobile only: 11 digits starting with 01.</p>
                     </div>
 
                     <div>

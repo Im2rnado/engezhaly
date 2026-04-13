@@ -21,7 +21,8 @@ const EmailLogSchema = new mongoose.Schema({
             'work_submitted',
             'delivery_approved',
             'job_work_approved',
-            'payment_confirmed'
+            'payment_confirmed',
+            'contact_form'
         ],
         required: true
     },

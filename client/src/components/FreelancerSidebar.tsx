@@ -174,20 +174,24 @@ export default function FreelancerSidebar({ user, profile, onToggleBusy, toggleB
             <div className="p-4 border-t border-gray-100 space-y-4">
                 {!isPending && (
                     <div className="bg-gray-50 rounded-xl p-4">
-                        <div className="flex items-center justify-between mb-3">
-                            <span className="text-sm font-bold text-gray-700">Status</span>
-                            <span className={`text-xs font-bold px-2 py-1 rounded-full ${isBusy ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
-                                {isBusy ? 'Busy' : 'Available'}
-                            </span>
+                        <div className="flex items-center justify-between gap-3 mb-2">
+                            <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                                <span className="text-sm font-bold text-gray-700 shrink-0">Status</span>
+                                <span className={`text-xs font-bold px-2 py-1 rounded-full shrink-0 ${isBusy ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                                    {isBusy ? 'Busy' : 'Available'}
+                                </span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={onToggleBusy}
+                                disabled={toggleBusyDisabled}
+                                aria-label={isBusy ? 'Switch to available' : 'Switch to busy'}
+                                className={`shrink-0 w-16 h-8 rounded-full p-1 transition-colors relative ${isBusy ? 'bg-red-500' : 'bg-[#09BF44]'} disabled:opacity-70 disabled:cursor-not-allowed`}
+                            >
+                                <div className={`w-6 h-6 bg-white rounded-full transition-transform shadow-sm ${isBusy ? 'translate-x-0' : 'translate-x-8'}`} />
+                            </button>
                         </div>
-                        <button
-                            onClick={onToggleBusy}
-                            disabled={toggleBusyDisabled}
-                            className={`w-16 h-8 rounded-full p-1 transition-colors relative ${isBusy ? 'bg-red-500' : 'bg-[#09BF44]'} disabled:opacity-70 disabled:cursor-not-allowed`}
-                        >
-                            <div className={`w-6 h-6 bg-white rounded-full transition-transform shadow-sm ${isBusy ? 'translate-x-0' : 'translate-x-8'}`} />
-                        </button>
-                        <p className="text-xs text-gray-500 mt-2 leading-relaxed">
+                        <p className="text-xs text-gray-500 leading-relaxed">
                             By pressing this, you will be busy for new orders, but clients can still view your account.
                         </p>
                     </div>

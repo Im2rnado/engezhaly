@@ -141,19 +141,44 @@ function JobsPageContent() {
         () => (showMilestones ? milestones.filter(m => m.name.trim()).map(m => ({ name: m.name, dueDate: m.dueDate || undefined })) : []),
         [showMilestones, milestones]
     );
-    const hasMilestoneDueDates = useMemo(
-        () => milestonePayload.some(m => m.dueDate && String(m.dueDate).trim()),
-        [milestonePayload]
-    );
 
     const handleApplySubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!applyJob) return;
+
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+
+        if (showMilestones) {
+            const named = milestones.filter((m) => m.name.trim());
+            if (named.length === 0) {
+                showModal({ title: 'Milestones required', message: 'Add at least one delivery milestone with a name and due date.', type: 'error' });
+                return;
+            }
+            for (const m of named) {
+                if (!m.dueDate?.trim()) {
+                    showModal({ title: 'Milestones', message: 'Each milestone must have a due date.', type: 'error' });
+                    return;
+                }
+                const d = new Date(m.dueDate);
+                if (isNaN(d.getTime()) || d < todayStart) {
+                    showModal({ title: 'Milestones', message: 'Each milestone due date must be today or later.', type: 'error' });
+                    return;
+                }
+            }
+        } else {
+            const days = Number(proposal.days);
+            if (!proposal.days || !Number.isFinite(days) || days < 1) {
+                showModal({ title: 'Delivery', message: 'Enter delivery time in days (at least 1).', type: 'error' });
+                return;
+            }
+        }
+
         setApplyLoading(true);
         try {
             await api.jobs.apply(applyJob._id, {
                 price: Number(proposal.price),
-                deliveryDays: hasMilestoneDueDates ? undefined : Number(proposal.days),
+                deliveryDays: showMilestones ? undefined : Number(proposal.days),
                 revisions: proposal.revisionsUnlimited ? 0 : Number(proposal.revisions),
                 revisionsUnlimited: proposal.revisionsUnlimited,
                 message: proposal.message,
@@ -375,7 +400,12 @@ function JobsPageContent() {
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-2xl font-bold text-gray-900">Apply to {applyJob.title}</h2>
                             <button
-                                onClick={() => { setApplyJob(null); setProposal({ price: '', days: '', revisions: '1', message: '', revisionsUnlimited: false }); }}
+                                onClick={() => {
+                                    setApplyJob(null);
+                                    setProposal({ price: '', days: '', revisions: '1', message: '', revisionsUnlimited: false });
+                                    setMilestones([]);
+                                    setShowMilestones(false);
+                                }}
                                 className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                             >
                                 <X className="w-5 h-5 text-gray-500" />
@@ -393,7 +423,7 @@ function JobsPageContent() {
                                         className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none text-gray-900"
                                     />
                                 </div>
-                                {!hasMilestoneDueDates && (
+                                {!showMilestones && (
                                     <div>
                                         <label className="block text-sm font-bold text-gray-700 mb-2">Delivery (days)</label>
                                         <input
@@ -406,9 +436,9 @@ function JobsPageContent() {
                                         />
                                     </div>
                                 )}
-                                {hasMilestoneDueDates && (
+                                {showMilestones && (
                                     <div className="col-span-2 md:col-span-1 flex items-end">
-                                        <p className="text-xs text-gray-500 font-medium pb-3">Delivery is calculated from your latest milestone due date.</p>
+                                        <p className="text-xs text-gray-500 font-medium pb-3">Delivery is calculated from your latest milestone due date. Each milestone needs a due date.</p>
                                     </div>
                                 )}
                                 <div className="col-span-2 md:col-span-1">
@@ -443,7 +473,10 @@ function JobsPageContent() {
                                     </div>
                                     <button
                                         type="button"
-                                        onClick={() => setShowMilestones(!showMilestones)}
+                                        onClick={() => {
+                                            if (showMilestones) setMilestones([]);
+                                            setShowMilestones(!showMilestones);
+                                        }}
                                         className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${showMilestones ? 'bg-[#09BF44] text-white' : 'bg-gray-200 text-gray-700'}`}
                                     >
                                         {showMilestones ? 'Enabled' : 'Add delivery milestones'}
@@ -471,7 +504,7 @@ function JobsPageContent() {
                                                         setMilestones(newMs);
                                                     }}
                                                     min={new Date().toISOString().split('T')[0]}
-                                                    placeholder="Due date (optional)"
+                                                    placeholder="Due date *"
                                                     className="w-48"
                                                 />
                                                 <button
@@ -506,7 +539,12 @@ function JobsPageContent() {
                             <div className="flex gap-4 pt-4">
                                 <button
                                     type="button"
-                                    onClick={() => { setApplyJob(null); setProposal({ price: '', days: '', revisions: '1', message: '', revisionsUnlimited: false }); }}
+                                    onClick={() => {
+                                    setApplyJob(null);
+                                    setProposal({ price: '', days: '', revisions: '1', message: '', revisionsUnlimited: false });
+                                    setMilestones([]);
+                                    setShowMilestones(false);
+                                }}
                                     className="flex-1 bg-gray-100 text-gray-700 font-bold p-3 rounded-xl hover:bg-gray-200 transition-colors"
                                 >
                                     Cancel

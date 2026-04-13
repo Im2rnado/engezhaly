@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Plus, X as XIcon, Upload, Trash2, User, Briefcase, Award } from 'lucide-react';
+import { X, Plus, X as XIcon, Upload, Trash2, User, Briefcase, Award, Smartphone } from 'lucide-react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
 import DatePicker from '@/components/DatePicker';
 import ImageCropModal from '@/components/ImageCropModal';
+import { validatePhone, formatPhoneE164, e164ToEgyptianNationalInput } from '@/lib/phoneUtils';
 
 interface ProfileEditModalProps {
     isOpen: boolean;
@@ -20,6 +21,7 @@ export default function ProfileEditModal({ isOpen, onClose, onSave, profile, mai
         bio: '',
         category: '',
         experienceYears: '',
+        phoneNumber: '',
         technicalSkills: [] as string[],
         softSkills: [] as string[],
         certifications: [] as { name: string; date: string; institute: string; documentUrl: string }[],
@@ -49,6 +51,7 @@ export default function ProfileEditModal({ isOpen, onClose, onSave, profile, mai
                     bio: fp?.bio || '',
                     category: fp?.category || '',
                     experienceYears: String(fp?.experienceYears || 0),
+                    phoneNumber: e164ToEgyptianNationalInput(profile.phoneNumber) || '',
                     technicalSkills: (Array.isArray(tech) && tech.length > 0) ? tech : (Array.isArray(legacy) ? legacy : []),
                     softSkills: Array.isArray(soft) ? soft : [],
                     english: lang.english || 'Fluent',
@@ -75,6 +78,9 @@ export default function ProfileEditModal({ isOpen, onClose, onSave, profile, mai
         const experienceNum = Number(formData.experienceYears);
         if (isNaN(experienceNum) || experienceNum < 0 || experienceNum > 100) {
             newErrors.experienceYears = 'Experience must be 0–100';
+        }
+        if (!validatePhone(formData.phoneNumber, 'EG')) {
+            newErrors.phoneNumber = 'Enter 11 digits starting with 01';
         }
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -167,9 +173,15 @@ export default function ProfileEditModal({ isOpen, onClose, onSave, profile, mai
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!validateForm()) return;
+        const phoneE164 = formatPhoneE164(formData.phoneNumber, 'EG');
+        if (!phoneE164) {
+            setErrors((prev) => ({ ...prev, phoneNumber: 'Enter 11 digits starting with 01' }));
+            return;
+        }
         const payload: Record<string, unknown> = {
             bio: formData.bio,
             experienceYears: Number(formData.experienceYears),
+            phoneNumber: phoneE164,
             technicalSkills: formData.technicalSkills,
             softSkills: formData.softSkills,
             profilePicture: profilePicture || undefined,
@@ -270,6 +282,28 @@ export default function ProfileEditModal({ isOpen, onClose, onSave, profile, mai
                                 {errors.profilePicture && <p className="text-red-500 text-xs">{errors.profilePicture}</p>}
                             </div>
                         </div>
+                    </section>
+
+                    {/* Section: Contact */}
+                    <section>
+                        <div className="flex items-center gap-2 mb-3">
+                            <Smartphone className="w-4 h-4 text-gray-500" />
+                            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Phone</h3>
+                        </div>
+                        <label className="block text-xs font-bold text-gray-500 mb-1.5">Mobile (Egypt)</label>
+                        <input
+                            type="tel"
+                            inputMode="numeric"
+                            autoComplete="tel-national"
+                            placeholder="01XXXXXXXXX (11 digits)"
+                            maxLength={11}
+                            value={formData.phoneNumber}
+                            onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value.replace(/\D/g, '').slice(0, 11) })}
+                            className="w-full p-3 rounded-xl border-2 border-gray-100 focus:border-[#09BF44] bg-gray-50 outline-none text-gray-900"
+                            required
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Egyptian mobile only: 11 digits starting with 01.</p>
+                        {errors.phoneNumber && <p className="text-red-500 text-xs mt-1">{errors.phoneNumber}</p>}
                     </section>
 
                     {/* Section: About */}

@@ -1418,7 +1418,7 @@ function ChatPageContent() {
                                         </button>
                                         <button
                                             onClick={handleBookConsultation}
-                                            className="flex flex-col items-center gap-0.5 p-2 text-gray-400 hover:bg-gray-100 hover:text-[#09BF44] rounded-xl transition-colors"
+                                            className="flex flex-col items-center gap-0.5 p-2 text-[#09BF44] hover:bg-[#09BF44]/10 hover:text-[#07a63a] rounded-xl transition-colors"
                                             title="Book Consultation"
                                         >
                                             <Video className="w-5 h-5" />
@@ -1660,22 +1660,35 @@ function ChatPageContent() {
                                         const canAccept = !isMyOffer && offer.status === 'pending';
 
                                         return (
-                                                <div key={item.id} className={`flex ${isMyOffer ? 'justify-end' : 'justify-start'}`}>
-                                                    <div className={`min-w-0 p-4 rounded-2xl md:rounded-3xl shadow-sm relative max-w-[85%] md:max-w-[min(92%,42rem)] ${isMyOffer
+                                                <div key={item.id} className={`flex w-full min-w-0 ${isMyOffer ? 'justify-end' : 'justify-start'}`}>
+                                                    <div className={`min-w-0 p-4 rounded-2xl md:rounded-3xl shadow-sm relative w-full max-w-lg md:max-w-xl ${isMyOffer
                                                         ? 'bg-[#09BF44] text-white border-[#09BF44]'
                                                         : 'bg-white border-[#09BF44]/20'
                                                     }`}>
-                                                    <div className="flex items-center gap-2 mb-3 flex-wrap">
+                                                    <div className="flex items-center gap-2 mb-3 w-full min-w-0">
                                                         <FileText className={`w-5 h-5 shrink-0 ${isMyOffer ? 'text-white' : 'text-[#09BF44]'}`} />
-                                                        <span className={`font-bold text-base ${isMyOffer ? 'text-white' : 'text-gray-900'}`}>
+                                                        <span className={`font-bold text-base truncate ${isMyOffer ? 'text-white' : 'text-gray-900'}`}>
                                                             Custom Offer
                                                         </span>
-                                                        {offer.status === 'accepted' && (
-                                                            <CheckCircle className={`w-5 h-5 ml-auto shrink-0 ${isMyOffer ? 'text-white' : 'text-green-600'}`} />
-                                                        )}
-                                                        {offer.status === 'rejected' && (
-                                                            <XCircle className={`w-5 h-5 ml-auto shrink-0 ${isMyOffer ? 'text-white' : 'text-red-600'}`} />
-                                                        )}
+                                                        <div className="ml-auto flex items-center gap-1 shrink-0">
+                                                            {isMyOffer && offer.status === 'pending' && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleDeleteOffer(offer._id)}
+                                                                    className="p-2 rounded-xl transition-colors hover:bg-white/20 text-white"
+                                                                    title="Delete offer"
+                                                                    aria-label="Delete offer"
+                                                                >
+                                                                    <Trash2 className="w-5 h-5" />
+                                                                </button>
+                                                            )}
+                                                            {offer.status === 'accepted' && (
+                                                                <CheckCircle className={`w-5 h-5 ${isMyOffer ? 'text-white' : 'text-green-600'}`} />
+                                                            )}
+                                                            {offer.status === 'rejected' && (
+                                                                <XCircle className={`w-5 h-5 ${isMyOffer ? 'text-white' : 'text-red-600'}`} />
+                                                            )}
+                                                        </div>
                                                     </div>
 
                                                     <div className={`space-y-3 mb-4 min-w-0 ${isMyOffer ? 'text-white/95' : 'text-gray-700'}`}>
@@ -1718,15 +1731,6 @@ function ChatPageContent() {
                                                         )}
                                                     </div>
 
-                                                    {isMyOffer && offer.status === 'pending' && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleDeleteOffer(offer._id)}
-                                                            className="w-full mt-2 flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 text-white font-bold py-2.5 rounded-xl text-sm transition-colors"
-                                                        >
-                                                            <Trash2 className="w-4 h-4" /> Delete offer
-                                                        </button>
-                                                    )}
                                                     {canAccept && (
                                                         <button
                                                                 onClick={() => handleAcceptOffer(offer)}

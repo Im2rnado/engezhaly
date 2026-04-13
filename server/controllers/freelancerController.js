@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const { isValidEgyptianE164 } = require('../utils/phoneValidation');
 const Order = require('../models/Order');
 const Job = require('../models/Job');
 const Chat = require('../models/Chat');
@@ -47,7 +48,8 @@ const updateProfile = async (req, res) => {
             portfolio,
             certifications,
             consultationPrice,
-            cvUrl
+            cvUrl,
+            phoneNumber
         } = req.body;
 
         const user = await User.findById(userId);
@@ -58,6 +60,17 @@ const updateProfile = async (req, res) => {
 
         if (user.role !== 'freelancer') {
             return res.status(403).json({ msg: 'Access denied. User is not a freelancer.' });
+        }
+
+        if (phoneNumber !== undefined) {
+            const trimmed = typeof phoneNumber === 'string' ? phoneNumber.trim() : '';
+            if (!trimmed) {
+                return res.status(400).json({ msg: 'Phone number is required' });
+            }
+            if (!isValidEgyptianE164(trimmed)) {
+                return res.status(400).json({ msg: 'Phone must be a valid Egyptian mobile (11 digits: 01xxxxxxxxx).' });
+            }
+            user.phoneNumber = trimmed;
         }
 
         // Category is fixed after first signup — never change via profile update
@@ -139,7 +152,7 @@ const updateProfile = async (req, res) => {
 
 const getProfile = async (req, res) => {
     try {
-        const user = await User.findById(req.user.id).select('-password');
+        const user = await User.findById(req.user.id).select('-password +phoneNumber');
         const obj = user?.toObject ? user.toObject() : user;
         const fp = obj?.freelancerProfile;
         if (fp && (!Array.isArray(fp.technicalSkills) || fp.technicalSkills.length === 0) && (!Array.isArray(fp.softSkills) || fp.softSkills.length === 0) && fp.skills?.length > 0) {

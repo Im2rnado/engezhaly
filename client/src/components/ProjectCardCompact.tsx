@@ -27,6 +27,19 @@ export default function ProjectCardCompact({ project }: ProjectCardCompactProps)
     const skills = [project.category, project.subCategory].filter(Boolean);
     const brief = project.description ? project.description.slice(0, 120) + (project.description.length > 120 ? '...' : '') : '';
 
+    const languageTags: string[] = [];
+    const lang = seller?.freelancerProfile?.languages;
+    if (lang?.english && String(lang.english).trim()) languageTags.push('English');
+    if (lang?.arabic && String(lang.arabic).trim()) languageTags.push('Arabic');
+    if (lang?.francoArabic && String(lang.francoArabic).trim()) languageTags.push('Franco Arabic');
+    const extras = seller?.freelancerProfile?.extraLanguages;
+    if (Array.isArray(extras)) {
+        for (const x of extras) {
+            const t = String(x || '').trim();
+            if (t) languageTags.push(t);
+        }
+    }
+
     return (
         <div
             onClick={() => router.push(`/offers/${project._id}`)}
@@ -102,7 +115,21 @@ export default function ProjectCardCompact({ project }: ProjectCardCompactProps)
                         <h3 className="font-bold text-gray-900 text-base md:text-lg line-clamp-2 group-hover:text-[#09BF44] transition-colors">
                             {project.title}
                         </h3>
-                        <span className="text-xs text-gray-500 mt-0.5 block">{freelancerName}</span>
+                        <div className="flex items-center justify-between gap-2 mt-0.5 min-w-0 w-full">
+                            <span className="text-xs text-gray-500 truncate min-w-0 flex-1 text-left">{freelancerName}</span>
+                            {languageTags.length > 0 && (
+                                <div className="flex flex-wrap justify-end gap-1 shrink-0">
+                                    {languageTags.map((tag) => (
+                                        <span
+                                            key={tag}
+                                            className="px-1.5 py-0.5 rounded-md bg-gray-100 text-gray-600 text-[10px] font-bold uppercase tracking-wide whitespace-nowrap"
+                                        >
+                                            {tag}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 

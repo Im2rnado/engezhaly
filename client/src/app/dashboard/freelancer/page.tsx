@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Briefcase, DollarSign, PlusCircle, ShoppingBag, Star, CheckCircle, Loader2, Edit, Award, PanelLeft } from 'lucide-react';
 import { api } from '@/lib/api';
+import { formatEgyptianPhoneForDisplay } from '@/lib/phoneUtils';
 import { formatStatus, formatDateDDMMYYYY } from '@/lib/utils';
 import { useModal } from '@/context/ModalContext';
 import ProjectCard from '@/components/ProjectCard';
@@ -481,6 +482,10 @@ function FreelancerDashboardContent() {
                                     <div>
                                         <label className="text-sm font-bold text-gray-500 mb-2 block">Email</label>
                                         <p className="text-gray-900 font-bold">{profile.email}</p>
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-bold text-gray-500 mb-2 block">Phone Number</label>
+                                        <p className="text-gray-900 font-bold">{formatEgyptianPhoneForDisplay(profile.phoneNumber) || 'Not set'}</p>
                                     </div>
                                     <div>
                                         <label className="text-sm font-bold text-gray-500 mb-2 block">Category</label>

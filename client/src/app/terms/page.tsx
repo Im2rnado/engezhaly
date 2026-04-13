@@ -24,14 +24,21 @@ const SECTIONS = [
         ],
     },
     {
-        title: "3. Payments & Protection",
+        title: "3. Outside Communication Policy",
+        items: [
+            "Any attempt to contact a client outside of Engezhaly — through phone, email, social media, or any other channel — will result in an immediate payment deduction and account suspension. No exceptions.",
+            "All communication must stay on the platform. This protects both sides.",
+        ],
+    },
+    {
+        title: "4. Payments & Protection",
         items: [
             "Money is held securely until both sides confirm the job is completed.",
             "No job is considered done until both sides are satisfied.",
         ],
     },
     {
-        title: "4. Fees",
+        title: "5. Fees",
         items: [
             "Engezhaly is completely free for both clients and freelancers.",
             "We do not charge any platform fees.",
@@ -40,17 +47,11 @@ const SECTIONS = [
         ],
     },
     {
-        title: "5. Payment Methods",
+        title: "6. Payment Methods",
         items: [
             "InstaPay: No fees are charged by Engezhaly. Transfers are free and usually completed within 1 hour (may take up to 1 working day).",
             "Card: Any additional fees are applied by the payment provider only, not by Engezhaly, and will be shown before payment.",
         ],
-    },
-    {
-        title: "6. Account Actions",
-        intro: "We can freeze or ban accounts for:",
-        subItems: ["Rudeness", "Harassment", "Suspicion of cheating"],
-        footer: "If you break the rules, your account may be terminated without warning.",
     },
     {
         title: "7. Account Actions",

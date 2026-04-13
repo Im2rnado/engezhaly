@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const { isValidEgyptianE164 } = require('../utils/phoneValidation');
 const Job = require('../models/Job');
 const Order = require('../models/Order');
 const Transaction = require('../models/Transaction');
@@ -24,7 +25,7 @@ const emailTemplates = require('../templates/emailTemplates');
 const getProfile = async (req, res) => {
     try {
         const userId = req.user.id;
-        const user = await User.findById(userId);
+        const user = await User.findById(userId).select('+phoneNumber');
         if (!user) {
             return res.status(404).json({ msg: 'User not found' });
         }
@@ -55,7 +56,16 @@ const updateProfile = async (req, res) => {
         if (firstName !== undefined) user.firstName = firstName;
         if (lastName !== undefined) user.lastName = lastName;
         if (email !== undefined) user.email = email;
-        if (phoneNumber !== undefined) user.phoneNumber = phoneNumber;
+        if (phoneNumber !== undefined) {
+            const trimmed = typeof phoneNumber === 'string' ? phoneNumber.trim() : '';
+            if (!trimmed) {
+                return res.status(400).json({ msg: 'Phone number is required' });
+            }
+            if (!isValidEgyptianE164(trimmed)) {
+                return res.status(400).json({ msg: 'Phone must be a valid Egyptian mobile (11 digits: 01xxxxxxxxx).' });
+            }
+            user.phoneNumber = trimmed;
+        }
         if (businessType !== undefined) user.businessType = businessType;
         if (clientProfile && typeof clientProfile === 'object') {
             if (!user.clientProfile) user.clientProfile = {};
