@@ -13,6 +13,31 @@ import PaymobCheckoutModal from '@/components/PaymobCheckoutModal';
 import PaymentChoiceModal from '@/components/PaymentChoiceModal';
 import { payWithWalletIfPossible } from '@/lib/payWithWalletIfPossible';
 
+/** Matches server: final workSubmission OR all proposal milestones have visible submission */
+function proposalReadyForClientApproval(proposal: any) {
+    const ws = proposal.workSubmission;
+    const hasWs =
+        ws &&
+        ((typeof ws.message === 'string' && ws.message.trim()) ||
+            (Array.isArray(ws.links) && ws.links.some(Boolean)) ||
+            (Array.isArray(ws.files) && ws.files.some(Boolean)));
+    if (hasWs) return true;
+    const ms = proposal.milestones;
+    if (!Array.isArray(ms) || ms.length === 0) return false;
+    return ms.every((m: any) => {
+        const note = typeof m.submissionNote === 'string' ? m.submissionNote.trim() : '';
+        const links = Array.isArray(m.submissionLinks) ? m.submissionLinks.filter(Boolean) : [];
+        const files = Array.isArray(m.submissionFiles) ? m.submissionFiles.filter(Boolean) : [];
+        return (
+            m.status === 'submitted' ||
+            m.status === 'done' ||
+            note.length > 0 ||
+            links.length > 0 ||
+            files.length > 0
+        );
+    });
+}
+
 function JobDetailPageContent() {
     const { showModal } = useModal();
     const router = useRouter();
@@ -343,18 +368,93 @@ function JobDetailPageContent() {
                                     {Array.isArray(proposal.milestones) && proposal.milestones.length > 0 && (
                                         <div className="mb-4 p-4 bg-indigo-50/80 rounded-xl border border-indigo-100">
                                             <p className="text-sm font-bold text-indigo-900 mb-2">Proposal milestones</p>
-                                            <ul className="space-y-1.5 text-sm text-indigo-900">
-                                                {proposal.milestones.map((m: any, mi: number) => (
-                                                    <li key={mi}>
-                                                        <span className="font-medium">{m.name}</span>
-                                                        {m.dueDate && (
-                                                            <span className="text-indigo-700"> · Due {new Date(m.dueDate).toLocaleDateString()}</span>
-                                                        )}
-                                                        {m.status && (
-                                                            <span className="text-xs font-bold text-indigo-600 ml-1">({m.status})</span>
-                                                        )}
-                                                    </li>
-                                                ))}
+                                            <ul className="space-y-3 text-sm text-indigo-900">
+                                                {proposal.milestones.map((m: any, mi: number) => {
+                                                    const subLinks = Array.isArray(m.submissionLinks) ? m.submissionLinks.filter(Boolean) : [];
+                                                    const subFiles = Array.isArray(m.submissionFiles) ? m.submissionFiles.filter(Boolean) : [];
+                                                    const subNote = typeof m.submissionNote === 'string' ? m.submissionNote.trim() : '';
+                                                    const hasSubmission =
+                                                        subNote.length > 0 ||
+                                                        subLinks.length > 0 ||
+                                                        subFiles.length > 0 ||
+                                                        m.status === 'submitted' ||
+                                                        m.status === 'done';
+                                                    return (
+                                                        <li key={mi} className="rounded-xl border border-indigo-100 bg-white/90 p-3">
+                                                            <div className="flex flex-wrap items-baseline justify-between gap-2">
+                                                                <span className="font-bold text-gray-900">{m.name || `Milestone ${mi + 1}`}</span>
+                                                                {m.dueDate && (
+                                                                    <span className="text-xs text-indigo-700">
+                                                                        Due {new Date(m.dueDate).toLocaleDateString()}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            {m.status && (
+                                                                <span className="inline-block mt-1 text-xs font-bold uppercase tracking-wide text-indigo-600">
+                                                                    {m.status}
+                                                                </span>
+                                                            )}
+                                                            {hasSubmission ? (
+                                                                <div className="mt-3 pt-3 border-t border-indigo-100 space-y-2">
+                                                                    <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+                                                                        Submitted work
+                                                                    </p>
+                                                                    {subNote ? (
+                                                                        <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
+                                                                            {subNote}
+                                                                        </p>
+                                                                    ) : null}
+                                                                    {subLinks.length > 0 && (
+                                                                        <div>
+                                                                            <div className="flex items-center gap-2 mb-1">
+                                                                                <LinkIcon className="w-3.5 h-3.5 text-gray-500" />
+                                                                                <span className="text-xs font-bold text-gray-600">Links</span>
+                                                                            </div>
+                                                                            <div className="space-y-1">
+                                                                                {subLinks.map((link: string, li: number) => (
+                                                                                    <a
+                                                                                        key={li}
+                                                                                        href={link}
+                                                                                        target="_blank"
+                                                                                        rel="noreferrer"
+                                                                                        className="block text-sm text-[#09BF44] hover:underline break-all"
+                                                                                    >
+                                                                                        {link}
+                                                                                    </a>
+                                                                                ))}
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+                                                                    {subFiles.length > 0 && (
+                                                                        <div>
+                                                                            <div className="flex items-center gap-2 mb-1">
+                                                                                <Paperclip className="w-3.5 h-3.5 text-gray-500" />
+                                                                                <span className="text-xs font-bold text-gray-600">Files</span>
+                                                                            </div>
+                                                                            <div className="space-y-1">
+                                                                                {subFiles.map((fileUrl: string, fi: number) => (
+                                                                                    <a
+                                                                                        key={fi}
+                                                                                        href={fileUrl}
+                                                                                        target="_blank"
+                                                                                        rel="noreferrer"
+                                                                                        className="block text-sm text-[#09BF44] hover:underline break-all"
+                                                                                    >
+                                                                                        {fileUrl}
+                                                                                    </a>
+                                                                                ))}
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                <p className="mt-2 text-xs text-indigo-700/80">
+                                                                    No delivery submitted for this milestone yet.
+                                                                </p>
+                                                            )}
+                                                        </li>
+                                                    );
+                                                })}
                                             </ul>
                                         </div>
                                     )}
@@ -476,7 +576,7 @@ function JobDetailPageContent() {
                                         )}
                                         {proposal.status === 'accepted' && (
                                             <>
-                                                {job.status === 'in_progress' && proposal.workSubmission && (proposal.workSubmission.message || (proposal.workSubmission.links?.length > 0) || (proposal.workSubmission.files?.length > 0)) ? (
+                                                {job.status === 'in_progress' && proposalReadyForClientApproval(proposal) ? (
                                                     <button
                                                         onClick={async () => {
                                                             if (!confirm('Approve the submitted work and mark this job as completed?')) return;

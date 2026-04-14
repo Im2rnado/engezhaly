@@ -249,6 +249,38 @@ const acceptProposal = async (req, res) => {
 const InstaPayPayment = require('../models/InstaPayPayment');
 const { ORDER_PLATFORM_FEE_EGP } = require('../config/fees');
 
+/** Posted-job proposal milestone — submitted files/links/note from freelancer */
+function milestoneHasClientVisibleSubmission(m) {
+    if (!m) return false;
+    const note = typeof m.submissionNote === 'string' ? m.submissionNote.trim() : '';
+    const links = Array.isArray(m.submissionLinks) ? m.submissionLinks.filter(Boolean) : [];
+    const files = Array.isArray(m.submissionFiles) ? m.submissionFiles.filter(Boolean) : [];
+    return (
+        m.status === 'submitted' ||
+        m.status === 'done' ||
+        note.length > 0 ||
+        links.length > 0 ||
+        files.length > 0
+    );
+}
+
+function proposalHasFullWorkSubmission(ws) {
+    if (!ws) return false;
+    const msg = typeof ws.message === 'string' ? ws.message.trim() : '';
+    const links = Array.isArray(ws.links) ? ws.links.filter(Boolean) : [];
+    const files = Array.isArray(ws.files) ? ws.files.filter(Boolean) : [];
+    return msg.length > 0 || links.length > 0 || files.length > 0;
+}
+
+/** Client can approve when final delivery exists OR every proposal milestone has been submitted */
+function acceptedProposalReadyForClientApproval(acceptedProposal) {
+    if (!acceptedProposal) return false;
+    if (proposalHasFullWorkSubmission(acceptedProposal.workSubmission)) return true;
+    const ms = acceptedProposal.milestones;
+    if (!Array.isArray(ms) || ms.length === 0) return false;
+    return ms.every(milestoneHasClientVisibleSubmission);
+}
+
 const getMyOrders = async (req, res) => {
     try {
         const userId = req.user.id;
@@ -493,7 +525,7 @@ const getPendingWorkToApprove = async (req, res) => {
         for (const j of jobs) {
             const accepted = j.proposals?.find((p) => p.status === 'accepted' && String(p.freelancerId?._id || p.freelancerId) === partnerId);
             if (!activeJobForNav) activeJobForNav = j;
-            if (accepted?.workSubmission && (accepted.workSubmission.message || (accepted.workSubmission.links?.length > 0) || (accepted.workSubmission.files?.length > 0))) {
+            if (accepted && acceptedProposalReadyForClientApproval(accepted)) {
                 job = { ...j, acceptedProposal: accepted };
             }
         }
@@ -525,9 +557,10 @@ const approveJobWork = async (req, res) => {
         if (!acceptedProposal) {
             return res.status(400).json({ msg: 'No accepted proposal found' });
         }
-        const ws = acceptedProposal.workSubmission;
-        if (!ws || (!ws.message && (!ws.links || ws.links.length === 0) && (!ws.files || ws.files.length === 0))) {
-            return res.status(400).json({ msg: 'Freelancer has not submitted work yet' });
+        if (!acceptedProposalReadyForClientApproval(acceptedProposal)) {
+            return res.status(400).json({
+                msg: 'Freelancer has not submitted work yet. Wait for all milestone deliveries or the final submission.'
+            });
         }
 
         const freelancerId = String(acceptedProposal.freelancerId?._id || acceptedProposal.freelancerId);

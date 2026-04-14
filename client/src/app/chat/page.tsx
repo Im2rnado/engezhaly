@@ -1622,23 +1622,74 @@ function ChatPageContent() {
                                                 {(() => {
                                                     const p = pendingWorkToApprove.job.proposals?.find((pr: any) => pr.status === 'accepted');
                                                     const ws = p?.workSubmission;
-                                                    return ws && (
-                                                        <>
-                                                            {ws.message && <p className="text-gray-600 text-xs mb-2 line-clamp-2">{ws.message}</p>}
-                                                            <div className="flex flex-wrap gap-2 mb-3">
-                                                                {Array.isArray(ws.links) && ws.links.slice(0, 2).map((link: string, i: number) => (
-                                                                    <a key={i} href={link} target="_blank" rel="noreferrer" className="text-xs text-[#09BF44] hover:underline flex items-center gap-1">
-                                                                        <LinkIcon className="w-3 h-3" /> Link
-                                                                    </a>
-                                                                ))}
-                                                                {Array.isArray(ws.files) && ws.files.length > 0 && (
-                                                                    <span className="text-xs text-gray-500 flex items-center gap-1">
-                                                                        <Paperclip className="w-3 h-3" /> {ws.files.length} file(s)
-                                                                    </span>
-                                                                )}
+                                                    const hasWs =
+                                                        ws &&
+                                                        ((ws.message && String(ws.message).trim()) ||
+                                                            (Array.isArray(ws.links) && ws.links.some(Boolean)) ||
+                                                            (Array.isArray(ws.files) && ws.files.some(Boolean)));
+                                                    const ms = Array.isArray(p?.milestones) ? p.milestones : [];
+                                                    const milestoneDone = (m: any) => {
+                                                        const note = typeof m.submissionNote === 'string' ? m.submissionNote.trim() : '';
+                                                        const links = Array.isArray(m.submissionLinks) ? m.submissionLinks.filter(Boolean) : [];
+                                                        const files = Array.isArray(m.submissionFiles) ? m.submissionFiles.filter(Boolean) : [];
+                                                        return (
+                                                            m.status === 'submitted' ||
+                                                            m.status === 'done' ||
+                                                            note.length > 0 ||
+                                                            links.length > 0 ||
+                                                            files.length > 0
+                                                        );
+                                                    };
+                                                    const allMilestonesDelivered = ms.length > 0 && ms.every(milestoneDone);
+                                                    if (hasWs) {
+                                                        return (
+                                                            <>
+                                                                {ws.message && <p className="text-gray-600 text-xs mb-2 line-clamp-2">{ws.message}</p>}
+                                                                <div className="flex flex-wrap gap-2 mb-3">
+                                                                    {Array.isArray(ws.links) && ws.links.slice(0, 2).map((link: string, i: number) => (
+                                                                        <a key={i} href={link} target="_blank" rel="noreferrer" className="text-xs text-[#09BF44] hover:underline flex items-center gap-1">
+                                                                            <LinkIcon className="w-3 h-3" /> Link
+                                                                        </a>
+                                                                    ))}
+                                                                    {Array.isArray(ws.files) && ws.files.length > 0 && (
+                                                                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                                                                            <Paperclip className="w-3 h-3" /> {ws.files.length} file(s)
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </>
+                                                        );
+                                                    }
+                                                    if (allMilestonesDelivered) {
+                                                        return (
+                                                            <div className="text-xs text-gray-700 mb-3 space-y-1.5">
+                                                                <p className="font-bold text-gray-800">Milestone deliveries</p>
+                                                                {ms.map((m: any, i: number) => {
+                                                                    const links = Array.isArray(m.submissionLinks) ? m.submissionLinks.filter(Boolean) : [];
+                                                                    const files = Array.isArray(m.submissionFiles) ? m.submissionFiles.filter(Boolean) : [];
+                                                                    const note = typeof m.submissionNote === 'string' ? m.submissionNote.trim() : '';
+                                                                    return (
+                                                                        <div key={i} className="rounded-lg bg-white/80 border border-green-100 px-2 py-1.5">
+                                                                            <span className="font-semibold text-gray-900">{m.name || `Milestone ${i + 1}`}</span>
+                                                                            {note ? <p className="text-gray-600 line-clamp-2 mt-0.5">{note}</p> : null}
+                                                                            {links[0] && (
+                                                                                <a href={links[0]} target="_blank" rel="noreferrer" className="text-[#09BF44] hover:underline block truncate mt-0.5">
+                                                                                    {links[0]}
+                                                                                </a>
+                                                                            )}
+                                                                            {files.length > 0 && (
+                                                                                <span className="text-gray-500 flex items-center gap-1 mt-0.5">
+                                                                                    <Paperclip className="w-3 h-3" /> {files.length} file(s)
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                                <p className="text-gray-500 pt-1">Open the job page to see all links and files.</p>
                                                             </div>
-                                                        </>
-                                                    );
+                                                        );
+                                                    }
+                                                    return null;
                                                 })()}
                                                 <button
                                                     onClick={async () => {
