@@ -344,7 +344,7 @@ export default function Home() {
                 className="bg-gradient-to-r from-[#09BF44]/10 to-emerald-500/10 px-8 py-5 rounded-3xl border border-[#09BF44]/20 shadow-sm max-w-2xl text-center"
               >
                 <p className="text-xl md:text-2xl font-black text-[#09BF44]">
-                  &quot;W ehna ma3ko min awel matna2o el freelancer le8ayet matestelmo el sho8l 😉&quot;
+                  &quot;W ehna ma3ko min awel matna2o el freelancer le8ayet matestelmo el shoghl 😉&quot;
                 </p>
               </motion.div>
             )}
