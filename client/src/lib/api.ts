@@ -232,6 +232,11 @@ export const api = {
             if (!res.ok) return [];
             return res.json();
         },
+        getReviewStats: async (id: string) => {
+            const res = await fetch(`${API_URL}/freelancer/review-stats/${id}`, { method: 'GET' });
+            if (!res.ok) return { reviewCount: 0, avgRating: 0 };
+            return res.json();
+        },
         getMyOrders: async () => {
             const res = await fetch(`${API_URL}/freelancer/orders`, {
                 method: 'GET',
@@ -372,6 +377,16 @@ export const api = {
             }
             return res.json();
         },
+        rejectProposal: async (jobId: string, proposalId: string) => {
+            const res = await fetch(`${API_URL}/client/jobs/${jobId}/reject-proposal`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify({ proposalId }),
+            });
+            const result = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(result.msg || 'Failed to reject proposal');
+            return result;
+        },
         approveJobWork: async (jobId: string) => {
             const res = await fetch(`${API_URL}/client/jobs/${jobId}/approve-work`, {
                 method: 'PATCH',
@@ -396,6 +411,24 @@ export const api = {
             });
             if (!res.ok) throw new Error('Failed to fetch orders');
             return res.json();
+        },
+        getOrder: async (id: string) => {
+            const res = await fetch(`${API_URL}/client/orders/${id}`, {
+                method: 'GET',
+                headers: getHeaders()
+            });
+            const result = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(result.msg || 'Failed to fetch order');
+            return result;
+        },
+        cancelOrderRequest: async (id: string) => {
+            const res = await fetch(`${API_URL}/client/orders/${id}/cancel-request`, {
+                method: 'POST',
+                headers: getHeaders()
+            });
+            const result = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(result.msg || 'Failed to cancel request');
+            return result;
         },
         raiseDispute: async (orderId: string, reason?: string) => {
             const res = await fetch(`${API_URL}/client/orders/${orderId}/dispute`, {
@@ -724,6 +757,16 @@ export const api = {
             });
             return res.json();
         },
+        findConversationBetweenUsers: async (userA: string, userB: string) => {
+            const q = new URLSearchParams({ userA, userB });
+            const res = await fetch(`${API_URL}/admin/conversations/between?${q}`, {
+                method: 'GET',
+                headers: getHeaders()
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.msg || 'Failed to resolve conversation');
+            return data as { conversationId: string | null };
+        },
         getChatOffers: async (conversationId: string) => {
             const res = await fetch(`${API_URL}/admin/custom-offers/${encodeURIComponent(conversationId)}`, {
                 method: 'GET',
@@ -749,6 +792,14 @@ export const api = {
                 headers: getHeaders()
             });
             if (!res.ok) throw new Error('Failed to unfreeze chat');
+            return res.json();
+        },
+        markConversationAdminRead: async (conversationId: string) => {
+            const res = await fetch(`${API_URL}/admin/chats/${conversationId}/admin-read`, {
+                method: 'PATCH',
+                headers: getHeaders()
+            });
+            if (!res.ok) throw new Error('Failed to mark read');
             return res.json();
         },
         sendAdminMessage: async (data: any) => {
@@ -786,10 +837,11 @@ export const api = {
             if (!res.ok) throw new Error('Failed to add strike');
             return res.json();
         },
-        toggleEmployeeOfMonth: async (id: string) => {
-            const res = await fetch(`${API_URL}/admin/freelancers/${id}/employee-of-month`, {
+        toggleFreelancerReward: async (id: string, award: 'mostDeals' | 'topRated' | 'onTime') => {
+            const res = await fetch(`${API_URL}/admin/freelancers/${id}/reward`, {
                 method: 'PUT',
-                headers: getHeaders()
+                headers: getHeaders(),
+                body: JSON.stringify({ award })
             });
             if (!res.ok) throw new Error('Failed to toggle reward');
             return res.json();
@@ -812,6 +864,16 @@ export const api = {
             });
             if (!res.ok) throw new Error('User not found');
             return res.json();
+        },
+        searchUsersPartial: async (q: string) => {
+            const res = await fetch(`${API_URL}/admin/users/search/partial?q=${encodeURIComponent(q)}`, {
+                method: 'GET',
+                headers: getHeaders()
+            });
+            if (!res.ok) throw new Error('Search failed');
+            return res.json() as Promise<
+                { _id: string; username: string; email: string; firstName: string; lastName: string; role: string; strikes?: number }[]
+            >;
         },
         getAllUsers: async () => {
             const res = await fetch(`${API_URL}/admin/users`, {

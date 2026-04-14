@@ -19,6 +19,13 @@ const OrderSchema = new mongoose.Schema({
     rating: { type: Number, min: 1, max: 5 },
     review: { type: String },
     disputeReason: { type: String },
+    disputeResolvedAt: { type: Date },
+    disputeResolution: { type: String },
+    disputeResolutionType: {
+        type: String,
+        enum: ['release', 'refund', 'manual_split', 'reopen'],
+        required: false
+    },
     workSubmission: {
         message: { type: String, default: '' },
         links: [String],

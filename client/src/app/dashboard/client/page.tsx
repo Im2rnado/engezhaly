@@ -532,6 +532,12 @@ function ClientDashboardContent() {
                                             <CountdownTimer deadline={order.deliveryDate} variant="inline" />
                                         </div>
                                     )}
+                                    {order.disputeResolvedAt && order.disputeResolution && (
+                                        <div className="mt-3 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-900">
+                                            <p className="font-black text-green-800 text-xs uppercase tracking-wide mb-1">Dispute solved</p>
+                                            <p className="whitespace-pre-wrap break-words overflow-wrap-anywhere min-w-0">{order.disputeResolution}</p>
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="text-right shrink-0">
                                     <p className="text-lg font-black text-gray-900">{order.amount} EGP</p>
@@ -562,8 +568,10 @@ function ClientDashboardContent() {
                                         Work delivered {expandedDelivery === order._id ? '− hide' : '+ view'}
                                     </button>
                                     {expandedDelivery === order._id && (
-                                        <div className="mt-3 space-y-2 text-sm text-gray-600">
-                                            {order.workSubmission.message && <p className="whitespace-pre-wrap">{order.workSubmission.message}</p>}
+                                        <div className="mt-3 space-y-2 text-sm text-gray-600 min-w-0 max-w-full">
+                                            {order.workSubmission.message && (
+                                                <p className="whitespace-pre-wrap break-words overflow-wrap-anywhere min-w-0 max-w-full">{order.workSubmission.message}</p>
+                                            )}
                                             {Array.isArray(order.workSubmission.links) && order.workSubmission.links.length > 0 && (
                                                 <div>
                                                     <span className="font-semibold">Links:</span>
@@ -589,6 +597,13 @@ function ClientDashboardContent() {
                                 </div>
                             )}
                             <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-4 pt-4 border-t border-gray-100">
+                                <button
+                                    type="button"
+                                    onClick={() => router.push(`/dashboard/client/orders/${order._id}`)}
+                                    className="bg-gray-100 text-gray-700 font-bold px-4 py-2 rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2 text-sm"
+                                >
+                                    <Eye className="w-4 h-4" /> View details
+                                </button>
                                 {order.status === 'pending_payment' && (
                                     order.hasPendingInstaPay ? (
                                         <span className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold bg-amber-100 text-amber-800">

@@ -8,6 +8,7 @@ import { useModal } from '@/context/ModalContext';
 import FreelancerSidebar from '@/components/FreelancerSidebar';
 import { CATEGORIES } from '@/lib/categories';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
+import RevisionsField from '@/components/RevisionsField';
 
 export default function CreateOfferPage() {
     const { showModal } = useModal();
@@ -76,15 +77,19 @@ export default function CreateOfferPage() {
     };
 
     const handlePackageChange = (index: number, field: string, value: any) => {
-        const newPackages = [...projectData.packages];
-        newPackages[index] = { ...newPackages[index], [field]: value };
-        setProjectData({ ...projectData, packages: newPackages });
+        setProjectData((prev) => {
+            const newPackages = [...prev.packages];
+            newPackages[index] = { ...newPackages[index], [field]: value };
+            return { ...prev, packages: newPackages };
+        });
     };
 
     const handleFeaturesChange = (index: number, features: string[]) => {
-        const newPackages = [...projectData.packages];
-        newPackages[index] = { ...newPackages[index], features: features.length ? features : [''] };
-        setProjectData({ ...projectData, packages: newPackages });
+        setProjectData((prev) => {
+            const newPackages = [...prev.packages];
+            newPackages[index] = { ...newPackages[index], features: features.length ? features : [''] };
+            return { ...prev, packages: newPackages };
+        });
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -353,26 +358,15 @@ export default function CreateOfferPage() {
                                                     </div>
 
                                                     <div>
-                                                        <label className="text-xs font-bold text-gray-500">Revisions</label>
-                                                        <select
-                                                            value={pkg.revisionsUnlimited ? 'unlimited' : 'fixed'}
-                                                            onChange={(e) => handlePackageChange(idx, 'revisionsUnlimited', e.target.value === 'unlimited')}
-                                                            className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm mb-1"
-                                                        >
-                                                            <option value="fixed">Fixed count</option>
-                                                            <option value="unlimited">Unlimited</option>
-                                                        </select>
-                                                        {!pkg.revisionsUnlimited && (
-                                                            <input
-                                                                type="number"
-                                                                required
-                                                                min={0}
-                                                                value={pkg.revisions}
-                                                                onChange={(e) => handlePackageChange(idx, 'revisions', e.target.value)}
-                                                                placeholder="Revisions"
-                                                                className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none placeholder:text-gray-400 placeholder:opacity-70"
-                                                            />
-                                                        )}
+                                                        <RevisionsField
+                                                            variant="compact"
+                                                            label="Revisions"
+                                                            required
+                                                            unlimited={!!pkg.revisionsUnlimited}
+                                                            revisions={String(pkg.revisions ?? '')}
+                                                            onUnlimitedChange={(u) => handlePackageChange(idx, 'revisionsUnlimited', u)}
+                                                            onRevisionsChange={(v) => handlePackageChange(idx, 'revisions', v)}
+                                                        />
                                                     </div>
 
                                                     <div>

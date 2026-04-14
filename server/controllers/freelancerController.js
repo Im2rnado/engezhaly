@@ -7,6 +7,7 @@ const { emitChatContextRefresh } = require('../services/chatContextRefresh');
 const Conversation = require('../models/Conversation');
 const { sendAndLog } = require('../services/mailgunService');
 const { orderApproved, orderDenied, workSubmitted } = require('../templates/emailTemplates');
+const { reviewStatsForSeller } = require('../utils/reviewStatsForSeller');
 
 /** If order.revision fields were missing but linked offer has them, expose offer values (read path fix). */
 const orderWithRevisionFallback = (order) => {
@@ -202,6 +203,16 @@ const getPublicProfile = async (req, res) => {
             }
         }
         res.json(obj);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+const getReviewStats = async (req, res) => {
+    try {
+        const stats = await reviewStatsForSeller(req.params.sellerId);
+        res.json(stats);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
@@ -635,6 +646,7 @@ module.exports = {
     updateProfile,
     getProfile,
     getPublicProfile,
+    getReviewStats,
     getReviews,
     getTopFreelancers,
     getMyOrders,

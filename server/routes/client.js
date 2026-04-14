@@ -9,7 +9,10 @@ const {
     updateJob,
     deleteJob,
     acceptProposal,
+    rejectProposal,
     getMyOrders,
+    getClientOrderById,
+    cancelPendingOrderRequest,
     getActiveOrderForProject,
     getAllActiveOrders,
     raiseDispute,
@@ -54,6 +57,7 @@ router.delete('/jobs/:id', authVerified, deleteJob);
 // @desc    Accept a proposal for a job
 // @access  Private (Client only, owner)
 router.post('/jobs/:id/accept-proposal', authVerified, acceptProposal);
+router.post('/jobs/:id/reject-proposal', authVerified, rejectProposal);
 
 // @route   PATCH api/client/jobs/:id/approve-work
 // @desc    Approve submitted work for a job (releases escrow)
@@ -78,6 +82,9 @@ router.get('/orders/project/:projectId/active', authVerified, getActiveOrderForP
 // @desc    Get all active orders for current user
 // @access  Private
 router.get('/orders/active', authVerified, getAllActiveOrders);
+
+router.get('/orders/:id', authVerified, getClientOrderById);
+router.post('/orders/:id/cancel-request', authVerified, cancelPendingOrderRequest);
 router.post('/orders/:id/dispute', authVerified, raiseDispute);
 router.patch('/orders/:id/approve-delivery', authVerified, approveDelivery);
 router.patch('/orders/:id/review', authVerified, submitReview);

@@ -11,6 +11,7 @@ import { PHONE_COUNTRIES, validatePhone, formatPhoneE164, getFlagEmoji } from '@
 import DatePicker from '@/components/DatePicker';
 import ImageCropModal from '@/components/ImageCropModal';
 import VimeoStarterOfferEmbed from '@/components/VimeoStarterOfferEmbed';
+import RevisionsField from '@/components/RevisionsField';
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -403,14 +404,18 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
         setStarterOffer(prev => ({ ...prev, [field]: value }));
     };
     const handleStarterOfferPackage = (idx: number, field: string, value: any) => {
-        const next = [...starterOffer.packages];
-        next[idx] = { ...next[idx], [field]: value };
-        setStarterOffer(prev => ({ ...prev, packages: next }));
+        setStarterOffer((prev) => {
+            const next = [...prev.packages];
+            next[idx] = { ...next[idx], [field]: value };
+            return { ...prev, packages: next };
+        });
     };
     const handleStarterOfferFeatures = (idx: number, features: string[]) => {
-        const next = [...starterOffer.packages];
-        next[idx] = { ...next[idx], features: features?.length ? features : [''] };
-        setStarterOffer(prev => ({ ...prev, packages: next }));
+        setStarterOffer((prev) => {
+            const next = [...prev.packages];
+            next[idx] = { ...next[idx], features: features?.length ? features : [''] };
+            return { ...prev, packages: next };
+        });
     };
 
     const handlePortfolioImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
@@ -1512,7 +1517,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                 <h3 className="text-xl md:text-2xl font-bold text-center mb-2">Starter Offer</h3>
                                 <p className="text-center text-gray-600 mb-4">Create your first offer. It will be published once your account is verified and approved.</p>
 
-                                <div className="mb-6 max-h-[min(40vh,320px)] overflow-y-auto pr-1 -mx-1">
+                                <div className="mb-6">
                                     <VimeoStarterOfferEmbed
                                         compact
                                         title="Watch this quick guide before you fill in your offer"
@@ -1555,17 +1560,14 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                     <div className="space-y-2">
                                                         <input type="number" placeholder="Price in EGP (min 300)" value={pkg.price} onChange={(e) => handleStarterOfferPackage(idx, 'price', e.target.value)} className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm placeholder:text-gray-400 placeholder:opacity-70" />
                                                         <input type="number" placeholder="Delivery days" value={pkg.days} onChange={(e) => handleStarterOfferPackage(idx, 'days', e.target.value)} className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm placeholder:text-gray-400 placeholder:opacity-70" />
-                                                        <select
-                                                            value={(pkg as { revisionsUnlimited?: boolean }).revisionsUnlimited ? 'unlimited' : 'fixed'}
-                                                            onChange={(e) => handleStarterOfferPackage(idx, 'revisionsUnlimited', e.target.value === 'unlimited')}
-                                                            className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm"
-                                                        >
-                                                            <option value="fixed">Revisions: fixed count</option>
-                                                            <option value="unlimited">Revisions: unlimited</option>
-                                                        </select>
-                                                        {!(pkg as { revisionsUnlimited?: boolean }).revisionsUnlimited && (
-                                                            <input type="number" placeholder="Number of revisions" value={pkg.revisions} onChange={(e) => handleStarterOfferPackage(idx, 'revisions', e.target.value)} className="w-full p-2 bg-gray-50 rounded-lg border focus:border-[#09BF44] outline-none text-sm placeholder:text-gray-400 placeholder:opacity-70" />
-                                                        )}
+                                                        <RevisionsField
+                                                            variant="auth"
+                                                            label="Revisions"
+                                                            unlimited={!!(pkg as { revisionsUnlimited?: boolean }).revisionsUnlimited}
+                                                            revisions={String((pkg as { revisions?: string }).revisions ?? '')}
+                                                            onUnlimitedChange={(u) => handleStarterOfferPackage(idx, 'revisionsUnlimited', u)}
+                                                            onRevisionsChange={(v) => handleStarterOfferPackage(idx, 'revisions', v)}
+                                                        />
                                                         <div>
                                                             <label className="text-xs font-bold text-gray-500">Features (press Enter for new line)</label>
                                                             <textarea

@@ -37,7 +37,8 @@ export default function ClientSidebar({ user, activeTab, mobileOpen = false, onC
     }, [user?._id, user?.id]);
 
     const activeJobs = jobs.filter((j: any) => j.status === 'open' || j.status === 'in_progress').length;
-    const activeOrders = orders.filter((o: any) => o.status === 'active').length;
+    const inFlightOrderStatuses = ['pending_approval', 'pending_payment', 'active', 'disputed'];
+    const activeOrders = orders.filter((o: any) => inFlightOrderStatuses.includes(o.status)).length;
 
     return (
         <div className={`w-72 bg-white border-r border-gray-200 flex flex-col fixed h-full z-40 shadow-sm transition-transform duration-300 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>

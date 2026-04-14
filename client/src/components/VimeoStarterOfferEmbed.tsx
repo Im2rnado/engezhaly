@@ -26,11 +26,11 @@ export default function VimeoStarterOfferEmbed({
                 </p>
             ) : null}
             <div
-                className={`rounded-xl overflow-hidden border-2 border-gray-200 bg-black shadow-sm ${
-                    compact ? "" : "ring-1 ring-gray-100"
+                className={`mx-auto max-w-md rounded-xl overflow-hidden border-2 border-gray-200 bg-black shadow-sm ${
+                    compact ? "" : "ring-1 ring-gray-100 max-w-lg"
                 }`}
             >
-                <div className="relative w-full aspect-video">
+                <div className="relative w-full aspect-video max-h-[200px] sm:max-h-[220px] md:max-h-none">
                     <iframe
                         src={VIMEO_STARTER_OFFER_SRC}
                         title="Engezhaly — starter offer guide (Vimeo)"

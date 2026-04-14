@@ -134,8 +134,8 @@ export default function OfferDetailPage() {
                                     <div className="flex items-center gap-1.5 text-amber-500">
                                         <Star className="w-4 h-4 fill-amber-400" />
                                         <span className="text-sm font-bold text-gray-700">
-                                            {reviews.length > 0
-                                                ? `${(reviews.reduce((s: number, r: any) => s + (r.rating || 0), 0) / reviews.length).toFixed(1)} (${reviews.length} review${reviews.length === 1 ? '' : 's'})`
+                                            {project?.reviewStats?.reviewCount > 0
+                                                ? `Rated ${project.reviewStats.avgRating} · ${project.reviewStats.reviewCount} review${project.reviewStats.reviewCount === 1 ? '' : 's'}`
                                                 : 'New seller'}
                                         </span>
                                     </div>

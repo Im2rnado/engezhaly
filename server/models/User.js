@@ -30,6 +30,9 @@ const UserSchema = new mongoose.Schema({
         isBusy: { type: Boolean, default: false },
         adminStarred: { type: Boolean, default: false }, // Admin marked for later review
         isEmployeeOfMonth: { type: Boolean, default: false },
+        rewardMostDeals: { type: Boolean, default: false },
+        rewardTopRated: { type: Boolean, default: false },
+        rewardOnTime: { type: Boolean, default: false },
         profilePicture: { type: String }, // URL or base64 data URL
         bio: { type: String }, // Describe self
         idDocument: { type: String, select: false }, // URL to ID, hidden from public

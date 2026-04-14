@@ -8,6 +8,7 @@ import MainHeader from "@/components/MainHeader";
 import AuthModal from "@/components/AuthModal";
 import { useModal } from "@/context/ModalContext";
 import DatePicker from "@/components/DatePicker";
+import RevisionsField from "@/components/RevisionsField";
 
 function JobsPageContent() {
     const router = useRouter();
@@ -442,25 +443,15 @@ function JobsPageContent() {
                                     </div>
                                 )}
                                 <div className="col-span-2 md:col-span-1">
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Revisions</label>
-                                    <select
-                                        value={proposal.revisionsUnlimited ? 'unlimited' : 'fixed'}
-                                        onChange={e => setProposal({ ...proposal, revisionsUnlimited: e.target.value === 'unlimited' })}
-                                        className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none text-gray-900 mb-2"
-                                    >
-                                        <option value="fixed">Fixed count</option>
-                                        <option value="unlimited">Unlimited</option>
-                                    </select>
-                                    {!proposal.revisionsUnlimited && (
-                                        <input
-                                            required
-                                            type="number"
-                                            min={0}
-                                            value={proposal.revisions}
-                                            onChange={e => setProposal({ ...proposal, revisions: e.target.value })}
-                                            className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none text-gray-900"
-                                        />
-                                    )}
+                                    <RevisionsField
+                                        variant="jobs"
+                                        label="Revisions"
+                                        required
+                                        unlimited={proposal.revisionsUnlimited}
+                                        revisions={proposal.revisions}
+                                        onUnlimitedChange={(u) => setProposal((p) => ({ ...p, revisionsUnlimited: u }))}
+                                        onRevisionsChange={(v) => setProposal((p) => ({ ...p, revisions: v }))}
+                                    />
                                 </div>
                             </div>
 

@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
 import Image from 'next/image';
 import { api } from '@/lib/api';
-import { formatStatus, formatDateDDMMYYYY } from '@/lib/utils';
-import { Check, X, Ban, User, Flag, MessageSquare, Award, BarChart3, TrendingUp, Search, Loader2, Briefcase, FileText, ShoppingBag, CreditCard, Trash2, Star, Edit, LogOut, ArrowLeft, Send, Shield, PanelLeft, Mail, Video, ArrowDownToLine, Smartphone, Megaphone, ImagePlus, AlertTriangle, UserPlus, CheckCircle, XCircle } from 'lucide-react';
+import { formatStatus, formatDateDDMMYYYY, formatRevisionsLabel } from '@/lib/utils';
+import { Check, X, Ban, User, Flag, MessageSquare, Award, BarChart3, TrendingUp, Search, Loader2, Briefcase, FileText, ShoppingBag, CreditCard, Trash2, Star, Edit, LogOut, ArrowLeft, Send, Shield, PanelLeft, Mail, Video, ArrowDownToLine, Smartphone, Megaphone, ImagePlus, AlertTriangle, UserPlus, CheckCircle, XCircle, ExternalLink } from 'lucide-react';
 import { MAIN_CATEGORIES } from '@/lib/categories';
 import { useModal } from '@/context/ModalContext';
 import EditModal from '@/components/EditModal';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
+import CountdownTimer from '@/components/CountdownTimer';
+import AnnouncementContent from '@/components/AnnouncementContent';
 
 const SOCKET_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.engezhaly.com/api').replace(/\/api$/, '');
 const API_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/api$/, '');
@@ -192,7 +194,7 @@ function AdminChatMergedFeed({ messages, offers, selectedChat }: { messages: any
                                     <div className="flex items-center justify-between gap-2">
                                         <span className="text-sm font-bold">Revisions:</span>
                                         <span className="text-sm font-medium">
-                                            {offer.revisionsUnlimited ? 'Unlimited' : String(Number(offer.revisions ?? 0))}
+                                            {formatRevisionsLabel(offer.revisionsUnlimited, offer.revisions, 'short')}
                                         </span>
                                     </div>
                                     <div className="pt-3 border-t border-gray-200 min-w-0">
@@ -549,6 +551,8 @@ export default function AdminDashboard() {
     // Search & UI States
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResult, setSearchResult] = useState<any>(null);
+    const [strikeSearchMatches, setStrikeSearchMatches] = useState<any[]>([]);
+    const strikeSearchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [loading, setLoading] = useState(false);
     const [usersLoading, setUsersLoading] = useState(false);
     const [projectsLoading, setProjectsLoading] = useState(false);
@@ -580,6 +584,7 @@ export default function AdminDashboard() {
     const [socket, setSocket] = useState<any>(null);
     const selectedConversationIdRef = useRef<string | null>(null);
     selectedConversationIdRef.current = selectedChat?._id ?? null;
+    const adminChatMessagesScrollRef = useRef<HTMLDivElement | null>(null);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
     const [financeHideManualTopUp, setFinanceHideManualTopUp] = useState(false);
@@ -587,7 +592,8 @@ export default function AdminDashboard() {
     // Dispute resolution
     const [disputeModal, setDisputeModal] = useState<{ isOpen: boolean; order: any | null }>({ isOpen: false, order: null });
     const [disputeOutcome, setDisputeOutcome] = useState('');
-    const [disputeStatus, setDisputeStatus] = useState<'completed' | 'refunded'>('completed');
+    const [disputeResolveMode, setDisputeResolveMode] = useState<'release' | 'refund' | 'manual' | 'reopen'>('release');
+    const [freelancerSplitPct, setFreelancerSplitPct] = useState(50);
     const [resolvingDispute, setResolvingDispute] = useState(false);
 
     // Announcements create form
@@ -665,6 +671,12 @@ export default function AdminDashboard() {
     const handleSelectChat = async (chat: any) => {
         setSelectedChat(chat);
         await fetchChatMessages(chat._id);
+        try {
+            await api.admin.markConversationAdminRead(chat._id);
+            await fetchChats();
+        } catch (e) {
+            console.error(e);
+        }
     };
 
     const handleSendAdminMessage = async (e: React.FormEvent) => {
@@ -700,6 +712,32 @@ export default function AdminDashboard() {
             showModal({ title: 'Error', message: err.message || 'Failed to send message', type: 'error' });
         }
     };
+
+    const openOrderPartyChat = useCallback(
+        async (buyerId: string | undefined, sellerId: string | undefined) => {
+            const a = buyerId != null ? String(buyerId) : '';
+            const b = sellerId != null ? String(sellerId) : '';
+            if (!a || !b) {
+                showModal({ title: 'Missing users', message: 'Could not resolve buyer or freelancer for this order.', type: 'error' });
+                return;
+            }
+            try {
+                const { conversationId } = await api.admin.findConversationBetweenUsers(a, b);
+                if (!conversationId) {
+                    showModal({
+                        title: 'No conversation',
+                        message: 'No direct chat exists yet between this client and freelancer.',
+                        type: 'error'
+                    });
+                    return;
+                }
+                window.open(`/chat?conversation=${conversationId}`, '_blank', 'noopener,noreferrer');
+            } catch (e: any) {
+                showModal({ title: 'Error', message: e.message || 'Failed to open chat', type: 'error' });
+            }
+        },
+        [showModal]
+    );
 
     const fetchInsights = async () => {
         try {
@@ -988,6 +1026,36 @@ export default function AdminDashboard() {
         };
     }, [socket, fetchChatMessages]);
 
+    useEffect(() => {
+        const el = adminChatMessagesScrollRef.current;
+        if (!el || !selectedChat?._id || activeTab !== 'chats') return;
+        el.scrollTop = el.scrollHeight;
+    }, [selectedChat?._id, chatMessages, chatOffers, activeTab]);
+
+    useEffect(() => {
+        if (activeTab !== 'strikes') {
+            setStrikeSearchMatches([]);
+            return;
+        }
+        const q = searchQuery.trim();
+        if (q.length < 2) {
+            setStrikeSearchMatches([]);
+            return;
+        }
+        if (strikeSearchDebounceRef.current) clearTimeout(strikeSearchDebounceRef.current);
+        strikeSearchDebounceRef.current = setTimeout(async () => {
+            try {
+                const rows = await api.admin.searchUsersPartial(q);
+                setStrikeSearchMatches(Array.isArray(rows) ? rows : []);
+            } catch {
+                setStrikeSearchMatches([]);
+            }
+        }, 320);
+        return () => {
+            if (strikeSearchDebounceRef.current) clearTimeout(strikeSearchDebounceRef.current);
+        };
+    }, [searchQuery, activeTab]);
+
     // Action Handlers
     const handleSearchUser = async () => {
         if (!searchQuery) return;
@@ -1015,11 +1083,11 @@ export default function AdminDashboard() {
         }
     };
 
-    const handleToggleReward = async (userId: string) => {
+    const handleToggleReward = async (userId: string, award: 'mostDeals' | 'topRated' | 'onTime') => {
         try {
-            await api.admin.toggleEmployeeOfMonth(userId);
-            showModal({ title: 'Success', message: 'Employee of Month Status Toggled', type: 'success' });
-            fetchTopFreelancers(); // Refresh data
+            await api.admin.toggleFreelancerReward(userId, award);
+            showModal({ title: 'Success', message: 'Reward updated.', type: 'success' });
+            fetchTopFreelancers();
         } catch (err) {
             console.error(err);
             showModal({ title: 'Error', message: 'Failed to toggle reward', type: 'error' });
@@ -1252,7 +1320,7 @@ export default function AdminDashboard() {
                         {projects.length > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{projects.length}</span>}
                     </button>
                     <button onClick={() => setActiveTab('jobs')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'jobs' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
-                        <FileText className="w-5 h-5" /> Jobs
+                        <FileText className="w-5 h-5" /> Posted jobs
                         {jobs.length > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{jobs.length}</span>}
                     </button>
                     <button onClick={() => setActiveTab('orders')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'orders' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
@@ -1282,7 +1350,11 @@ export default function AdminDashboard() {
                     </button>
                     <button onClick={() => setActiveTab('chats')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'chats' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <MessageSquare className="w-5 h-5" /> Chats
-                        {activeChats.length > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{activeChats.length}</span>}
+                        {activeChats.some((c: any) => c.adminHasUnread) ? (
+                            <span className="ml-auto bg-[#09BF44] text-white text-xs px-2 py-0.5 rounded-full font-black">New</span>
+                        ) : activeChats.length > 0 ? (
+                            <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{activeChats.length}</span>
+                        ) : null}
                     </button>
                     <button onClick={() => setActiveTab('announcements')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'announcements' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <Megaphone className="w-5 h-5" /> Announcements
@@ -1378,8 +1450,11 @@ export default function AdminDashboard() {
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="p-3 bg-yellow-50 rounded-xl text-yellow-600"><TrendingUp className="w-6 h-6" /></div>
                                     </div>
-                                    <h3 className="text-gray-500 font-bold text-sm">Total Revenue</h3>
+                                    <h3 className="text-gray-500 font-bold text-sm">Total Revenue (completed orders)</h3>
                                     <p className="text-3xl font-black text-gray-900 mt-1">{insights.totalRevenue} EGP</p>
+                                    {insights.totalFeesCollected != null && (
+                                        <p className="text-xs text-gray-500 font-bold mt-2">Platform fees collected: {insights.totalFeesCollected} EGP</p>
+                                    )}
                                 </div>
                             </div>
                         ) : (
@@ -1525,16 +1600,100 @@ export default function AdminDashboard() {
                                 </button>
                                 {(() => {
                                     const project = managementDetail.item;
+                                    const seller = project.sellerId;
+                                    const freelancerName = seller
+                                        ? `${seller.firstName || ''} ${seller.lastName || ''}`.trim()
+                                        : 'Freelancer';
+                                    const profilePicture = seller?.freelancerProfile?.profilePicture;
+                                    const rawImages = ((project.images || []) as string[]).filter(Boolean);
+                                    const galleryImages = [...new Set(rawImages)];
                                     return (
                                         <>
                                             <h2 className="text-2xl font-black text-gray-900 mb-2">{project.title}</h2>
                                             <p className="text-gray-600 mb-4">{project.description || '—'}</p>
+                                            <div className="flex flex-wrap items-center gap-2 mb-4">
+                                                <span
+                                                    className={`text-xs font-black px-2 py-1 rounded-full ${
+                                                        project.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+                                                    }`}
+                                                >
+                                                    {project.isActive ? 'Active listing' : 'Inactive'}
+                                                </span>
+                                                <span className="text-xs font-bold text-gray-500">
+                                                    {project.category} · {project.subCategory}
+                                                </span>
+                                            </div>
                                             <div className="flex flex-wrap gap-3 mb-6">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => window.open(`/offers/${project._id}`, '_blank', 'noopener,noreferrer')}
+                                                    className="text-sm font-bold text-[#09BF44] hover:underline flex items-center gap-1"
+                                                >
+                                                    <ExternalLink className="w-4 h-4" /> View as client (public offer)
+                                                </button>
                                                 <button type="button" onClick={() => router.push(`/freelancer/${project.sellerId?._id || project.sellerId}`)} className="text-sm font-bold text-[#09BF44] hover:underline">
                                                     View freelancer profile
                                                 </button>
                                                 <button type="button" onClick={() => handleEditProject(project)} className="text-sm font-bold text-blue-600 hover:underline flex items-center gap-1"><Edit className="w-4 h-4" /> Edit</button>
                                                 <button type="button" onClick={() => handleDeleteProject(project._id)} className="text-sm font-bold text-red-600 hover:underline flex items-center gap-1"><Trash2 className="w-4 h-4" /> Delete</button>
+                                            </div>
+                                            {seller && (
+                                                <div className="flex items-start gap-4 py-4 border-y border-gray-100 mb-6">
+                                                    <div className="relative w-14 h-14 rounded-full overflow-hidden border border-gray-100 bg-gray-100 shrink-0">
+                                                        {profilePicture ? (
+                                                            <Image src={resolveMediaUrl(profilePicture)} alt="" fill className="object-cover" sizes="56px" />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center text-white font-black bg-[#09BF44]">
+                                                                {freelancerName[0]?.toUpperCase() || 'F'}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="font-black text-gray-900">{freelancerName}</p>
+                                                        <p className="text-xs text-gray-500">{seller.email}</p>
+                                                        <div className="flex flex-wrap items-center gap-2 mt-2">
+                                                            <span className="inline-flex items-center gap-1 text-amber-600 text-sm font-bold">
+                                                                <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
+                                                                {project.reviewStats?.reviewCount > 0
+                                                                    ? `Rated ${project.reviewStats.avgRating} · ${project.reviewStats.reviewCount} review${project.reviewStats.reviewCount === 1 ? '' : 's'}`
+                                                                    : 'New seller'}
+                                                            </span>
+                                                        </div>
+                                                        {seller.freelancerProfile?.bio && (
+                                                            <p className="text-sm text-gray-600 mt-2 line-clamp-3">{seller.freelancerProfile.bio}</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {galleryImages.length > 0 && (
+                                                <div className="mb-6">
+                                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Photos & media</h4>
+                                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                                        {galleryImages.map((src: string, i: number) => (
+                                                            <a
+                                                                key={i}
+                                                                href={resolveMediaUrl(src)}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="relative aspect-video rounded-xl overflow-hidden bg-gray-100 block"
+                                                            >
+                                                                <Image
+                                                                    src={resolveMediaUrl(src)}
+                                                                    alt=""
+                                                                    fill
+                                                                    className="object-cover"
+                                                                    sizes="(max-width: 640px) 50vw, 33vw"
+                                                                />
+                                                            </a>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            <div className="mb-6 text-sm">
+                                                <span className="font-bold text-gray-500">Video / voice consultation (EGP): </span>
+                                                <span className="font-bold text-gray-900">
+                                                    {project.consultationPrice != null ? project.consultationPrice : '—'}
+                                                </span>
                                             </div>
                                             <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Packages</h4>
                                             <div className="grid gap-3 sm:grid-cols-3">
@@ -1542,7 +1701,9 @@ export default function AdminDashboard() {
                                                     <div key={i} className="bg-gray-50 rounded-xl p-4 border border-gray-100">
                                                         <p className="font-black text-gray-900">{pkg.type}</p>
                                                         <p className="text-[#09BF44] font-bold mt-1">{pkg.price} EGP</p>
-                                                        <p className="text-xs text-gray-500 mt-1">{pkg.days} days · rev. {pkg.revisionsUnlimited ? '∞' : (pkg.revisions ?? 0)}</p>
+                                                        <p className="text-xs text-gray-500 mt-1">
+                                                            {pkg.days} days · rev. {formatRevisionsLabel(pkg.revisionsUnlimited, pkg.revisions)}
+                                                        </p>
                                                     </div>
                                                 ))}
                                             </div>
@@ -1557,28 +1718,86 @@ export default function AdminDashboard() {
                 {activeTab === 'jobs' && (
                     <div className="space-y-6">
                         {!managementDetail || managementDetail.kind !== 'job' ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                                {jobsLoading && (
-                                    <div className="col-span-full flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44]" /></div>
-                                )}
-                                {!jobsLoading && jobs.length === 0 && (
-                                    <p className="col-span-full text-center text-gray-500 py-12">No jobs yet.</p>
-                                )}
-                                {!jobsLoading && jobs.map((job: any) => (
+                            (() => {
+                                const activeJobList = jobs.filter((j: any) => j.status === 'open' || j.status === 'in_progress');
+                                const finishedJobList = jobs.filter((j: any) => j.status === 'completed' || j.status === 'closed');
+                                const renderJobCard = (job: any) => (
                                     <button
                                         key={job._id}
                                         type="button"
                                         onClick={() => setManagementDetail({ kind: 'job', item: job })}
-                                        className="text-left bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:border-[#09BF44]/50 hover:shadow-md transition-all"
+                                        className="text-left bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:border-[#09BF44]/50 hover:shadow-md transition-all w-full"
                                     >
-                                        <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${job.status === 'open' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>{job.status}</span>
+                                        <span
+                                            className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                                                job.status === 'open'
+                                                    ? 'bg-green-100 text-green-700'
+                                                    : job.status === 'in_progress'
+                                                      ? 'bg-blue-100 text-blue-700'
+                                                      : job.status === 'completed'
+                                                        ? 'bg-purple-100 text-purple-700'
+                                                        : 'bg-gray-100 text-gray-600'
+                                            }`}
+                                        >
+                                            {job.status}
+                                        </span>
                                         <h3 className="font-black text-gray-900 mt-2 line-clamp-2">{job.title}</h3>
-                                        <p className="text-sm text-gray-600 mt-1">{job.clientId?.firstName} {job.clientId?.lastName}</p>
-                                        <p className="text-xs text-gray-500 mt-2">Posted {formatDateDDMMYYYY(job.createdAt)} · Due: {job.deadline || '—'}</p>
-                                        <p className="text-sm font-bold text-[#09BF44] mt-2">{job.budgetRange?.min} – {job.budgetRange?.max} EGP</p>
+                                        <p className="text-sm text-gray-600 mt-1">
+                                            {job.clientId?.firstName} {job.clientId?.lastName}
+                                        </p>
+                                        <p className="text-xs text-gray-500 mt-2">
+                                            Posted {formatDateDDMMYYYY(job.createdAt)} · Due: {job.deadline || '—'}
+                                        </p>
+                                        <p className="text-sm font-bold text-[#09BF44] mt-2">
+                                            {job.budgetRange?.min} – {job.budgetRange?.max} EGP
+                                        </p>
                                     </button>
-                                ))}
-                            </div>
+                                );
+                                return (
+                                    <div className="space-y-10">
+                                        <div>
+                                            <h2 className="text-2xl font-black text-gray-900">Posted jobs</h2>
+                                            <p className="text-sm text-gray-500 mt-1">Same data clients see: proposals, accept/reject, and delivery timers.</p>
+                                        </div>
+                                        {jobsLoading && (
+                                            <div className="flex justify-center p-12">
+                                                <Loader2 className="w-8 h-8 animate-spin text-[#09BF44]" />
+                                            </div>
+                                        )}
+                                        {!jobsLoading && jobs.length === 0 && (
+                                            <p className="text-center text-gray-500 py-12">No jobs yet.</p>
+                                        )}
+                                        {!jobsLoading && jobs.length > 0 && (
+                                            <>
+                                                <section>
+                                                    <h3 className="text-lg font-black text-gray-900 mb-4">Active (open / in progress)</h3>
+                                                    {activeJobList.length > 0 ? (
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                                                            {activeJobList.map(renderJobCard)}
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-sm text-gray-500 bg-white rounded-2xl border border-gray-100 p-8 text-center">
+                                                            No active posted jobs.
+                                                        </p>
+                                                    )}
+                                                </section>
+                                                <section>
+                                                    <h3 className="text-lg font-black text-gray-900 mb-4">Finished (completed / closed)</h3>
+                                                    {finishedJobList.length > 0 ? (
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                                                            {finishedJobList.map(renderJobCard)}
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-sm text-gray-500 bg-white rounded-2xl border border-gray-100 p-8 text-center">
+                                                            No finished jobs yet.
+                                                        </p>
+                                                    )}
+                                                </section>
+                                            </>
+                                        )}
+                                    </div>
+                                );
+                            })()
                         ) : (
                             <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 md:p-8 space-y-6">
                                 <button type="button" onClick={() => setManagementDetail(null)} className="flex items-center gap-2 text-gray-600 font-bold hover:text-gray-900">
@@ -1587,6 +1806,13 @@ export default function AdminDashboard() {
                                 {(() => {
                                     const job = managementDetail.item;
                                     const accepted = (job.proposals || []).find((p: any) => p.status === 'accepted');
+                                    let inProgressDeadline: Date | null = null;
+                                    if (job.status === 'in_progress' && accepted?.deliveryDays != null) {
+                                        const created = new Date(job.createdAt);
+                                        const d = new Date(created);
+                                        d.setDate(d.getDate() + Number(accepted.deliveryDays));
+                                        inProgressDeadline = d;
+                                    }
                                     return (
                                         <>
                                             <div className="flex flex-wrap items-start justify-between gap-4">
@@ -1599,19 +1825,74 @@ export default function AdminDashboard() {
                                                     <button type="button" onClick={() => handleDeleteJob(job._id)} className="p-2 text-red-600 hover:bg-red-50 rounded-xl"><Trash2 className="w-5 h-5" /></button>
                                                 </div>
                                             </div>
-                                            <p className="text-gray-700 whitespace-pre-wrap">{job.description}</p>
+                                            <p className="text-gray-700 whitespace-pre-wrap break-words min-w-0 max-w-full">{job.description}</p>
                                             <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                                                 <div className="bg-gray-50 rounded-xl p-3"><span className="text-gray-400 font-bold text-xs uppercase">Status</span><p className="font-bold">{job.status}</p></div>
                                                 <div className="bg-gray-50 rounded-xl p-3"><span className="text-gray-400 font-bold text-xs uppercase">Posted</span><p className="font-bold">{formatDateDDMMYYYY(job.createdAt)}</p></div>
                                                 <div className="bg-gray-50 rounded-xl p-3"><span className="text-gray-400 font-bold text-xs uppercase">Deadline</span><p className="font-bold">{job.deadline || '—'}</p></div>
                                                 <div className="bg-gray-50 rounded-xl p-3"><span className="text-gray-400 font-bold text-xs uppercase">Budget</span><p className="font-bold">{job.budgetRange?.min} – {job.budgetRange?.max} EGP</p></div>
                                             </div>
+                                            {inProgressDeadline && (
+                                                <div className="rounded-xl border border-blue-100 bg-blue-50/80 p-4">
+                                                    <p className="text-xs font-black text-blue-800 uppercase tracking-wide mb-2">Delivery timer (accepted proposal)</p>
+                                                    <CountdownTimer deadline={inProgressDeadline.toISOString()} variant="inline" />
+                                                </div>
+                                            )}
                                             {job.milestones?.length > 0 && (
                                                 <div>
                                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Job milestones</h4>
                                                     <ul className="space-y-2">
                                                         {job.milestones.map((m: any, i: number) => (
                                                             <li key={i} className="bg-gray-50 rounded-xl p-3 text-sm">{m.name} — {m.price != null ? `${m.price} EGP` : ''} {m.dueDate ? `· due ${formatDateDDMMYYYY(m.dueDate)}` : ''}</li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                            {(job.proposals || []).length > 0 && (
+                                                <div>
+                                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">All proposals</h4>
+                                                    <ul className="space-y-3">
+                                                        {(job.proposals || []).map((proposal: any, pidx: number) => (
+                                                            <li
+                                                                key={proposal._id || pidx}
+                                                                className="rounded-xl border border-gray-100 bg-gray-50/80 p-4 text-sm"
+                                                            >
+                                                                <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                                                                    <div>
+                                                                        <p className="font-black text-gray-900">
+                                                                            {proposal.freelancerId?.firstName} {proposal.freelancerId?.lastName}
+                                                                        </p>
+                                                                        {proposal.price != null && (
+                                                                            <p className="text-[#09BF44] font-bold text-xs mt-0.5">{proposal.price} EGP · {proposal.deliveryDays ?? '—'} days</p>
+                                                                        )}
+                                                                    </div>
+                                                                    <span
+                                                                        className={`text-[10px] font-black uppercase px-2 py-1 rounded-full shrink-0 ${
+                                                                            proposal.status === 'accepted'
+                                                                                ? 'bg-green-100 text-green-800'
+                                                                                : proposal.status === 'rejected'
+                                                                                  ? 'bg-red-100 text-red-800'
+                                                                                  : 'bg-amber-100 text-amber-800'
+                                                                        }`}
+                                                                    >
+                                                                        {proposal.status}
+                                                                    </span>
+                                                                </div>
+                                                                {proposal.message && (
+                                                                    <p className="text-gray-600 whitespace-pre-wrap break-words overflow-wrap-anywhere min-w-0">{proposal.message}</p>
+                                                                )}
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        router.push(
+                                                                            `/freelancer/${String(proposal.freelancerId?._id || proposal.freelancerId)}`
+                                                                        )
+                                                                    }
+                                                                    className="text-xs font-bold text-[#09BF44] hover:underline mt-2"
+                                                                >
+                                                                    Freelancer profile
+                                                                </button>
+                                                            </li>
                                                         ))}
                                                     </ul>
                                                 </div>
@@ -1625,16 +1906,22 @@ export default function AdminDashboard() {
                                                             {accepted.milestones.map((m: any, i: number) => (
                                                                 <li key={i} className="bg-blue-50/80 rounded-xl p-3 text-sm border border-blue-100">
                                                                     <span className="font-bold">{m.name}</span> — {m.status}
-                                                                    {m.submissionNote && <p className="text-gray-600 mt-1">{m.submissionNote}</p>}
+                                                                    {m.submissionNote && (
+                                                                        <p className="text-gray-600 mt-1 whitespace-pre-wrap break-words overflow-wrap-anywhere min-w-0">
+                                                                            {m.submissionNote}
+                                                                        </p>
+                                                                    )}
                                                                     {(m.submissionLinks || []).length > 0 && <p className="text-xs text-blue-700 mt-1">{(m.submissionLinks || []).join(', ')}</p>}
                                                                 </li>
                                                             ))}
                                                         </ul>
                                                     )}
                                                     {accepted.workSubmission?.message && (
-                                                        <div className="bg-gray-50 rounded-xl p-4 text-sm">
+                                                        <div className="bg-gray-50 rounded-xl p-4 text-sm min-w-0 max-w-full">
                                                             <p className="font-bold text-gray-700 mb-1">Work submission</p>
-                                                            <p className="text-gray-600">{accepted.workSubmission.message}</p>
+                                                            <p className="text-gray-600 whitespace-pre-wrap break-words overflow-wrap-anywhere min-w-0">
+                                                                {accepted.workSubmission.message}
+                                                            </p>
                                                             {(accepted.workSubmission.links || []).map((l: string, i: number) => (
                                                                 <a key={i} href={l} target="_blank" rel="noreferrer" className="text-[#09BF44] text-xs block mt-1">{l}</a>
                                                             ))}
@@ -1669,7 +1956,10 @@ export default function AdminDashboard() {
                                     >
                                         <p className="text-xs text-gray-400 font-mono">#{order.orderNumber ?? String(order._id || '').slice(-6)}</p>
                                         <h3 className="font-black text-gray-900 mt-1 line-clamp-2">{order.projectId?.title || 'Custom offer'}</h3>
-                                        <p className="text-sm text-gray-600 mt-2">{order.buyerId?.firstName} → {order.sellerId?.firstName}</p>
+                                        <p className="text-[10px] font-black uppercase text-gray-400 mt-2 tracking-wide">
+                                            {order.offerId ? 'Custom offer' : 'Marketplace bundle'}
+                                        </p>
+                                        <p className="text-sm text-gray-600 mt-1">{order.buyerId?.firstName} → {order.sellerId?.firstName}</p>
                                         <p className="text-sm font-bold text-[#09BF44] mt-2">{order.amount} EGP · {order.packageType}</p>
                                         <span className={`inline-block mt-2 px-2 py-1 rounded text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'disputed' ? 'bg-amber-100 text-amber-700' : order.status === 'refunded' ? 'bg-gray-100 text-gray-700' : 'bg-blue-100 text-blue-700'}`}>{formatStatus(order.status)}</span>
                                     </button>
@@ -1691,6 +1981,38 @@ export default function AdminDashboard() {
                                                     <p className="text-sm text-gray-500 mt-1">Order #{order.orderNumber} · {order.packageType}</p>
                                                 </div>
                                                 <span className={`px-3 py-1 rounded-full text-sm font-bold h-fit ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'disputed' ? 'bg-amber-100 text-amber-700' : order.status === 'refunded' ? 'bg-gray-100 text-gray-700' : 'bg-blue-100 text-blue-700'}`}>{formatStatus(order.status)}</span>
+                                            </div>
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <span className="text-[10px] font-black uppercase px-2 py-1 rounded-full bg-gray-100 text-gray-700 tracking-wide">
+                                                    {offer ? 'Custom offer' : 'Marketplace bundle'}
+                                                </span>
+                                                {order.projectId && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            window.open(
+                                                                `/offers/${order.projectId._id || order.projectId}`,
+                                                                '_blank',
+                                                                'noopener,noreferrer'
+                                                            )
+                                                        }
+                                                        className="text-xs font-bold text-[#09BF44] hover:underline inline-flex items-center gap-1"
+                                                    >
+                                                        <ExternalLink className="w-3.5 h-3.5" /> Public offer page
+                                                    </button>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        openOrderPartyChat(
+                                                            order.buyerId?._id || order.buyerId,
+                                                            order.sellerId?._id || order.sellerId
+                                                        )
+                                                    }
+                                                    className="text-xs font-bold text-blue-700 hover:underline inline-flex items-center gap-1"
+                                                >
+                                                    <MessageSquare className="w-3.5 h-3.5" /> Open buyer–seller chat
+                                                </button>
                                             </div>
                                             <div className="grid sm:grid-cols-2 gap-4">
                                                 <div className="bg-gray-50 rounded-xl p-4">
@@ -1716,7 +2038,15 @@ export default function AdminDashboard() {
                                                 <div className="bg-gray-50 rounded-xl p-3"><span className="text-gray-400 font-bold text-xs uppercase">Created</span><p className="font-bold">{formatDateDDMMYYYY(order.createdAt)}</p></div>
                                                 <div className="bg-gray-50 rounded-xl p-3"><span className="text-gray-400 font-bold text-xs uppercase">Delivery due</span><p className="font-bold">{order.deliveryDate ? formatDateDDMMYYYY(order.deliveryDate) : '—'}</p></div>
                                             </div>
-                                            <p className="text-sm text-gray-600"><span className="font-bold">Revisions:</span> {order.revisionsUnlimited ? 'Unlimited' : (order.revisions ?? 0)}</p>
+                                            {order.status === 'active' && order.deliveryDate && (
+                                                <div className="rounded-xl border border-blue-100 bg-blue-50/80 p-4">
+                                                    <p className="text-xs font-black text-blue-800 uppercase tracking-wide mb-2">Delivery timer</p>
+                                                    <CountdownTimer deadline={order.deliveryDate} variant="inline" />
+                                                </div>
+                                            )}
+                                            <p className="text-sm text-gray-600">
+                                                <span className="font-bold">Revisions:</span> {formatRevisionsLabel(order.revisionsUnlimited, order.revisions)}
+                                            </p>
                                             {offer?.milestones?.length > 0 && (
                                                 <div>
                                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Offer milestones</h4>
@@ -1727,10 +2057,22 @@ export default function AdminDashboard() {
                                                     </ul>
                                                 </div>
                                             )}
+                                            {order.disputeResolvedAt && order.disputeResolution && (
+                                                <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm">
+                                                    <p className="font-black text-green-800 mb-1">Solved</p>
+                                                    <p className="text-green-900 whitespace-pre-wrap break-words overflow-wrap-anywhere min-w-0">{order.disputeResolution}</p>
+                                                    {order.disputeResolutionType && (
+                                                        <p className="text-xs font-bold text-green-700/90 mt-2 uppercase tracking-wide">Resolution type: {String(order.disputeResolutionType).replace(/_/g, ' ')}</p>
+                                                    )}
+                                                    <p className="text-xs text-green-700/80 mt-1">{formatDateDDMMYYYY(order.disputeResolvedAt)}</p>
+                                                </div>
+                                            )}
                                             {order.workSubmission?.message || (order.workSubmission?.links || []).length > 0 ? (
-                                                <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4">
+                                                <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 min-w-0 max-w-full">
                                                     <h4 className="font-bold text-gray-900 mb-2">Submitted work</h4>
-                                                    {order.workSubmission?.message && <p className="text-sm text-gray-700 whitespace-pre-wrap">{order.workSubmission.message}</p>}
+                                                    {order.workSubmission?.message && (
+                                                        <p className="text-sm text-gray-700 whitespace-pre-wrap break-words overflow-wrap-anywhere min-w-0 max-w-full">{order.workSubmission.message}</p>
+                                                    )}
                                                     {(order.workSubmission?.links || []).map((l: string, i: number) => (
                                                         <a key={i} href={l} target="_blank" rel="noreferrer" className="text-[#09BF44] text-sm block mt-2">{l}</a>
                                                     ))}
@@ -1898,15 +2240,16 @@ export default function AdminDashboard() {
                                         <th className="p-4">Method</th>
                                         <th className="p-4">Details</th>
                                         <th className="p-4">Status</th>
+                                        <th className="p-4">Rejection reason</th>
                                         <th className="p-4">Date</th>
                                         <th className="p-4">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
                                     {withdrawalsLoading ? (
-                                        <tr><td colSpan={8} className="p-8 text-center"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44] mx-auto" /></td></tr>
+                                        <tr><td colSpan={9} className="p-8 text-center"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44] mx-auto" /></td></tr>
                                     ) : withdrawals.length === 0 ? (
-                                        <tr><td colSpan={8} className="p-8 text-center text-gray-500">No withdrawal requests yet.</td></tr>
+                                        <tr><td colSpan={9} className="p-8 text-center text-gray-500">No withdrawal requests yet.</td></tr>
                                     ) : (
                                         withdrawals.map((w: any) => {
                                             const user = w.userId;
@@ -1927,8 +2270,14 @@ export default function AdminDashboard() {
                                                             w.status === 'rejected' ? 'bg-red-100 text-red-700' :
                                                                 'bg-amber-100 text-amber-700'
                                                             }`}>{w.status === 'rejected' ? 'REJECTED' : w.status}</span>
-                                                        {w.status === 'rejected' && w.rejectReason && (
-                                                            <p className="text-xs text-gray-600 mt-1 max-w-[200px]">{w.rejectReason}</p>
+                                                    </td>
+                                                    <td className="p-4 max-w-xs align-top">
+                                                        {w.status === 'rejected' && w.rejectReason ? (
+                                                            <div className="rounded-xl border-2 border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900 font-medium whitespace-pre-wrap break-words">
+                                                                {w.rejectReason}
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-gray-400 text-xs">—</span>
                                                         )}
                                                     </td>
                                                     <td className="p-4 text-gray-500">{formatDateDDMMYYYY(w.createdAt)}</td>
@@ -2218,7 +2567,7 @@ export default function AdminDashboard() {
                                             <div className="flex items-start gap-4 min-w-0 flex-1">
                                                 {a.imageUrl && <img src={a.imageUrl} alt="" className="w-24 h-24 object-cover rounded-xl shrink-0" />}
                                                 <div className="min-w-0 flex-1">
-                                                    {a.content && <p className="text-gray-900 whitespace-pre-wrap">{a.content}</p>}
+                                                    <AnnouncementContent content={a.content} videoLink={a.videoLink} />
                                                     <p className="text-xs text-gray-500 mt-2">
                                                         {a.createdBy?.firstName} {a.createdBy?.lastName} • {a.createdAt ? new Date(a.createdAt).toLocaleString() : ''}
                                                     </p>
@@ -2535,7 +2884,9 @@ export default function AdminDashboard() {
                                                             <h5 className="font-bold text-[#09BF44] mb-2">{pkg.type || ['Basic', 'Standard', 'Premium'][i]}</h5>
                                                             <p className="text-gray-900 font-bold text-lg">{pkg.price} EGP</p>
                                                             <p className="text-gray-500 text-sm">{pkg.days} day delivery</p>
-                                                            {pkg.revisions != null && <p className="text-gray-500 text-sm">{pkg.revisions} revision(s)</p>}
+                                                            <p className="text-gray-500 text-sm">
+                                                                Revisions: {formatRevisionsLabel(pkg.revisionsUnlimited, pkg.revisions)}
+                                                            </p>
                                                             {pkg.features?.filter((f: string) => f?.trim()).length > 0 && (
                                                                 <ul className="mt-2 space-y-1 text-sm text-gray-600">
                                                                     {pkg.features.filter((f: string) => f?.trim()).map((f: string, j: number) => (
@@ -2732,11 +3083,11 @@ export default function AdminDashboard() {
                                                     </div>
                                                 </div>
                                                 <button
-                                                    onClick={() => handleToggleReward(topFreelancers.mostDeals._id)}
-                                                    className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors ${topFreelancers.mostDeals.freelancerProfile?.isEmployeeOfMonth ? 'bg-green-100 text-green-700' : 'bg-[#09BF44] text-white hover:bg-[#07a63a]'}`}
+                                                    onClick={() => handleToggleReward(topFreelancers.mostDeals._id, 'mostDeals')}
+                                                    className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors ${topFreelancers.mostDeals.freelancerProfile?.rewardMostDeals ? 'bg-green-100 text-green-700' : 'bg-[#09BF44] text-white hover:bg-[#07a63a]'}`}
                                                 >
                                                     <Award className="w-4 h-4" />
-                                                    {topFreelancers.mostDeals.freelancerProfile?.isEmployeeOfMonth ? 'Current Winner' : 'Select Winner'}
+                                                    {topFreelancers.mostDeals.freelancerProfile?.rewardMostDeals ? 'Current Winner' : 'Select Winner'}
                                                 </button>
                                             </>
                                         ) : <p className="text-gray-400 italic">No data yet</p>}
@@ -2765,11 +3116,11 @@ export default function AdminDashboard() {
                                                     </div>
                                                 </div>
                                                 <button
-                                                    onClick={() => handleToggleReward(topFreelancers.topRated._id)}
-                                                    className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors ${topFreelancers.topRated.freelancerProfile?.isEmployeeOfMonth ? 'bg-green-100 text-green-700' : 'bg-[#09BF44] text-white hover:bg-[#07a63a]'}`}
+                                                    onClick={() => handleToggleReward(topFreelancers.topRated._id, 'topRated')}
+                                                    className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors ${topFreelancers.topRated.freelancerProfile?.rewardTopRated ? 'bg-green-100 text-green-700' : 'bg-[#09BF44] text-white hover:bg-[#07a63a]'}`}
                                                 >
                                                     <Award className="w-4 h-4" />
-                                                    {topFreelancers.topRated.freelancerProfile?.isEmployeeOfMonth ? 'Current Winner' : 'Select Winner'}
+                                                    {topFreelancers.topRated.freelancerProfile?.rewardTopRated ? 'Current Winner' : 'Select Winner'}
                                                 </button>
                                             </>
                                         ) : <p className="text-gray-400 italic">No data yet</p>}
@@ -2798,11 +3149,11 @@ export default function AdminDashboard() {
                                                     </div>
                                                 </div>
                                                 <button
-                                                    onClick={() => handleToggleReward(topFreelancers.onTime._id)}
-                                                    className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors ${topFreelancers.onTime.freelancerProfile?.isEmployeeOfMonth ? 'bg-green-100 text-green-700' : 'bg-[#09BF44] text-white hover:bg-[#07a63a]'}`}
+                                                    onClick={() => handleToggleReward(topFreelancers.onTime._id, 'onTime')}
+                                                    className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors ${topFreelancers.onTime.freelancerProfile?.rewardOnTime ? 'bg-green-100 text-green-700' : 'bg-[#09BF44] text-white hover:bg-[#07a63a]'}`}
                                                 >
                                                     <Award className="w-4 h-4" />
-                                                    {topFreelancers.onTime.freelancerProfile?.isEmployeeOfMonth ? 'Current Winner' : 'Select Winner'}
+                                                    {topFreelancers.onTime.freelancerProfile?.rewardOnTime ? 'Current Winner' : 'Select Winner'}
                                                 </button>
                                             </>
                                         ) : <p className="text-gray-400 italic">No data yet</p>}
@@ -2893,12 +3244,17 @@ export default function AdminDashboard() {
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-2">
+                                                    {chat.adminHasUnread && (
+                                                        <span className="bg-[#09BF44] text-white text-[10px] font-black uppercase px-2 py-1 rounded-full">
+                                                            Unread
+                                                        </span>
+                                                    )}
                                                     {chat.isFrozen && (
                                                         <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1">
                                                             <Flag className="w-3 h-3" /> Frozen
                                                         </span>
                                                     )}
-                                                    {!chat.isFrozen && (
+                                                    {!chat.isFrozen && !chat.adminHasUnread && (
                                                         <span className="text-xs text-gray-400">Active</span>
                                                     )}
                                                 </div>
@@ -2973,7 +3329,7 @@ export default function AdminDashboard() {
                                 </div>
 
                                 {/* Messages */}
-                                <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-4 bg-gray-50">
+                                <div ref={adminChatMessagesScrollRef} className="flex-1 min-h-0 overflow-y-auto p-6 space-y-4 bg-gray-50">
                                     <AdminChatMergedFeed messages={chatMessages} offers={chatOffers} selectedChat={selectedChat} />
                                     {chatMessages.length === 0 && chatOffers.length === 0 && (
                                         <div className="text-center py-12 text-gray-400">
@@ -3024,7 +3380,7 @@ export default function AdminDashboard() {
                                         <Search className="absolute left-4 top-3.5 text-gray-400 w-5 h-5" />
                                         <input
                                             type="text"
-                                            placeholder="Search by Username, Email or ID"
+                                            placeholder="Search by name, username, email, or ID"
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
                                             className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#09BF44] transition-all"
@@ -3038,6 +3394,29 @@ export default function AdminDashboard() {
                                         {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Search'}
                                     </button>
                                 </div>
+
+                                {strikeSearchMatches.length > 0 && (
+                                    <div className="mb-6 rounded-xl border border-gray-200 bg-white max-h-56 overflow-y-auto divide-y divide-gray-100">
+                                        {strikeSearchMatches.map((u: any) => (
+                                            <button
+                                                key={u._id}
+                                                type="button"
+                                                onClick={() => {
+                                                    setSearchResult(u);
+                                                    setStrikeSearchMatches([]);
+                                                }}
+                                                className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors"
+                                            >
+                                                <p className="font-bold text-gray-900">
+                                                    {u.firstName} {u.lastName}
+                                                </p>
+                                                <p className="text-xs text-gray-500">
+                                                    {u.email} · @{u.username} · {u.role}
+                                                </p>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
 
                                 {searchResult && (
                                     <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200 animate-in fade-in slide-in-from-bottom-4">
@@ -3243,13 +3622,13 @@ export default function AdminDashboard() {
             {/* Dispute Resolution Modal */}
             {disputeModal.isOpen && disputeModal.order && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-3xl shadow-xl max-w-md w-full p-6">
+                    <div className="bg-white rounded-3xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
                         <h3 className="text-lg font-bold mb-4">Resolve Dispute</h3>
                         <p className="text-gray-600 text-sm mb-4">
                             Order: <strong>{disputeModal.order.projectId?.title || 'Custom Offer'}</strong> ({disputeModal.order.amount} EGP)
                         </p>
                         {disputeModal.order.disputeReason && (
-                            <p className="text-amber-700 bg-amber-50 p-3 rounded-xl text-sm mb-4">
+                            <p className="text-amber-700 bg-amber-50 p-3 rounded-xl text-sm mb-4 break-words">
                                 <strong>Reason:</strong> {disputeModal.order.disputeReason}
                             </p>
                         )}
@@ -3257,20 +3636,38 @@ export default function AdminDashboard() {
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-2">Outcome</label>
                                 <select
-                                    value={disputeStatus}
-                                    onChange={(e) => setDisputeStatus(e.target.value as 'completed' | 'refunded')}
+                                    value={disputeResolveMode}
+                                    onChange={(e) => setDisputeResolveMode(e.target.value as 'release' | 'refund' | 'manual' | 'reopen')}
                                     className="w-full border border-gray-200 rounded-xl px-4 py-2"
                                 >
-                                    <option value="completed">Release to Freelancer</option>
-                                    <option value="refunded">Refund Client</option>
+                                    <option value="release">Release money to freelancer</option>
+                                    <option value="refund">Refund money to client</option>
+                                    <option value="manual">Split (manual %) — net after platform fee</option>
+                                    <option value="reopen">Solve manually — reopen order (active)</option>
                                 </select>
                             </div>
+                            {disputeResolveMode === 'manual' && (
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                                        Freelancer share of net payout (% after platform fee): {freelancerSplitPct}%
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min={0}
+                                        max={100}
+                                        value={freelancerSplitPct}
+                                        onChange={(e) => setFreelancerSplitPct(Number(e.target.value))}
+                                        className="w-full"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">Client receives the remainder (after fee) as wallet credit.</p>
+                                </div>
+                            )}
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Outcome Message (sent to both parties)</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Resolution (shown to client & freelancer; use admin notes for internal detail)</label>
                                 <textarea
                                     value={disputeOutcome}
                                     onChange={(e) => setDisputeOutcome(e.target.value)}
-                                    placeholder="e.g. After review, we have released funds to the freelancer."
+                                    placeholder="e.g. After review, we released funds / issued a partial refund."
                                     className="w-full border border-gray-200 rounded-xl px-4 py-2 min-h-[80px]"
                                     rows={3}
                                 />
@@ -3278,27 +3675,42 @@ export default function AdminDashboard() {
                         </div>
                         <div className="flex gap-3 mt-6">
                             <button
+                                type="button"
                                 onClick={() => {
                                     setDisputeModal({ isOpen: false, order: null });
                                     setDisputeOutcome('');
-                                    setDisputeStatus('completed');
+                                    setDisputeResolveMode('release');
+                                    setFreelancerSplitPct(50);
                                 }}
                                 className="flex-1 py-2 rounded-xl font-bold border border-gray-200 hover:bg-gray-50"
                             >
                                 Cancel
                             </button>
                             <button
+                                type="button"
                                 onClick={async () => {
                                     setResolvingDispute(true);
                                     try {
-                                        await api.admin.updateOrder(disputeModal.order._id, {
-                                            status: disputeStatus,
-                                            disputeOutcome: disputeOutcome.trim() || undefined
-                                        });
+                                        const out = disputeOutcome.trim();
+                                        const base: Record<string, unknown> = { disputeOutcome: out || undefined };
+                                        if (disputeResolveMode === 'reopen') {
+                                            base.status = 'active';
+                                        } else if (disputeResolveMode === 'refund') {
+                                            base.status = 'refunded';
+                                        } else if (disputeResolveMode === 'manual') {
+                                            base.status = 'completed';
+                                            base.disputeResolutionType = 'manual_split';
+                                            base.freelancerSplitPercent = freelancerSplitPct;
+                                        } else {
+                                            base.status = 'completed';
+                                            base.disputeResolutionType = 'release';
+                                        }
+                                        await api.admin.updateOrder(disputeModal.order._id, base);
                                         showModal({ title: 'Dispute Resolved', message: 'Both parties have been notified.', type: 'success' });
                                         setDisputeModal({ isOpen: false, order: null });
                                         setDisputeOutcome('');
-                                        setDisputeStatus('completed');
+                                        setDisputeResolveMode('release');
+                                        setFreelancerSplitPct(50);
                                         fetchOrders();
                                         fetchDisputes();
                                     } catch (e: any) {

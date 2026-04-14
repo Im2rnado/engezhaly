@@ -9,6 +9,7 @@ const { sendAndLog } = require('../services/mailgunService');
 const { offerPurchased: offerPurchasedTemplate, paymentReceiptFreelancer, paymentReceiptClient } = require('../templates/emailTemplates');
 const { emitToUser, isUserOnline } = require('../services/notificationService');
 const { ORDER_PLATFORM_FEE_EGP } = require('../config/fees');
+const { reviewStatsForSeller } = require('../utils/reviewStatsForSeller');
 
 const createProject = async (req, res) => {
     try {
@@ -62,7 +63,24 @@ const createProject = async (req, res) => {
 const getProjects = async (req, res) => {
     try {
         const projects = await Project.find({ isActive: true }).populate('sellerId', '_id firstName lastName freelancerProfile');
-        res.json(projects);
+        const sellerIdSet = new Set();
+        for (const p of projects) {
+            const sid = p.sellerId?._id || p.sellerId;
+            if (sid) sellerIdSet.add(String(sid));
+        }
+        const statsBySeller = {};
+        await Promise.all(
+            [...sellerIdSet].map(async (id) => {
+                statsBySeller[id] = await reviewStatsForSeller(id);
+            })
+        );
+        const out = projects.map((p) => {
+            const o = p.toObject ? p.toObject() : p;
+            const sid = String(p.sellerId?._id || p.sellerId || '');
+            o.reviewStats = statsBySeller[sid] || { reviewCount: 0, avgRating: 0 };
+            return o;
+        });
+        res.json(out);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
@@ -85,7 +103,11 @@ const getProjectById = async (req, res) => {
         if (!project) {
             return res.status(404).json({ msg: 'Project not found' });
         }
-        res.json(project);
+        const sid = project.sellerId?._id || project.sellerId;
+        const reviewStats = sid ? await reviewStatsForSeller(sid) : { reviewCount: 0, avgRating: 0 };
+        const o = project.toObject ? project.toObject() : project;
+        o.reviewStats = reviewStats;
+        res.json(o);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');

@@ -230,6 +230,21 @@ function bundlePurchased(freelancerName, clientName, bundleType, amount) {
     return { subject: `New ${bundleType} bundle order!`, html: wrapEmail(content) };
 }
 
+function jobProposalRejected(clientName, jobTitle, jobId) {
+    const link = `${FRONTEND_URL}/dashboard/freelancer/jobs`;
+    const content = `
+        <h2 style="margin: 0 0 16px; font-size: 22px; color: #111827;">Job proposal not selected</h2>
+        <p style="margin: 0 0 16px; font-size: 16px; line-height: 1.6; color: #4b5563;">
+            <strong>${clientName}</strong> has declined your proposal for the job: <strong>${jobTitle || 'Posted job'}</strong>.
+        </p>
+        <p style="margin: 0 0 16px; font-size: 14px; color: #6b7280;">
+            You can keep browsing jobs and send proposals to other clients.
+        </p>
+        ${ctaButton('View my jobs', link)}
+    `;
+    return { subject: `Update on your proposal: ${jobTitle || 'Job'}`, html: wrapEmail(content) };
+}
+
 function paymentConfirmed(userName, amount, type, title) {
     const link = `${FRONTEND_URL}/dashboard/${userName.includes('Client') ? 'client' : 'freelancer'}?tab=wallet`;
     const content = `
@@ -248,6 +263,7 @@ function paymentConfirmed(userName, amount, type, title) {
 module.exports = {
     verification,
     jobApplication,
+    jobProposalRejected,
     offerPurchased,
     offlineChat,
     paymentReceiptFreelancer,

@@ -24,6 +24,9 @@ export default function ProjectCardCompact({ project }: ProjectCardCompactProps)
     const lowestPrice = packages.length > 0
         ? Math.min(...packages.map((p: any) => Number(p.price) || 0))
         : 0;
+    const rs = project.reviewStats as { reviewCount?: number; avgRating?: number } | undefined;
+    const reviewCount = Number(rs?.reviewCount) || 0;
+    const avgRating = Number(rs?.avgRating) || 0;
     const skills = [project.category, project.subCategory].filter(Boolean);
     const brief = project.description ? project.description.slice(0, 120) + (project.description.length > 120 ? '...' : '') : '';
 
@@ -155,9 +158,13 @@ export default function ProjectCardCompact({ project }: ProjectCardCompactProps)
 
                 {/* Rating + Lowest price row */}
                 <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                    <div className="flex items-center gap-1 text-amber-500">
-                        <Star className="w-4 h-4 fill-amber-400" />
-                        <span className="text-sm font-bold text-gray-700">New</span>
+                    <div className="flex items-center gap-1 text-amber-500 min-w-0">
+                        <Star className="w-4 h-4 fill-amber-400 shrink-0" />
+                        <span className="text-sm font-bold text-gray-700 truncate">
+                            {reviewCount > 0
+                                ? `Rated ${avgRating} · ${reviewCount} review${reviewCount === 1 ? '' : 's'}`
+                                : 'New'}
+                        </span>
                     </div>
                     <div className="text-right">
                         <p className="text-xs text-gray-500">Starts From</p>

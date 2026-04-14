@@ -28,6 +28,7 @@ function FreelancerDashboardContent() {
     const [loading, setLoading] = useState(true);
     const [profileEditModal, setProfileEditModal] = useState(false);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+    const [reviewStats, setReviewStats] = useState<{ reviewCount: number; avgRating: number } | null>(null);
 
     const fetchProjects = useCallback(async () => {
         try {
@@ -94,6 +95,14 @@ function FreelancerDashboardContent() {
 
         loadData();
     }, [router]);
+
+    useEffect(() => {
+        const uid = profile?._id || user?._id || user?.id;
+        if (!uid) return;
+        api.freelancer.getReviewStats(String(uid))
+            .then(setReviewStats)
+            .catch(() => setReviewStats({ reviewCount: 0, avgRating: 0 }));
+    }, [profile?._id, user?._id, user?.id]);
 
     useEffect(() => {
         if (activeTab === 'offers') {
@@ -539,12 +548,37 @@ function FreelancerDashboardContent() {
                                             {profile.freelancerProfile?.status === 'approved' ? 'Approved' : 'Pending Review'}
                                         </span>
                                     </div>
-                                    {profile.freelancerProfile?.isEmployeeOfMonth && (
+                                    <div>
+                                        <label className="text-sm font-bold text-gray-500 mb-2 block">Ratings</label>
+                                        <p className="text-gray-900 font-bold flex items-center gap-2">
+                                            <Star className="w-4 h-4 text-amber-500 fill-amber-400" />
+                                            {reviewStats && reviewStats.reviewCount > 0
+                                                ? `Rated ${reviewStats.avgRating} · ${reviewStats.reviewCount} review${reviewStats.reviewCount === 1 ? '' : 's'}`
+                                                : 'No reviews yet'}
+                                        </p>
+                                    </div>
+                                    {(profile.freelancerProfile?.rewardMostDeals ||
+                                        profile.freelancerProfile?.rewardTopRated ||
+                                        profile.freelancerProfile?.rewardOnTime) && (
                                         <div>
-                                            <label className="text-sm font-bold text-gray-500 mb-2 block">Achievement</label>
-                                            <span className="px-3 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700 flex items-center gap-1 w-fit">
-                                                <Award className="w-3 h-3" /> Employee of the Month
-                                            </span>
+                                            <label className="text-sm font-bold text-gray-500 mb-2 block">Achievements</label>
+                                            <div className="flex flex-wrap gap-2">
+                                                {profile.freelancerProfile?.rewardMostDeals && (
+                                                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 flex items-center gap-1 w-fit">
+                                                        <Award className="w-3 h-3" /> Most deals
+                                                    </span>
+                                                )}
+                                                {profile.freelancerProfile?.rewardTopRated && (
+                                                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-800 flex items-center gap-1 w-fit">
+                                                        <Award className="w-3 h-3" /> Top rated
+                                                    </span>
+                                                )}
+                                                {profile.freelancerProfile?.rewardOnTime && (
+                                                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 flex items-center gap-1 w-fit">
+                                                        <Award className="w-3 h-3" /> On-time delivery
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     )}
                                 </div>

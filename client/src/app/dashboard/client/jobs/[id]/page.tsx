@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { Briefcase, Clock, User, ArrowLeft, Loader2, CheckCircle, XCircle, MessageSquare, Link as LinkIcon, Paperclip, PanelLeft, Star } from 'lucide-react';
 import { api } from '@/lib/api';
-import { formatStatus, formatDateDDMMYYYY } from '@/lib/utils';
+import { formatStatus, formatDateDDMMYYYY, formatRevisionsLabel } from '@/lib/utils';
 import { useModal } from '@/context/ModalContext';
 import ClientSidebar from '@/components/ClientSidebar';
 import CountdownTimer from '@/components/CountdownTimer';
@@ -54,6 +54,7 @@ function JobDetailPageContent() {
     const [checkoutIframeUrl, setCheckoutIframeUrl] = useState<string | null>(null);
     const [paymentChoiceConfig, setPaymentChoiceConfig] = useState<{ type: string; amountCents: number; callbackSuccessUrl?: string; jobId?: string; proposalId?: string } | null>(null);
     const [acceptingProposalId, setAcceptingProposalId] = useState<string | null>(null);
+    const [rejectingProposalId, setRejectingProposalId] = useState<string | null>(null);
     const [approvingJob, setApprovingJob] = useState(false);
     const [jobReviewModal, setJobReviewModal] = useState<any>(null);
     const [jobReviewRating, setJobReviewRating] = useState(5);
@@ -194,6 +195,25 @@ function JobDetailPageContent() {
             });
         } finally {
             setAcceptingProposalId(null);
+        }
+    };
+
+    const handleRejectProposal = async (proposalId: string) => {
+        if (!confirm('Reject this proposal? The freelancer will be notified.')) return;
+        setRejectingProposalId(proposalId);
+        try {
+            const result = await api.client.rejectProposal(jobId, proposalId);
+            setJob(result.job);
+            showModal({ title: 'Proposal rejected', message: 'The freelancer has been notified.', type: 'success' });
+        } catch (err: any) {
+            console.error(err);
+            showModal({
+                title: 'Error',
+                message: err.message || 'Failed to reject proposal',
+                type: 'error'
+            });
+        } finally {
+            setRejectingProposalId(null);
         }
     };
 
@@ -360,7 +380,7 @@ function JobDetailPageContent() {
                                                 {proposal.deliveryDays} days delivery
                                             </p>
                                             <p className="text-sm text-gray-500">
-                                                Revisions: {proposal.revisionsUnlimited ? 'Unlimited' : (proposal.revisions ?? 0)}
+                                                Revisions: {formatRevisionsLabel(proposal.revisionsUnlimited, proposal.revisions, 'short')}
                                             </p>
                                         </div>
                                     </div>
@@ -542,9 +562,19 @@ function JobDetailPageContent() {
                                                     {proposal.freelancerId.freelancerProfile.experienceYears} years experience
                                                 </span>
                                             )}
-                                            {proposal.freelancerId.freelancerProfile.isEmployeeOfMonth && (
-                                                <span className="bg-yellow-50 text-yellow-700 px-3 py-1 rounded-full text-xs font-bold">
-                                                    ⭐ Employee of the Month
+                                            {proposal.freelancerId.freelancerProfile.rewardMostDeals && (
+                                                <span className="bg-amber-50 text-amber-800 px-3 py-1 rounded-full text-xs font-bold">
+                                                    ⭐ Most deals
+                                                </span>
+                                            )}
+                                            {proposal.freelancerId.freelancerProfile.rewardTopRated && (
+                                                <span className="bg-yellow-50 text-yellow-800 px-3 py-1 rounded-full text-xs font-bold">
+                                                    ⭐ Top rated
+                                                </span>
+                                            )}
+                                            {proposal.freelancerId.freelancerProfile.rewardOnTime && (
+                                                <span className="bg-emerald-50 text-emerald-800 px-3 py-1 rounded-full text-xs font-bold">
+                                                    ⭐ On-time delivery
                                                 </span>
                                             )}
                                         </div>
@@ -565,14 +595,30 @@ function JobDetailPageContent() {
                                             <MessageSquare className="w-4 h-4" /> Message
                                         </button>
                                         {job.status === 'open' && proposal.status === 'pending' && (
-                                            <button
-                                                onClick={() => handleAcceptProposal(proposal._id)}
-                                                disabled={!!acceptingProposalId}
-                                                className="flex-1 bg-[#09BF44] text-white font-bold py-2.5 rounded-xl hover:bg-[#07a63a] transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-                                            >
-                                                {acceptingProposalId === proposal._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-                                                Accept Proposal
-                                            </button>
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRejectProposal(proposal._id)}
+                                                    disabled={!!acceptingProposalId || !!rejectingProposalId}
+                                                    className="flex-1 bg-red-50 text-red-700 font-bold py-2.5 rounded-xl hover:bg-red-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                                                >
+                                                    {rejectingProposalId === proposal._id ? (
+                                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                                    ) : (
+                                                        <XCircle className="w-4 h-4" />
+                                                    )}
+                                                    Reject
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleAcceptProposal(proposal._id)}
+                                                    disabled={!!acceptingProposalId || !!rejectingProposalId}
+                                                    className="flex-1 bg-[#09BF44] text-white font-bold py-2.5 rounded-xl hover:bg-[#07a63a] transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                                                >
+                                                    {acceptingProposalId === proposal._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                                                    Accept Proposal
+                                                </button>
+                                            </>
                                         )}
                                         {proposal.status === 'accepted' && (
                                             <>

@@ -285,27 +285,40 @@ export default function Home() {
                 whileInView="visible"
                 viewport={{ once: true, margin: "-50px" }}
                 variants={staggerSlow}
-                className="grid gap-4"
+                className="grid gap-5 md:grid-cols-1 lg:grid-cols-2"
               >
-                {[
-                  { icon: Star, title: "Handpicked Freelancers", desc: "We vet our talent to ensure you get the best quality work." },
-                  { icon: ShieldCheck, title: "Protected Payments", desc: "Your money is held safely until you approve the final delivery." },
-                  { icon: Zap, title: "Zero Drama", desc: "Clear communication, custom deals, and a support team that has your back." }
-                ].map((item, idx) => (
-                  <motion.div
-                    key={idx}
-                    variants={slideInRight}
-                    className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex gap-5 items-start group hover:border-[#09BF44]/30 transition-colors"
-                  >
-                    <div className="p-3 bg-gray-50 rounded-2xl group-hover:bg-[#09BF44]/10 transition-colors shrink-0">
-                      <item.icon className="w-6 h-6 text-gray-400 group-hover:text-[#09BF44] transition-colors" />
+                <motion.div
+                  variants={slideInRight}
+                  className="bg-[#09BF44] text-white p-8 rounded-3xl shadow-lg border border-emerald-600/40"
+                >
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="p-3 bg-white/15 rounded-2xl">
+                      <ShieldCheck className="w-7 h-7 text-white" />
                     </div>
-                    <div>
-                      <h3 className="font-bold text-gray-900 text-lg mb-1">{item.title}</h3>
-                      <p className="text-gray-600 text-sm leading-relaxed">{item.desc}</p>
+                    <h3 className="font-black text-xl md:text-2xl tracking-tight">For Business Owners</h3>
+                  </div>
+                  <ul className="space-y-3 text-white/95 text-sm md:text-base font-semibold leading-relaxed list-disc pl-5">
+                    <li>100% free no subscriptions, no surprises.</li>
+                    <li>Hire skilled and vetted freelancers in minutes.</li>
+                    <li>Your money is held safely until the job is done right and you are happy.</li>
+                  </ul>
+                </motion.div>
+                <motion.div
+                  variants={slideInRight}
+                  className="bg-[#078c37] text-white p-8 rounded-3xl shadow-lg border border-emerald-900/30"
+                >
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="p-3 bg-white/15 rounded-2xl">
+                      <Zap className="w-7 h-7 text-white" />
                     </div>
-                  </motion.div>
-                ))}
+                    <h3 className="font-black text-xl md:text-2xl tracking-tight">For Freelancers</h3>
+                  </div>
+                  <ul className="space-y-3 text-white/95 text-sm md:text-base font-semibold leading-relaxed list-disc pl-5">
+                    <li>Free to join, zero commission.</li>
+                    <li>Get paid securely we hold the money before work starts.</li>
+                    <li>Find clients who are serious and ready to hire.</li>
+                  </ul>
+                </motion.div>
               </motion.div>
             </div>
           </div>

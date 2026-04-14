@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { Clock, RotateCcw, Check, ArrowRight, Edit, MessageSquare, Phone, ChevronDown, Loader2, ChevronUp } from 'lucide-react';
+import { Clock, RotateCcw, Check, ArrowRight, Edit, MessageSquare, Phone, ChevronDown, Loader2, ChevronUp, Star } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { api } from '@/lib/api';
@@ -10,6 +10,7 @@ import { useModal } from '@/context/ModalContext';
 import CountdownTimer from './CountdownTimer';
 import AuthModal from './AuthModal';
 import Avatar from './Avatar';
+import { formatRevisionsLabel } from '@/lib/utils';
 
 interface ProjectCardProps {
     project: any;
@@ -199,10 +200,16 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                                 className="relative z-10 border-4 border-white shadow-lg w-12 h-12 md:w-16 md:h-16"
                             />
                         </div>
-                        <div>
+                        <div className="min-w-0">
                             <h4 className="font-bold text-gray-900 text-sm md:text-lg line-clamp-1">{freelancerName}</h4>
                             {sellerIsBusy && (
                                 <span className="inline-block mt-1 px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-bold rounded-full">FREELANCER BUSY</span>
+                            )}
+                            {project.reviewStats?.reviewCount > 0 && (
+                                <p className="text-xs font-bold text-amber-600 mt-1 flex items-center gap-1">
+                                    <Star className="w-3.5 h-3.5 fill-amber-400 shrink-0" />
+                                    Rated {project.reviewStats.avgRating} · {project.reviewStats.reviewCount} review{project.reviewStats.reviewCount === 1 ? '' : 's'}
+                                </p>
                             )}
                         </div>
                     </div>
@@ -331,9 +338,7 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                         <RotateCcw className="w-4 h-4" />
                         <span className="font-bold">
-                            {currentPackage.revisionsUnlimited
-                                ? 'Unlimited revisions'
-                                : `${currentPackage.revisions === 0 ? 'No' : currentPackage.revisions === 1 ? '1' : currentPackage.revisions} revision${currentPackage.revisions !== 1 ? 's' : ''}`}
+                            {formatRevisionsLabel(currentPackage.revisionsUnlimited, currentPackage.revisions)}
                         </span>
                     </div>
                 </div>
@@ -416,7 +421,10 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                                                 <p className="text-sm font-bold text-gray-700 mb-2">Selected bundle: <span className="text-[#09BF44]">{currentPackage.type}</span></p>
                                                 <div className="space-y-1.5 text-sm text-gray-600">
                                                     <p><span className="font-semibold">Delivery:</span> {currentPackage.days ?? '—'} days</p>
-                                                    <p><span className="font-semibold">Revisions:</span> {currentPackage.revisionsUnlimited ? 'Unlimited' : (currentPackage.revisions ?? 0)}</p>
+                                                    <p>
+                                                        <span className="font-semibold">Revisions:</span>{' '}
+                                                        {formatRevisionsLabel(currentPackage.revisionsUnlimited, currentPackage.revisions)}
+                                                    </p>
                                                     {Array.isArray(currentPackage.features) && currentPackage.features.length > 0 && (
                                                         <div>
                                                             <span className="font-semibold">Features:</span>
@@ -462,7 +470,10 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                                                 <p className="text-sm font-bold text-gray-800 mb-2">Bundle: <span className="text-[#09BF44]">{currentPackage.type}</span></p>
                                                 <div className="space-y-1 text-sm text-gray-600">
                                                     <p><span className="font-semibold">Delivery:</span> {currentPackage.days ?? '—'} days</p>
-                                                    <p><span className="font-semibold">Revisions:</span> {currentPackage.revisionsUnlimited ? 'Unlimited' : (currentPackage.revisions ?? 0)}</p>
+                                                    <p>
+                                                        <span className="font-semibold">Revisions:</span>{' '}
+                                                        {formatRevisionsLabel(currentPackage.revisionsUnlimited, currentPackage.revisions)}
+                                                    </p>
                                                     {Array.isArray(currentPackage.features) && currentPackage.features.length > 0 && (
                                                         <div>
                                                             <span className="font-semibold">Features:</span>

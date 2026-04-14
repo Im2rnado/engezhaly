@@ -17,6 +17,7 @@ export default function FreelancerProfilePage() {
     const [freelancer, setFreelancer] = useState<any>(null);
     const [projects, setProjects] = useState<any[]>([]);
     const [reviews, setReviews] = useState<any[]>([]);
+    const [reviewStats, setReviewStats] = useState<{ reviewCount: number; avgRating: number } | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -41,6 +42,7 @@ export default function FreelancerProfilePage() {
                 setProjects(freelancerProjects);
                 // Fetch reviews (from completed orders with client ratings)
                 api.freelancer.getReviews(freelancerId).then(setReviews).catch(() => setReviews([]));
+                api.freelancer.getReviewStats(freelancerId).then(setReviewStats).catch(() => setReviewStats({ reviewCount: 0, avgRating: 0 }));
             } catch (err: any) {
                 console.error(err);
             } finally {
@@ -106,15 +108,33 @@ export default function FreelancerProfilePage() {
                                 {profile?.isBusy && (
                                     <span className="px-3 py-1 bg-amber-100 text-amber-700 text-base font-bold rounded-full">FREELANCER BUSY</span>
                                 )}
-                                {profile?.isEmployeeOfMonth && (
-                                    <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
+                                {profile?.rewardMostDeals && (
+                                    <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
                                         <Award className="w-3 h-3" />
-                                        Employee of the Month
+                                        Most deals
+                                    </span>
+                                )}
+                                {profile?.rewardTopRated && (
+                                    <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
+                                        <Award className="w-3 h-3" />
+                                        Top rated
+                                    </span>
+                                )}
+                                {profile?.rewardOnTime && (
+                                    <span className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
+                                        <Award className="w-3 h-3" />
+                                        On-time delivery
                                     </span>
                                 )}
                             </div>
                             {profile?.category && (
                                 <p className="text-lg text-gray-600 font-bold mb-2">{profile.category}</p>
+                            )}
+                            {reviewStats && reviewStats.reviewCount > 0 && (
+                                <p className="text-sm font-bold text-amber-600 flex items-center gap-1.5 mb-2">
+                                    <Star className="w-4 h-4 fill-amber-400" />
+                                    Rated {reviewStats.avgRating} · {reviewStats.reviewCount} review{reviewStats.reviewCount === 1 ? '' : 's'}
+                                </p>
                             )}
                             {profile?.bio && (
                                 <p className="text-gray-700 leading-relaxed mb-4">{profile.bio}</p>

@@ -11,11 +11,14 @@ const {
     getActiveChats,
     freezeChat,
     unfreezeChat,
+    findConversationBetweenUsers,
+    markAdminConversationRead,
     getConversationOffers,
     addStrike,
-    toggleEmployeeOfMonth,
+    toggleFreelancerReward,
     getInsights,
     searchUser,
+    searchUsersPartial,
     getAllUsers,
     getUserById,
     updateUser,
@@ -47,16 +50,19 @@ router.delete('/freelancers/:id/reject', [authVerified, adminAuth], rejectFreela
 router.patch('/freelancers/:id/star', [authVerified, adminAuth], starFreelancer);
 router.patch('/freelancers/:id/unstar', [authVerified, adminAuth], unstarFreelancer);
 router.get('/chats', [authVerified, adminAuth], getActiveChats);
+router.get('/conversations/between', [authVerified, adminAuth], findConversationBetweenUsers);
 router.get('/chats/:conversationId/offers', [authVerified, adminAuth], getConversationOffers);
 router.get('/custom-offers/:conversationId', [authVerified, adminAuth], getConversationOffers);
 router.put('/chats/:id/freeze', [authVerified, adminAuth], freezeChat);
 router.put('/chats/:id/unfreeze', [authVerified, adminAuth], unfreezeChat);
+router.patch('/chats/:id/admin-read', [authVerified, adminAuth], markAdminConversationRead);
 router.post('/chats/message', [authVerified, adminAuth], sendAdminMessage);
 router.post('/chats/support', [authVerified, adminAuth], createSupportConversation);
 router.post('/users/:id/strike', [authVerified, adminAuth], addStrike);
-router.put('/freelancers/:id/employee-of-month', [authVerified, adminAuth], toggleEmployeeOfMonth);
+router.put('/freelancers/:id/reward', [authVerified, adminAuth], toggleFreelancerReward);
 router.get('/insights', [authVerified, adminAuth], getInsights);
 router.get('/users/search', [authVerified, adminAuth], searchUser);
+router.get('/users/search/partial', [authVerified, adminAuth], searchUsersPartial);
 
 // New Routes for Full Access
 router.get('/users', [authVerified, adminAuth], getAllUsers);

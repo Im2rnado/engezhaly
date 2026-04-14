@@ -4,6 +4,7 @@ const Job = require('../models/Job');
 const Order = require('../models/Order');
 const Transaction = require('../models/Transaction');
 const Conversation = require('../models/Conversation');
+const Chat = require('../models/Chat');
 const { emitChatContextRefresh } = require('../services/chatContextRefresh');
 
 const orderWithRevisionFallback = (order) => {
@@ -246,6 +247,56 @@ const acceptProposal = async (req, res) => {
     }
 };
 
+const rejectProposal = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const jobId = req.params.id;
+        const { proposalId } = req.body;
+
+        const user = await User.findById(userId);
+        if (!user || user.role !== 'client') {
+            return res.status(403).json({ msg: 'Access denied. Client only.' });
+        }
+
+        const job = await Job.findById(jobId);
+        if (!job) return res.status(404).json({ msg: 'Job not found' });
+        if (job.clientId.toString() !== userId) {
+            return res.status(403).json({ msg: 'Access denied. You do not own this job.' });
+        }
+        if (job.status !== 'open') {
+            return res.status(400).json({ msg: 'Job is not open for rejecting proposals.' });
+        }
+
+        const proposal = job.proposals.id(proposalId);
+        if (!proposal) return res.status(404).json({ msg: 'Proposal not found' });
+        if (proposal.status !== 'pending') {
+            return res.status(400).json({ msg: 'Only pending proposals can be rejected.' });
+        }
+
+        proposal.status = 'rejected';
+        await job.save();
+
+        const freelancer = await User.findById(proposal.freelancerId).select('email firstName lastName');
+        const clientName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'A client';
+        if (freelancer?.email) {
+            const { subject, html } = emailTemplates.jobProposalRejected(clientName, job.title, jobId);
+            sendAndLog(freelancer.email, subject, html, 'job_proposal_rejected', { jobId }).catch((e) => console.error('[Client] reject proposal email:', e.message));
+        }
+
+        const updated = await Job.findById(jobId)
+            .populate('clientId', 'firstName lastName email')
+            .populate({
+                path: 'proposals.freelancerId',
+                select: 'firstName lastName email freelancerProfile'
+            });
+
+        res.json({ msg: 'Proposal rejected', job: updated });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+};
+
 const InstaPayPayment = require('../models/InstaPayPayment');
 const { ORDER_PLATFORM_FEE_EGP } = require('../config/fees');
 
@@ -303,6 +354,106 @@ const getMyOrders = async (req, res) => {
             });
         }
         res.json(ordersArr);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+};
+
+const getClientOrderById = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const order = await Order.findById(req.params.id)
+            .populate('projectId', 'title packages subCategory description')
+            .populate('sellerId', 'firstName lastName email freelancerProfile')
+            .populate('offerId');
+        if (!order) return res.status(404).json({ msg: 'Order not found' });
+        if (String(order.buyerId) !== String(userId)) {
+            return res.status(403).json({ msg: 'Not authorized to view this order' });
+        }
+        const payload = orderWithRevisionFallback(order);
+        if (payload.status === 'pending_payment') {
+            const orConditions = [{ 'meta.type': 'project_order', 'meta.orderId': payload._id }];
+            const offerRef = payload.offerId;
+            const offerId = offerRef && typeof offerRef === 'object' ? offerRef._id : offerRef;
+            if (offerId) {
+                orConditions.push({ 'meta.type': 'custom_offer', 'meta.offerId': offerId });
+            }
+            const pending = await InstaPayPayment.findOne({
+                status: 'pending',
+                $or: orConditions
+            })
+                .select('_id')
+                .lean();
+            payload.hasPendingInstaPay = !!pending;
+        } else {
+            payload.hasPendingInstaPay = false;
+        }
+        res.json(payload);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+};
+
+const cancelPendingOrderRequest = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const orderId = req.params.id;
+        const order = await Order.findById(orderId)
+            .populate('projectId', 'title')
+            .populate('sellerId', 'firstName lastName email');
+        if (!order) return res.status(404).json({ msg: 'Order not found' });
+        if (String(order.buyerId) !== String(userId)) {
+            return res.status(403).json({ msg: 'Not authorized' });
+        }
+        if (order.status !== 'pending_approval') {
+            return res.status(400).json({ msg: 'Only pending order requests can be cancelled before the freelancer accepts.' });
+        }
+
+        order.status = 'refunded';
+        await order.save();
+
+        const freelancerId = String(order.sellerId._id || order.sellerId);
+        const buyerStr = String(userId);
+        const conversation = await Conversation.findOne({
+            participants: { $all: [buyerStr, freelancerId] }
+        });
+        if (conversation) {
+            const chatMsg = new Chat({
+                conversationId: conversation._id,
+                senderId: userId,
+                receiverId: order.sellerId._id || order.sellerId,
+                content: '[Engezhaly Order] The client has cancelled their order request before approval.',
+                messageType: 'order',
+                isAdmin: false
+            });
+            await chatMsg.save();
+            await Conversation.findByIdAndUpdate(conversation._id, {
+                lastMessage: chatMsg.content,
+                lastMessageId: chatMsg._id
+            });
+            const io = req.app?.get('io');
+            if (io) {
+                io.to(`conversation:${conversation._id}`).emit('message', {
+                    _id: chatMsg._id,
+                    conversationId: conversation._id,
+                    senderId: userId,
+                    content: chatMsg.content,
+                    messageType: 'order',
+                    createdAt: chatMsg.createdAt,
+                    isAdmin: false,
+                    isRead: false
+                });
+            }
+            emitChatContextRefresh(io, conversation._id);
+        }
+
+        const fresh = await Order.findById(orderId)
+            .populate('projectId', 'title packages')
+            .populate('sellerId', 'firstName lastName')
+            .populate('offerId', 'revisions revisionsUnlimited');
+        res.json(orderWithRevisionFallback(fresh));
     } catch (err) {
         console.error(err);
         res.status(500).send('Server Error');
@@ -684,7 +835,10 @@ module.exports = {
     updateJob,
     deleteJob,
     acceptProposal,
+    rejectProposal,
     getMyOrders,
+    getClientOrderById,
+    cancelPendingOrderRequest,
     getActiveOrderForProject,
     getAllActiveOrders,
     raiseDispute,

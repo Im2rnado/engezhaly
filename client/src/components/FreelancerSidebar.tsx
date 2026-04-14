@@ -23,7 +23,7 @@ export default function FreelancerSidebar({ user, profile, onToggleBusy, toggleB
     const { showModal } = useModal();
     const pathname = usePathname();
     const [orders, setOrders] = useState<any[]>([]);
-    const [myJobsCount, setMyJobsCount] = useState(0);
+    const [myJobs, setMyJobs] = useState<any[]>([]);
     const [unreadChats, setUnreadChats] = useState(0);
     const [unreadAnnouncements, setUnreadAnnouncements] = useState(0);
 
@@ -31,8 +31,8 @@ export default function FreelancerSidebar({ user, profile, onToggleBusy, toggleB
         const userId = user?._id || user?.id;
         if (userId) {
             api.jobs.getFreelancerJobs()
-                .then((data: any[]) => setMyJobsCount(Array.isArray(data) ? data.length : 0))
-                .catch(() => setMyJobsCount(0));
+                .then((data: any[]) => setMyJobs(Array.isArray(data) ? data : []))
+                .catch(() => setMyJobs([]));
             api.freelancer.getMyOrders().then(setOrders).catch(() => setOrders([]));
             api.chat.getConversations().then((conversations: any[]) => {
                 const unread = (conversations || []).reduce((sum: number, c: any) => sum + Number(c.unreadCount || 0), 0);
@@ -47,6 +47,16 @@ export default function FreelancerSidebar({ user, profile, onToggleBusy, toggleB
     const isActive = (path: string) => pathname === path || pathname?.startsWith(path);
     const isPending = profile?.freelancerProfile?.status === 'pending';
     const isBusy = profile?.freelancerProfile?.isBusy;
+
+    const inFlightOrderStatuses = ['pending_approval', 'pending_payment', 'active', 'disputed'];
+    const activeOrdersCount = orders.filter((o: any) => inFlightOrderStatuses.includes(o.status)).length;
+    const activeJobsCount = myJobs.filter((job: any) => {
+        const p = job.myProposal;
+        if (!p) return false;
+        if (job.status === 'open' && p.status === 'pending') return true;
+        if (job.status === 'in_progress' && p.status === 'accepted') return true;
+        return false;
+    }).length;
 
     return (
         <div className={`w-72 bg-white border-r border-gray-200 flex flex-col fixed h-full z-40 shadow-sm transition-transform duration-300 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
@@ -103,7 +113,7 @@ export default function FreelancerSidebar({ user, profile, onToggleBusy, toggleB
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${isActive('/dashboard/freelancer/jobs') ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
                 >
                     <Briefcase className="w-5 h-5" /> Jobs Applied
-                    {myJobsCount > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{myJobsCount}</span>}
+                    {activeJobsCount > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{activeJobsCount}</span>}
                 </button>
                 <button
                     onClick={() => {
@@ -112,7 +122,7 @@ export default function FreelancerSidebar({ user, profile, onToggleBusy, toggleB
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'orders' || pathname?.startsWith('/dashboard/freelancer/orders') ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
                 >
                     <ShoppingBag className="w-5 h-5" /> Orders Received
-                    {orders.length > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{orders.length}</span>}
+                    {activeOrdersCount > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{activeOrdersCount}</span>}
                 </button>
                 <button
                     onClick={() => router.push('/dashboard/freelancer/wallet')}

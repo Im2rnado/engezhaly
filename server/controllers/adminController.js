@@ -15,6 +15,8 @@ const Order = require('../models/Order');
 const Offer = require('../models/Offer');
 const WithdrawalRequest = require('../models/WithdrawalRequest');
 const WithdrawalMethod = require('../models/WithdrawalMethod');
+const { ORDER_PLATFORM_FEE_EGP } = require('../config/fees');
+const { reviewStatsForSeller } = require('../utils/reviewStatsForSeller');
 
 const getPendingFreelancers = async (req, res) => {
     try {
@@ -52,22 +54,31 @@ const approveFreelancer = async (req, res) => {
             try {
                 const category = user.freelancerProfile.category || 'General';
                 const subCategory = so.subCategory || (user.freelancerProfile.category || 'General');
-                await Project.create({
-                    sellerId: user._id,
-                    title: so.title,
-                    description: so.description || '',
-                    category,
-                    subCategory,
-                    images: so.images || [],
-                    packages: so.packages.map(p => ({
-                        type: p.type || 'Basic',
-                        price: Math.max(300, Number(p.price) || 300),
-                        days: Math.max(1, Number(p.days) || 1),
-                        revisions: Number(p.revisions) || 0,
-                        features: Array.isArray(p.features) ? p.features.filter(Boolean) : []
-                    })),
-                    isActive: true
-                });
+                const existing = await Project.findOne({ sellerId: user._id, subCategory });
+                if (existing) {
+                    console.warn('[Admin] Skipping starter offer project: freelancer already has an offer for subcategory', subCategory);
+                } else {
+                    await Project.create({
+                        sellerId: user._id,
+                        title: so.title,
+                        description: so.description || '',
+                        category,
+                        subCategory,
+                        images: so.images || [],
+                        packages: so.packages.map(p => {
+                            const revUnlimited = !!p.revisionsUnlimited;
+                            return {
+                                type: p.type || 'Basic',
+                                price: Math.max(300, Number(p.price) || 300),
+                                days: Math.max(1, Number(p.days) || 1),
+                                revisions: revUnlimited ? 0 : Math.max(0, Math.floor(Number(p.revisions) || 0)),
+                                revisionsUnlimited: revUnlimited,
+                                features: Array.isArray(p.features) ? p.features.filter(Boolean) : []
+                            };
+                        }),
+                        isActive: true
+                    });
+                }
             } catch (offerErr) {
                 console.error('[Admin] Failed to create starter offer project:', offerErr.message);
             }
@@ -162,22 +173,33 @@ const getActiveChats = async (req, res) => {
             .sort({ isFrozen: -1, updatedAt: -1 })
             .limit(80)
             .populate('participants', 'firstName lastName role freelancerProfile.profilePicture clientProfile.profilePicture')
-            .populate('lastMessageId', 'content');
+            .populate('lastMessageId', 'content createdAt isAdmin');
 
         // Format conversations to include sender/receiver info
         const formatted = conversations.map(conv => {
             const participants = conv.participants || [];
             const participant1 = participants[0];
             const participant2 = participants[1];
-            
+            const lm = conv.lastMessageId;
+            const lastIsAdminSide =
+                lm &&
+                (lm.isAdmin || (typeof lm.content === 'string' && lm.content.includes('[Engezhaly Admin]')));
+            let adminHasUnread = false;
+            if (lm && lm.createdAt && !lastIsAdminSide) {
+                const readAt = conv.adminLastReadAt;
+                adminHasUnread = !readAt || new Date(lm.createdAt) > new Date(readAt);
+            }
+
             return {
                 _id: conv._id,
                 kind: conv.kind || 'direct',
                 isFrozen: conv.isFrozen,
                 lastMessage: conv.lastMessage,
-                content: conv.lastMessageId?.content || conv.lastMessage || 'No messages yet',
+                content: lm?.content || conv.lastMessage || 'No messages yet',
                 updatedAt: conv.updatedAt,
                 createdAt: conv.createdAt,
+                adminLastReadAt: conv.adminLastReadAt,
+                adminHasUnread,
                 participants: participants,
                 // For backward compatibility
                 senderId: participant1,
@@ -191,6 +213,19 @@ const getActiveChats = async (req, res) => {
         res.status(500).send('Server Error');
     }
 }
+
+const markAdminConversationRead = async (req, res) => {
+    try {
+        const conversation = await Conversation.findById(req.params.id);
+        if (!conversation) return res.status(404).json({ msg: 'Conversation not found' });
+        conversation.adminLastReadAt = new Date();
+        await conversation.save();
+        res.json({ ok: true, adminLastReadAt: conversation.adminLastReadAt });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
 
 const freezeChat = async (req, res) => {
     try {
@@ -218,7 +253,32 @@ const unfreezeChat = async (req, res) => {
         console.error(err.message);
         res.status(500).send('Server Error');
     }
-}
+};
+
+/** Direct chat between two users (e.g. order buyer ↔ seller). */
+const findConversationBetweenUsers = async (req, res) => {
+    try {
+        const { userA, userB } = req.query;
+        if (!userA || !userB) {
+            return res.status(400).json({ msg: 'userA and userB query params are required' });
+        }
+        if (!mongoose.Types.ObjectId.isValid(String(userA)) || !mongoose.Types.ObjectId.isValid(String(userB))) {
+            return res.status(400).json({ msg: 'Invalid user id' });
+        }
+        const a = new mongoose.Types.ObjectId(String(userA));
+        const b = new mongoose.Types.ObjectId(String(userB));
+        const conv = await Conversation.findOne({
+            kind: 'direct',
+            participants: { $all: [a, b], $size: 2 }
+        })
+            .select('_id')
+            .lean();
+        res.json({ conversationId: conv?._id ? String(conv._id) : null });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
 
 const getConversationOffers = async (req, res) => {
     try {
@@ -397,26 +457,37 @@ const addStrike = async (req, res) => {
     }
 }
 
-const toggleEmployeeOfMonth = async (req, res) => {
+const REWARD_FIELD_BY_AWARD = {
+    mostDeals: 'rewardMostDeals',
+    topRated: 'rewardTopRated',
+    onTime: 'rewardOnTime'
+};
+
+const toggleFreelancerReward = async (req, res) => {
     try {
+        const award = req.body?.award;
+        const field = REWARD_FIELD_BY_AWARD[award];
+        if (!field) {
+            return res.status(400).json({ msg: 'Invalid award. Use mostDeals, topRated, or onTime.' });
+        }
         const user = await User.findById(req.params.id);
         if (!user || user.role !== 'freelancer') return res.status(404).json({ msg: 'Freelancer not found' });
 
-        if (!user.freelancerProfile.isEmployeeOfMonth) {
-            await User.updateMany(
-                { 'freelancerProfile.isEmployeeOfMonth': true },
-                { $set: { 'freelancerProfile.isEmployeeOfMonth': false } }
-            );
+        const path = `freelancerProfile.${field}`;
+        const currentlyOn = !!user.freelancerProfile?.[field];
+
+        if (!currentlyOn) {
+            await User.updateMany({ role: 'freelancer', [path]: true }, { $set: { [path]: false } });
         }
 
-        user.freelancerProfile.isEmployeeOfMonth = !user.freelancerProfile.isEmployeeOfMonth;
+        user.freelancerProfile[field] = !currentlyOn;
         await user.save();
         res.json(user);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
     }
-}
+};
 
 const getInsights = async (req, res) => {
     try {
@@ -424,17 +495,30 @@ const getInsights = async (req, res) => {
         const totalFreelancers = await User.countDocuments({ role: 'freelancer' });
         const totalClients = await User.countDocuments({ role: 'client' });
 
-        const revenueAgg = await Transaction.aggregate([
+        // Platform fees collected (card/top-up etc.)
+        const feeAgg = await Transaction.aggregate([
             { $match: { type: 'fee', status: 'completed' } },
             { $group: { _id: null, total: { $sum: '$amount' } } }
         ]);
-        const totalRevenue = revenueAgg.length > 0 ? Math.abs(revenueAgg[0].total) : 0;
+        const totalFees = feeAgg.length > 0 ? Math.abs(feeAgg[0].total) : 0;
+
+        // Gross marketplace volume: sum of completed order amounts (each deal once)
+        const gmvAgg = await Order.aggregate([
+            { $match: { status: 'completed' } },
+            { $group: { _id: null, total: { $sum: '$amount' } } }
+        ]);
+        const totalOrderVolume = gmvAgg.length > 0 ? gmvAgg[0].total : 0;
+
+        // "Revenue" in dashboard = sum of completed deal amounts (GMV). Fees shown separately.
+        const totalRevenue = totalOrderVolume;
 
         res.json({
             totalUsers,
             totalFreelancers,
             totalClients,
-            totalRevenue
+            totalRevenue,
+            totalOrderVolume,
+            totalFeesCollected: totalFees
         });
     } catch (err) {
         console.error(err.message);
@@ -464,7 +548,36 @@ const searchUser = async (req, res) => {
         console.error(err.message);
         res.status(500).send('Server Error');
     }
-}
+};
+
+const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const searchUsersPartial = async (req, res) => {
+    try {
+        const raw = (req.query.q || '').trim();
+        if (raw.length < 2) {
+            return res.json([]);
+        }
+        if (raw.match(/^[0-9a-fA-F]{24}$/)) {
+            const u = await User.findById(raw)
+                .select('_id username email firstName lastName role strikes')
+                .lean();
+            return res.json(u ? [u] : []);
+        }
+        const safe = escapeRegex(raw);
+        const re = new RegExp(safe, 'i');
+        const users = await User.find({
+            $or: [{ username: re }, { email: re }, { firstName: re }, { lastName: re }]
+        })
+            .select('_id username email firstName lastName role strikes')
+            .limit(15)
+            .lean();
+        res.json(users);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
 
 const getAllUsers = async (req, res) => {
     try {
@@ -548,10 +661,31 @@ const deleteUser = async (req, res) => {
 const getAllProjects = async (req, res) => {
     try {
         const projects = await Project.find()
-            .populate('sellerId', 'firstName lastName email username freelancerProfile.profilePicture')
+            .populate(
+                'sellerId',
+                'firstName lastName email username freelancerProfile.profilePicture freelancerProfile.bio freelancerProfile.category freelancerProfile.isBusy'
+            )
             .sort({ createdAt: -1 })
             .lean();
-        res.json(projects);
+        const sellerIdSet = new Set();
+        for (const p of projects) {
+            const sid = p.sellerId?._id || p.sellerId;
+            if (sid) sellerIdSet.add(String(sid));
+        }
+        const statsBySeller = {};
+        await Promise.all(
+            [...sellerIdSet].map(async (id) => {
+                statsBySeller[id] = await reviewStatsForSeller(id);
+            })
+        );
+        const out = projects.map((p) => {
+            const sid = String(p.sellerId?._id || p.sellerId || '');
+            return {
+                ...p,
+                reviewStats: statsBySeller[sid] || { reviewCount: 0, avgRating: 0 }
+            };
+        });
+        res.json(out);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
@@ -655,25 +789,109 @@ const getDisputedOrders = async (req, res) => {
 
 const updateOrder = async (req, res) => {
     try {
-        const { status, disputeOutcome } = req.body;
+        const { status, disputeOutcome, disputeResolutionType: bodyResolutionType, freelancerSplitPercent } = req.body;
         const orderId = req.params.id;
-        const existingOrder = await Order.findById(orderId)
+        const orderDoc = await Order.findById(orderId)
             .populate('projectId', 'title')
             .populate('buyerId', 'email firstName lastName')
             .populate('sellerId', 'email firstName lastName');
 
-        if (!existingOrder) return res.status(404).json({ msg: 'Order not found' });
+        if (!orderDoc) return res.status(404).json({ msg: 'Order not found' });
 
-        const wasDisputed = existingOrder.status === 'disputed';
-        const order = await Order.findByIdAndUpdate(orderId, { status }, { new: true })
-            .populate('projectId', 'title')
-            .populate('buyerId', 'email firstName lastName')
-            .populate('sellerId', 'email firstName lastName');
+        const wasDisputed = orderDoc.status === 'disputed';
+        const resolutionText = typeof disputeOutcome === 'string' ? disputeOutcome.trim() : '';
+        const fee = Number(orderDoc.platformFee ?? ORDER_PLATFORM_FEE_EGP);
+        const orderAmount = Number(orderDoc.amount) || 0;
+        const buyerId = String(orderDoc.buyerId?._id || orderDoc.buyerId);
+        const sellerId = String(orderDoc.sellerId?._id || orderDoc.sellerId);
 
-        // If resolving a dispute, send email to both parties
         if (wasDisputed && (status === 'completed' || status === 'refunded' || status === 'active')) {
-            const title = order.projectId?.title || order.offerId ? 'Custom Offer' : 'Order';
-            const outcome = disputeOutcome || `The dispute has been resolved. Status: ${status}.`;
+            orderDoc.disputeResolvedAt = new Date();
+            orderDoc.disputeResolution = resolutionText || `The dispute has been resolved. Status: ${status}.`;
+            if (status === 'active') {
+                orderDoc.disputeResolutionType = 'reopen';
+            } else if (status === 'refunded') {
+                orderDoc.disputeResolutionType = 'refund';
+            } else if (status === 'completed') {
+                orderDoc.disputeResolutionType = bodyResolutionType === 'manual_split' ? 'manual_split' : 'release';
+            }
+        }
+
+        if (wasDisputed && status === 'completed') {
+            if (bodyResolutionType === 'manual_split') {
+                const pct = Math.min(100, Math.max(0, Number(freelancerSplitPercent) || 0));
+                const netPool = Math.max(0, orderAmount - fee);
+                const freelancerPayout = Math.round(netPool * (pct / 100) * 100) / 100;
+                const buyerRefund = Math.round((orderAmount - freelancerPayout - fee) * 100) / 100;
+                const freelancer = await User.findById(sellerId);
+                const buyer = await User.findById(buyerId);
+                if (freelancer && freelancerPayout > 0) {
+                    freelancer.walletBalance = (freelancer.walletBalance || 0) + freelancerPayout;
+                    await freelancer.save();
+                    await Transaction.create({
+                        userId: sellerId,
+                        type: 'payment',
+                        amount: freelancerPayout,
+                        description: `Dispute resolved — split (${pct}% to freelancer)`,
+                        orderId: orderDoc._id,
+                        relatedUserId: buyerId
+                    });
+                }
+                if (buyer && buyerRefund > 0) {
+                    buyer.walletBalance = (buyer.walletBalance || 0) + buyerRefund;
+                    await buyer.save();
+                    await Transaction.create({
+                        userId: buyerId,
+                        type: 'refund',
+                        amount: buyerRefund,
+                        description: 'Dispute resolved — partial refund to client',
+                        orderId: orderDoc._id,
+                        relatedUserId: sellerId
+                    });
+                }
+            } else {
+                const net = Math.max(0, orderAmount - fee);
+                const freelancer = await User.findById(sellerId);
+                if (freelancer && net > 0) {
+                    freelancer.walletBalance = (freelancer.walletBalance || 0) + net;
+                    await freelancer.save();
+                    await Transaction.create({
+                        userId: sellerId,
+                        type: 'payment',
+                        amount: net,
+                        description: `Dispute resolved — released to freelancer`,
+                        orderId: orderDoc._id,
+                        relatedUserId: buyerId
+                    });
+                }
+            }
+        } else if (wasDisputed && status === 'refunded') {
+            const buyer = await User.findById(buyerId);
+            if (buyer && orderAmount > 0) {
+                buyer.walletBalance = (buyer.walletBalance || 0) + orderAmount;
+                await buyer.save();
+                await Transaction.create({
+                    userId: buyerId,
+                    type: 'refund',
+                    amount: orderAmount,
+                    description: 'Dispute resolved — full refund to client',
+                    orderId: orderDoc._id,
+                    relatedUserId: sellerId
+                });
+            }
+        }
+
+        orderDoc.status = status;
+        await orderDoc.save();
+
+        const order = await Order.findById(orderId)
+            .populate('projectId', 'title')
+            .populate('buyerId', 'email firstName lastName')
+            .populate('sellerId', 'email firstName lastName');
+
+        if (wasDisputed && (status === 'completed' || status === 'refunded' || status === 'active')) {
+            const title = order.projectId?.title || (order.offerId ? 'Custom Offer' : 'Order');
+            const outcome = order.disputeResolution || resolutionText || `The dispute has been resolved. Status: ${status}.`;
             const buyerEmail = order.buyerId?.email;
             const sellerEmail = order.sellerId?.email;
             const { subject, html } = disputeResolvedTemplate(title, outcome, orderId);
@@ -884,11 +1102,14 @@ module.exports = {
     getActiveChats,
     freezeChat,
     unfreezeChat,
+    markAdminConversationRead,
+    findConversationBetweenUsers,
     getConversationOffers,
     addStrike,
-    toggleEmployeeOfMonth,
+    toggleFreelancerReward,
     getInsights,
     searchUser,
+    searchUsersPartial,
     getAllUsers,
     getUserById,
     updateUser,

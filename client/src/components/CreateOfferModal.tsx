@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from 'react';
 import { X, Plus, Trash2, FileText } from 'lucide-react';
-import { formatDateDDMMYYYY } from '@/lib/utils';
+import { formatDateDDMMYYYY, formatRevisionsLabel } from '@/lib/utils';
 import DatePicker from '@/components/DatePicker';
+import RevisionsField from '@/components/RevisionsField';
 
 export type CreateOfferPayload = {
     price: number;
@@ -25,7 +26,7 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
     const [price, setPrice] = useState('');
     const [deliveryDate, setDeliveryDate] = useState('');
     const [whatsIncluded, setWhatsIncluded] = useState('');
-    const [revisions, setRevisions] = useState('0');
+    const [revisions, setRevisions] = useState('1');
     const [revisionsUnlimited, setRevisionsUnlimited] = useState(false);
     const [milestones, setMilestones] = useState<Array<{ name: string; dueDate: string }>>([]);
     const [showMilestones, setShowMilestones] = useState(false);
@@ -101,9 +102,12 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
         };
 
         if (showMilestones) {
-            const times = normalizedMilestones.map((m) => new Date(m.dueDate!).getTime());
-            const latest = new Date(Math.max(...times));
-            offerData.deliveryDate = latest.toISOString();
+            const times = normalizedMilestones
+                .map((m) => (m.dueDate ? new Date(m.dueDate).getTime() : NaN))
+                .filter((t) => !Number.isNaN(t));
+            if (times.length > 0) {
+                offerData.deliveryDate = new Date(Math.max(...times)).toISOString();
+            }
         } else {
             offerData.deliveryDate = new Date(deliveryDate).toISOString();
         }
@@ -112,7 +116,7 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
         setPrice('');
         setDeliveryDate('');
         setWhatsIncluded('');
-        setRevisions('0');
+        setRevisions('1');
         setRevisionsUnlimited(false);
         setMilestones([]);
         setShowMilestones(false);
@@ -135,7 +139,13 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
     const finalPrice = Number(price) || 0;
     const summaryDelivery =
         showMilestones && normalizedMilestones.length
-            ? formatDateDDMMYYYY(new Date(Math.max(...normalizedMilestones.map((m) => new Date(m.dueDate!).getTime()))).toISOString())
+            ? (() => {
+                const times = normalizedMilestones
+                    .map((m) => (m.dueDate ? new Date(m.dueDate).getTime() : NaN))
+                    .filter((t) => !Number.isNaN(t));
+                if (times.length === 0) return '—';
+                return formatDateDDMMYYYY(new Date(Math.max(...times)).toISOString());
+            })()
             : deliveryDate
                 ? formatDateDDMMYYYY(deliveryDate)
                 : '—';
@@ -200,30 +210,19 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                 </div>
                             )}
 
-                            <div>
-                                <label className="block text-sm font-bold text-gray-900 mb-2">
-                                    Revisions <span className="text-red-500">*</span>
-                                </label>
-                                <select
-                                    value={revisionsUnlimited ? 'unlimited' : 'fixed'}
-                                    onChange={(e) => setRevisionsUnlimited(e.target.value === 'unlimited')}
-                                    className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 focus:border-[#09BF44] outline-none mb-2"
-                                >
-                                    <option value="fixed">Fixed count</option>
-                                    <option value="unlimited">Unlimited</option>
-                                </select>
-                                {!revisionsUnlimited && (
-                                    <input
-                                        type="number"
-                                        value={revisions}
-                                        onChange={(e) => setRevisions(e.target.value)}
-                                        required
-                                        min={0}
-                                        className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:border-[#09BF44] focus:ring-2 focus:ring-[#09BF44]/20 outline-none transition-all"
-                                        placeholder="Enter number (e.g. 3)"
-                                    />
-                                )}
-                            </div>
+                            <RevisionsField
+                                variant="default"
+                                label={
+                                    <>
+                                        Revisions <span className="text-red-500">*</span>
+                                    </>
+                                }
+                                required
+                                unlimited={revisionsUnlimited}
+                                revisions={revisions}
+                                onUnlimitedChange={setRevisionsUnlimited}
+                                onRevisionsChange={setRevisions}
+                            />
 
                             <div>
                                 <label className="block text-sm font-bold text-gray-900 mb-2">
@@ -346,7 +345,9 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                     )}
                                     <div className="flex justify-between items-center">
                                         <span className="text-gray-600">Revisions:</span>
-                                        <span className="font-bold text-gray-900">{revisionsUnlimited ? 'Unlimited' : revisions || 0}</span>
+                                        <span className="font-bold text-gray-900">
+                                            {formatRevisionsLabel(revisionsUnlimited, revisions)}
+                                        </span>
                                     </div>
                                 </div>
                             </div>

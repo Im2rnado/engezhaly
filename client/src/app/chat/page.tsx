@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
 import { Send, Video, Paperclip, FileText, CheckCircle, XCircle, MessageSquare, Shield, PanelLeft, ArrowLeft, Loader2, Mic, Square, Trash2, ScrollText, Link as LinkIcon, Clock } from 'lucide-react';
 import { api } from '@/lib/api';
-import { formatDateDDMMYYYY } from '@/lib/utils';
+import { formatDateDDMMYYYY, formatRevisionsLabel } from '@/lib/utils';
 import { useModal } from '@/context/ModalContext';
 import CreateOfferModal from '@/components/CreateOfferModal';
 import PaymobCheckoutModal from '@/components/PaymobCheckoutModal';
@@ -1733,9 +1733,9 @@ function ChatPageContent() {
 
                                         return (
                                                 <div key={item.id} className={`flex w-full min-w-0 ${isMyOffer ? 'justify-end' : 'justify-start'}`}>
-                                                    <div className={`min-w-0 p-4 rounded-2xl md:rounded-3xl shadow-sm relative w-full max-w-lg md:max-w-xl ${isMyOffer
-                                                        ? 'bg-[#09BF44] text-white border-[#09BF44]'
-                                                        : 'bg-white border-[#09BF44]/20'
+                                                    <div className={`min-w-0 p-4 rounded-2xl md:rounded-3xl shadow-md relative w-full max-w-lg md:max-w-xl border-2 ${isMyOffer
+                                                        ? 'bg-emerald-700 text-white border-emerald-800'
+                                                        : 'bg-emerald-50/95 border-[#09BF44]/50 text-gray-900'
                                                     }`}>
                                                     <div className="flex items-center gap-2 mb-3 w-full min-w-0">
                                                         <FileText className={`w-5 h-5 shrink-0 ${isMyOffer ? 'text-white' : 'text-[#09BF44]'}`} />
@@ -1777,7 +1777,7 @@ function ChatPageContent() {
                                                         <div className="flex items-center justify-between gap-2">
                                                             <span className="text-sm font-bold">Revisions:</span>
                                                             <span className="text-sm font-medium">
-                                                                {offer.revisionsUnlimited ? 'Unlimited' : String(Number(offer.revisions ?? 0))}
+                                                                {formatRevisionsLabel(offer.revisionsUnlimited, offer.revisions, 'short')}
                                                             </span>
                                                         </div>
                                                         <div className={`pt-3 border-t min-w-0 ${isMyOffer ? 'border-white/20' : 'border-gray-200'}`}>
@@ -1882,8 +1882,8 @@ function ChatPageContent() {
                                                             : isOrder || isOfferRequest
                                                                 ? 'bg-blue-50 border-2 border-blue-200 text-gray-900'
                                                         : msg.sender === 'me'
-                                                            ? 'bg-[#09BF44] text-white rounded-br-sm'
-                                                            : 'bg-white border border-gray-200 text-gray-900 rounded-bl-sm'
+                                                            ? 'bg-emerald-700 text-white border border-emerald-800 rounded-br-sm'
+                                                            : 'bg-slate-100 border border-slate-200/90 text-gray-900 rounded-bl-sm'
                                                 }`}>
                                                     {isOrder && (
                                                         <div className="flex items-center gap-2 mb-1">

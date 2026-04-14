@@ -6,6 +6,7 @@ import { Loader2, PanelLeft, Megaphone } from 'lucide-react';
 import FreelancerSidebar from '@/components/FreelancerSidebar';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 import { api } from '@/lib/api';
+import AnnouncementContent from '@/components/AnnouncementContent';
 
 export default function FreelancerAnnouncementsPage() {
     const router = useRouter();
@@ -60,17 +61,6 @@ export default function FreelancerAnnouncementsPage() {
         );
     }
 
-    const getEmbedUrl = (url: string) => {
-        if (!url) return null;
-        // YouTube
-        let match = url.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
-        if (match) return `https://www.youtube.com/embed/${match[1]}`;
-        // Vimeo
-        match = url.match(/(?:https?:\/\/)?(?:www\.)?vimeo\.com\/(\d+)/);
-        if (match) return `https://player.vimeo.com/video/${match[1]}`;
-        return null;
-    };
-
     return (
         <div className="min-h-screen bg-gray-50 flex font-sans text-gray-900">
             <FreelancerSidebar
@@ -117,7 +107,6 @@ export default function FreelancerAnnouncementsPage() {
                 ) : (
                     <div className="space-y-6">
                         {announcements.map((a: any) => {
-                            const embedUrl = getEmbedUrl(a.videoLink);
                             return (
                                 <div key={a._id} className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
                                     <div className="p-6">
@@ -129,18 +118,7 @@ export default function FreelancerAnnouncementsPage() {
                                             )}
                                             <div className="min-w-0 flex-1 flex flex-col">
                                                 <div className="flex-1">
-                                                    {a.content && <p className="text-gray-900 whitespace-pre-wrap leading-relaxed font-medium">{a.content}</p>}
-                                                    
-                                                    {embedUrl && (
-                                                        <div className="mt-6 aspect-video rounded-2xl overflow-hidden border border-gray-100 shadow-sm bg-black">
-                                                            <iframe
-                                                                src={embedUrl}
-                                                                className="w-full h-full"
-                                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                                allowFullScreen
-                                                            />
-                                                        </div>
-                                                    )}
+                                                    <AnnouncementContent content={a.content} videoLink={a.videoLink} />
                                                 </div>
                                                 <div className="mt-6 pt-4 border-t border-gray-50 flex items-center justify-between">
                                                     <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">

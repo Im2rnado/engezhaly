@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const authVerified = require('../middleware/authVerified');
 const auth = require('../middleware/auth');
-const { updateProfile, getProfile, getPublicProfile, getReviews, getTopFreelancers, getMyOrders, getOrderById, submitOrderWork, raiseDispute, approveOrder, denyOrder, submitMilestoneWork } = require('../controllers/freelancerController');
+const { updateProfile, getProfile, getPublicProfile, getReviewStats, getReviews, getTopFreelancers, getMyOrders, getOrderById, submitOrderWork, raiseDispute, approveOrder, denyOrder, submitMilestoneWork } = require('../controllers/freelancerController');
 
 // @route   PUT api/freelancer/profile
 // @desc    Update freelancer profile (onboarding steps) - auth only, no email verification required
@@ -13,6 +13,10 @@ router.put('/profile', auth, updateProfile);
 // @desc    Get current freelancer profile
 // @access  Private
 router.get('/profile', authVerified, getProfile);
+
+// @route   GET api/freelancer/review-stats/:sellerId
+// @desc    Aggregate rating + review count (public)
+router.get('/review-stats/:sellerId', getReviewStats);
 
 // @route   GET api/freelancer/:id/reviews
 // @desc    Get completed order reviews for a freelancer (public)

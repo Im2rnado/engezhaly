@@ -8,7 +8,7 @@ import { Loader2, MessageSquare, PanelLeft, Flag, ArrowLeft } from 'lucide-react
 import FreelancerSidebar from '@/components/FreelancerSidebar';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 import CountdownTimer from '@/components/CountdownTimer';
-import { formatStatus, formatDateDDMMYYYY } from '@/lib/utils';
+import { formatStatus, formatDateDDMMYYYY, formatRevisionsLabel } from '@/lib/utils';
 
 export default function FreelancerOrderDetailPage() {
     const params = useParams();
@@ -153,7 +153,7 @@ export default function FreelancerOrderDetailPage() {
     }
 
     const title = order.projectId?.title || (order.offerId ? 'Custom offer' : 'Order');
-    const revLabel = order.revisionsUnlimited ? 'Unlimited' : String(order.revisions ?? 0);
+    const revLabel = formatRevisionsLabel(order.revisionsUnlimited, order.revisions, 'short');
 
     return (
         <div className="min-h-screen bg-gray-50 flex font-sans text-gray-900">
@@ -205,6 +205,16 @@ export default function FreelancerOrderDetailPage() {
                             <CountdownTimer deadline={order.deliveryDate} variant="inline" />
                         )}
 
+                        {order.disputeResolvedAt && order.disputeResolution && (
+                            <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-900">
+                                <p className="font-black text-green-800 mb-1">Dispute solved</p>
+                                <p className="text-green-900/90 whitespace-pre-wrap break-words">{order.disputeResolution}</p>
+                                {order.disputeResolvedAt && (
+                                    <p className="text-xs text-green-700/80 mt-2 font-bold">{formatDateDDMMYYYY(order.disputeResolvedAt)}</p>
+                                )}
+                            </div>
+                        )}
+
                         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                             <div>
                                 <dt className="font-bold text-gray-500">Package</dt>
@@ -245,7 +255,9 @@ export default function FreelancerOrderDetailPage() {
                                 <p className="text-xs font-bold text-gray-500 mb-1">Last work submission</p>
                                 <p className="text-sm text-gray-700">{new Date(order.workSubmission.updatedAt).toLocaleString()}</p>
                                 {order.workSubmission.message && (
-                                    <p className="text-sm mt-2 text-gray-800">{order.workSubmission.message}</p>
+                                    <p className="text-sm mt-2 text-gray-800 whitespace-pre-wrap break-words overflow-wrap-anywhere min-w-0 max-w-full">
+                                        {order.workSubmission.message}
+                                    </p>
                                 )}
                             </div>
                         )}

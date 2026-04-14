@@ -428,9 +428,19 @@ export default function FreelancerWalletPage() {
                                                         }`}>
                                                             {w.status === 'rejected' ? 'REJECTED' : w.status}
                                                         </span>
-                                                        {w.status === 'rejected' && w.rejectReason && (
-                                                            <p className="text-xs text-gray-600 max-w-xs">{w.rejectReason}</p>
-                                                        )}
+                                                        {w.status === 'rejected' && w.rejectReason ? (
+                                                            <div className="mt-2 max-w-md rounded-xl border-2 border-red-200 bg-red-50 px-3 py-2.5">
+                                                                <span className="text-[10px] font-black uppercase tracking-wide text-red-800 block mb-1">
+                                                                    Rejection reason
+                                                                </span>
+                                                                <p className="text-sm text-red-950 font-semibold whitespace-pre-wrap break-words">
+                                                                    {w.rejectReason}
+                                                                </p>
+                                                            </div>
+                                                        ) : null}
+                                                        {w.status === 'rejected' && !w.rejectReason ? (
+                                                            <p className="text-xs text-gray-500 mt-1 italic">No reason recorded for this request.</p>
+                                                        ) : null}
                                                     </div>
                                                 </td>
                                                 <td className="p-4 text-gray-500 text-sm">{formatDateDDMMYYYY(w.createdAt)}</td>
