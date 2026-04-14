@@ -453,7 +453,7 @@ function FreelancerDashboardContent() {
                         >
                             <div className="flex items-start justify-between gap-3 mb-2">
                                 <div className="min-w-0">
-                                    <h4 className="text-lg font-bold text-gray-900 truncate">{order.projectId?.title || order.offerId ? 'Custom offer' : 'Order'}</h4>
+                                    <h4 className="text-lg font-bold text-gray-900 truncate">{order.projectId?.title || (order.offerId ? 'Custom offer' : 'Order')}</h4>
                                     <p className="text-sm text-gray-500 mt-0.5">
                                         {order.buyerId?.firstName} {order.buyerId?.lastName}
                                     </p>

@@ -33,13 +33,14 @@ function AdminChatMessageRow({ msg, selectedChat }: { msg: any; selectedChat: an
     const fileSrc = isFile ? resolveMediaUrl(raw) : '';
     const isAdmin = msg.isAdmin || raw.includes('[Engezhaly Admin]');
     const isMeeting = msg.isMeeting || msg.messageType === 'meeting' || raw.includes('[Engezhaly Meeting]');
-    const isOrder = msg.messageType === 'order' || raw.includes('[Engezhaly Order]');
+    const isJobNotice = raw.includes('[Engezhaly Job]');
+    const isOrder = msg.messageType === 'order' || raw.includes('[Engezhaly Order]') || isJobNotice;
     const isOfferRequest = raw.includes('[Engezhaly Offer Request]');
     const isCentered = isAdmin || isMeeting || isOrder || isOfferRequest;
     let content = raw;
     if (isAdmin) content = content.replace('[Engezhaly Admin]', '').trim();
     if (isMeeting) content = content.replace('[Engezhaly Meeting]', '').trim();
-    if (isOrder) content = content.replace('[Engezhaly Order]', '').trim();
+    if (isOrder) content = content.replace('[Engezhaly Order]', '').replace('[Engezhaly Job]', '').trim();
     if (isOfferRequest) content = content.replace('[Engezhaly Offer Request]', '').trim();
     const linkMatch = content.match(/Join here: (https?:\/\/[^\s]+)/);
     const meetingLink = linkMatch ? linkMatch[1] : null;
@@ -69,7 +70,7 @@ function AdminChatMessageRow({ msg, selectedChat }: { msg: any; selectedChat: an
                 )}
                 {isOrder && (
                     <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-bold text-blue-700">Order</span>
+                        <span className="text-xs font-bold text-blue-700">{isJobNotice ? 'Job' : 'Order'}</span>
                     </div>
                 )}
                 {isOfferRequest && (
@@ -1958,14 +1959,11 @@ export default function AdminDashboard() {
                 {activeTab === 'orders' && (
                     <div className="space-y-6">
                         {!managementDetail || managementDetail.kind !== 'order' ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                                {ordersLoading && (
-                                    <div className="col-span-full flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44]" /></div>
-                                )}
-                                {!ordersLoading && orders.length === 0 && (
-                                    <p className="col-span-full text-center text-gray-500 py-12">No orders yet.</p>
-                                )}
-                                {!ordersLoading && orders.map((order: any) => (
+                            (() => {
+                                const finishedOrderStatuses = ['completed', 'refunded'];
+                                const finishedOrderList = orders.filter((o: any) => finishedOrderStatuses.includes(o.status));
+                                const activeOrderList = orders.filter((o: any) => !finishedOrderStatuses.includes(o.status));
+                                const renderOrderCard = (order: any) => (
                                     <button
                                         key={order._id}
                                         type="button"
@@ -1973,7 +1971,9 @@ export default function AdminDashboard() {
                                         className="text-left bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:border-[#09BF44]/50 hover:shadow-md transition-all"
                                     >
                                         <p className="text-xs text-gray-400 font-mono">#{order.orderNumber ?? String(order._id || '').slice(-6)}</p>
-                                        <h3 className="font-black text-gray-900 mt-1 line-clamp-2">{order.projectId?.title || 'Custom offer'}</h3>
+                                        <h3 className="font-black text-gray-900 mt-1 line-clamp-2">
+                                            {order.projectId?.title || (order.offerId ? 'Custom offer' : 'Order')}
+                                        </h3>
                                         <p className="text-[10px] font-black uppercase text-gray-400 mt-2 tracking-wide">
                                             {order.offerId ? 'Custom offer' : 'Marketplace bundle'}
                                         </p>
@@ -1981,8 +1981,54 @@ export default function AdminDashboard() {
                                         <p className="text-sm font-bold text-[#09BF44] mt-2">{order.amount} EGP · {order.packageType}</p>
                                         <span className={`inline-block mt-2 px-2 py-1 rounded text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'disputed' ? 'bg-amber-100 text-amber-700' : order.status === 'refunded' ? 'bg-gray-100 text-gray-700' : 'bg-blue-100 text-blue-700'}`}>{formatStatus(order.status)}</span>
                                     </button>
-                                ))}
-                            </div>
+                                );
+                                return (
+                                    <div className="space-y-10">
+                                        <div>
+                                            <h2 className="text-2xl font-black text-gray-900">Orders</h2>
+                                            <p className="text-sm text-gray-500 mt-1">Active pipeline and finished orders (completed or refunded).</p>
+                                        </div>
+                                        {ordersLoading && (
+                                            <div className="flex justify-center p-12">
+                                                <Loader2 className="w-8 h-8 animate-spin text-[#09BF44]" />
+                                            </div>
+                                        )}
+                                        {!ordersLoading && orders.length === 0 && (
+                                            <p className="text-center text-gray-500 py-12">No orders yet.</p>
+                                        )}
+                                        {!ordersLoading && orders.length > 0 && (
+                                            <>
+                                                <section>
+                                                    <h3 className="text-lg font-black text-gray-900 mb-4">
+                                                        Active (pending approval / payment, active, disputed, …)
+                                                    </h3>
+                                                    {activeOrderList.length > 0 ? (
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                                                            {activeOrderList.map(renderOrderCard)}
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-sm text-gray-500 bg-white rounded-2xl border border-gray-100 p-8 text-center">
+                                                            No active orders.
+                                                        </p>
+                                                    )}
+                                                </section>
+                                                <section>
+                                                    <h3 className="text-lg font-black text-gray-900 mb-4">Finished (completed / refunded)</h3>
+                                                    {finishedOrderList.length > 0 ? (
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                                                            {finishedOrderList.map(renderOrderCard)}
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-sm text-gray-500 bg-white rounded-2xl border border-gray-100 p-8 text-center">
+                                                            No finished orders yet.
+                                                        </p>
+                                                    )}
+                                                </section>
+                                            </>
+                                        )}
+                                    </div>
+                                );
+                            })()
                         ) : (
                             <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 md:p-8 space-y-6">
                                 <button type="button" onClick={() => setManagementDetail(null)} className="flex items-center gap-2 text-gray-600 font-bold hover:text-gray-900">
@@ -2003,7 +2049,7 @@ export default function AdminDashboard() {
                                             )}
                                             <div className="flex flex-wrap justify-between gap-4">
                                                 <div>
-                                                    <h2 className="text-2xl font-black text-gray-900">{order.projectId?.title || 'Custom offer'}</h2>
+                                                    <h2 className="text-2xl font-black text-gray-900">{order.projectId?.title || (order.offerId ? 'Custom offer' : 'Order')}</h2>
                                                     <p className="text-sm text-gray-500 mt-1">Order #{order.orderNumber} · {order.packageType}</p>
                                                 </div>
                                                 <span className={`px-3 py-1 rounded-full text-sm font-bold h-fit ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'disputed' ? 'bg-amber-100 text-amber-700' : order.status === 'refunded' ? 'bg-gray-100 text-gray-700' : 'bg-blue-100 text-blue-700'}`}>{formatStatus(order.status)}</span>

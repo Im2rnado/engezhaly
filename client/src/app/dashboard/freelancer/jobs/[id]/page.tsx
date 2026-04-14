@@ -4,11 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { useModal } from "@/context/ModalContext";
-import { Loader2, MessageSquare, PanelLeft, ArrowLeft, X } from "lucide-react";
+import { Loader2, MessageSquare, PanelLeft, ArrowLeft, X, CheckCircle, LinkIcon, Paperclip } from "lucide-react";
 import FreelancerSidebar from "@/components/FreelancerSidebar";
 import DashboardMobileTopStrip from "@/components/DashboardMobileTopStrip";
 import CountdownTimer from "@/components/CountdownTimer";
-import { formatDateDDMMYYYY } from "@/lib/utils";
+import { formatDateDDMMYYYY, formatRevisionsLabel } from "@/lib/utils";
 
 export default function FreelancerJobDetailPage() {
     const params = useParams();
@@ -197,7 +197,17 @@ export default function FreelancerJobDetailPage() {
     if (!job) return null;
 
     const myProposal = job.myProposal;
-    const acceptedAndActive = myProposal?.status === "accepted" && job.status === "in_progress";
+    const proposalAccepted = myProposal?.status === "accepted";
+    const showDeliveryWorkspace = proposalAccepted && job.status === "in_progress";
+    const showSubmissionSnapshot =
+        proposalAccepted && ["in_progress", "completed", "closed"].includes(job.status);
+
+    const ws = myProposal?.workSubmission;
+    const hasFullWorkSubmission =
+        ws &&
+        ((typeof ws.message === "string" && ws.message.trim()) ||
+            (Array.isArray(ws.links) && ws.links.some(Boolean)) ||
+            (Array.isArray(ws.files) && ws.files.some(Boolean)));
 
     return (
         <div className="min-h-screen bg-gray-50 flex font-sans text-gray-900">
@@ -238,7 +248,7 @@ export default function FreelancerJobDetailPage() {
                         </button>
                     </div>
 
-                    {acceptedAndActive && inProgressDeliveryDeadline && (
+                    {showDeliveryWorkspace && inProgressDeliveryDeadline && (
                         <div className="mb-6">
                             <CountdownTimer deadline={inProgressDeliveryDeadline} variant="detail" />
                         </div>
@@ -248,13 +258,37 @@ export default function FreelancerJobDetailPage() {
                         <h1 className="text-2xl md:text-3xl font-black text-gray-900">{job.title}</h1>
                         <p className="text-sm text-gray-500 mt-2">
                             Client: {job.clientId?.firstName} {job.clientId?.lastName}
-                            {acceptedAndActive && inProgressDeliveryDeadline
+                            {showDeliveryWorkspace && inProgressDeliveryDeadline
                                 ? ` • Deliver by ${formatDateDDMMYYYY(inProgressDeliveryDeadline)}`
                                 : job.deadline
                                   ? ` • Client timeline: ${job.deadline}`
                                   : ""}
                         </p>
                         <p className="text-gray-700 mt-4 whitespace-pre-wrap">{job.description}</p>
+
+                        {myProposal && (
+                            <div className="mt-5 text-sm text-gray-600 space-y-1">
+                                <p>
+                                    <span className="font-bold text-gray-700">Your terms: </span>
+                                    {myProposal.deliveryDays != null && !Number.isNaN(Number(myProposal.deliveryDays))
+                                        ? `${myProposal.deliveryDays} day delivery`
+                                        : "—"}
+                                    {" · "}
+                                    {formatRevisionsLabel(!!myProposal.revisionsUnlimited, myProposal.revisions)}
+                                </p>
+                            </div>
+                        )}
+
+                        {myProposal?.message?.trim() && (
+                            <div className="mt-5 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <MessageSquare className="w-4 h-4 text-gray-500" />
+                                    <span className="text-sm font-bold text-gray-800">Your proposal message</span>
+                                </div>
+                                <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{myProposal.message}</p>
+                            </div>
+                        )}
+
                         <div className="flex flex-wrap gap-2 mt-4">
                             <span
                                 className={`text-xs font-bold px-3 py-1 rounded-full ${
@@ -271,21 +305,27 @@ export default function FreelancerJobDetailPage() {
                             <span className="text-sm font-black text-[#09BF44]">Your offer: {myProposal?.price || "-"} EGP</span>
                         </div>
 
-                        {acceptedAndActive && (
-                            <div className="mt-6 pt-6 border-t border-gray-100 space-y-4">
-                                {myProposal?.milestones && myProposal.milestones.length > 0 && (
-                                    <div>
-                                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Delivery milestones</p>
-                                        <div className="space-y-2">
-                                            {myProposal.milestones.map((m: any, idx: number) => (
-                                                <div key={idx} className="flex items-center justify-between bg-gray-50 rounded-xl p-3">
-                                                    <div>
+                        {proposalAccepted && myProposal?.milestones && myProposal.milestones.length > 0 && (
+                            <div className="mt-6 pt-6 border-t border-gray-100">
+                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Delivery milestones</p>
+                                <div className="space-y-3">
+                                    {myProposal.milestones.map((m: any, idx: number) => {
+                                        const subLinks = Array.isArray(m.submissionLinks) ? m.submissionLinks.filter(Boolean) : [];
+                                        const subFiles = Array.isArray(m.submissionFiles) ? m.submissionFiles.filter(Boolean) : [];
+                                        const note = typeof m.submissionNote === "string" ? m.submissionNote.trim() : "";
+                                        const hasSubmission =
+                                            (m.status === "submitted" || m.status === "done") &&
+                                            (note || subLinks.length > 0 || subFiles.length > 0);
+                                        return (
+                                            <div key={idx} className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                                                <div className="flex flex-wrap items-start justify-between gap-2">
+                                                    <div className="min-w-0">
                                                         <p className="font-medium text-gray-900 text-sm">{m.name}</p>
                                                         {m.dueDate && (
                                                             <p className="text-xs text-gray-500">Due: {new Date(m.dueDate).toLocaleDateString()}</p>
                                                         )}
                                                     </div>
-                                                    <div className="flex items-center gap-2">
+                                                    <div className="flex items-center gap-2 shrink-0">
                                                         <span
                                                             className={`text-xs font-bold px-2 py-1 rounded-full ${
                                                                 m.status === "submitted"
@@ -297,7 +337,7 @@ export default function FreelancerJobDetailPage() {
                                                         >
                                                             {m.status || "pending"}
                                                         </span>
-                                                        {m.status !== "done" && (
+                                                        {showDeliveryWorkspace && m.status !== "done" && (
                                                             <button
                                                                 type="button"
                                                                 onClick={() => {
@@ -311,37 +351,141 @@ export default function FreelancerJobDetailPage() {
                                                         )}
                                                     </div>
                                                 </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                                <div className="flex flex-wrap gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={openChatWithClient}
-                                        className="bg-gray-100 text-gray-700 px-4 py-2 rounded-xl font-bold hover:bg-gray-200 flex items-center gap-2"
-                                    >
-                                        <MessageSquare className="w-4 h-4" /> Message Client
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setWorkOpen(true);
-                                            setWorkSubmission({
-                                                message: myProposal?.workSubmission?.message || "",
-                                                links: (myProposal?.workSubmission?.links || []).join(", "),
-                                                files: [],
-                                            });
-                                        }}
-                                        className="bg-[#09BF44] text-white px-5 py-2 rounded-xl font-bold hover:bg-[#07a63a]"
-                                    >
-                                        {myProposal?.workSubmission?.updatedAt ? "Update Submission" : "Submit Full Work"}
-                                    </button>
+                                                {hasSubmission && (
+                                                    <div className="mt-3 pt-3 border-t border-gray-200 space-y-2 text-sm">
+                                                        <p className="text-xs font-bold text-gray-500 uppercase">What you submitted</p>
+                                                        {note && <p className="text-gray-700 whitespace-pre-wrap break-words">{note}</p>}
+                                                        {subLinks.length > 0 && (
+                                                            <div>
+                                                                <div className="flex items-center gap-1.5 mb-1">
+                                                                    <LinkIcon className="w-3.5 h-3.5 text-gray-500" />
+                                                                    <span className="text-xs font-bold text-gray-600">Links</span>
+                                                                </div>
+                                                                <ul className="space-y-1">
+                                                                    {subLinks.map((link: string, li: number) => (
+                                                                        <li key={li}>
+                                                                            <a
+                                                                                href={link}
+                                                                                target="_blank"
+                                                                                rel="noreferrer"
+                                                                                className="text-[#09BF44] hover:underline break-all text-xs"
+                                                                            >
+                                                                                {link}
+                                                                            </a>
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                        )}
+                                                        {subFiles.length > 0 && (
+                                                            <div>
+                                                                <div className="flex items-center gap-1.5 mb-1">
+                                                                    <Paperclip className="w-3.5 h-3.5 text-gray-500" />
+                                                                    <span className="text-xs font-bold text-gray-600">Files</span>
+                                                                </div>
+                                                                <ul className="space-y-1">
+                                                                    {subFiles.map((fileUrl: string, fi: number) => (
+                                                                        <li key={fi}>
+                                                                            <a
+                                                                                href={fileUrl}
+                                                                                target="_blank"
+                                                                                rel="noreferrer"
+                                                                                className="text-[#09BF44] hover:underline break-all text-xs"
+                                                                            >
+                                                                                {fileUrl}
+                                                                            </a>
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         )}
 
-                        {!acceptedAndActive && (
+                        {showSubmissionSnapshot && hasFullWorkSubmission && (
+                            <div className="mt-6 p-4 bg-green-50 rounded-xl border border-green-100">
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600" />
+                                        <span className="text-sm font-bold text-green-800">Your final work submission</span>
+                                    </div>
+                                    {ws?.updatedAt && (
+                                        <span className="text-xs text-green-700">{new Date(ws.updatedAt).toLocaleString()}</span>
+                                    )}
+                                </div>
+                                {ws?.message?.trim() && (
+                                    <p className="text-sm text-gray-800 mb-3 leading-relaxed whitespace-pre-wrap break-words">{ws.message}</p>
+                                )}
+                                {Array.isArray(ws?.links) && ws.links.filter(Boolean).length > 0 && (
+                                    <div className="mb-3">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <LinkIcon className="w-4 h-4 text-gray-600" />
+                                            <span className="text-xs font-bold text-gray-700 uppercase">Links</span>
+                                        </div>
+                                        <ul className="space-y-1">
+                                            {ws.links.filter(Boolean).map((link: string, i: number) => (
+                                                <li key={i}>
+                                                    <a href={link} target="_blank" rel="noreferrer" className="text-sm text-[#09BF44] hover:underline break-all">
+                                                        {link}
+                                                    </a>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                                {Array.isArray(ws?.files) && ws.files.filter(Boolean).length > 0 && (
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <Paperclip className="w-4 h-4 text-gray-600" />
+                                            <span className="text-xs font-bold text-gray-700 uppercase">Files</span>
+                                        </div>
+                                        <ul className="space-y-1">
+                                            {ws.files.filter(Boolean).map((fileUrl: string, i: number) => (
+                                                <li key={i}>
+                                                    <a href={fileUrl} target="_blank" rel="noreferrer" className="text-sm text-[#09BF44] hover:underline break-all">
+                                                        {fileUrl}
+                                                    </a>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {showDeliveryWorkspace && (
+                            <div className="mt-6 pt-6 border-t border-gray-100 flex flex-wrap gap-2">
+                                <button
+                                    type="button"
+                                    onClick={openChatWithClient}
+                                    className="bg-gray-100 text-gray-700 px-4 py-2 rounded-xl font-bold hover:bg-gray-200 flex items-center gap-2"
+                                >
+                                    <MessageSquare className="w-4 h-4" /> Message Client
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setWorkOpen(true);
+                                        setWorkSubmission({
+                                            message: myProposal?.workSubmission?.message || "",
+                                            links: (myProposal?.workSubmission?.links || []).join(", "),
+                                            files: [],
+                                        });
+                                    }}
+                                    className="bg-[#09BF44] text-white px-5 py-2 rounded-xl font-bold hover:bg-[#07a63a]"
+                                >
+                                    {myProposal?.workSubmission?.updatedAt ? "Update Submission" : "Submit Full Work"}
+                                </button>
+                            </div>
+                        )}
+
+                        {!showDeliveryWorkspace && (
                             <div className="mt-6 pt-6 border-t border-gray-100">
                                 <button
                                     type="button"

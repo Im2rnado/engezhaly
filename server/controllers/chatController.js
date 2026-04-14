@@ -9,7 +9,14 @@ const Job = require('../models/Job');
 const Transaction = require('../models/Transaction');
 const { createMeetingLink } = require('../services/meetingService');
 const { sendAndLog } = require('../services/mailgunService');
-const { offerPurchased: offerPurchasedTemplate, offlineChat: offlineChatTemplate, paymentReceiptFreelancer, paymentReceiptClient } = require('../templates/emailTemplates');
+const { FRONTEND_URL } = require('../templates/emailBase');
+const {
+    offerPurchased: offerPurchasedTemplate,
+    offlineChat: offlineChatTemplate,
+    paymentReceiptFreelancer,
+    paymentReceiptClient,
+    chatFrozenPhoneAdminAlert
+} = require('../templates/emailTemplates');
 const { isUserInConversation } = require('../services/presence');
 const { emitToUser, isUserOnline } = require('../services/notificationService');
 const { emitChatContextRefresh } = require('../services/chatContextRefresh');
@@ -322,7 +329,6 @@ const sendMessage = async (req, res) => {
             finalContent = '********* [Phone Number Removed]';
             isChatFrozen = true;
             conversation.isFrozen = true; // FREEZE THE CONVERSATION
-            // TODO: Notify Admin (Socket event or DB flag monitoring)
         }
 
         // 5. Curse Word Filtering - skip for voice/file (content is a URL)
@@ -353,6 +359,38 @@ const sendMessage = async (req, res) => {
             finalContent;
         conversation.lastMessageId = newMsg._id;
         await conversation.save();
+
+        if (hasPhone) {
+            const adminEmail = String(process.env.ADMIN_ALERT_EMAIL || process.env.SUPPORT_EMAIL || 'support@engezhaly.com').trim();
+            if (adminEmail) {
+                try {
+                    const [senderU, receiverU] = await Promise.all([
+                        User.findById(senderId).select('firstName lastName email role').lean(),
+                        User.findById(receiverId).select('firstName lastName email role').lean()
+                    ]);
+                    const fmt = (u, id) => {
+                        if (!u) return `User ${id}`;
+                        const name = `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Unknown';
+                        const em = u.email ? ` · ${u.email}` : '';
+                        return `${name} (${u.role || 'user'})${em}`;
+                    };
+                    const adminChatsUrl = `${String(FRONTEND_URL || '').replace(/\/$/, '')}/admin`;
+                    const { subject, html } = chatFrozenPhoneAdminAlert(
+                        String(conversation._id),
+                        fmt(senderU, senderId),
+                        fmt(receiverU, receiverId),
+                        adminChatsUrl
+                    );
+                    sendAndLog(adminEmail, subject, html, 'chat_frozen_phone', {
+                        conversationId: String(conversation._id),
+                        senderId: String(senderId),
+                        receiverId: String(receiverId)
+                    }).catch((err) => console.error('[Chat] Admin freeze alert email failed:', err.message));
+                } catch (e) {
+                    console.error('[Chat] Admin freeze alert failed:', e.message);
+                }
+            }
+        }
 
         // 8. Emit via socket for real-time delivery
         const io = req.app.get('io');

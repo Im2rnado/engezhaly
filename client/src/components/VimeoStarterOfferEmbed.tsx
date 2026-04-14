@@ -20,7 +20,7 @@ export default function VimeoStarterOfferEmbed({
         <div className={className}>
             {title ? (
                 <p
-                    className={`font-bold text-gray-900 ${compact ? "text-sm mb-2" : "text-base mb-3"}`}
+                    className={`mx-auto max-w-md font-bold text-gray-900 ${compact ? "text-sm mb-2" : "text-base mb-3"}`}
                 >
                     {title}
                 </p>

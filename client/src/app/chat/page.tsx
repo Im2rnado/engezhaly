@@ -1998,13 +1998,19 @@ function ChatPageContent() {
                                         const fileSrc = isFile ? resolveChatMediaUrl(msg.text || '') : '';
                                         const isAdmin = msg.isAdmin || msg.text?.includes('[Engezhaly Admin]');
                                         const isMeeting = msg.isMeeting || msg.messageType === 'meeting' || msg.text?.includes('[Engezhaly Meeting]');
-                                        const isOrder = msg.messageType === 'order' || msg.text?.includes('[Engezhaly Order]');
+                                        const isJobNotice = msg.text?.includes('[Engezhaly Job]');
+                                        const isOrder =
+                                            msg.messageType === 'order' ||
+                                            msg.text?.includes('[Engezhaly Order]') ||
+                                            isJobNotice;
                                         const isOfferRequest = msg.text?.includes('[Engezhaly Offer Request]');
                                         const isCentered = isAdmin || isMeeting || isOrder || isOfferRequest;
                                         let content = msg.text || '';
                                         if (isAdmin) content = content.replace('[Engezhaly Admin]', '').trim();
                                         if (isMeeting) content = content.replace('[Engezhaly Meeting]', '').trim();
-                                        if (isOrder) content = content.replace('[Engezhaly Order]', '').trim();
+                                        if (isOrder) {
+                                            content = content.replace('[Engezhaly Order]', '').replace('[Engezhaly Job]', '').trim();
+                                        }
                                         if (isOfferRequest) content = content.replace('[Engezhaly Offer Request]', '').trim();
                                         const linkMatch = content.match(/Join here: (https?:\/\/[^\s]+)/);
                                         const meetingLink = linkMatch ? linkMatch[1] : null;
@@ -2023,7 +2029,7 @@ function ChatPageContent() {
                                                 }`}>
                                                     {isOrder && (
                                                         <div className="flex items-center gap-2 mb-1">
-                                                            <span className="text-xs font-bold text-blue-700">Order</span>
+                                                            <span className="text-xs font-bold text-blue-700">{isJobNotice ? 'Job' : 'Order'}</span>
                                                         </div>
                                                     )}
                                                     {isAdmin && (

@@ -13,6 +13,7 @@ const { sendAndLog } = require('../services/mailgunService');
 const emailTemplates = require('../templates/emailTemplates');
 const { ORDER_PLATFORM_FEE_EGP } = require('../config/fees');
 const { emitChatContextRefresh } = require('../services/chatContextRefresh');
+const { sendJobProposalAcceptedChatMessage } = require('../services/jobProposalChatNotifications');
 
 /**
  * Fulfill a completed payment - credit freelancer, create records, etc.
@@ -38,6 +39,14 @@ const fulfillCharge = async (pendingCharge, app) => {
             job.status = 'in_progress';
             await job.save();
 
+            const clientIdStr = String(job.clientId?._id || job.clientId);
+            await sendJobProposalAcceptedChatMessage(
+                app?.get?.('io'),
+                clientIdStr,
+                String(freelancerId),
+                job.title
+            );
+
             await Transaction.create({
                 userId: pendingCharge.userId,
                 type: 'payment',
@@ -58,11 +67,6 @@ const fulfillCharge = async (pendingCharge, app) => {
             if (freelancer?.email) {
                 const { subject, html } = emailTemplates.offerPurchased(client?.firstName || 'A client', job.title, proposal.price, null);
                 sendAndLog(freelancer.email, subject, html, 'offer_purchased');
-            }
-            {
-                const clientId = String(job.clientId?._id || job.clientId);
-                const conv = await Conversation.findOne({ participants: { $all: [clientId, String(freelancerId)] } });
-                if (conv) emitChatContextRefresh(app?.get?.('io'), conv._id);
             }
             break;
         }

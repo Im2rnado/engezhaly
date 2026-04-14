@@ -10,6 +10,7 @@ import { MAIN_CATEGORIES } from "@/lib/categories";
 import MainHeader from "@/components/MainHeader";
 import { useModal } from "@/context/ModalContext";
 import { motion, Variants, useScroll, useTransform } from "framer-motion";
+import HeroVimeoEmbed from "@/components/HeroVimeoEmbed";
 
 // High-performance animations (no blurs, no box-shadow animations)
 const fadeIn: Variants = {
@@ -170,61 +171,66 @@ export default function Home() {
             </motion.div>
           </motion.div>
 
-          {/* Premium Hero Visual Element - Optimized for performance */}
+          {/* Hero video + trust chips */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
-            className="w-full md:w-1/2 flex justify-center relative"
+            className="w-full md:w-1/2 flex justify-center relative min-h-0"
           >
-            <div className="relative w-full max-w-lg aspect-square">
-              {/* Clean solid geometric backgrounds instead of heavy blurred shadows */}
-              <div className="absolute inset-0 bg-[#09BF44]/20 rounded-[40px] rotate-6 transform-gpu"></div>
-              <div className="absolute inset-0 bg-white/80 rounded-[40px] -rotate-3 transform-gpu border border-white/50"></div>
+            <div className="relative w-full max-w-2xl py-4 md:py-0">
+              <HeroVimeoEmbed />
 
-              <div className="relative bg-white rounded-[40px] shadow-2xl border border-gray-100/50 overflow-hidden flex flex-col p-8 h-full transform-gpu">
-                <div className="flex items-center justify-between mb-8">
-                  <div className="h-8 w-32 bg-gray-100 rounded-full"></div>
-                  <div className="w-10 h-10 rounded-full bg-green-50 text-[#09BF44] flex items-center justify-center">
-                    <CheckCircle2 className="w-6 h-6" />
-                  </div>
+              {/* <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.6 }}
+                className="hidden sm:flex absolute -left-2 md:-left-6 top-[10%] md:top-1/10 bg-white p-3 md:p-4 rounded-2xl shadow-xl items-center gap-3 border border-gray-100 z-20 hover:-translate-y-1 transition-transform max-w-[calc(100vw-2rem)]"
+              >
+                <div className="bg-orange-100 p-2.5 rounded-full text-orange-500 shrink-0">
+                  <Star className="w-5 h-5" fill="currentColor" />
                 </div>
-                <div className="space-y-6 flex-1">
-                  <div className="flex gap-5 items-center">
-                    <div className="w-16 h-16 rounded-full bg-[#09BF44] flex items-center justify-center shadow-lg shadow-[#09BF44]/30">
-                      <span className="text-white font-black text-2xl">A</span>
-                    </div>
-                    <div className="space-y-3 flex-1">
-                      <div className="h-4 w-1/2 bg-gray-200 rounded-lg"></div>
-                      <div className="h-3 w-1/3 bg-gray-100 rounded-lg"></div>
-                    </div>
-                  </div>
-                  <div className="h-32 w-full border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50 flex items-center justify-center">
-                    <p className="text-gray-400 font-bold tracking-widest uppercase">Creative Workspace</p>
-                  </div>
-                  <div className="flex gap-4 pt-4">
-                    <div className="h-12 w-1/2 bg-gray-100 rounded-xl"></div>
-                    <div className="h-12 w-1/2 bg-[#09BF44] rounded-xl shadow-md shadow-[#09BF44]/20"></div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Static elements with entrance animation (removed infinite floats for max performance) */}
-              <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.6 }} className="absolute -left-6 top-1/4 bg-white p-4 rounded-2xl shadow-xl flex items-center gap-3 border border-gray-100 z-20 hover:-translate-y-1 transition-transform">
-                <div className="bg-orange-100 p-2.5 rounded-full text-orange-500"><Star className="w-5 h-5" fill="currentColor" /></div>
-                <div>
+                <div className="min-w-0">
                   <p className="font-black text-gray-900 text-sm">4.9/5 Rating</p>
                   <p className="text-xs text-gray-500 font-bold">Client Average</p>
                 </div>
-              </motion.div>
+              </motion.div> */}
 
-              <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.8 }} className="absolute -right-4 bottom-1/4 bg-white p-4 rounded-2xl shadow-xl flex items-center gap-3 border border-gray-100 z-20 hover:-translate-y-1 transition-transform">
-                <div className="bg-green-100 p-2.5 rounded-full text-[#09BF44]"><ShieldCheck className="w-5 h-5" /></div>
-                <div>
+              {/* <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.8 }}
+                className="hidden sm:flex absolute -right-1 md:-right-4 bottom-[12%] md:bottom-1/4 bg-white p-3 md:p-4 rounded-2xl shadow-xl items-center gap-3 border border-gray-100 z-20 hover:-translate-y-1 transition-transform max-w-[calc(100vw-2rem)]"
+              >
+                <div className="bg-green-100 p-2.5 rounded-full text-[#09BF44] shrink-0">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
                   <p className="font-black text-gray-900 text-sm">100% Secure</p>
                   <p className="text-xs text-gray-500 font-bold">Payments</p>
                 </div>
               </motion.div>
+ */}
+              <div className="flex sm:hidden justify-center gap-3 mt-6">
+                <div className="flex-1 min-w-0 bg-white p-3 rounded-2xl shadow-md border border-gray-100 flex items-center gap-2">
+                  <div className="bg-orange-100 p-2 rounded-full text-orange-500 shrink-0">
+                    <Star className="w-4 h-4" fill="currentColor" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-black text-gray-900 text-xs">4.9/5 Rating</p>
+                    <p className="text-[10px] text-gray-500 font-bold truncate">Client Average</p>
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0 bg-white p-3 rounded-2xl shadow-md border border-gray-100 flex items-center gap-2">
+                  <div className="bg-green-100 p-2 rounded-full text-[#09BF44] shrink-0">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-black text-gray-900 text-xs">100% Secure</p>
+                    <p className="text-[10px] text-gray-500 font-bold truncate">Payments</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </motion.div>
         </div>

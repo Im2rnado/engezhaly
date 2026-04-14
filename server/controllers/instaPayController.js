@@ -12,6 +12,7 @@ const { sendAndLog } = require('../services/mailgunService');
 const emailTemplates = require('../templates/emailTemplates');
 const { ORDER_PLATFORM_FEE_EGP } = require('../config/fees');
 const { emitChatContextRefresh } = require('../services/chatContextRefresh');
+const { sendJobProposalAcceptedChatMessage } = require('../services/jobProposalChatNotifications');
 
 const INSTAPAY_PHONE = process.env.INSTAPAY_PHONE || '+201098611731';
 const INSTAPAY_LINK = process.env.INSTAPAY_LINK || 'https://ipn.eg/S/engezhaly/instapay/3mttQG';
@@ -481,6 +482,13 @@ const approveInstaPay = async (req, res) => {
                     const { subject, html } = emailTemplates.offerPurchased(client?.firstName || 'A client', job.title, proposal.price, null);
                     sendAndLog(freelancer.email, subject, html, 'offer_purchased');
                 }
+
+                await sendJobProposalAcceptedChatMessage(
+                    req.app?.get('io'),
+                    payment.userId,
+                    proposal.freelancerId,
+                    job.title
+                );
 
                 // Escrow confirmation message in chat
                 const jobConversation = await Conversation.findOne({

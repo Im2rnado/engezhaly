@@ -257,6 +257,24 @@ function jobProposalRejected(clientName, jobTitle, jobId) {
     return { subject: `Update on your proposal: ${jobTitle || 'Job'}`, html: wrapEmail(content) };
 }
 
+/** Admin alert: conversation auto-frozen after phone-like pattern in chat text */
+function chatFrozenPhoneAdminAlert(conversationId, senderLine, receiverLine, adminChatsUrl) {
+    const content = `
+        <h2 style="margin: 0 0 16px; font-size: 22px; color: #111827;">Chat auto-frozen (phone policy)</h2>
+        <p style="margin: 0 0 16px; font-size: 16px; line-height: 1.6; color: #4b5563;">
+            A conversation was <strong>frozen automatically</strong> because a message matched the phone-number policy. The message was redacted in the thread.
+        </p>
+        <p style="margin: 0 0 8px; font-size: 14px; color: #374151;"><strong>Conversation ID</strong><br/><code style="background:#f3f4f6;padding:4px 8px;border-radius:6px;">${conversationId}</code></p>
+        <p style="margin: 0 0 8px; font-size: 14px; color: #374151;"><strong>Sender of flagged message</strong><br/>${senderLine}</p>
+        <p style="margin: 0 0 16px; font-size: 14px; color: #374151;"><strong>Other participant</strong><br/>${receiverLine}</p>
+        ${ctaButton('Review in admin', adminChatsUrl)}
+    `;
+    return {
+        subject: `[Engezhaly] Chat frozen — phone detected · ${conversationId}`,
+        html: wrapEmail(content)
+    };
+}
+
 function paymentConfirmed(userName, amount, type, title) {
     const link = `${FRONTEND_URL}/dashboard/${userName.includes('Client') ? 'client' : 'freelancer'}?tab=wallet`;
     const content = `
@@ -288,5 +306,6 @@ module.exports = {
     orderDenied,
     workSubmitted,
     bundlePurchased,
-    paymentConfirmed
+    paymentConfirmed,
+    chatFrozenPhoneAdminAlert
 };
