@@ -100,7 +100,7 @@ function JobDetailPageContent() {
                     message: err.message || 'Failed to load job',
                     type: 'error'
                 });
-                router.push('/dashboard/client');
+                router.push('/dashboard/client?tab=jobs');
             } finally {
                 setLoading(false);
             }
@@ -239,11 +239,11 @@ function JobDetailPageContent() {
                     </button>
                 </div>
                 <button
-                    onClick={() => router.push('/dashboard/client')}
+                    onClick={() => router.push('/dashboard/client?tab=jobs')}
                     className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
                 >
                     <ArrowLeft className="w-4 h-4" />
-                    <span className="font-bold">Back to Jobs</span>
+                    <span className="font-bold">Back to Posted Jobs</span>
                 </button>
 
                 {/* Countdown Timer */}

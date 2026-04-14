@@ -77,7 +77,7 @@ export default function PostJobPage() {
                 subCategory
             });
             showModal({ title: 'Success', message: 'Job Posted Successfully!', type: 'success' });
-            router.push('/dashboard/client');
+            router.push('/dashboard/client?tab=jobs');
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -263,7 +263,7 @@ export default function PostJobPage() {
                             <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4 pt-4 border-t border-gray-100">
                                 <button
                                     type="button"
-                                    onClick={() => router.back()}
+                                    onClick={() => router.push('/dashboard/client?tab=jobs')}
                                     className="w-full sm:w-auto bg-gray-100 text-gray-600 font-bold px-8 py-3 rounded-xl hover:bg-[#09BF44]/20 hover:text-[#09BF44] transition-colors"
                                 >
                                     Cancel

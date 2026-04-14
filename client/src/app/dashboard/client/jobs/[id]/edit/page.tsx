@@ -69,7 +69,7 @@ export default function EditJobPage() {
                     deadline: job.deadline ? (typeof job.deadline === 'string' && job.deadline.match(/^\d{4}-\d{2}-\d{2}$/) ? job.deadline : new Date(job.deadline).toISOString().split('T')[0]) : ''
                 });
             })
-            .catch(() => router.push('/dashboard/client'))
+            .catch(() => router.push('/dashboard/client?tab=jobs'))
             .finally(() => setLoadingJob(false));
     }, [jobId, router]);
 
@@ -104,7 +104,7 @@ export default function EditJobPage() {
                 milestones: []
             });
             showModal({ title: 'Success', message: 'Job updated successfully!', type: 'success' });
-            router.push('/dashboard/client');
+            router.push('/dashboard/client?tab=jobs');
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -122,8 +122,8 @@ export default function EditJobPage() {
             <div className="flex-1 md:ml-72 px-4 sm:px-6 md:p-8 pt-3 md:pt-8 pb-8 overflow-y-auto min-h-screen">
                 <DashboardMobileTopStrip />
                 <div className="max-w-3xl mx-auto">
-                    <button onClick={() => router.push('/dashboard/client')} className="flex items-center gap-2 text-gray-600 hover:text-[#09BF44] mb-6">
-                        <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+                    <button onClick={() => router.push('/dashboard/client?tab=jobs')} className="flex items-center gap-2 text-gray-600 hover:text-[#09BF44] mb-6">
+                        <ArrowLeft className="w-4 h-4" /> Back to Posted Jobs
                     </button>
                     <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
                         <div className="p-5 md:p-12">
@@ -180,7 +180,7 @@ export default function EditJobPage() {
                                     <DatePicker name="deadline" value={jobData.deadline} onChange={(v) => setJobData(d => ({ ...d, deadline: v }))} min={new Date().toISOString().split('T')[0]} placeholder="Select deadline" className="w-full" />
                                 </div>
                                 <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4 pt-4 border-t border-gray-100">
-                                    <button type="button" onClick={() => router.back()} className="w-full sm:w-auto bg-gray-100 text-gray-600 font-bold px-8 py-3 rounded-xl hover:bg-[#09BF44]/20 hover:text-[#09BF44] transition-colors">Cancel</button>
+                                    <button type="button" onClick={() => router.push('/dashboard/client?tab=jobs')} className="w-full sm:w-auto bg-gray-100 text-gray-600 font-bold px-8 py-3 rounded-xl hover:bg-[#09BF44]/20 hover:text-[#09BF44] transition-colors">Cancel</button>
                                     <button type="submit" disabled={loading} className="w-full sm:w-auto bg-[#09BF44] text-white font-bold px-8 py-3 rounded-xl hover:bg-[#07a63a] transition-colors flex items-center justify-center gap-2">{loading && <Loader2 className="w-5 h-5 animate-spin" />} Save Changes</button>
                                 </div>
                             </form>
