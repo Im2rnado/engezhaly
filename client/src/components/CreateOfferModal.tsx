@@ -142,7 +142,7 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl" style={{ height: '90vh', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+            <div className="w-full max-w-2xl bg-white text-gray-900 rounded-3xl shadow-2xl" style={{ height: '90vh', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
                 <div className="flex-shrink-0 bg-white rounded-t-3xl border-b border-gray-200 p-6 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="p-3 bg-[#09BF44]/10 rounded-xl">
