@@ -42,11 +42,20 @@ const LABEL_CLASS: Record<RevisionsFieldVariant, string> = {
     auth: "text-xs font-bold text-gray-500 mb-1"
 };
 
-const SELECT_PAD: Record<RevisionsFieldVariant, string> = {
-    default: "min-w-[8.75rem] px-3 pr-2",
-    compact: "min-w-[7rem] px-2 pr-1",
-    jobs: "min-w-[8.75rem] px-3 pr-2",
-    auth: "min-w-[7.25rem] px-2 pr-1"
+/** Tight select column next to number input (label is short: “Fixed”). */
+const SELECT_WIDTH_FIXED: Record<RevisionsFieldVariant, string> = {
+    default: "w-[5.25rem] pl-2",
+    compact: "w-[4.75rem] pl-1.5",
+    jobs: "w-[5.25rem] pl-2",
+    auth: "w-[4.75rem] pl-1.5"
+};
+
+/** Standalone select when unlimited (fits “Unlimited” + chevron). */
+const SELECT_WIDTH_SOLO: Record<RevisionsFieldVariant, string> = {
+    default: "min-w-[7.25rem] pl-2.5",
+    compact: "min-w-[6.75rem] pl-2",
+    jobs: "min-w-[7.25rem] pl-2.5",
+    auth: "min-w-[6.75rem] pl-2"
 };
 
 /**
@@ -78,15 +87,20 @@ export default function RevisionsField({
     const wrap = WRAPPER[variant];
     const pad = INPUT_PAD[variant];
     const labelCls = LABEL_CLASS[variant];
-    const selPad = SELECT_PAD[variant];
+    const selectWFixed = SELECT_WIDTH_FIXED[variant];
+    const selectWSolo = SELECT_WIDTH_SOLO[variant];
 
     const placeholder =
         variant === "compact" || variant === "auth" ? "Number" : "Enter number (e.g. 3)";
 
+    const minH = variant === "compact" || variant === "auth" ? "min-h-[2.25rem]" : "min-h-[2.75rem]";
+
     return (
         <div className={className}>
             {label ? <div className={labelCls}>{label}</div> : null}
-            <div className={`flex ${wrap} ${disabled ? "opacity-60 pointer-events-none" : ""}`}>
+            <div
+                className={`flex ${unlimited ? "w-max max-w-full" : "w-full"} ${wrap} ${disabled ? "opacity-60 pointer-events-none" : ""}`}
+            >
                 {!unlimited ? (
                     <input
                         type="number"
@@ -97,24 +111,28 @@ export default function RevisionsField({
                         value={revisions}
                         onChange={(e) => onRevisionsChange(e.target.value)}
                         placeholder={placeholder}
-                        className={`flex-1 min-w-0 ${pad} bg-gray-50 border-0 outline-none text-gray-900 font-bold placeholder:font-medium placeholder:text-gray-400 text-sm`}
+                        className={`min-w-0 flex-1 rounded-l-xl ${pad} bg-gray-50 border-0 outline-none text-gray-900 font-bold placeholder:font-medium placeholder:text-gray-400 text-sm`}
                     />
-                ) : (
-                    <div className={`flex-1 min-w-0 ${pad} flex items-center font-bold text-gray-700 text-sm`}>Unlimited</div>
-                )}
-                <div className={`relative flex min-h-[2.75rem] shrink-0 items-stretch border-l border-gray-200 bg-white ${selPad}`}>
+                ) : null}
+                <div
+                    className={`relative flex shrink-0 items-stretch bg-white ${minH} ${
+                        unlimited
+                            ? `rounded-xl ${selectWSolo}`
+                            : `rounded-r-xl border-l border-gray-200 ${selectWFixed}`
+                    }`}
+                >
                     <select
                         value={unlimited ? "unlimited" : "fixed"}
                         onChange={(e) => handleMode(e.target.value === "unlimited")}
                         disabled={disabled}
                         aria-label="Revision type: fixed count or unlimited"
-                        className="h-full min-h-[2.75rem] w-full min-w-0 cursor-pointer appearance-none bg-transparent py-2 pl-1 pr-7 text-[10px] font-black uppercase tracking-wide text-gray-700 outline-none"
+                        className={`h-full w-full min-w-0 cursor-pointer appearance-none bg-transparent py-2 pr-7 text-[10px] font-black uppercase tracking-wide text-gray-700 outline-none ${minH}`}
                     >
                         <option value="fixed">Fixed</option>
                         <option value="unlimited">Unlimited</option>
                     </select>
                     <ChevronDown
-                        className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 shrink-0 -translate-y-1/2 text-gray-500"
+                        className="pointer-events-none absolute right-1.5 top-1/2 h-4 w-4 shrink-0 -translate-y-1/2 text-gray-500"
                         aria-hidden
                     />
                 </div>

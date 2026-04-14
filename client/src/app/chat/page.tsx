@@ -47,6 +47,13 @@ function chatAttachmentIsPdfUrl(url: string) {
     }
 }
 
+/** Conversation id for API, or partner user id when no thread exists yet (pendingNew). */
+function messagesApiId(chat: { id?: string; partnerId?: any; pendingNew?: boolean } | null) {
+    if (!chat) return '';
+    if (chat.pendingNew) return String(chat.partnerId?._id ?? chat.partnerId ?? '');
+    return String(chat.id ?? '');
+}
+
 function ChatPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -77,6 +84,7 @@ function ChatPageContent() {
     const [pendingApprovalOrder, setPendingApprovalOrder] = useState<any>(null);
     const [pendingPaymentOrder, setPendingPaymentOrder] = useState<any>(null);
     const [pendingWorkToApprove, setPendingWorkToApprove] = useState<{ order?: any; job?: any; activeJobForNav?: any } | null>(null);
+    const [freelancerActiveJobForChat, setFreelancerActiveJobForChat] = useState<any>(null);
     const [pendingOrderAction, setPendingOrderAction] = useState<'approve' | 'deny' | null>(null);
     const [acceptingOfferId, setAcceptingOfferId] = useState<string | null>(null);
     const [denyingOfferId, setDenyingOfferId] = useState<string | null>(null);
@@ -138,11 +146,27 @@ function ChatPageContent() {
     }, [conversationId, resolveUserId]);
 
     const refreshConversationContext = useCallback(async () => {
+        const stored = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
+        const partnerId = activeChat?.partnerId ? String(activeChat.partnerId?._id ?? activeChat.partnerId) : '';
+
+        if (stored.role === 'freelancer') {
+            if (partnerId) {
+                try {
+                    const j = await api.freelancer.getActiveJobWithClientForChat(partnerId);
+                    setFreelancerActiveJobForChat(j?.activeJobForNav || null);
+                } catch {
+                    setFreelancerActiveJobForChat(null);
+                }
+            } else {
+                setFreelancerActiveJobForChat(null);
+            }
+        } else {
+            setFreelancerActiveJobForChat(null);
+        }
+
         if (!conversationId) return;
         await refreshChatMessagesAndOffers();
         api.chat.getConsultationStatus(conversationId).then(setConsultationStatus).catch(() => {});
-        const stored = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
-        const partnerId = activeChat?.partnerId ? String(activeChat.partnerId?._id ?? activeChat.partnerId) : '';
         if (!partnerId) return;
         if (stored.role === 'freelancer') {
             api.freelancer.getMyOrders().then((orders: any[]) => {
@@ -227,30 +251,86 @@ function ChatPageContent() {
             }, 0);
         }
 
-        // Check for conversation ID in URL
-        const urlConversationId = searchParams.get('conversation');
-        if (urlConversationId) {
-            // Find chat by conversation ID or partner ID
-            api.chat.getConversations().then((data: any) => {
-                if (Array.isArray(data)) {
-                    setChats(data);
-                    const foundChat = data.find((c: any) => c.id === urlConversationId || c.partnerId === urlConversationId);
-                    if (foundChat) {
-                        setChats(data.map((c: any) => c.id === foundChat.id ? { ...c, unreadCount: 0, hasUnread: false } : c));
-                        setPartnerOnline(false);
-                        setActiveChat({ ...foundChat, unreadCount: 0, hasUnread: false });
-                        setConversationId(foundChat.id);
+        void (async () => {
+            let data: any[] = [];
+            try {
+                const d = await api.chat.getConversations();
+                if (Array.isArray(d)) data = d;
+            } catch {
+                /* ignore */
+            }
+            const urlConversationId = searchParams.get('conversation');
+            if (urlConversationId) {
+                const u = String(urlConversationId).trim();
+                let list = [...data];
+                let foundChat = list.find(
+                    (c: any) => String(c.id) === u || String(c.partnerId || '') === u
+                );
+                if (!foundChat && /^[0-9a-fA-F]{24}$/.test(u)) {
+                    try {
+                        const resolved = await api.chat.resolveChatTarget(u);
+                        const pid = String(resolved.partnerId || '');
+                        if (resolved.conversationId) {
+                            const cid = String(resolved.conversationId);
+                            foundChat = list.find((c: any) => String(c.id) === cid);
+                            if (!foundChat) {
+                                foundChat = {
+                                    id: cid,
+                                    partnerId: pid,
+                                    name: resolved.name,
+                                    profilePicture: resolved.profilePicture || null,
+                                    lastMessage: '',
+                                    isFrozen: !!resolved.isFrozen,
+                                    partnerIsBusy: !!resolved.partnerIsBusy,
+                                    unreadCount: 0,
+                                    hasUnread: false,
+                                    online: false,
+                                    pendingNew: false
+                                };
+                                list = [foundChat, ...list.filter((c: any) => String(c.id) !== cid)];
+                            }
+                        } else if (resolved.isNew && pid) {
+                            foundChat =
+                                list.find((c: any) => String(c.partnerId) === pid && !c.pendingNew) ||
+                                list.find((c: any) => c.pendingNew && String(c.partnerId) === pid);
+                            if (!foundChat) {
+                                foundChat = {
+                                    id: `pending-${pid}`,
+                                    partnerId: pid,
+                                    name: resolved.name,
+                                    profilePicture: resolved.profilePicture || null,
+                                    lastMessage: '',
+                                    isFrozen: false,
+                                    partnerIsBusy: !!resolved.partnerIsBusy,
+                                    unreadCount: 0,
+                                    hasUnread: false,
+                                    online: false,
+                                    pendingNew: true
+                                };
+                                list = [foundChat, ...list];
+                            }
+                        }
+                    } catch (e) {
+                        console.error(e);
                     }
                 }
-            });
-        } else {
-            // Fetch conversations
-            api.chat.getConversations().then((data: any) => {
-                if (Array.isArray(data)) {
-                    setChats(data);
+                if (foundChat) {
+                    setChats(
+                        list.map((c: any) =>
+                            String(c.id) === String(foundChat.id)
+                                ? { ...c, unreadCount: 0, hasUnread: false }
+                                : c
+                        )
+                    );
+                    setPartnerOnline(false);
+                    setActiveChat({ ...foundChat, unreadCount: 0, hasUnread: false });
+                } else {
+                    setChats(list);
                 }
-            });
-        }
+            } else {
+                setChats(data);
+            }
+        })();
 
         // Initialize Socket
         const newSocket = io(SOCKET_URL, {
@@ -402,6 +482,20 @@ function ChatPageContent() {
         }).catch(() => setPendingOrderForChat(null));
     }, [conversationId, activeChat?.partnerId, activeChat?.id]);
 
+    // Freelancer: in-progress job with this client (chat banner)
+    useEffect(() => {
+        const stored = JSON.parse(localStorage.getItem('user') || '{}');
+        if (stored.role !== 'freelancer' || !activeChat?.partnerId) {
+            setFreelancerActiveJobForChat(null);
+            return;
+        }
+        const clientId = String(activeChat.partnerId?._id ?? activeChat.partnerId);
+        api.freelancer
+            .getActiveJobWithClientForChat(clientId)
+            .then((data: any) => setFreelancerActiveJobForChat(data?.activeJobForNav || null))
+            .catch(() => setFreelancerActiveJobForChat(null));
+    }, [activeChat?.partnerId, activeChat?.id]);
+
     // Client: fetch order/job with submitted work awaiting approval (for chat)
     useEffect(() => {
         const stored = JSON.parse(localStorage.getItem('user') || '{}');
@@ -483,43 +577,50 @@ function ChatPageContent() {
     // Fetch messages and offers when activeChat changes
     useEffect(() => {
         if (activeChat) {
-            const convId = activeChat.id;
+            const pendingNew = !!activeChat.pendingNew;
+            const realConvId = pendingNew ? null : String(activeChat.id);
             setTimeout(() => {
-                setConversationId(convId);
+                setConversationId(realConvId);
             }, 0);
 
-            // Fetch messages
-            api.chat.getMessages(convId).then((data: any) => {
-                const userId = resolveUserId();
-                const formatted = data.map((m: any) => {
-                    const senderId = m.senderId?._id || m.senderId;
-                    const isAdmin = m.isAdmin || m.content?.includes('[Engezhaly Admin]');
-                    const isMeeting = m.messageType === 'meeting' || m.content?.includes('[Engezhaly Meeting]');
-                    return {
-                        _id: m._id,
-                        text: m.content,
-                        sender: String(senderId) === String(userId) ? 'me' : 'them',
-                        senderId: senderId,
-                        timestamp: m.createdAt,
-                        messageType: m.messageType,
-                        isRead: !!m.isRead,
-                        isAdmin: isAdmin,
-                        isMeeting: isMeeting,
-                        isBlurred: !!m.isBlurred
-                    };
-                });
-                setMessages(formatted);
-            }).catch(console.error);
+            const fetchId = messagesApiId(activeChat);
+            if (fetchId) {
+                api.chat.getMessages(fetchId).then((data: any) => {
+                    const userId = resolveUserId();
+                    const formatted = (data || []).map((m: any) => {
+                        const senderId = m.senderId?._id || m.senderId;
+                        const isAdmin = m.isAdmin || m.content?.includes('[Engezhaly Admin]');
+                        const isMeeting = m.messageType === 'meeting' || m.content?.includes('[Engezhaly Meeting]');
+                        return {
+                            _id: m._id,
+                            text: m.content,
+                            sender: String(senderId) === String(userId) ? 'me' : 'them',
+                            senderId: senderId,
+                            timestamp: m.createdAt,
+                            messageType: m.messageType,
+                            isRead: !!m.isRead,
+                            isAdmin: isAdmin,
+                            isMeeting: isMeeting,
+                            isBlurred: !!m.isBlurred
+                        };
+                    });
+                    setMessages(formatted);
+                }).catch(console.error);
+            }
 
-            // Fetch consultation status
-            api.chat.getConsultationStatus(convId).then((data: any) => {
-                setConsultationStatus(data);
-            }).catch(() => setConsultationStatus(null));
+            if (!pendingNew && activeChat.id) {
+                const convId = String(activeChat.id);
+                api.chat.getConsultationStatus(convId).then((data: any) => {
+                    setConsultationStatus(data);
+                }).catch(() => setConsultationStatus(null));
 
-            // Fetch offers
-            api.chat.getOffers(convId).then((data: any) => {
-                setOffers(data || []);
-            }).catch(console.error);
+                api.chat.getOffers(convId).then((data: any) => {
+                    setOffers(data || []);
+                }).catch(console.error);
+            } else {
+                setConsultationStatus(null);
+                setOffers([]);
+            }
         } else {
             setConsultationStatus(null);
         }
@@ -670,7 +771,7 @@ function ChatPageContent() {
         try {
             const url = await api.upload.file(pending.file);
             await api.chat.sendMessage({ receiverId, content: url, messageType: 'voice' });
-            const data = await api.chat.getMessages(activeChat.id);
+            const data = await api.chat.getMessages(messagesApiId(activeChat));
             const formatted = data.map((m: any) => {
                 const senderId = m.senderId?._id || m.senderId;
                 const isAdmin = m.isAdmin || m.content?.includes('[Engezhaly Admin]');
@@ -689,6 +790,17 @@ function ChatPageContent() {
                 };
             });
             setMessages(formatted);
+            api.chat.getConversations().then((dataConv: any) => {
+                if (Array.isArray(dataConv)) {
+                    setChats(dataConv);
+                    const updatedChat = dataConv.find(
+                        (c: any) =>
+                            String(c.partnerId) === String(receiverId) ||
+                            (!activeChat.pendingNew && String(c.id) === String(activeChat.id))
+                    );
+                    if (updatedChat) setActiveChat({ ...updatedChat, unreadCount: 0, hasUnread: false });
+                }
+            }).catch(console.error);
         } catch (err: any) {
             setMessages((prev) => prev.filter((m) => m._id !== optimisticMsg._id));
             showModal({ title: 'Error', message: err.message || 'Failed to send voice message', type: 'error' });
@@ -743,7 +855,7 @@ function ChatPageContent() {
             try {
                 const url = await api.upload.chatFile(file);
                 await api.chat.sendMessage({ receiverId, content: url, messageType: 'file' });
-                const data = await api.chat.getMessages(activeChat.id);
+                const data = await api.chat.getMessages(messagesApiId(activeChat));
                 const formatted = data.map((m: any) => {
                     const senderId = m.senderId?._id || m.senderId;
                     const isAdmin = m.isAdmin || m.content?.includes('[Engezhaly Admin]');
@@ -765,8 +877,12 @@ function ChatPageContent() {
                 api.chat.getConversations().then((dataConv: any) => {
                     if (Array.isArray(dataConv)) {
                         setChats(dataConv);
-                        const updatedChat = dataConv.find((c: any) => c.id === activeChat.id);
-                        if (updatedChat) setActiveChat(updatedChat);
+                        const updatedChat = dataConv.find(
+                            (c: any) =>
+                                String(c.partnerId) === String(receiverId) ||
+                                (!activeChat.pendingNew && String(c.id) === String(activeChat.id))
+                        );
+                        if (updatedChat) setActiveChat({ ...updatedChat, unreadCount: 0, hasUnread: false });
                     }
                 }).catch(console.error);
             } catch (err: any) {
@@ -826,13 +942,14 @@ function ChatPageContent() {
 
         const messageContent = input;
         setInput(''); // Clear input immediately for better UX
-        
+
+        const receiverId = activeChat.partnerId?._id ?? activeChat.partnerId;
+        if (!receiverId) {
+            showModal({ title: 'Error', message: 'Cannot send message: no recipient selected.', type: 'error' });
+            return;
+        }
+
         try {
-            const receiverId = activeChat.partnerId?._id ?? activeChat.partnerId;
-            if (!receiverId) {
-                showModal({ title: 'Error', message: 'Cannot send message: no recipient selected.', type: 'error' });
-                return;
-            }
             const userId = resolveUserId();
             
             // Optimistically add the message to show it immediately
@@ -854,7 +971,7 @@ function ChatPageContent() {
             });
 
             // Refresh messages to get the real message from server
-            const data = await api.chat.getMessages(activeChat.id);
+            const data = await api.chat.getMessages(messagesApiId(activeChat));
             const formatted = data.map((m: any) => {
                 const senderId = m.senderId?._id || m.senderId;
                 const isAdmin = m.isAdmin || m.content?.includes('[Engezhaly Admin]');
@@ -878,9 +995,13 @@ function ChatPageContent() {
             api.chat.getConversations().then((data: any) => {
                 if (Array.isArray(data)) {
                     setChats(data);
-                    const updatedChat = data.find((c: any) => c.id === activeChat.id);
+                    const updatedChat = data.find(
+                        (c: any) =>
+                            String(c.partnerId) === String(receiverId) ||
+                            (!activeChat.pendingNew && String(c.id) === String(activeChat.id))
+                    );
                     if (updatedChat) {
-                        setActiveChat(updatedChat);
+                        setActiveChat({ ...updatedChat, unreadCount: 0, hasUnread: false });
                     }
                 }
             }).catch(console.error);
@@ -892,7 +1013,11 @@ function ChatPageContent() {
                 api.chat.getConversations().then((data: any) => {
                     if (Array.isArray(data)) {
                         setChats(data);
-                        const updatedChat = data.find((c: any) => c.id === activeChat.id);
+                        const updatedChat = data.find(
+                            (c: any) =>
+                                String(c.partnerId) === String(receiverId) ||
+                                (!activeChat.pendingNew && String(c.id) === String(activeChat.id))
+                        );
                         if (updatedChat) {
                             setActiveChat(updatedChat);
                         }
@@ -1552,12 +1677,23 @@ function ChatPageContent() {
                                     </div>
                                 )}
 
-                                {/* Client: active job with this freelancer - link to view */}
+                                {/* Active in-progress job — client sees link to client job; freelancer sees link to freelancer job */}
                                 {pendingWorkToApprove?.activeJobForNav && currentUser?.role === 'client' && (
                                     <div className="mx-3 md:mx-6 mt-3 p-4 rounded-xl bg-blue-50 border-2 border-blue-200">
                                         <p className="text-sm font-bold text-blue-800 mb-2">You have an active job with this freelancer</p>
                                         <a
                                             href={`/dashboard/client/jobs/${pendingWorkToApprove.activeJobForNav._id}`}
+                                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-bold bg-[#09BF44] text-white hover:bg-[#07a63a] text-sm"
+                                        >
+                                            View Job
+                                        </a>
+                                    </div>
+                                )}
+                                {freelancerActiveJobForChat && currentUser?.role === 'freelancer' && (
+                                    <div className="mx-3 md:mx-6 mt-3 p-4 rounded-xl bg-blue-50 border-2 border-blue-200">
+                                        <p className="text-sm font-bold text-blue-800 mb-2">You have an active job with this client</p>
+                                        <a
+                                            href={`/dashboard/freelancer/jobs/${freelancerActiveJobForChat._id}`}
                                             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-bold bg-[#09BF44] text-white hover:bg-[#07a63a] text-sm"
                                         >
                                             View Job

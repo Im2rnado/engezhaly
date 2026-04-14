@@ -1,7 +1,8 @@
 const Job = require('../models/Job');
 const User = require('../models/User');
 const { sendAndLog } = require('../services/mailgunService');
-const { jobApplication: jobApplicationTemplate } = require('../templates/emailTemplates');
+const { FRONTEND_URL } = require('../templates/emailBase');
+const { jobApplication: jobApplicationTemplate, workSubmitted } = require('../templates/emailTemplates');
 const { emitToUser, isUserOnline } = require('../services/notificationService');
 
 const { isValidCategorySubCategory } = require('../config/categories');
@@ -276,6 +277,32 @@ const submitWork = async (req, res) => {
         };
 
         await job.save();
+
+        const jobPopulated = await Job.findById(jobId).populate('clientId', 'firstName lastName email');
+        const freelancerUser = await User.findById(freelancerId).select('firstName lastName');
+        let clientEmail = jobPopulated?.clientId?.email || null;
+        let clientFirst = jobPopulated?.clientId?.firstName || '';
+        const clientIdRaw = jobPopulated?.clientId?._id || jobPopulated?.clientId;
+        if (!clientEmail && clientIdRaw) {
+            const u = await User.findById(clientIdRaw).select('email firstName').lean();
+            if (u) {
+                clientEmail = u.email || null;
+                if (!clientFirst) clientFirst = u.firstName || '';
+            }
+        }
+        if (clientEmail) {
+            const reviewLink = `${FRONTEND_URL}/dashboard/client/jobs/${jobId}`;
+            const { subject, html } = workSubmitted(
+                clientFirst || 'there',
+                freelancerUser?.firstName || 'Freelancer',
+                jobPopulated.title || 'Your job',
+                reviewLink
+            );
+            sendAndLog(clientEmail, subject, html, 'work_submitted_job', { jobId }).catch((err) =>
+                console.error('[Job] workSubmitted email failed:', err.message)
+            );
+        }
+
         res.json({ msg: 'Work submitted successfully', proposal });
     } catch (err) {
         console.error(err.message);

@@ -238,11 +238,14 @@ export default function FreelancerJobDetailPage() {
                         </button>
                     </div>
 
-                    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-8 relative">
-                        {acceptedAndActive && inProgressDeliveryDeadline && (
-                            <CountdownTimer deadline={inProgressDeliveryDeadline} variant="card" />
-                        )}
-                        <h1 className="text-2xl md:text-3xl font-black text-gray-900 mt-2">{job.title}</h1>
+                    {acceptedAndActive && inProgressDeliveryDeadline && (
+                        <div className="mb-6">
+                            <CountdownTimer deadline={inProgressDeliveryDeadline} variant="detail" />
+                        </div>
+                    )}
+
+                    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-8">
+                        <h1 className="text-2xl md:text-3xl font-black text-gray-900">{job.title}</h1>
                         <p className="text-sm text-gray-500 mt-2">
                             Client: {job.clientId?.firstName} {job.clientId?.lastName}
                             {acceptedAndActive && inProgressDeliveryDeadline

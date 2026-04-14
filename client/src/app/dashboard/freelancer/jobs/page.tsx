@@ -252,8 +252,12 @@ export default function MyJobsPage() {
                                 const acceptedAndActive = myProposal?.status === 'accepted' && job.status === 'in_progress';
                                 const deliveryIso = getPostedJobDeliveryDeadlineIso(job);
                                 return (
-                                    <div key={job._id} className="relative bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-                                        {acceptedAndActive && deliveryIso && <CountdownTimer deadline={deliveryIso} variant="card" />}
+                                    <div key={job._id} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                                        {acceptedAndActive && deliveryIso && (
+                                            <div className="mb-4">
+                                                <CountdownTimer deadline={deliveryIso} variant="detail" />
+                                            </div>
+                                        )}
                                         <div className="flex justify-between items-start gap-4">
                                             <div className="min-w-0">
                                                 <h3 className="text-xl font-bold text-gray-900">{job.title}</h3>

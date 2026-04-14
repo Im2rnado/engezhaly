@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
 import { useModal } from '@/context/ModalContext';
+import Avatar from '@/components/Avatar';
 
 interface ClientSidebarProps {
     user?: any;
@@ -16,13 +17,25 @@ interface ClientSidebarProps {
     onCloseMobile?: () => void;
 }
 
-export default function ClientSidebar({ user, activeTab, mobileOpen = false, onCloseMobile }: ClientSidebarProps) {
+export default function ClientSidebar({ user, profile, activeTab, mobileOpen = false, onCloseMobile }: ClientSidebarProps) {
     const router = useRouter();
     const { showModal } = useModal();
     const pathname = usePathname();
     const [jobs, setJobs] = useState<any[]>([]);
     const [orders, setOrders] = useState<any[]>([]);
     const [unreadChats, setUnreadChats] = useState(0);
+    const [fetchedProfile, setFetchedProfile] = useState<any>(null);
+
+    const mergedProfile = profile ?? fetchedProfile;
+    const clientPfp = mergedProfile?.clientProfile?.profilePicture || null;
+    const displayName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Client';
+
+    useEffect(() => {
+        if (profile != null) return;
+        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+        if (!token || (!user?._id && !user?.id)) return;
+        api.client.getProfile().then(setFetchedProfile).catch(() => {});
+    }, [profile, user?._id, user?.id]);
 
     useEffect(() => {
         const userId = user?._id || user?.id;
@@ -155,9 +168,7 @@ export default function ClientSidebar({ user, activeTab, mobileOpen = false, onC
             <div className="p-4 border-t border-gray-100 space-y-3">
                 <div className="bg-gray-50 rounded-xl p-4">
                     <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 bg-[#09BF44] rounded-full flex items-center justify-center text-white font-black">
-                            {user?.firstName?.[0]?.toUpperCase() || 'C'}
-                        </div>
+                        <Avatar src={clientPfp || ''} name={displayName} size={40} className="ring-2 ring-white shadow-sm" />
                         <div className="flex-1 min-w-0">
                             <p className="font-bold text-sm text-gray-900 truncate">
                                 {user?.firstName} {user?.lastName}

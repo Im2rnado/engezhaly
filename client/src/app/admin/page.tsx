@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
 import Image from 'next/image';
 import { api } from '@/lib/api';
-import { formatStatus, formatDateDDMMYYYY, formatRevisionsLabel } from '@/lib/utils';
+import { formatStatus, formatDateDDMMYYYY, formatRevisionsLabel, getOrderDeliveryDeadlineIso, orderStatusShowsDeliveryCountdown } from '@/lib/utils';
 import { Check, X, Ban, User, Flag, MessageSquare, Award, BarChart3, TrendingUp, Search, Loader2, Briefcase, FileText, ShoppingBag, CreditCard, Trash2, Star, Edit, LogOut, ArrowLeft, Send, Shield, PanelLeft, Mail, Video, ArrowDownToLine, Smartphone, Megaphone, ImagePlus, AlertTriangle, UserPlus, CheckCircle, XCircle, ExternalLink } from 'lucide-react';
 import { MAIN_CATEGORIES } from '@/lib/categories';
 import { useModal } from '@/context/ModalContext';
@@ -713,31 +713,48 @@ export default function AdminDashboard() {
         }
     };
 
-    const openOrderPartyChat = useCallback(
-        async (buyerId: string | undefined, sellerId: string | undefined) => {
-            const a = buyerId != null ? String(buyerId) : '';
-            const b = sellerId != null ? String(sellerId) : '';
-            if (!a || !b) {
-                showModal({ title: 'Missing users', message: 'Could not resolve buyer or freelancer for this order.', type: 'error' });
+    const openOrderPartyChat = async (
+        buyerId: string | undefined,
+        sellerId: string | undefined,
+        party?: { buyer?: any; seller?: any }
+    ) => {
+        const a = buyerId != null ? String(buyerId) : '';
+        const b = sellerId != null ? String(sellerId) : '';
+        if (!a || !b) {
+            showModal({ title: 'Missing users', message: 'Could not resolve buyer or freelancer for this order.', type: 'error' });
+            return;
+        }
+        try {
+            const { conversationId } = await api.admin.findConversationBetweenUsers(a, b);
+            if (!conversationId) {
+                showModal({
+                    title: 'No conversation',
+                    message: 'No direct chat exists yet between this client and freelancer.',
+                    type: 'error'
+                });
                 return;
             }
-            try {
-                const { conversationId } = await api.admin.findConversationBetweenUsers(a, b);
-                if (!conversationId) {
-                    showModal({
-                        title: 'No conversation',
-                        message: 'No direct chat exists yet between this client and freelancer.',
-                        type: 'error'
-                    });
-                    return;
-                }
-                window.open(`/chat?conversation=${conversationId}`, '_blank', 'noopener,noreferrer');
-            } catch (e: any) {
-                showModal({ title: 'Error', message: e.message || 'Failed to open chat', type: 'error' });
+            setManagementDetail(null);
+            setActiveTab('chats');
+            const list = await api.admin.getActiveChats().catch(() => []);
+            setActiveChats(Array.isArray(list) ? list : []);
+            let chat = (Array.isArray(list) ? list : []).find((c: any) => String(c._id) === String(conversationId));
+            if (!chat) {
+                const buyer = party?.buyer;
+                const seller = party?.seller;
+                chat = {
+                    _id: conversationId,
+                    participants: buyer && seller ? [buyer, seller] : [],
+                    kind: 'direct',
+                    isFrozen: false,
+                    adminHasUnread: false
+                };
             }
-        },
-        [showModal]
-    );
+            await handleSelectChat(chat);
+        } catch (e: any) {
+            showModal({ title: 'Error', message: e.message || 'Failed to open chat', type: 'error' });
+        }
+    };
 
     const fetchInsights = async () => {
         try {
@@ -853,15 +870,16 @@ export default function AdminDashboard() {
         }
     };
 
-    const fetchInstaPayPending = async () => {
-        setInstaPayLoading(true);
+    const fetchInstaPayPending = async (opts?: { silent?: boolean }) => {
+        const silent = !!opts?.silent;
+        if (!silent) setInstaPayLoading(true);
         try {
             const data = await api.admin.getInstaPayPending();
-            setInstaPayPending(data);
+            setInstaPayPending(Array.isArray(data) ? data : []);
         } catch (err) {
             console.error('Failed to fetch InstaPay pending', err);
         } finally {
-            setInstaPayLoading(false);
+            if (!silent) setInstaPayLoading(false);
         }
     };
 
@@ -895,6 +913,7 @@ export default function AdminDashboard() {
         fetchChats();
         fetchEmailLogs();
         fetchDisputes();
+        fetchInstaPayPending({ silent: true });
     }, []);
 
     useEffect(() => {
@@ -1815,6 +1834,11 @@ export default function AdminDashboard() {
                                     }
                                     return (
                                         <>
+                                            {inProgressDeadline && (
+                                                <div>
+                                                    <CountdownTimer deadline={inProgressDeadline.toISOString()} variant="detail" />
+                                                </div>
+                                            )}
                                             <div className="flex flex-wrap items-start justify-between gap-4">
                                                 <div>
                                                     <h2 className="text-2xl font-black text-gray-900">{job.title}</h2>
@@ -1832,12 +1856,6 @@ export default function AdminDashboard() {
                                                 <div className="bg-gray-50 rounded-xl p-3"><span className="text-gray-400 font-bold text-xs uppercase">Deadline</span><p className="font-bold">{job.deadline || '—'}</p></div>
                                                 <div className="bg-gray-50 rounded-xl p-3"><span className="text-gray-400 font-bold text-xs uppercase">Budget</span><p className="font-bold">{job.budgetRange?.min} – {job.budgetRange?.max} EGP</p></div>
                                             </div>
-                                            {inProgressDeadline && (
-                                                <div className="rounded-xl border border-blue-100 bg-blue-50/80 p-4">
-                                                    <p className="text-xs font-black text-blue-800 uppercase tracking-wide mb-2">Delivery timer (accepted proposal)</p>
-                                                    <CountdownTimer deadline={inProgressDeadline.toISOString()} variant="inline" />
-                                                </div>
-                                            )}
                                             {job.milestones?.length > 0 && (
                                                 <div>
                                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Job milestones</h4>
@@ -1973,8 +1991,16 @@ export default function AdminDashboard() {
                                 {(() => {
                                     const order = managementDetail.item;
                                     const offer = order.offerId;
+                                    const orderDeadlineIso = getOrderDeliveryDeadlineIso(order);
+                                    const showOrderCountdown =
+                                        orderDeadlineIso && orderStatusShowsDeliveryCountdown(order.status);
                                     return (
                                         <>
+                                            {showOrderCountdown && (
+                                                <div className="mb-4">
+                                                    <CountdownTimer deadline={orderDeadlineIso} variant="detail" />
+                                                </div>
+                                            )}
                                             <div className="flex flex-wrap justify-between gap-4">
                                                 <div>
                                                     <h2 className="text-2xl font-black text-gray-900">{order.projectId?.title || 'Custom offer'}</h2>
@@ -2006,7 +2032,8 @@ export default function AdminDashboard() {
                                                     onClick={() =>
                                                         openOrderPartyChat(
                                                             order.buyerId?._id || order.buyerId,
-                                                            order.sellerId?._id || order.sellerId
+                                                            order.sellerId?._id || order.sellerId,
+                                                            { buyer: order.buyerId, seller: order.sellerId }
                                                         )
                                                     }
                                                     className="text-xs font-bold text-blue-700 hover:underline inline-flex items-center gap-1"
@@ -2038,12 +2065,6 @@ export default function AdminDashboard() {
                                                 <div className="bg-gray-50 rounded-xl p-3"><span className="text-gray-400 font-bold text-xs uppercase">Created</span><p className="font-bold">{formatDateDDMMYYYY(order.createdAt)}</p></div>
                                                 <div className="bg-gray-50 rounded-xl p-3"><span className="text-gray-400 font-bold text-xs uppercase">Delivery due</span><p className="font-bold">{order.deliveryDate ? formatDateDDMMYYYY(order.deliveryDate) : '—'}</p></div>
                                             </div>
-                                            {order.status === 'active' && order.deliveryDate && (
-                                                <div className="rounded-xl border border-blue-100 bg-blue-50/80 p-4">
-                                                    <p className="text-xs font-black text-blue-800 uppercase tracking-wide mb-2">Delivery timer</p>
-                                                    <CountdownTimer deadline={order.deliveryDate} variant="inline" />
-                                                </div>
-                                            )}
                                             <p className="text-sm text-gray-600">
                                                 <span className="font-bold">Revisions:</span> {formatRevisionsLabel(order.revisionsUnlimited, order.revisions)}
                                             </p>

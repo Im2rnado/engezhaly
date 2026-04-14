@@ -197,19 +197,31 @@ function disputeResolved(title, outcome, orderId) {
     return { subject: `Dispute resolved: ${title || 'Order'}`, html: wrapEmail(content) };
 }
 
-function workSubmitted(clientName, freelancerName, title, orderId) {
-    const link = `${FRONTEND_URL}/dashboard/client?tab=orders`;
+/**
+ * @param {string} reviewLink - Deep link (order or job page). Falls back to client orders tab.
+ * @param {{ milestoneName?: string }} [opts] - If set, email describes a milestone delivery.
+ */
+function workSubmitted(clientName, freelancerName, title, reviewLink, opts = {}) {
+    const link = reviewLink || `${FRONTEND_URL}/dashboard/client?tab=orders`;
+    const milestoneName = typeof opts.milestoneName === 'string' ? opts.milestoneName.trim() : '';
+    const heading = milestoneName ? 'Milestone Submitted for Your Review' : 'Work Submitted for Your Review';
+    const mainLine = milestoneName
+        ? `Hi ${clientName}, <strong>${freelancerName}</strong> has submitted milestone <strong>${milestoneName}</strong> for your job <strong>${title}</strong>.`
+        : `Hi ${clientName}, <strong>${freelancerName}</strong> has submitted the work for <strong>${title}</strong>.`;
+    const subject = milestoneName
+        ? `Milestone submitted: ${milestoneName} — ${title}`
+        : `Work submitted for: ${title}`;
     const content = `
-        <h2 style="margin: 0 0 16px; font-size: 22px; color: #111827;">Work Submitted for Your Review</h2>
+        <h2 style="margin: 0 0 16px; font-size: 22px; color: #111827;">${heading}</h2>
         <p style="margin: 0 0 16px; font-size: 16px; line-height: 1.6; color: #4b5563;">
-            Hi ${clientName}, <strong>${freelancerName}</strong> has submitted the work for <strong>${title}</strong>.
+            ${mainLine}
         </p>
         <p style="margin: 0 0 16px; font-size: 14px; color: #6b7280;">
             Please review the submission in your dashboard. You can approve it to release the payment or request revisions.
         </p>
         ${ctaButton('Review Submission', link)}
     `;
-    return { subject: `Work submitted for: ${title}`, html: wrapEmail(content) };
+    return { subject, html: wrapEmail(content) };
 }
 
 function bundlePurchased(freelancerName, clientName, bundleType, amount) {

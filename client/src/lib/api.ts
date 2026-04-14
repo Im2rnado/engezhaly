@@ -245,6 +245,15 @@ export const api = {
             if (!res.ok) throw new Error('Failed to fetch freelancer orders');
             return res.json();
         },
+        getActiveJobWithClientForChat: async (clientId: string) => {
+            const res = await fetch(
+                `${API_URL}/freelancer/chat-active-job/${encodeURIComponent(clientId)}`,
+                { method: 'GET', headers: getHeaders() }
+            );
+            const result = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(result.msg || 'Failed to load job');
+            return result;
+        },
         getOrder: async (id: string) => {
             const res = await fetch(`${API_URL}/freelancer/orders/${id}`, {
                 method: 'GET',
@@ -632,6 +641,15 @@ export const api = {
                 headers: getHeaders()
             });
             return res.json();
+        },
+        resolveChatTarget: async (id: string) => {
+            const res = await fetch(`${API_URL}/chat/resolve/${encodeURIComponent(id)}`, {
+                method: 'GET',
+                headers: getHeaders()
+            });
+            const result = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(result.msg || 'Failed to open chat');
+            return result;
         },
         getMessages: async (id: string) => {
             const res = await fetch(`${API_URL}/chat/messages/${id}`, {

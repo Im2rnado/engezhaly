@@ -439,7 +439,7 @@ function JobsPageContent() {
                                 )}
                                 {showMilestones && (
                                     <div className="col-span-2 md:col-span-1 flex items-end">
-                                        <p className="text-xs text-gray-500 font-medium pb-3">Delivery is calculated from your latest milestone due date. Each milestone needs a due date.</p>
+                                        <p className="text-xs text-gray-500 font-medium pb-3">Delivery is calculated from your last milestone due date.</p>
                                     </div>
                                 )}
                                 <div className="col-span-2 md:col-span-1">

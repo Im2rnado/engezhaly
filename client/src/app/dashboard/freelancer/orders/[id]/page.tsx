@@ -187,6 +187,12 @@ export default function FreelancerOrderDetailPage() {
                         </button>
                     </div>
 
+                    {showOrderTimer && orderDeadlineIso && (
+                        <div className="mb-6">
+                            <CountdownTimer deadline={orderDeadlineIso} variant="detail" />
+                        </div>
+                    )}
+
                     <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-8 space-y-6">
                         <div className="flex flex-wrap items-start justify-between gap-4">
                             <div>
@@ -202,8 +208,6 @@ export default function FreelancerOrderDetailPage() {
                                 </span>
                             </div>
                         </div>
-
-                        {showOrderTimer && <CountdownTimer deadline={orderDeadlineIso} variant="inline" />}
 
                         {order.disputeResolvedAt && order.disputeResolution && (
                             <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-900">

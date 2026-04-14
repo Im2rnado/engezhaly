@@ -6,6 +6,7 @@ const Chat = require('../models/Chat');
 const { emitChatContextRefresh } = require('../services/chatContextRefresh');
 const Conversation = require('../models/Conversation');
 const { sendAndLog } = require('../services/mailgunService');
+const { FRONTEND_URL } = require('../templates/emailBase');
 const { orderApproved, orderDenied, workSubmitted } = require('../templates/emailTemplates');
 const { reviewStatsForSeller } = require('../utils/reviewStatsForSeller');
 
@@ -444,13 +445,24 @@ const submitOrderWork = async (req, res) => {
             .populate('buyerId', 'firstName lastName email')
             .populate('sellerId', 'firstName lastName email');
 
-        // Email notification to client
-        if (populated.buyerId?.email) {
-            const clientName = populated.buyerId.firstName;
-            const freelancerName = populated.sellerId.firstName;
-            const title = populated.projectId?.title || 'Order Work';
-            const { subject, html } = workSubmitted(clientName, freelancerName, title, orderId);
-            sendAndLog(populated.buyerId.email, subject, html, 'work_submitted', { orderId });
+        let buyerEmail = populated.buyerId?.email || null;
+        let clientFirst = populated.buyerId?.firstName || '';
+        if (!buyerEmail && order.buyerId) {
+            const buyer = await User.findById(order.buyerId).select('email firstName lastName').lean();
+            if (buyer) {
+                buyerEmail = buyer.email || null;
+                if (!clientFirst) clientFirst = buyer.firstName || '';
+            }
+        }
+
+        const freelancerName = populated.sellerId?.firstName || 'Freelancer';
+        const title = populated.projectId?.title || 'Order Work';
+        const reviewLink = `${FRONTEND_URL}/dashboard/client/orders/${orderId}`;
+        if (buyerEmail) {
+            const { subject, html } = workSubmitted(clientFirst || 'there', freelancerName, title, reviewLink);
+            sendAndLog(buyerEmail, subject, html, 'work_submitted', { orderId }).catch((err) =>
+                console.error('[Freelancer] workSubmitted email failed:', err.message)
+            );
         }
 
         return res.json(populated);
@@ -631,6 +643,7 @@ const submitMilestoneWork = async (req, res) => {
         }
 
         const milestone = acceptedProposal.milestones[idx];
+        const milestoneLabel = String(milestone?.name || '').trim() || `Milestone ${idx + 1}`;
         milestone.status = 'submitted';
         const text = String(message || note || '').trim();
         milestone.submissionNote = text;
@@ -647,10 +660,62 @@ const submitMilestoneWork = async (req, res) => {
         job.markModified('proposals');
         await job.save();
 
+        const jobForMail = await Job.findById(jobId).populate('clientId', 'firstName lastName email').lean();
+        const freelancerUser = await User.findById(freelancerId).select('firstName lastName').lean();
+        let clientEmail = jobForMail?.clientId?.email || null;
+        let clientFirst = jobForMail?.clientId?.firstName || '';
+        const clientIdRaw = jobForMail?.clientId?._id || jobForMail?.clientId;
+        if (!clientEmail && clientIdRaw) {
+            const u = await User.findById(clientIdRaw).select('email firstName').lean();
+            if (u) {
+                clientEmail = u.email || null;
+                if (!clientFirst) clientFirst = u.firstName || '';
+            }
+        }
+        if (clientEmail) {
+            const reviewLink = `${FRONTEND_URL}/dashboard/client/jobs/${jobId}`;
+            const { subject, html } = workSubmitted(
+                clientFirst || 'there',
+                freelancerUser?.firstName || 'Freelancer',
+                jobForMail.title || 'Your job',
+                reviewLink,
+                { milestoneName: milestoneLabel }
+            );
+            sendAndLog(clientEmail, subject, html, 'work_submitted_milestone', { jobId, milestoneIdx: idx }).catch((err) =>
+                console.error('[Freelancer] milestone workSubmitted email failed:', err.message)
+            );
+        }
+
         res.json({ msg: 'Milestone work submitted successfully', job });
     } catch (err) {
         console.error(err);
         res.status(500).json({ msg: err.message || 'Server Error' });
+    }
+};
+
+/** In-progress job with this client (chat partner) — mirrors client-side activeJobForNav for chat UI */
+const getActiveJobWithClientForChat = async (req, res) => {
+    try {
+        const freelancerId = String(req.user.id);
+        const clientId = String(req.params.clientId || '').trim();
+        if (!clientId) return res.status(400).json({ msg: 'Client ID required' });
+
+        const jobs = await Job.find({
+            clientId,
+            status: 'in_progress',
+            'proposals.status': 'accepted',
+            'proposals.freelancerId': freelancerId
+        })
+            .populate('proposals.freelancerId', 'firstName lastName')
+            .sort({ updatedAt: -1 })
+            .lean();
+
+        const activeJobForNav = jobs[0] || null;
+
+        res.json({ activeJobForNav });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
     }
 };
 
@@ -667,5 +732,6 @@ module.exports = {
     raiseDispute,
     approveOrder,
     denyOrder,
-    submitMilestoneWork
+    submitMilestoneWork,
+    getActiveJobWithClientForChat
 };

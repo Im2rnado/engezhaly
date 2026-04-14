@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const authVerified = require('../middleware/authVerified');
 const auth = require('../middleware/auth');
-const { updateProfile, getProfile, getPublicProfile, getReviewStats, getReviews, getTopFreelancers, getMyOrders, getOrderById, submitOrderWork, raiseDispute, approveOrder, denyOrder, submitMilestoneWork } = require('../controllers/freelancerController');
+const { updateProfile, getProfile, getPublicProfile, getReviewStats, getReviews, getTopFreelancers, getMyOrders, getOrderById, submitOrderWork, raiseDispute, approveOrder, denyOrder, submitMilestoneWork, getActiveJobWithClientForChat } = require('../controllers/freelancerController');
 
 // @route   PUT api/freelancer/profile
 // @desc    Update freelancer profile (onboarding steps) - auth only, no email verification required
@@ -38,6 +38,11 @@ router.get('/top', getTopFreelancers);
 // @access  Private (Freelancer)
 router.get('/orders', authVerified, getMyOrders);
 router.get('/orders/:id', authVerified, getOrderById);
+
+// @route   GET api/freelancer/chat-active-job/:clientId
+// @desc    In-progress job with this client (for chat banner)
+// @access  Private (Freelancer)
+router.get('/chat-active-job/:clientId', authVerified, getActiveJobWithClientForChat);
 
 // @route   POST api/freelancer/orders/:id/submit-work
 // @desc    Submit work for a freelancer project order

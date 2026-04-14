@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Chat = require('../models/Chat');
 const User = require('../models/User');
 const Conversation = require('../models/Conversation');
@@ -70,7 +71,7 @@ const getConversations = async (req, res) => {
         const conversations = await Conversation.find({
             participants: userId
         })
-            .populate('participants', 'firstName lastName freelancerProfile.isBusy freelancerProfile.profilePicture')
+            .populate('participants', 'firstName lastName freelancerProfile.isBusy freelancerProfile.profilePicture clientProfile.profilePicture')
             .sort({ updatedAt: -1 })
             .lean();
 
@@ -94,11 +95,12 @@ const getConversations = async (req, res) => {
             });
 
             const partnerIsBusy = !!(partner?.freelancerProfile?.isBusy);
+            const partnerPfp = partner?.freelancerProfile?.profilePicture || partner?.clientProfile?.profilePicture || null;
             return {
                 id: conv._id,
                 partnerId: partnerId || undefined,
                 name,
-                profilePicture: partner?.freelancerProfile?.profilePicture || null,
+                profilePicture: partnerPfp,
                 lastMessage: conv.lastMessage,
                 isFrozen: conv.isFrozen,
                 partnerIsBusy,
@@ -109,6 +111,87 @@ const getConversations = async (req, res) => {
         }));
 
         res.json(formatted);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: err.message || 'Server Error' });
+    }
+};
+
+/** Resolve URL ?conversation= param: may be conversation _id or other user's _id. */
+const resolveChatTarget = async (req, res) => {
+    try {
+        const userId = String(req.user.id || req.user._id);
+        const raw = String(req.params.id || '').trim();
+        if (!mongoose.Types.ObjectId.isValid(raw)) {
+            return res.status(400).json({ msg: 'Invalid id' });
+        }
+        if (raw === userId) {
+            return res.status(400).json({ msg: 'Invalid target' });
+        }
+
+        const populateParticipants = 'firstName lastName freelancerProfile.isBusy freelancerProfile.profilePicture clientProfile.profilePicture';
+
+        let conv = await Conversation.findOne({
+            _id: raw,
+            participants: userId
+        })
+            .populate('participants', populateParticipants)
+            .lean();
+
+        let partnerDoc = null;
+        let conversationId = null;
+        let isNew = false;
+
+        if (conv) {
+            conversationId = String(conv._id);
+            partnerDoc = (conv.participants || []).find((p) => {
+                if (!p) return false;
+                const pid = p._id ? String(p._id) : (typeof p === 'string' ? p : '');
+                return pid && pid !== userId;
+            });
+        } else {
+            conv = await Conversation.findOne({
+                participants: { $all: [userId, raw] }
+            })
+                .populate('participants', populateParticipants)
+                .lean();
+
+            if (conv) {
+                conversationId = String(conv._id);
+                partnerDoc = (conv.participants || []).find((p) => {
+                    if (!p) return false;
+                    const pid = p._id ? String(p._id) : (typeof p === 'string' ? p : '');
+                    return pid && pid !== userId;
+                });
+            } else {
+                const otherUser = await User.findById(raw)
+                    .select('firstName lastName freelancerProfile.isBusy freelancerProfile.profilePicture clientProfile.profilePicture')
+                    .lean();
+                if (!otherUser) {
+                    return res.status(404).json({ msg: 'User not found' });
+                }
+                partnerDoc = otherUser;
+                isNew = true;
+            }
+        }
+
+        const partnerId = partnerDoc?._id ? String(partnerDoc._id) : raw;
+        const name = partnerDoc && (partnerDoc.firstName || partnerDoc.lastName)
+            ? `${partnerDoc.firstName || ''} ${partnerDoc.lastName || ''}`.trim() || 'Unknown User'
+            : 'Unknown User';
+        const partnerIsBusy = !!(partnerDoc?.freelancerProfile?.isBusy);
+        const isFrozen = conv ? !!conv.isFrozen : false;
+        const partnerPfp = partnerDoc?.freelancerProfile?.profilePicture || partnerDoc?.clientProfile?.profilePicture || null;
+
+        res.json({
+            conversationId,
+            partnerId,
+            name,
+            profilePicture: partnerPfp,
+            partnerIsBusy,
+            isFrozen,
+            isNew
+        });
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ msg: err.message || 'Server Error' });
@@ -735,6 +818,7 @@ const createConsultationMeeting = async (req, res) => {
 
 module.exports = {
     getConversations,
+    resolveChatTarget,
     getMessages,
     sendMessage,
     createOffer,

@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const authVerified = require('../middleware/authVerified');
-const { getConversations, getMessages, sendMessage, createOffer, acceptOffer, rejectOffer, deleteOffer, getOffers, getConsultationStatus, createConsultationMeeting } = require('../controllers/chatController');
+const { getConversations, resolveChatTarget, getMessages, sendMessage, createOffer, acceptOffer, rejectOffer, deleteOffer, getOffers, getConsultationStatus, createConsultationMeeting } = require('../controllers/chatController');
 
 router.get('/conversations', authVerified, getConversations);
+router.get('/resolve/:id', authVerified, resolveChatTarget);
 router.get('/messages/:id', authVerified, getMessages);
 router.post('/messages', authVerified, sendMessage);
 router.post('/offers', authVerified, createOffer);
