@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
 import { Send, Video, Paperclip, FileText, CheckCircle, XCircle, MessageSquare, Shield, PanelLeft, ArrowLeft, Loader2, Mic, Square, Trash2, ScrollText, Link as LinkIcon, Clock } from 'lucide-react';
 import { api } from '@/lib/api';
-import { formatDateDDMMYYYY, formatRevisionsLabel } from '@/lib/utils';
+import { formatDateDDMMYYYY, formatRevisionsLabel, orderHasClientVisibleDelivery } from '@/lib/utils';
 import { useModal } from '@/context/ModalContext';
 import CreateOfferModal from '@/components/CreateOfferModal';
 import PaymobCheckoutModal from '@/components/PaymobCheckoutModal';
@@ -1711,7 +1711,7 @@ function ChatPageContent() {
                                 {/* Client: submitted work awaiting approval (order or job) */}
                                 {pendingWorkToApprove && currentUser?.role === 'client' && (pendingWorkToApprove.order || pendingWorkToApprove.job) && (
                                     <div className="mx-3 md:mx-6 mt-3 space-y-3">
-                                        {pendingWorkToApprove.order && (
+                                        {pendingWorkToApprove.order && orderHasClientVisibleDelivery(pendingWorkToApprove.order) && (
                                             <div className="p-4 rounded-xl bg-green-50 border-2 border-green-200">
                                                 <p className="text-sm font-bold text-green-800 mb-2 flex items-center gap-2">
                                                     <CheckCircle className="w-4 h-4" /> Work submitted — Order

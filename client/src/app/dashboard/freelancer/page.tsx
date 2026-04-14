@@ -155,9 +155,15 @@ function FreelancerDashboardContent() {
         ['pending_approval', 'pending_payment', 'active', 'disputed'].includes(o.status)
     ).length;
     const completedOrders = orders.filter(o => o.status === 'completed').length;
-    const avgRating = orders.filter(o => o.rating).length > 0
-        ? (orders.filter(o => o.rating).reduce((sum: number, o: any) => sum + o.rating, 0) / orders.filter(o => o.rating).length).toFixed(1)
-        : 'N/A';
+    const avgRating =
+        reviewStats && reviewStats.reviewCount > 0
+            ? Number(reviewStats.avgRating).toFixed(1)
+            : orders.filter((o) => o.rating).length > 0
+              ? (
+                    orders.filter((o) => o.rating).reduce((sum: number, o: any) => sum + o.rating, 0) /
+                    orders.filter((o) => o.rating).length
+                ).toFixed(1)
+              : 'N/A';
     const orderCountByProject = orders.reduce((acc: Record<string, number>, order: any) => {
         const projectId = String(order?.projectId?._id || order?.projectId || '');
         if (!projectId) return acc;

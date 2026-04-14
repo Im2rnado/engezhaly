@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 
 export type RevisionsFieldVariant = "default" | "compact" | "jobs" | "auth";
@@ -15,15 +16,13 @@ export interface RevisionsFieldProps {
     disabled?: boolean;
     variant?: RevisionsFieldVariant;
     className?: string;
-    /** When switching to fixed and the field is empty, prefill with this (default "1"). */
     defaultFixedRevisions?: string;
 }
 
 const WRAPPER: Record<RevisionsFieldVariant, string> = {
     default:
         "rounded-xl border-2 border-gray-200 bg-gray-50 focus-within:border-[#09BF44] focus-within:ring-2 focus-within:ring-[#09BF44]/15 transition-all",
-    compact:
-        "rounded-lg border border-gray-200 bg-gray-50 focus-within:border-[#09BF44] transition-all",
+    compact: "rounded-lg border border-gray-200 bg-gray-50 focus-within:border-[#09BF44] transition-all",
     jobs: "rounded-xl border-2 border-transparent bg-gray-50 focus-within:border-[#09BF44] transition-all",
     auth: "rounded-lg border border-gray-200 bg-gray-50 focus-within:border-[#09BF44] transition-all"
 };
@@ -42,25 +41,8 @@ const LABEL_CLASS: Record<RevisionsFieldVariant, string> = {
     auth: "text-xs font-bold text-gray-500 mb-1"
 };
 
-/** Tight select column next to number input (label is short: “Fixed”). */
-const SELECT_WIDTH_FIXED: Record<RevisionsFieldVariant, string> = {
-    default: "w-[5.25rem] pl-2",
-    compact: "w-[4.75rem] pl-1.5",
-    jobs: "w-[5.25rem] pl-2",
-    auth: "w-[4.75rem] pl-1.5"
-};
-
-/** Standalone select when unlimited (fits “Unlimited” + chevron). */
-const SELECT_WIDTH_SOLO: Record<RevisionsFieldVariant, string> = {
-    default: "min-w-[7.25rem] pl-2.5",
-    compact: "min-w-[6.75rem] pl-2",
-    jobs: "min-w-[7.25rem] pl-2.5",
-    auth: "min-w-[6.75rem] pl-2"
-};
-
 /**
- * Single control: type a number for fixed revisions, or choose Unlimited from the dropdown on the right.
- * Backend: revisionsUnlimited + numeric revisions (0 when unlimited).
+ * Single number input; focusing or clicking opens a menu below to choose Unlimited.
  */
 export default function RevisionsField({
     unlimited,
@@ -74,68 +56,100 @@ export default function RevisionsField({
     className = "",
     defaultFixedRevisions = "1"
 }: RevisionsFieldProps) {
-    const handleMode = (nextUnlimited: boolean) => {
-        onUnlimitedChange(nextUnlimited);
-        if (nextUnlimited) {
-            onRevisionsChange("0");
-        } else {
-            const t = revisions.trim();
-            if (!t || t === "0") onRevisionsChange(defaultFixedRevisions);
-        }
-    };
+    const [menuOpen, setMenuOpen] = useState(false);
+    const rootRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!menuOpen) return;
+        const close = (e: MouseEvent) => {
+            if (rootRef.current && !rootRef.current.contains(e.target as Node)) setMenuOpen(false);
+        };
+        document.addEventListener("mousedown", close);
+        return () => document.removeEventListener("mousedown", close);
+    }, [menuOpen]);
 
     const wrap = WRAPPER[variant];
     const pad = INPUT_PAD[variant];
     const labelCls = LABEL_CLASS[variant];
-    const selectWFixed = SELECT_WIDTH_FIXED[variant];
-    const selectWSolo = SELECT_WIDTH_SOLO[variant];
-
     const placeholder =
         variant === "compact" || variant === "auth" ? "Number" : "Enter number (e.g. 3)";
+    const minH = variant === "compact" || variant === "auth" ? "min-h-[2.75rem]" : "min-h-[2.75rem]";
 
-    const minH = variant === "compact" || variant === "auth" ? "min-h-[2.25rem]" : "min-h-[2.75rem]";
+    const pickUnlimited = () => {
+        onUnlimitedChange(true);
+        onRevisionsChange("0");
+        setMenuOpen(false);
+    };
+
+    const pickFixed = () => {
+        onUnlimitedChange(false);
+        const t = revisions.trim();
+        if (!t || t === "0") onRevisionsChange(defaultFixedRevisions);
+        setMenuOpen(false);
+    };
 
     return (
         <div className={className}>
             {label ? <div className={labelCls}>{label}</div> : null}
-            <div
-                className={`flex ${unlimited ? "w-max max-w-full" : "w-full"} ${wrap} ${disabled ? "opacity-60 pointer-events-none" : ""}`}
-            >
-                {!unlimited ? (
+            <div ref={rootRef} className={`relative ${disabled ? "opacity-60 pointer-events-none" : ""}`}>
+                <div className={`flex items-center ${wrap} ${minH}`}>
                     <input
-                        type="number"
-                        min={0}
+                        type={unlimited ? "text" : "number"}
+                        min={unlimited ? undefined : 0}
                         step={1}
                         required={required && !unlimited}
                         disabled={disabled}
-                        value={revisions}
-                        onChange={(e) => onRevisionsChange(e.target.value)}
-                        placeholder={placeholder}
-                        className={`min-w-0 flex-1 rounded-l-xl ${pad} bg-gray-50 border-0 outline-none text-gray-900 font-bold placeholder:font-medium placeholder:text-gray-400 text-sm`}
+                        readOnly={unlimited}
+                        value={unlimited ? "Unlimited" : revisions}
+                        onChange={(e) => !unlimited && onRevisionsChange(e.target.value)}
+                        onFocus={() => !disabled && setMenuOpen(true)}
+                        onClick={() => !disabled && setMenuOpen(true)}
+                        placeholder={unlimited ? "Unlimited" : placeholder}
+                        aria-expanded={menuOpen}
+                        aria-haspopup="listbox"
+                        className={`min-w-0 flex-1 rounded-xl ${pad} bg-transparent border-0 outline-none text-gray-900 font-bold placeholder:font-medium placeholder:text-gray-400 text-sm cursor-pointer`}
                     />
-                ) : null}
-                <div
-                    className={`relative flex shrink-0 items-stretch bg-white ${minH} ${
-                        unlimited
-                            ? `rounded-xl ${selectWSolo}`
-                            : `rounded-r-xl border-l border-gray-200 ${selectWFixed}`
-                    }`}
-                >
-                    <select
-                        value={unlimited ? "unlimited" : "fixed"}
-                        onChange={(e) => handleMode(e.target.value === "unlimited")}
+                    <button
+                        type="button"
                         disabled={disabled}
-                        aria-label="Revision type: fixed count or unlimited"
-                        className={`h-full w-full min-w-0 cursor-pointer appearance-none bg-transparent py-2 pr-7 text-[10px] font-black uppercase tracking-wide text-gray-700 outline-none ${minH}`}
+                        onClick={() => setMenuOpen((o) => !o)}
+                        className="shrink-0 px-3 py-2 text-gray-500 hover:text-gray-800"
+                        aria-label="Open revisions options"
                     >
-                        <option value="fixed">Fixed</option>
-                        <option value="unlimited">Unlimited</option>
-                    </select>
-                    <ChevronDown
-                        className="pointer-events-none absolute right-1.5 top-1/2 h-4 w-4 shrink-0 -translate-y-1/2 text-gray-500"
-                        aria-hidden
-                    />
+                        <ChevronDown className={`w-5 h-5 transition-transform ${menuOpen ? "rotate-180" : ""}`} />
+                    </button>
                 </div>
+                {menuOpen && !disabled && (
+                    <ul
+                        role="listbox"
+                        className="absolute z-50 left-0 right-0 top-full mt-1 rounded-xl border-2 border-gray-200 bg-white shadow-lg py-1 overflow-hidden"
+                    >
+                        {!unlimited && (
+                            <li>
+                                <button
+                                    type="button"
+                                    role="option"
+                                    className="w-full text-left px-4 py-2.5 text-sm font-bold text-gray-900 hover:bg-gray-50"
+                                    onClick={pickUnlimited}
+                                >
+                                    Unlimited
+                                </button>
+                            </li>
+                        )}
+                        {unlimited && (
+                            <li>
+                                <button
+                                    type="button"
+                                    role="option"
+                                    className="w-full text-left px-4 py-2.5 text-sm font-bold text-gray-900 hover:bg-gray-50"
+                                    onClick={pickFixed}
+                                >
+                                    Fixed number…
+                                </button>
+                            </li>
+                        )}
+                    </ul>
+                )}
             </div>
         </div>
     );

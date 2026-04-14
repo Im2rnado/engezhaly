@@ -9,6 +9,7 @@ import AuthModal from "@/components/AuthModal";
 import { useModal } from "@/context/ModalContext";
 import DatePicker from "@/components/DatePicker";
 import RevisionsField from "@/components/RevisionsField";
+import { minDateYYYYMMDDForMilestone, milestoneDatesOrderError } from "@/lib/utils";
 
 function JobsPageContent() {
     const router = useRouter();
@@ -166,6 +167,11 @@ function JobsPageContent() {
                     showModal({ title: 'Milestones', message: 'Each milestone due date must be today or later.', type: 'error' });
                     return;
                 }
+            }
+            const ord = milestoneDatesOrderError(named.map((m) => ({ dueDate: m.dueDate })));
+            if (ord) {
+                showModal({ title: 'Milestones', message: ord, type: 'error' });
+                return;
             }
         } else {
             const days = Number(proposal.days);
@@ -494,7 +500,7 @@ function JobsPageContent() {
                                                         newMs[idx] = { ...newMs[idx], dueDate: v };
                                                         setMilestones(newMs);
                                                     }}
-                                                    min={new Date().toISOString().split('T')[0]}
+                                                    min={minDateYYYYMMDDForMilestone(idx, milestones)}
                                                     placeholder="Due date *"
                                                     className="w-48"
                                                 />

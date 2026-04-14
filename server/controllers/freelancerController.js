@@ -472,6 +472,98 @@ const submitOrderWork = async (req, res) => {
     }
 };
 
+const submitOrderMilestoneWork = async (req, res) => {
+    try {
+        const freelancerId = req.user.id;
+        const orderId = req.params.id;
+        const milestoneIdx = Number(req.params.milestoneIdx);
+        const { message = '', links = [], files = [] } = req.body;
+
+        if (!Number.isInteger(milestoneIdx) || milestoneIdx < 0) {
+            return res.status(400).json({ msg: 'Invalid milestone index' });
+        }
+
+        const order = await Order.findById(orderId).populate('offerId', 'milestones conversationId');
+        if (!order) return res.status(404).json({ msg: 'Order not found' });
+        if (String(order.sellerId) !== String(freelancerId)) {
+            return res.status(403).json({ msg: 'Not authorized' });
+        }
+        if (order.status !== 'active') {
+            return res.status(400).json({ msg: 'Can only submit for active orders' });
+        }
+
+        const offer = order.offerId && typeof order.offerId === 'object' ? order.offerId : null;
+        const milestones = offer?.milestones;
+        if (!Array.isArray(milestones) || milestones.length === 0) {
+            return res.status(400).json({ msg: 'This order has no offer milestones' });
+        }
+        if (milestoneIdx >= milestones.length) {
+            return res.status(400).json({ msg: 'Invalid milestone index' });
+        }
+
+        const msgTrim = String(message || '').trim();
+        const linkArr = Array.isArray(links) ? links.filter(Boolean) : [];
+        const fileArr = Array.isArray(files) ? files.filter(Boolean) : [];
+        if (!msgTrim && linkArr.length === 0 && fileArr.length === 0) {
+            return res.status(400).json({ msg: 'Add a message, link, or file' });
+        }
+
+        if (!order.offerMilestoneSubmissions) order.offerMilestoneSubmissions = [];
+        const now = new Date();
+        const existing = order.offerMilestoneSubmissions.find((s) => Number(s.milestoneIndex) === milestoneIdx);
+        if (existing) {
+            existing.message = msgTrim;
+            existing.links = linkArr;
+            existing.files = fileArr;
+            existing.updatedAt = now;
+            if (!existing.submittedAt) existing.submittedAt = now;
+        } else {
+            order.offerMilestoneSubmissions.push({
+                milestoneIndex: milestoneIdx,
+                message: msgTrim,
+                links: linkArr,
+                files: fileArr,
+                submittedAt: now,
+                updatedAt: now
+            });
+        }
+
+        await order.save();
+
+        const populated = await Order.findById(orderId)
+            .populate('projectId', 'title packages subCategory')
+            .populate('buyerId', 'firstName lastName email')
+            .populate('sellerId', 'firstName lastName email')
+            .populate('offerId');
+
+        let buyerEmail = populated.buyerId?.email || null;
+        let clientFirst = populated.buyerId?.firstName || '';
+        if (!buyerEmail && order.buyerId) {
+            const buyer = await User.findById(order.buyerId).select('email firstName lastName').lean();
+            if (buyer) {
+                buyerEmail = buyer.email || null;
+                if (!clientFirst) clientFirst = buyer.firstName || '';
+            }
+        }
+
+        const milestoneLabel = String(milestones[milestoneIdx]?.name || '').trim() || `Phase ${milestoneIdx + 1}`;
+        const freelancerName = populated.sellerId?.firstName || 'Freelancer';
+        const title = populated.projectId?.title || 'Custom offer';
+        const reviewLink = `${FRONTEND_URL}/dashboard/client/orders/${orderId}`;
+        if (buyerEmail) {
+            const { subject, html } = workSubmitted(clientFirst || 'there', freelancerName, title, reviewLink, { milestoneName: milestoneLabel });
+            sendAndLog(buyerEmail, subject, html, 'work_submitted_milestone', { orderId, milestoneIdx }).catch((err) =>
+                console.error('[Freelancer] order milestone workSubmitted email failed:', err.message)
+            );
+        }
+
+        return res.json(orderWithRevisionFallback(populated));
+    } catch (err) {
+        console.error(err.message);
+        return res.status(500).json({ msg: err.message || 'Server Error' });
+    }
+};
+
 const approveOrder = async (req, res) => {
     try {
         const freelancerId = req.user.id;
@@ -729,6 +821,7 @@ module.exports = {
     getMyOrders,
     getOrderById,
     submitOrderWork,
+    submitOrderMilestoneWork,
     raiseDispute,
     approveOrder,
     denyOrder,

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { X, Plus, Trash2, FileText } from 'lucide-react';
-import { formatDateDDMMYYYY, formatRevisionsLabel } from '@/lib/utils';
+import { formatDateDDMMYYYY, formatRevisionsLabel, minDateYYYYMMDDForMilestone, milestoneDatesOrderError } from '@/lib/utils';
 import DatePicker from '@/components/DatePicker';
 import RevisionsField from '@/components/RevisionsField';
 
@@ -75,6 +75,13 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                     alert('Each milestone due date must be today or later');
                     return;
                 }
+            }
+            const orderErr = milestoneDatesOrderError(
+                milestones.filter((m) => m.name.trim()).map((m) => ({ dueDate: m.dueDate }))
+            );
+            if (orderErr) {
+                alert(orderErr);
+                return;
             }
         } else {
             if (!deliveryDate) {
@@ -315,7 +322,7 @@ export default function CreateOfferModal({ isOpen, onClose, onSubmit }: CreateOf
                                                             value={milestone.dueDate}
                                                             onChange={(v) => updateMilestone(index, 'dueDate', v)}
                                                             placeholder="Due date *"
-                                                            min={new Date().toISOString().split('T')[0]}
+                                                            min={minDateYYYYMMDDForMilestone(index, milestones)}
                                                             className="w-full"
                                                         />
                                                     </div>

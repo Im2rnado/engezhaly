@@ -574,6 +574,29 @@ const raiseDispute = async (req, res) => {
     }
 };
 
+function orderHasClientVisibleDelivery(order) {
+    const ws = order.workSubmission;
+    const hasWs =
+        ws &&
+        ((typeof ws.message === 'string' && ws.message.trim()) ||
+            (Array.isArray(ws.links) && ws.links.some(Boolean)) ||
+            (Array.isArray(ws.files) && ws.files.some(Boolean)));
+    if (hasWs) return true;
+    const offer = order.offerId && typeof order.offerId === 'object' ? order.offerId : null;
+    const ms = offer?.milestones;
+    if (!Array.isArray(ms) || ms.length === 0) return false;
+    const subs = order.offerMilestoneSubmissions || [];
+    return ms.every((_, i) => {
+        const s = subs.find((x) => Number(x.milestoneIndex) === i);
+        return (
+            s &&
+            ((typeof s.message === 'string' && s.message.trim()) ||
+                (Array.isArray(s.links) && s.links.some(Boolean)) ||
+                (Array.isArray(s.files) && s.files.some(Boolean)))
+        );
+    });
+}
+
 const approveDelivery = async (req, res) => {
     try {
         const userId = req.user.id;
@@ -581,7 +604,8 @@ const approveDelivery = async (req, res) => {
 
         const order = await Order.findById(orderId)
             .populate('projectId', 'title packages')
-            .populate('sellerId', 'firstName lastName');
+            .populate('sellerId', 'firstName lastName')
+            .populate('offerId', 'milestones');
 
         if (!order) return res.status(404).json({ msg: 'Order not found' });
         const buyerIdStr = String(order.buyerId?._id || order.buyerId);
@@ -591,7 +615,7 @@ const approveDelivery = async (req, res) => {
         if (order.status !== 'active') {
             return res.status(400).json({ msg: 'Can only approve delivery for active orders' });
         }
-        if (!order.workSubmission || (!order.workSubmission.message && (!order.workSubmission.links || order.workSubmission.links.length === 0) && (!order.workSubmission.files || order.workSubmission.files.length === 0))) {
+        if (!orderHasClientVisibleDelivery(order)) {
             return res.status(400).json({ msg: 'Freelancer has not submitted work yet' });
         }
 
@@ -647,20 +671,24 @@ const getPendingWorkToApprove = async (req, res) => {
 
         if (!partnerId) return res.status(400).json({ msg: 'Partner ID required' });
 
-        const [order] = await Order.find({
+        const orderCandidates = await Order.find({
             buyerId: userId,
             sellerId: partnerId,
-            status: 'active',
-            $or: [
-                { 'workSubmission.message': { $exists: true, $ne: '' } },
-                { 'workSubmission.links.0': { $exists: true } },
-                { 'workSubmission.files.0': { $exists: true } }
-            ]
+            status: 'active'
         })
             .populate('projectId', 'title')
             .populate('sellerId', 'firstName lastName')
-            .limit(1)
+            .populate('offerId', 'milestones')
             .lean();
+
+        const order =
+            orderCandidates.find((raw) =>
+                orderHasClientVisibleDelivery({
+                    workSubmission: raw.workSubmission,
+                    offerId: raw.offerId,
+                    offerMilestoneSubmissions: raw.offerMilestoneSubmissions || []
+                })
+            ) || null;
 
         const jobs = await Job.find({
             clientId: userId,

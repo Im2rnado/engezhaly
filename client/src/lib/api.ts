@@ -273,6 +273,20 @@ export const api = {
             if (!res.ok) throw new Error(result.msg || 'Failed to submit work');
             return result;
         },
+        submitOrderMilestoneWork: async (
+            orderId: string,
+            milestoneIdx: number,
+            data: { message?: string; files?: string[]; links?: string[] }
+        ) => {
+            const res = await fetch(`${API_URL}/freelancer/orders/${orderId}/milestones/${milestoneIdx}/submit-work`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify(data),
+            });
+            const result = await res.json().catch(() => ({ msg: 'Failed to submit phase work' }));
+            if (!res.ok) throw new Error(result.msg || 'Failed to submit phase work');
+            return result;
+        },
         submitMilestoneWork: async (jobId: string, milestoneIdx: number, data: { note?: string; message?: string; files?: string[]; links?: string[] }) => {
             const res = await fetch(`${API_URL}/freelancer/jobs/${jobId}/milestones/${milestoneIdx}/submit`, {
                 method: 'POST',

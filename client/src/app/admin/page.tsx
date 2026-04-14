@@ -18,6 +18,18 @@ import ClientJobViewForAdmin from '@/components/ClientJobViewForAdmin';
 const SOCKET_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.engezhaly.com/api').replace(/\/api$/, '');
 const API_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/api$/, '');
 
+const ADMIN_SEEN_KEY = 'engezhaly_admin_sidebar_seen_v1';
+
+type AdminSeenSnapshot = {
+    users: number;
+    projects: number;
+    disputes: number;
+    transactions: number;
+    emailLogs: number;
+    withdrawalsPending: number;
+    instapay: number;
+};
+
 function resolveMediaUrl(url: string) {
     if (!url || typeof url !== 'string') return '';
     const u = url.trim();
@@ -615,6 +627,20 @@ export default function AdminDashboard() {
     const [disputeChatMessages, setDisputeChatMessages] = useState<any[]>([]);
     const [disputeChatOffers, setDisputeChatOffers] = useState<any[]>([]);
     const [disputeChatLoading, setDisputeChatLoading] = useState(false);
+    const [disputeConversationId, setDisputeConversationId] = useState<string | null>(null);
+    const [disputeConvoResolving, setDisputeConvoResolving] = useState(false);
+
+    const [adminSeen, setAdminSeen] = useState<AdminSeenSnapshot | null>(null);
+    const adminSeenSeedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const adminSeenCountsRef = useRef({
+        users: 0,
+        projects: 0,
+        disputes: 0,
+        transactions: 0,
+        emailLogs: 0,
+        withdrawalsPending: 0,
+        instapay: 0
+    });
 
     const [supportChatModalOpen, setSupportChatModalOpen] = useState(false);
     const [supportUserQuery, setSupportUserQuery] = useState('');
@@ -936,6 +962,172 @@ export default function AdminDashboard() {
     }, [activeTab, financeHideManualTopUp]);
 
     useEffect(() => {
+        if (typeof window === 'undefined') return;
+        try {
+            const raw = localStorage.getItem(ADMIN_SEEN_KEY);
+            if (raw) setAdminSeen(JSON.parse(raw));
+        } catch {
+            /* ignore */
+        }
+    }, []);
+
+    adminSeenCountsRef.current = {
+        users: users.length,
+        projects: projects.length,
+        disputes: disputes.length,
+        transactions: transactions.length,
+        emailLogs: emailLogs.length,
+        withdrawalsPending: withdrawals.filter((w: any) => w.status === 'pending').length,
+        instapay: instaPayPending.length
+    };
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        if (localStorage.getItem(ADMIN_SEEN_KEY)) return;
+        if (adminSeenSeedTimeoutRef.current != null) return;
+        adminSeenSeedTimeoutRef.current = setTimeout(() => {
+            adminSeenSeedTimeoutRef.current = null;
+            if (localStorage.getItem(ADMIN_SEEN_KEY)) return;
+            const c = adminSeenCountsRef.current;
+            const snap: AdminSeenSnapshot = {
+                users: c.users,
+                projects: c.projects,
+                disputes: c.disputes,
+                transactions: c.transactions,
+                emailLogs: c.emailLogs,
+                withdrawalsPending: c.withdrawalsPending,
+                instapay: c.instapay
+            };
+            localStorage.setItem(ADMIN_SEEN_KEY, JSON.stringify(snap));
+            setAdminSeen(snap);
+        }, 1200);
+        return () => {
+            if (adminSeenSeedTimeoutRef.current != null) {
+                clearTimeout(adminSeenSeedTimeoutRef.current);
+                adminSeenSeedTimeoutRef.current = null;
+            }
+        };
+    }, []);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        setAdminSeen((prev) => {
+            if (!prev) return prev;
+            const next = { ...prev };
+            let changed = false;
+            const wPending = withdrawals.filter((w: any) => w.status === 'pending').length;
+            if (activeTab === 'users' && prev.users !== users.length) {
+                next.users = users.length;
+                changed = true;
+            }
+            if (activeTab === 'projects' && prev.projects !== projects.length) {
+                next.projects = projects.length;
+                changed = true;
+            }
+            if (activeTab === 'disputes' && prev.disputes !== disputes.length) {
+                next.disputes = disputes.length;
+                changed = true;
+            }
+            if (activeTab === 'finance' && prev.transactions !== transactions.length) {
+                next.transactions = transactions.length;
+                changed = true;
+            }
+            if (activeTab === 'emails' && prev.emailLogs !== emailLogs.length) {
+                next.emailLogs = emailLogs.length;
+                changed = true;
+            }
+            if (activeTab === 'withdrawals' && prev.withdrawalsPending !== wPending) {
+                next.withdrawalsPending = wPending;
+                changed = true;
+            }
+            if (activeTab === 'instapay' && prev.instapay !== instaPayPending.length) {
+                next.instapay = instaPayPending.length;
+                changed = true;
+            }
+            if (!changed) return prev;
+            localStorage.setItem(ADMIN_SEEN_KEY, JSON.stringify(next));
+            return next;
+        });
+    }, [
+        activeTab,
+        users.length,
+        projects.length,
+        disputes.length,
+        transactions.length,
+        emailLogs.length,
+        withdrawals,
+        instaPayPending.length
+    ]);
+
+    const activePostedJobsCount = useMemo(
+        () => jobs.filter((j: any) => j.status === 'open' || j.status === 'in_progress').length,
+        [jobs]
+    );
+    const activeAdminOrdersCount = useMemo(
+        () =>
+            orders.filter((o: any) =>
+                ['pending_approval', 'pending_payment', 'active', 'disputed'].includes(o.status)
+            ).length,
+        [orders]
+    );
+    const adminChatsUnreadCount = useMemo(
+        () => activeChats.filter((c: any) => c.adminHasUnread).length,
+        [activeChats]
+    );
+
+    const newUsersCount = adminSeen ? Math.max(0, users.length - adminSeen.users) : 0;
+    const newProjectsCount = adminSeen ? Math.max(0, projects.length - adminSeen.projects) : 0;
+    const newDisputesCount = adminSeen ? Math.max(0, disputes.length - adminSeen.disputes) : 0;
+    const newFinanceCount = adminSeen ? Math.max(0, transactions.length - adminSeen.transactions) : 0;
+    const newEmailLogsCount = adminSeen ? Math.max(0, emailLogs.length - adminSeen.emailLogs) : 0;
+    const pendingWithdrawals = withdrawals.filter((w: any) => w.status === 'pending').length;
+    const newWithdrawalsCount = adminSeen ? Math.max(0, pendingWithdrawals - adminSeen.withdrawalsPending) : 0;
+    const newInstapayCount = adminSeen ? Math.max(0, instaPayPending.length - adminSeen.instapay) : 0;
+
+    useEffect(() => {
+        let cancelled = false;
+        setDisputeConversationId(null);
+        if (!selectedDispute) {
+            setDisputeConvoResolving(false);
+            return undefined;
+        }
+        const rawCid = selectedDispute.conversationId;
+        let cid = '';
+        if (rawCid) {
+            cid =
+                typeof rawCid === 'object' && (rawCid as { _id?: string })._id
+                    ? String((rawCid as { _id: string })._id)
+                    : String(rawCid);
+        }
+        if (cid && cid !== 'undefined' && cid !== 'null') {
+            setDisputeConversationId(cid);
+            setDisputeConvoResolving(false);
+            return undefined;
+        }
+        const buyer = selectedDispute.buyerId?._id || selectedDispute.buyerId;
+        const seller = selectedDispute.sellerId?._id || selectedDispute.sellerId;
+        if (!buyer || !seller) {
+            setDisputeConvoResolving(false);
+            return undefined;
+        }
+        setDisputeConvoResolving(true);
+        api.admin
+            .findConversationBetweenUsers(String(buyer), String(seller))
+            .then(({ conversationId }) => {
+                if (!cancelled && conversationId) setDisputeConversationId(String(conversationId));
+            })
+            .catch(() => {
+                if (!cancelled) setDisputeConversationId(null);
+            })
+            .finally(() => {
+                if (!cancelled) setDisputeConvoResolving(false);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [selectedDispute]);
+
+    useEffect(() => {
         if (!['projects', 'jobs', 'orders'].includes(activeTab)) setManagementDetail(null);
     }, [activeTab]);
 
@@ -956,7 +1148,7 @@ export default function AdminDashboard() {
     }, [managementDetail?.kind, managementDetail?.item?._id]);
 
     useEffect(() => {
-        const convId = selectedDispute?.conversationId;
+        const convId = disputeConversationId;
         if (!convId) {
             setDisputeChatMessages([]);
             setDisputeChatOffers([]);
@@ -1001,7 +1193,7 @@ export default function AdminDashboard() {
         return () => {
             cancelled = true;
         };
-    }, [selectedDispute?.conversationId]);
+    }, [disputeConversationId]);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -1188,6 +1380,13 @@ export default function AdminDashboard() {
         }
     };
 
+    const openBuyerFromDisputeInUsersTab = (buyer: any) => {
+        if (!buyer?._id) return;
+        setSelectedDispute(null);
+        setActiveTab('users');
+        void handleSelectUser(buyer);
+    };
+
     const handleEditUser = (user: any) => {
         setEditModal({
             isOpen: true,
@@ -1363,35 +1562,35 @@ export default function AdminDashboard() {
                     </button>
                     <button onClick={() => setActiveTab('users')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'users' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <User className="w-5 h-5" /> Users
-                        {users.length > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{users.length}</span>}
+                        {newUsersCount > 0 && <span className="ml-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{newUsersCount}</span>}
                     </button>
                     <button onClick={() => setActiveTab('projects')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'projects' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <Briefcase className="w-5 h-5" /> Offers
-                        {projects.length > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{projects.length}</span>}
+                        {newProjectsCount > 0 && <span className="ml-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{newProjectsCount}</span>}
                     </button>
                     <button onClick={() => setActiveTab('jobs')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'jobs' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <FileText className="w-5 h-5" /> Posted jobs
-                        {jobs.length > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{jobs.length}</span>}
+                        {activePostedJobsCount > 0 && <span className="ml-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{activePostedJobsCount}</span>}
                     </button>
                     <button onClick={() => setActiveTab('orders')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'orders' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <ShoppingBag className="w-5 h-5" /> Orders
-                        {orders.length > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{orders.length}</span>}
+                        {activeAdminOrdersCount > 0 && <span className="ml-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{activeAdminOrdersCount}</span>}
                     </button>
                     <button onClick={() => setActiveTab('disputes')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'disputes' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <AlertTriangle className="w-5 h-5" /> Disputes
-                        {disputes.length > 0 && <span className="ml-auto bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">{disputes.length}</span>}
+                        {newDisputesCount > 0 && <span className="ml-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{newDisputesCount}</span>}
                     </button>
                     <button onClick={() => setActiveTab('finance')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'finance' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <CreditCard className="w-5 h-5" /> Finance
-                        {transactions.length > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{transactions.length}</span>}
+                        {newFinanceCount > 0 && <span className="ml-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{newFinanceCount}</span>}
                     </button>
                     <button onClick={() => setActiveTab('withdrawals')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'withdrawals' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <ArrowDownToLine className="w-5 h-5" /> Withdrawals
-                        {withdrawals.filter((w: any) => w.status === 'pending').length > 0 && <span className="ml-auto bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">{withdrawals.filter((w: any) => w.status === 'pending').length}</span>}
+                        {newWithdrawalsCount > 0 && <span className="ml-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{newWithdrawalsCount}</span>}
                     </button>
                     <button onClick={() => setActiveTab('instapay')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'instapay' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <Smartphone className="w-5 h-5" /> InstaPay Pending
-                        {instaPayPending.length > 0 && <span className="ml-auto bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">{instaPayPending.length}</span>}
+                        {newInstapayCount > 0 && <span className="ml-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{newInstapayCount}</span>}
                     </button>
                     <div className="h-px bg-gray-100 my-2"></div>
                     <button onClick={() => setActiveTab('approvals')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'approvals' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
@@ -1400,10 +1599,8 @@ export default function AdminDashboard() {
                     </button>
                     <button onClick={() => setActiveTab('chats')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'chats' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <MessageSquare className="w-5 h-5" /> Chats
-                        {activeChats.some((c: any) => c.adminHasUnread) ? (
-                            <span className="ml-auto bg-red-600 text-white text-xs px-2 py-0.5 rounded-full font-black">New</span>
-                        ) : activeChats.length > 0 ? (
-                            <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{activeChats.length}</span>
+                        {adminChatsUnreadCount > 0 ? (
+                            <span className="ml-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{adminChatsUnreadCount}</span>
                         ) : null}
                     </button>
                     <button onClick={() => setActiveTab('announcements')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'announcements' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
@@ -1417,7 +1614,7 @@ export default function AdminDashboard() {
                     </button>
                     <button onClick={() => setActiveTab('emails')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'emails' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <Mail className="w-5 h-5" /> Email Logs
-                        {emailLogs.length > 0 && <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{emailLogs.length}</span>}
+                        {newEmailLogsCount > 0 && <span className="ml-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{newEmailLogsCount}</span>}
                     </button>
                 </nav>
 
@@ -2161,8 +2358,36 @@ export default function AdminDashboard() {
                                 <div className="grid sm:grid-cols-2 gap-4">
                                     <div className="bg-gray-50 rounded-xl p-4">
                                         <p className="text-xs font-bold text-gray-400 uppercase">Client</p>
-                                        <p className="font-bold">{selectedDispute.buyerId?.firstName} {selectedDispute.buyerId?.lastName}</p>
-                                        <p className="text-sm text-gray-500">{selectedDispute.buyerId?.email}</p>
+                                        <button
+                                            type="button"
+                                            onClick={() => openBuyerFromDisputeInUsersTab(selectedDispute.buyerId)}
+                                            className="mt-1 flex items-center gap-3 text-left w-full rounded-xl hover:bg-gray-100/80 p-2 -m-2 transition-colors"
+                                        >
+                                            {selectedDispute.buyerId?.clientProfile?.profilePicture ? (
+                                                <Image
+                                                    src={resolveMediaUrl(selectedDispute.buyerId.clientProfile.profilePicture)}
+                                                    alt=""
+                                                    width={44}
+                                                    height={44}
+                                                    className="rounded-full object-cover shrink-0"
+                                                    unoptimized
+                                                />
+                                            ) : (
+                                                <div className="w-11 h-11 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-700 shrink-0">
+                                                    {selectedDispute.buyerId?.firstName?.[0]}
+                                                </div>
+                                            )}
+                                            <span className="min-w-0">
+                                                <span className="font-bold text-gray-900 block">
+                                                    {selectedDispute.buyerId?.firstName} {selectedDispute.buyerId?.lastName}
+                                                </span>
+                                                <span className="text-sm text-gray-500 block">{selectedDispute.buyerId?.email}</span>
+                                                {selectedDispute.buyerId?.phoneNumber ? (
+                                                    <span className="text-sm font-bold text-gray-800 block mt-0.5">{selectedDispute.buyerId.phoneNumber}</span>
+                                                ) : null}
+                                                <span className="text-xs font-bold text-[#09BF44] mt-1 inline-block">Open in Users →</span>
+                                            </span>
+                                        </button>
                                     </div>
                                     <div className="bg-gray-50 rounded-xl p-4">
                                         <p className="text-xs font-bold text-gray-400 uppercase">Freelancer</p>
@@ -2202,10 +2427,12 @@ export default function AdminDashboard() {
                                 ) : null}
                                 <div>
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Chat between parties</h4>
-                                    {!selectedDispute.conversationId ? (
-                                        <p className="text-sm text-gray-500">No conversation is linked to this order (e.g. non–custom-offer order).</p>
-                                    ) : disputeChatLoading ? (
+                                    {disputeConvoResolving || disputeChatLoading ? (
                                         <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44]" /></div>
+                                    ) : !disputeConversationId ? (
+                                        <p className="text-sm text-gray-500 bg-gray-50 rounded-2xl border border-gray-100 p-4">
+                                            No chat was found between this client and freelancer yet.
+                                        </p>
                                     ) : (
                                         <div className="max-h-[420px] overflow-y-auto p-4 space-y-4 bg-gray-50 rounded-2xl border border-gray-100">
                                             {disputeChatMessages.length === 0 && disputeChatOffers.length === 0 ? (

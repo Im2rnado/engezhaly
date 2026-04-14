@@ -789,16 +789,30 @@ const getAllOrders = async (req, res) => {
 const getDisputedOrders = async (req, res) => {
     try {
         const orders = await Order.find({ status: 'disputed' })
-            .populate('buyerId', 'firstName lastName email username freelancerProfile.profilePicture')
+            .populate('buyerId', 'firstName lastName email username phoneNumber freelancerProfile.profilePicture clientProfile.profilePicture')
             .populate('sellerId', 'firstName lastName email username freelancerProfile.profilePicture')
             .populate('projectId', 'title description category')
             .populate({ path: 'offerId', select: 'price milestones revisions revisionsUnlimited deliveryDate conversationId whatsIncluded' })
             .sort({ updatedAt: -1 })
             .lean();
-        const enriched = orders.map((o) => ({
-            ...o,
-            conversationId: o.offerId?.conversationId || null
-        }));
+        const enriched = await Promise.all(
+            orders.map(async (o) => {
+                let conversationId = o.offerId?.conversationId || null;
+                if (conversationId && typeof conversationId === 'object' && conversationId._id) {
+                    conversationId = conversationId._id;
+                }
+                if (conversationId) conversationId = String(conversationId);
+                if (!conversationId && o.buyerId && o.sellerId) {
+                    const conv = await Conversation.findOne({
+                        participants: { $all: [String(o.buyerId._id || o.buyerId), String(o.sellerId._id || o.sellerId)] }
+                    })
+                        .select('_id')
+                        .lean();
+                    conversationId = conv?._id ? String(conv._id) : null;
+                }
+                return { ...o, conversationId };
+            })
+        );
         res.json(enriched);
     } catch (err) {
         console.error(err.message);

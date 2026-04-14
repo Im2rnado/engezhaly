@@ -32,7 +32,16 @@ const OrderSchema = new mongoose.Schema({
         files: [String],
         submittedAt: { type: Date, default: null },
         updatedAt: { type: Date, default: null }
-    }
+    },
+    /** Per-phase delivery for custom offers (indexes match offer.milestones order). */
+    offerMilestoneSubmissions: [{
+        milestoneIndex: { type: Number, required: true },
+        message: { type: String, default: '' },
+        links: [String],
+        files: [String],
+        submittedAt: { type: Date, default: null },
+        updatedAt: { type: Date, default: null }
+    }]
 }, { timestamps: true });
 
 OrderSchema.pre('save', async function () {

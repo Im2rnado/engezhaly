@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const authVerified = require('../middleware/authVerified');
 const auth = require('../middleware/auth');
-const { updateProfile, getProfile, getPublicProfile, getReviewStats, getReviews, getTopFreelancers, getMyOrders, getOrderById, submitOrderWork, raiseDispute, approveOrder, denyOrder, submitMilestoneWork, getActiveJobWithClientForChat } = require('../controllers/freelancerController');
+const { updateProfile, getProfile, getPublicProfile, getReviewStats, getReviews, getTopFreelancers, getMyOrders, getOrderById, submitOrderWork, submitOrderMilestoneWork, raiseDispute, approveOrder, denyOrder, submitMilestoneWork, getActiveJobWithClientForChat } = require('../controllers/freelancerController');
 
 // @route   PUT api/freelancer/profile
 // @desc    Update freelancer profile (onboarding steps) - auth only, no email verification required
@@ -48,6 +48,7 @@ router.get('/chat-active-job/:clientId', authVerified, getActiveJobWithClientFor
 // @desc    Submit work for a freelancer project order
 // @access  Private (Freelancer)
 router.post('/orders/:id/submit-work', authVerified, submitOrderWork);
+router.post('/orders/:id/milestones/:milestoneIdx/submit-work', authVerified, submitOrderMilestoneWork);
 router.post('/orders/:id/dispute', authVerified, raiseDispute);
 router.patch('/orders/:id/approve', authVerified, approveOrder);
 router.patch('/orders/:id/deny', authVerified, denyOrder);

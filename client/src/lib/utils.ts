@@ -74,3 +74,53 @@ export function getPostedJobDeliveryDeadlineIso(job: any): string | null {
     d.setDate(d.getDate() + Number(days));
     return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
+
+/** Minimum YYYY-MM-DD for milestone at `index` (on or after today and on or after previous milestone). */
+export function minDateYYYYMMDDForMilestone(
+    index: number,
+    milestones: Array<{ dueDate?: string }>,
+    todayOverride?: string
+): string {
+    const today = todayOverride || new Date().toISOString().split('T')[0];
+    if (index <= 0) return today;
+    const prev = milestones[index - 1]?.dueDate?.trim();
+    if (!prev) return today;
+    return prev >= today ? prev : today;
+}
+
+/** Returns error message if milestone due dates are not in non-decreasing order. */
+export function milestoneDatesOrderError(milestones: Array<{ dueDate?: string }>): string | null {
+    let last = '';
+    for (const m of milestones) {
+        const d = m.dueDate?.trim();
+        if (!d) continue;
+        if (last && d < last) return 'Each milestone due date must be on or after the previous phase.';
+        last = d;
+    }
+    return null;
+}
+
+/** True when client may approve: whole-order submission or every offer milestone has visible submission. */
+export function orderHasClientVisibleDelivery(order: any): boolean {
+    if (!order) return false;
+    const ws = order.workSubmission;
+    const hasWs =
+        ws &&
+        ((typeof ws.message === 'string' && ws.message.trim()) ||
+            (Array.isArray(ws.links) && ws.links.some(Boolean)) ||
+            (Array.isArray(ws.files) && ws.files.some(Boolean)));
+    if (hasWs) return true;
+    const offer = order.offerId && typeof order.offerId === 'object' ? order.offerId : null;
+    const ms = offer?.milestones;
+    if (!Array.isArray(ms) || ms.length === 0) return false;
+    const subs = order.offerMilestoneSubmissions || [];
+    return ms.every((_: unknown, i: number) => {
+        const s = subs.find((x: { milestoneIndex?: number }) => Number(x.milestoneIndex) === i);
+        return (
+            s &&
+            ((typeof s.message === 'string' && s.message.trim()) ||
+                (Array.isArray(s.links) && s.links.some(Boolean)) ||
+                (Array.isArray(s.files) && s.files.some(Boolean)))
+        );
+    });
+}

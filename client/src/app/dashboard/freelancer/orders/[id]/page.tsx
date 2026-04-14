@@ -30,6 +30,11 @@ export default function FreelancerOrderDetailPage() {
     const [disputeReason, setDisputeReason] = useState('');
     const [disputeSubmitting, setDisputeSubmitting] = useState(false);
 
+    const [milestoneSubmitIndex, setMilestoneSubmitIndex] = useState<number | null>(null);
+    const [milestoneWork, setMilestoneWork] = useState({ message: '', links: '', files: [] as File[] });
+    const [milestoneSubmitting, setMilestoneSubmitting] = useState(false);
+    const [milestoneUploadProgress, setMilestoneUploadProgress] = useState<number | null>(null);
+
     useEffect(() => {
         const token = localStorage.getItem('token');
         if (!token) {
@@ -105,6 +110,46 @@ export default function FreelancerOrderDetailPage() {
         }
     };
 
+    const getMilestoneSubmission = (idx: number) => {
+        const subs = order?.offerMilestoneSubmissions || [];
+        return subs.find((s: { milestoneIndex?: number }) => Number(s.milestoneIndex) === idx);
+    };
+
+    const handleSubmitMilestoneWork = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!order || milestoneSubmitIndex == null) return;
+        setMilestoneSubmitting(true);
+        setMilestoneUploadProgress(null);
+        try {
+            const fileUrls: string[] = [];
+            const files = milestoneWork.files;
+            if (files.length > 0) {
+                for (let i = 0; i < files.length; i++) {
+                    const url = await api.upload.file(files[i], {
+                        onProgress: (p) => setMilestoneUploadProgress(Math.round(((i + p / 100) / files.length) * 100))
+                    });
+                    fileUrls.push(url);
+                }
+            }
+            setMilestoneUploadProgress(100);
+            const links = milestoneWork.links.split(/[\n, ]+/).map((l) => l.trim()).filter(Boolean);
+            await api.freelancer.submitOrderMilestoneWork(order._id, milestoneSubmitIndex, {
+                message: milestoneWork.message,
+                links,
+                files: fileUrls
+            });
+            showModal({ title: 'Success', message: 'Phase work submitted!', type: 'success' });
+            setMilestoneSubmitIndex(null);
+            setMilestoneWork({ message: '', links: '', files: [] });
+            await refreshOrder();
+        } catch (err: any) {
+            showModal({ title: 'Error', message: err.message || 'Failed to submit', type: 'error' });
+        } finally {
+            setMilestoneSubmitting(false);
+            setMilestoneUploadProgress(null);
+        }
+    };
+
     const handleSubmitWork = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!order) return;
@@ -158,6 +203,7 @@ export default function FreelancerOrderDetailPage() {
     const showOrderTimer = orderStatusShowsDeliveryCountdown(order.status) && orderDeadlineIso;
     const offer = order.offerId && typeof order.offerId === 'object' ? order.offerId : null;
     const isCustomOffer = !!offer;
+    const offerMilestones = Array.isArray(offer?.milestones) && offer.milestones.length > 0 ? offer.milestones : null;
 
     return (
         <div className="min-h-screen bg-gray-50 flex font-sans text-gray-900">
@@ -251,21 +297,49 @@ export default function FreelancerOrderDetailPage() {
                             </div>
                         )}
 
-                        {isCustomOffer && Array.isArray(offer?.milestones) && offer.milestones.length > 0 && (
+                        {isCustomOffer && offerMilestones && (
                             <div>
                                 <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Milestones</h2>
-                                <ul className="space-y-2 text-sm">
-                                    {offer.milestones.map((m: any, i: number) => (
-                                        <li key={i} className="rounded-xl border border-gray-100 bg-gray-50 p-3 break-words min-w-0">
-                                            <span className="font-bold text-gray-900">{m.name}</span>
-                                            {m.price != null && m.price > 0 && (
-                                                <span className="text-[#09BF44] font-bold ml-2">{m.price} EGP</span>
-                                            )}
-                                            {m.dueDate && (
-                                                <span className="text-gray-500 ml-2">· Due {formatDateDDMMYYYY(m.dueDate)}</span>
-                                            )}
-                                        </li>
-                                    ))}
+                                <ul className="space-y-3 text-sm">
+                                    {offerMilestones.map((m: any, i: number) => {
+                                        const sub = getMilestoneSubmission(i);
+                                        return (
+                                            <li key={i} className="rounded-xl border border-gray-100 bg-gray-50 p-3 break-words min-w-0 space-y-2">
+                                                <div className="flex flex-wrap items-start justify-between gap-2">
+                                                    <div>
+                                                        <span className="font-bold text-gray-900">{m.name}</span>
+                                                        {m.price != null && m.price > 0 && (
+                                                            <span className="text-[#09BF44] font-bold ml-2">{m.price} EGP</span>
+                                                        )}
+                                                        {m.dueDate && (
+                                                            <span className="text-gray-500 ml-2">· Due {formatDateDDMMYYYY(m.dueDate)}</span>
+                                                        )}
+                                                    </div>
+                                                    {order.status === 'active' && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setMilestoneSubmitIndex(i);
+                                                                setMilestoneWork({
+                                                                    message: sub?.message || '',
+                                                                    links: Array.isArray(sub?.links) ? sub.links.join(', ') : '',
+                                                                    files: []
+                                                                });
+                                                            }}
+                                                            className="shrink-0 px-3 py-1.5 rounded-lg bg-[#09BF44] text-white text-xs font-bold hover:bg-[#07a63a]"
+                                                        >
+                                                            {sub?.updatedAt || sub?.submittedAt ? 'Update phase' : 'Submit phase'}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                {sub?.updatedAt || sub?.submittedAt ? (
+                                                    <p className="text-xs text-gray-500">
+                                                        Last submitted {new Date(sub.updatedAt || sub.submittedAt).toLocaleString()}
+                                                    </p>
+                                                ) : null}
+                                            </li>
+                                        );
+                                    })}
                                 </ul>
                             </div>
                         )}
@@ -336,38 +410,102 @@ export default function FreelancerOrderDetailPage() {
                                 </>
                             )}
 
+                            {order.status === 'active' && !offerMilestones && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setWorkOpen(true);
+                                        setWorkSubmission({
+                                            message: order?.workSubmission?.message || '',
+                                            links: (order?.workSubmission?.links || []).join(', '),
+                                            files: []
+                                        });
+                                    }}
+                                    className="px-5 py-2 rounded-xl font-bold bg-[#09BF44] text-white hover:bg-[#07a63a]"
+                                >
+                                    {order?.workSubmission?.updatedAt ? 'Update submission' : 'Submit work'}
+                                </button>
+                            )}
+
                             {order.status === 'active' && (
-                                <>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setWorkOpen(true);
-                                            setWorkSubmission({
-                                                message: order?.workSubmission?.message || '',
-                                                links: (order?.workSubmission?.links || []).join(', '),
-                                                files: []
-                                            });
-                                        }}
-                                        className="px-5 py-2 rounded-xl font-bold bg-[#09BF44] text-white hover:bg-[#07a63a]"
-                                    >
-                                        {order?.workSubmission?.updatedAt ? 'Update submission' : 'Submit work'}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setDisputeReason('');
-                                            setDisputeOpen(true);
-                                        }}
-                                        className="text-amber-700 px-4 py-2 rounded-xl font-bold hover:bg-amber-50 flex items-center gap-2"
-                                    >
-                                        <Flag className="w-4 h-4" /> Dispute
-                                    </button>
-                                </>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setDisputeReason('');
+                                        setDisputeOpen(true);
+                                    }}
+                                    className="text-amber-700 px-4 py-2 rounded-xl font-bold hover:bg-amber-50 flex items-center gap-2"
+                                >
+                                    <Flag className="w-4 h-4" /> Dispute
+                                </button>
                             )}
                         </div>
                     </div>
                 </div>
             </div>
+
+            {milestoneSubmitIndex != null && (
+                <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
+                        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                            <h3 className="text-lg font-bold text-gray-900">
+                                Submit phase: {offerMilestones?.[milestoneSubmitIndex]?.name || `Phase ${milestoneSubmitIndex + 1}`}
+                            </h3>
+                            <button
+                                type="button"
+                                onClick={() => setMilestoneSubmitIndex(null)}
+                                className="text-gray-400 hover:text-gray-600"
+                                disabled={milestoneSubmitting}
+                            >
+                                ×
+                            </button>
+                        </div>
+                        <form onSubmit={handleSubmitMilestoneWork} className="space-y-4 p-6">
+                            <textarea
+                                value={milestoneWork.message}
+                                onChange={(e) => setMilestoneWork((p) => ({ ...p, message: e.target.value }))}
+                                rows={4}
+                                className="w-full border rounded-xl px-4 py-3 text-sm text-gray-900"
+                                placeholder="Message / notes"
+                            />
+                            <textarea
+                                value={milestoneWork.links}
+                                onChange={(e) => setMilestoneWork((p) => ({ ...p, links: e.target.value }))}
+                                rows={2}
+                                className="w-full border rounded-xl px-4 py-3 text-sm text-gray-900"
+                                placeholder="Links (comma or new line)"
+                            />
+                            <input
+                                type="file"
+                                multiple
+                                onChange={(e) => setMilestoneWork((p) => ({ ...p, files: Array.from(e.target.files || []) }))}
+                                className="w-full text-sm"
+                            />
+                            {milestoneUploadProgress !== null && milestoneWork.files.length > 0 && (
+                                <p className="text-xs text-[#09BF44] font-bold">Uploading… {milestoneUploadProgress}%</p>
+                            )}
+                            <div className="flex justify-end gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setMilestoneSubmitIndex(null)}
+                                    className="px-4 py-2 rounded-xl bg-gray-100 font-bold"
+                                    disabled={milestoneSubmitting}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={milestoneSubmitting}
+                                    className="px-5 py-2 rounded-xl bg-[#09BF44] text-white font-bold flex items-center gap-2"
+                                >
+                                    {milestoneSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                                    Submit phase
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
 
             {workOpen && (
                 <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">

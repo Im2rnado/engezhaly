@@ -8,7 +8,14 @@ import { Loader2, MessageSquare, PanelLeft, Flag, ArrowLeft, CheckCircle, Clock,
 import ClientSidebar from '@/components/ClientSidebar';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 import CountdownTimer from '@/components/CountdownTimer';
-import { formatStatus, formatDateDDMMYYYY, formatRevisionsLabel, getOrderDeliveryDeadlineIso, orderStatusShowsDeliveryCountdown } from '@/lib/utils';
+import {
+    formatStatus,
+    formatDateDDMMYYYY,
+    formatRevisionsLabel,
+    getOrderDeliveryDeadlineIso,
+    orderHasClientVisibleDelivery,
+    orderStatusShowsDeliveryCountdown
+} from '@/lib/utils';
 import { payWithWalletIfPossible } from '@/lib/payWithWalletIfPossible';
 import PaymentChoiceModal from '@/components/PaymentChoiceModal';
 import PaymobCheckoutModal from '@/components/PaymobCheckoutModal';
@@ -108,6 +115,14 @@ export default function ClientOrderDetailPage() {
     const showOrderTimer = orderStatusShowsDeliveryCountdown(order.status) && orderDeadlineIso;
     const offer = order.offerId && typeof order.offerId === 'object' ? order.offerId : null;
     const isCustomOffer = !!offer;
+    const offerMilestones = Array.isArray(offer?.milestones) && offer.milestones.length > 0 ? offer.milestones : null;
+
+    const milestoneSubmission = (idx: number) => {
+        const subs = order.offerMilestoneSubmissions || [];
+        return subs.find((s: { milestoneIndex?: number }) => Number(s.milestoneIndex) === idx);
+    };
+
+    const canApproveDelivery = order.status === 'active' && orderHasClientVisibleDelivery(order);
 
     return (
         <div className="min-h-screen bg-gray-50 flex font-sans text-gray-900">
@@ -209,21 +224,63 @@ export default function ClientOrderDetailPage() {
                             </div>
                         )}
 
-                        {isCustomOffer && Array.isArray(offer?.milestones) && offer.milestones.length > 0 && (
+                        {isCustomOffer && offerMilestones && (
                             <div>
                                 <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Milestones</h2>
-                                <ul className="space-y-2 text-sm">
-                                    {offer.milestones.map((m: any, i: number) => (
-                                        <li key={i} className="rounded-xl border border-gray-100 bg-gray-50 p-3 break-words min-w-0">
-                                            <span className="font-bold text-gray-900">{m.name}</span>
-                                            {m.price != null && m.price > 0 && (
-                                                <span className="text-[#09BF44] font-bold ml-2">{m.price} EGP</span>
-                                            )}
-                                            {m.dueDate && (
-                                                <span className="text-gray-500 ml-2">· Due {formatDateDDMMYYYY(m.dueDate)}</span>
-                                            )}
-                                        </li>
-                                    ))}
+                                <ul className="space-y-3 text-sm">
+                                    {offerMilestones.map((m: any, i: number) => {
+                                        const sub = milestoneSubmission(i);
+                                        const hasSub =
+                                            sub &&
+                                            ((typeof sub.message === 'string' && sub.message.trim()) ||
+                                                (Array.isArray(sub.links) && sub.links.some(Boolean)) ||
+                                                (Array.isArray(sub.files) && sub.files.some(Boolean)));
+                                        return (
+                                            <li key={i} className="rounded-xl border border-gray-100 bg-gray-50 p-3 break-words min-w-0 space-y-2">
+                                                <div>
+                                                    <span className="font-bold text-gray-900">{m.name}</span>
+                                                    {m.price != null && m.price > 0 && (
+                                                        <span className="text-[#09BF44] font-bold ml-2">{m.price} EGP</span>
+                                                    )}
+                                                    {m.dueDate && (
+                                                        <span className="text-gray-500 ml-2">· Due {formatDateDDMMYYYY(m.dueDate)}</span>
+                                                    )}
+                                                </div>
+                                                {hasSub ? (
+                                                    <div className="rounded-lg bg-white border border-gray-100 p-3 text-sm">
+                                                        <p className="text-xs font-bold text-gray-400 uppercase mb-1">Submitted for this phase</p>
+                                                        {sub.message ? (
+                                                            <p className="text-gray-800 whitespace-pre-wrap break-words min-w-0">{sub.message}</p>
+                                                        ) : null}
+                                                        {Array.isArray(sub.links) && sub.links.length > 0 && (
+                                                            <ul className="mt-2 list-disc list-inside break-all">
+                                                                {sub.links.map((link: string, li: number) => (
+                                                                    <li key={li}>
+                                                                        <a href={link} target="_blank" rel="noopener noreferrer" className="text-[#09BF44] font-bold">
+                                                                            {link}
+                                                                        </a>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        )}
+                                                        {Array.isArray(sub.files) && sub.files.length > 0 && (
+                                                            <ul className="mt-2 text-xs text-gray-600">
+                                                                {sub.files.map((f: string, fi: number) => (
+                                                                    <li key={fi}>
+                                                                        <a href={f} target="_blank" rel="noopener noreferrer" className="text-[#09BF44] font-bold break-all">
+                                                                            File {fi + 1}
+                                                                        </a>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-xs text-gray-500">No submission for this phase yet.</p>
+                                                )}
+                                            </li>
+                                        );
+                                    })}
                                 </ul>
                             </div>
                         )}
@@ -322,9 +379,7 @@ export default function ClientOrderDetailPage() {
                                 </>
                             )}
 
-                            {order.status === 'active' &&
-                                order.workSubmission &&
-                                (order.workSubmission.message || (order.workSubmission.links?.length ?? 0) > 0 || (order.workSubmission.files?.length ?? 0) > 0) && (
+                            {canApproveDelivery && (
                                     <button
                                         type="button"
                                         disabled={actionLoading}
@@ -359,7 +414,7 @@ export default function ClientOrderDetailPage() {
                                         {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
                                         Approve & release payment
                                     </button>
-                                )}
+                            )}
 
                             {order.status === 'active' && (
                                 <button
