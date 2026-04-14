@@ -4,11 +4,11 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useModal } from '@/context/ModalContext';
-import { Loader2, MessageSquare, PanelLeft, Flag, ArrowLeft, CheckCircle, Clock } from 'lucide-react';
+import { Loader2, MessageSquare, PanelLeft, Flag, ArrowLeft, CheckCircle, Clock, Star } from 'lucide-react';
 import ClientSidebar from '@/components/ClientSidebar';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 import CountdownTimer from '@/components/CountdownTimer';
-import { formatStatus, formatDateDDMMYYYY, formatRevisionsLabel } from '@/lib/utils';
+import { formatStatus, formatDateDDMMYYYY, formatRevisionsLabel, getOrderDeliveryDeadlineIso, orderStatusShowsDeliveryCountdown } from '@/lib/utils';
 import { payWithWalletIfPossible } from '@/lib/payWithWalletIfPossible';
 import PaymentChoiceModal from '@/components/PaymentChoiceModal';
 import PaymobCheckoutModal from '@/components/PaymobCheckoutModal';
@@ -29,6 +29,10 @@ export default function ClientOrderDetailPage() {
     const [actionLoading, setActionLoading] = useState(false);
     const [paymentChoiceConfig, setPaymentChoiceConfig] = useState<{ type: string; amountCents: number; callbackSuccessUrl?: string; orderId?: string } | null>(null);
     const [checkoutIframeUrl, setCheckoutIframeUrl] = useState<string | null>(null);
+    const [reviewOpen, setReviewOpen] = useState(false);
+    const [reviewRating, setReviewRating] = useState(5);
+    const [reviewText, setReviewText] = useState('');
+    const [reviewSubmitting, setReviewSubmitting] = useState(false);
 
     const refreshOrder = async () => {
         try {
@@ -100,6 +104,10 @@ export default function ClientOrderDetailPage() {
 
     const title = order.projectId?.title || (order.offerId ? 'Custom offer' : 'Order');
     const revLabel = formatRevisionsLabel(order.revisionsUnlimited, order.revisions, 'short');
+    const orderDeadlineIso = getOrderDeliveryDeadlineIso(order);
+    const showOrderTimer = orderStatusShowsDeliveryCountdown(order.status) && orderDeadlineIso;
+    const offer = order.offerId && typeof order.offerId === 'object' ? order.offerId : null;
+    const isCustomOffer = !!offer;
 
     return (
         <div className="min-h-screen bg-gray-50 flex font-sans text-gray-900">
@@ -123,6 +131,12 @@ export default function ClientOrderDetailPage() {
                             <ArrowLeft className="w-4 h-4" /> Back to orders
                         </button>
                     </div>
+
+                    {showOrderTimer && orderDeadlineIso && (
+                        <div className="mb-6">
+                            <CountdownTimer deadline={orderDeadlineIso} variant="detail" />
+                        </div>
+                    )}
 
                     <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-8 space-y-6">
                         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -157,8 +171,6 @@ export default function ClientOrderDetailPage() {
                             </div>
                         </div>
 
-                        {order.status === 'active' && order.deliveryDate && <CountdownTimer deadline={order.deliveryDate} variant="inline" />}
-
                         {order.disputeResolvedAt && order.disputeResolution && (
                             <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-900">
                                 <p className="font-black text-green-800 mb-1">Dispute solved</p>
@@ -180,18 +192,48 @@ export default function ClientOrderDetailPage() {
                                 <dt className="font-bold text-gray-500">Ordered</dt>
                                 <dd className="text-gray-900 font-medium">{formatDateDDMMYYYY(order.createdAt)}</dd>
                             </div>
-                            {order.deliveryDate && (
+                            {orderDeadlineIso && (
                                 <div>
                                     <dt className="font-bold text-gray-500">Delivery</dt>
-                                    <dd className="text-gray-900 font-medium">{formatDateDDMMYYYY(order.deliveryDate)}</dd>
+                                    <dd className="text-gray-900 font-medium">{formatDateDDMMYYYY(orderDeadlineIso)}</dd>
                                 </div>
                             )}
                         </dl>
 
-                        {order.description && (
+                        {isCustomOffer && offer?.whatsIncluded && (
+                            <div>
+                                <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">What&apos;s included</h2>
+                                <p className="text-gray-800 whitespace-pre-wrap text-sm leading-relaxed break-words overflow-wrap-anywhere min-w-0">
+                                    {offer.whatsIncluded}
+                                </p>
+                            </div>
+                        )}
+
+                        {isCustomOffer && Array.isArray(offer?.milestones) && offer.milestones.length > 0 && (
+                            <div>
+                                <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Milestones</h2>
+                                <ul className="space-y-2 text-sm">
+                                    {offer.milestones.map((m: any, i: number) => (
+                                        <li key={i} className="rounded-xl border border-gray-100 bg-gray-50 p-3 break-words min-w-0">
+                                            <span className="font-bold text-gray-900">{m.name}</span>
+                                            {m.price != null && m.price > 0 && (
+                                                <span className="text-[#09BF44] font-bold ml-2">{m.price} EGP</span>
+                                            )}
+                                            {m.dueDate && (
+                                                <span className="text-gray-500 ml-2">· Due {formatDateDDMMYYYY(m.dueDate)}</span>
+                                            )}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+
+                        {!isCustomOffer && order.description && (
                             <div>
                                 <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Your request</h2>
-                                <p className="text-gray-800 whitespace-pre-wrap text-sm leading-relaxed break-words min-w-0">{order.description}</p>
+                                <p className="text-gray-800 whitespace-pre-wrap text-sm leading-relaxed break-words overflow-wrap-anywhere min-w-0">
+                                    {order.description}
+                                </p>
                             </div>
                         )}
 
@@ -291,8 +333,21 @@ export default function ClientOrderDetailPage() {
                                             setActionLoading(true);
                                             try {
                                                 await api.client.approveDelivery(order._id);
-                                                showModal({ title: 'Order completed', message: 'Thank you! You can leave a review from your orders list.', type: 'success' });
-                                                await refreshOrder();
+                                                const o = await api.client.getOrder(id);
+                                                setOrder(o);
+                                                if (o.rating == null) {
+                                                    setReviewRating(5);
+                                                    setReviewText('');
+                                                    setReviewOpen(true);
+                                                }
+                                                showModal({
+                                                    title: 'Order completed',
+                                                    message:
+                                                        o.rating == null
+                                                            ? 'Thank you! Please leave a quick review below.'
+                                                            : 'Thank you! Your order is complete.',
+                                                    type: 'success'
+                                                });
                                             } catch (e: any) {
                                                 showModal({ title: 'Error', message: e.message || 'Failed', type: 'error' });
                                             } finally {
@@ -316,6 +371,20 @@ export default function ClientOrderDetailPage() {
                                     className="text-amber-700 px-4 py-2 rounded-xl font-bold hover:bg-amber-50 flex items-center gap-2"
                                 >
                                     <Flag className="w-4 h-4" /> Dispute
+                                </button>
+                            )}
+
+                            {order.status === 'completed' && order.rating == null && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setReviewRating(5);
+                                        setReviewText('');
+                                        setReviewOpen(true);
+                                    }}
+                                    className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2"
+                                >
+                                    <Star className="w-4 h-4" /> Leave review
                                 </button>
                             )}
                         </div>
@@ -365,6 +434,58 @@ export default function ClientOrderDetailPage() {
                                 className="px-4 py-2 rounded-xl bg-amber-600 text-white font-bold flex items-center gap-2 disabled:opacity-50"
                             >
                                 {disputeSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                                Submit
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {reviewOpen && order && (
+                <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4" onClick={() => !reviewSubmitting && setReviewOpen(false)}>
+                    <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
+                        <h3 className="text-lg font-bold mb-2 text-gray-900">Leave a review</h3>
+                        <p className="text-sm text-gray-600 mb-4">
+                            How was your experience with {order.sellerId?.firstName} {order.sellerId?.lastName}?
+                        </p>
+                        <div className="flex gap-1 mb-4">
+                            {[1, 2, 3, 4, 5].map((n) => (
+                                <button key={n} type="button" onClick={() => setReviewRating(n)} className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                                    <Star className={`w-8 h-8 ${n <= reviewRating ? 'fill-amber-400 text-amber-500' : 'text-gray-300'}`} />
+                                </button>
+                            ))}
+                        </div>
+                        <textarea
+                            value={reviewText}
+                            onChange={(e) => setReviewText(e.target.value)}
+                            placeholder="Write your review (optional)..."
+                            rows={4}
+                            disabled={reviewSubmitting}
+                            className="w-full p-3 rounded-xl border-2 border-gray-200 focus:border-[#09BF44] outline-none resize-none mb-4"
+                        />
+                        <div className="flex gap-2 justify-end">
+                            <button type="button" onClick={() => setReviewOpen(false)} className="px-4 py-2 rounded-xl font-bold text-gray-600 hover:bg-gray-100" disabled={reviewSubmitting}>
+                                Later
+                            </button>
+                            <button
+                                type="button"
+                                disabled={reviewSubmitting}
+                                onClick={async () => {
+                                    setReviewSubmitting(true);
+                                    try {
+                                        await api.client.submitReview(order._id, reviewRating, reviewText);
+                                        showModal({ title: 'Thank you!', message: 'Your review has been submitted.', type: 'success' });
+                                        setReviewOpen(false);
+                                        await refreshOrder();
+                                    } catch (e: any) {
+                                        showModal({ title: 'Error', message: e.message || 'Failed to submit review', type: 'error' });
+                                    } finally {
+                                        setReviewSubmitting(false);
+                                    }
+                                }}
+                                className="px-4 py-2 bg-[#09BF44] text-white rounded-xl font-bold disabled:opacity-70 flex items-center gap-2"
+                            >
+                                {reviewSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
                                 Submit
                             </button>
                         </div>

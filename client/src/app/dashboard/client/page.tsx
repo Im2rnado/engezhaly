@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { Briefcase, Clock, PlusCircle, ShoppingBag, CreditCard, Edit, Loader2, X, Eye, PanelLeft, Flag, Star, CheckCircle } from 'lucide-react';
 import { api } from '@/lib/api';
-import { formatStatus, formatDateDDMMYYYY } from '@/lib/utils';
+import { formatStatus, formatDateDDMMYYYY, getOrderDeliveryDeadlineIso, orderStatusShowsDeliveryCountdown } from '@/lib/utils';
 import { useModal } from '@/context/ModalContext';
 import ClientSidebar from '@/components/ClientSidebar';
 import ClientProfileEditModal from '@/components/ClientProfileEditModal';
@@ -303,7 +303,9 @@ function ClientDashboardContent() {
                                             <div key={job._id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
                                                 <div className="flex-1">
                                                     <h4 className="font-bold text-gray-900">{job.title}</h4>
-                                                    <p className="text-sm text-gray-500 mt-1">{job.description.substring(0, 100)}...</p>
+                                                    <p className="text-sm text-gray-500 mt-1 break-words overflow-wrap-anywhere min-w-0 line-clamp-3">
+                                                        {job.description ? `${job.description.substring(0, 100)}...` : ''}
+                                                    </p>
                                                     <div className="flex items-center gap-4 mt-2">
                                                         <span className="text-xs font-bold text-gray-500">
                                                             Budget: {job.budgetRange.min} - {job.budgetRange.max} EGP
@@ -381,15 +383,17 @@ function ClientDashboardContent() {
                     const renderJobCard = (job: any) => (
                         <div key={job._id} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
                             <div className="flex justify-between items-start gap-4 mb-4">
-                                <div className="flex-1">
+                                <div className="flex-1 min-w-0">
                                     <button
                                         type="button"
                                         onClick={() => router.push(`/dashboard/client/jobs/${job._id}`)}
-                                        className="text-left text-xl font-bold text-gray-900 hover:text-[#09BF44] transition-colors"
+                                        className="text-left text-xl font-bold text-gray-900 hover:text-[#09BF44] transition-colors break-words"
                                     >
                                         {job.title}
                                     </button>
-                                    <p className="text-gray-600 mt-2">{job.description.substring(0, 120)}...</p>
+                                    <p className="text-gray-600 mt-2 break-words overflow-wrap-anywhere min-w-0 line-clamp-4">
+                                        {job.description ? `${job.description.substring(0, 120)}...` : ''}
+                                    </p>
                                 </div>
                                 <div className="bg-green-50 text-[#09BF44] font-bold px-4 py-2 rounded-xl shrink-0">
                                     {job.budgetRange.min} - {job.budgetRange.max} EGP
@@ -519,17 +523,20 @@ function ClientDashboardContent() {
                                     ? 'bg-blue-100 text-blue-700'
                                     : 'bg-red-100 text-red-700';
 
-                    const ClientOrderCard = ({ order }: { order: any }) => (
-                        <div className="w-full bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:border-[#09BF44]/40 hover:shadow-md transition-all">
+                    const ClientOrderCard = ({ order }: { order: any }) => {
+                        const odIso = getOrderDeliveryDeadlineIso(order);
+                        const showOdTimer = orderStatusShowsDeliveryCountdown(order.status) && odIso;
+                        return (
+                        <div className="w-full bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:border-[#09BF44]/40 hover:shadow-md transition-all min-w-0 max-w-full">
                             <div className="flex items-start justify-between gap-3 mb-2">
-                                <div className="min-w-0">
+                                <div className="min-w-0 flex-1">
                                     <h4 className="text-lg font-bold text-gray-900 truncate">{order.projectId?.title || (order.offerId ? 'Custom offer' : 'Order')}</h4>
                                     <p className="text-sm text-gray-500 mt-0.5">
                                         {order.sellerId?.firstName} {order.sellerId?.lastName}
                                     </p>
-                                    {order.status === 'active' && order.deliveryDate && (
-                                        <div className="mt-2">
-                                            <CountdownTimer deadline={order.deliveryDate} variant="inline" />
+                                    {showOdTimer && odIso && (
+                                        <div className="mt-2 min-w-0 max-w-full">
+                                            <CountdownTimer deadline={odIso} variant="inline" />
                                         </div>
                                     )}
                                     {order.disputeResolvedAt && order.disputeResolution && (
@@ -550,10 +557,10 @@ function ClientDashboardContent() {
                                 <span>{order.packageType}</span>
                                 <span>·</span>
                                 <span>Ordered {formatDateDDMMYYYY(order.createdAt)}</span>
-                                {order.deliveryDate && (
+                                {odIso && (
                                     <>
                                         <span>·</span>
-                                        <span>Delivery {formatDateDDMMYYYY(order.deliveryDate)}</span>
+                                        <span>Delivery {formatDateDDMMYYYY(odIso)}</span>
                                     </>
                                 )}
                             </div>
@@ -647,8 +654,21 @@ function ClientDashboardContent() {
                                                     setActionLoadingOrderId(order._id);
                                                     try {
                                                         await api.client.approveDelivery(order._id);
-                                                        showModal({ title: 'Order Completed', message: 'Thank you! You can now leave a review.', type: 'success' });
-                                                        fetchOrders();
+                                                        const updated = await api.client.getOrder(order._id);
+                                                        await fetchOrders();
+                                                        if (updated.rating == null) {
+                                                            setReviewModal({ type: 'order', order: updated });
+                                                            setReviewRating(5);
+                                                            setReviewText('');
+                                                        }
+                                                        showModal({
+                                                            title: 'Order Completed',
+                                                            message:
+                                                                updated.rating == null
+                                                                    ? 'Thank you! Please leave a review when you are ready.'
+                                                                    : 'Thank you! Your order is complete.',
+                                                            type: 'success'
+                                                        });
                                                     } catch (e: any) {
                                                         showModal({ title: 'Error', message: e.message || 'Failed to approve delivery', type: 'error' });
                                                     } finally {
@@ -689,7 +709,8 @@ function ClientDashboardContent() {
                                 )}
                             </div>
                         </div>
-                    );
+                        );
+                    };
 
                     if (orders.length === 0) {
                         return (

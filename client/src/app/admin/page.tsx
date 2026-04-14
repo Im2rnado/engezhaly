@@ -13,6 +13,7 @@ import EditModal from '@/components/EditModal';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 import CountdownTimer from '@/components/CountdownTimer';
 import AnnouncementContent from '@/components/AnnouncementContent';
+import ClientJobViewForAdmin from '@/components/ClientJobViewForAdmin';
 
 const SOCKET_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.engezhaly.com/api').replace(/\/api$/, '');
 const API_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/api$/, '');
@@ -541,6 +542,8 @@ export default function AdminDashboard() {
     const [users, setUsers] = useState<any[]>([]);
     const [projects, setProjects] = useState<any[]>([]);
     const [jobs, setJobs] = useState<any[]>([]);
+    const [adminJobClientView, setAdminJobClientView] = useState<any | null>(null);
+    const [adminJobClientViewLoading, setAdminJobClientViewLoading] = useState(false);
     const [orders, setOrders] = useState<any[]>([]);
     const [transactions, setTransactions] = useState<any[]>([]);
     const [topFreelancers, setTopFreelancers] = useState<any>(null);
@@ -630,7 +633,7 @@ export default function AdminDashboard() {
         }
     };
 
-    const fetchChats = async () => {
+    const fetchChats = useCallback(async () => {
         setChatsLoading(true);
         try {
             const data = await api.admin.getActiveChats();
@@ -640,7 +643,7 @@ export default function AdminDashboard() {
         } finally {
             setChatsLoading(false);
         }
-    };
+    }, []);
 
     const fetchChatMessages = useCallback(async (conversationId: string) => {
         try {
@@ -937,6 +940,22 @@ export default function AdminDashboard() {
     }, [activeTab]);
 
     useEffect(() => {
+        if (managementDetail?.kind !== 'job' || !managementDetail.item?._id) {
+            setAdminJobClientView(null);
+            setAdminJobClientViewLoading(false);
+            return;
+        }
+        const jobId = String(managementDetail.item._id);
+        setAdminJobClientViewLoading(true);
+        setAdminJobClientView(null);
+        api.admin
+            .getJobClientView(jobId)
+            .then((j) => setAdminJobClientView(j))
+            .catch(() => setAdminJobClientView(null))
+            .finally(() => setAdminJobClientViewLoading(false));
+    }, [managementDetail?.kind, managementDetail?.item?._id]);
+
+    useEffect(() => {
         const convId = selectedDispute?.conversationId;
         if (!convId) {
             setDisputeChatMessages([]);
@@ -1019,19 +1038,30 @@ export default function AdminDashboard() {
             createdAt: msg.createdAt || new Date().toISOString()
         });
         const onMessage = (msg: any) => {
+            void fetchChats();
             const conv = String(msg.conversationId || '');
             if (!selectedConversationIdRef.current || conv !== String(selectedConversationIdRef.current)) return;
             setChatMessages((prev) => {
                 if (prev.some((m) => String(m._id) === String(msg._id))) return prev;
                 return [...prev, formatIncoming(msg)];
             });
-            fetchChats();
         };
         socket.on('message', onMessage);
         return () => {
             socket.off('message', onMessage);
         };
-    }, [socket]);
+    }, [socket, fetchChats]);
+
+    useEffect(() => {
+        if (!socket) return;
+        const onAdminChatsHint = () => {
+            void fetchChats();
+        };
+        socket.on('admin_chats_refresh_hint', onAdminChatsHint);
+        return () => {
+            socket.off('admin_chats_refresh_hint', onAdminChatsHint);
+        };
+    }, [socket, fetchChats]);
 
     useEffect(() => {
         if (!socket) return;
@@ -1371,7 +1401,7 @@ export default function AdminDashboard() {
                     <button onClick={() => setActiveTab('chats')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'chats' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <MessageSquare className="w-5 h-5" /> Chats
                         {activeChats.some((c: any) => c.adminHasUnread) ? (
-                            <span className="ml-auto bg-[#09BF44] text-white text-xs px-2 py-0.5 rounded-full font-black">New</span>
+                            <span className="ml-auto bg-red-600 text-white text-xs px-2 py-0.5 rounded-full font-black">New</span>
                         ) : activeChats.length > 0 ? (
                             <span className="ml-auto bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{activeChats.length}</span>
                         ) : null}
@@ -1775,10 +1805,6 @@ export default function AdminDashboard() {
                                 );
                                 return (
                                     <div className="space-y-10">
-                                        <div>
-                                            <h2 className="text-2xl font-black text-gray-900">Posted jobs</h2>
-                                            <p className="text-sm text-gray-500 mt-1">Same data clients see: proposals, accept/reject, and delivery timers.</p>
-                                        </div>
                                         {jobsLoading && (
                                             <div className="flex justify-center p-12">
                                                 <Loader2 className="w-8 h-8 animate-spin text-[#09BF44]" />
@@ -1825,128 +1851,40 @@ export default function AdminDashboard() {
                                 </button>
                                 {(() => {
                                     const job = managementDetail.item;
-                                    const accepted = (job.proposals || []).find((p: any) => p.status === 'accepted');
+                                    const viewJob = adminJobClientView || job;
+                                    const accepted = (viewJob.proposals || []).find((p: any) => p.status === 'accepted');
                                     let inProgressDeadline: Date | null = null;
-                                    if (job.status === 'in_progress' && accepted?.deliveryDays != null) {
-                                        const created = new Date(job.createdAt);
-                                        const d = new Date(created);
+                                    if (viewJob.status === 'in_progress' && accepted?.deliveryDays != null && viewJob.createdAt) {
+                                        const d = new Date(viewJob.createdAt);
                                         d.setDate(d.getDate() + Number(accepted.deliveryDays));
                                         inProgressDeadline = d;
                                     }
                                     return (
                                         <>
-                                            {inProgressDeadline && (
-                                                <div>
-                                                    <CountdownTimer deadline={inProgressDeadline.toISOString()} variant="detail" />
-                                                </div>
-                                            )}
                                             <div className="flex flex-wrap items-start justify-between gap-4">
-                                                <div>
-                                                    <h2 className="text-2xl font-black text-gray-900">{job.title}</h2>
-                                                    <p className="text-gray-500 text-sm mt-1">Client: {job.clientId?.firstName} {job.clientId?.lastName} · {job.clientId?.email}</p>
-                                                </div>
+                                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">
+                                                    Client view (read-only){' '}
+                                                    <span className="text-gray-500 font-medium normal-case">— Edit/delete job below</span>
+                                                </p>
                                                 <div className="flex gap-2">
-                                                    <button type="button" onClick={() => handleEditJob(job)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl"><Edit className="w-5 h-5" /></button>
-                                                    <button type="button" onClick={() => handleDeleteJob(job._id)} className="p-2 text-red-600 hover:bg-red-50 rounded-xl"><Trash2 className="w-5 h-5" /></button>
+                                                    <button type="button" onClick={() => handleEditJob(job)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl">
+                                                        <Edit className="w-5 h-5" />
+                                                    </button>
+                                                    <button type="button" onClick={() => handleDeleteJob(job._id)} className="p-2 text-red-600 hover:bg-red-50 rounded-xl">
+                                                        <Trash2 className="w-5 h-5" />
+                                                    </button>
                                                 </div>
                                             </div>
-                                            <p className="text-gray-700 whitespace-pre-wrap break-words min-w-0 max-w-full">{job.description}</p>
-                                            <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                                                <div className="bg-gray-50 rounded-xl p-3"><span className="text-gray-400 font-bold text-xs uppercase">Status</span><p className="font-bold">{job.status}</p></div>
-                                                <div className="bg-gray-50 rounded-xl p-3"><span className="text-gray-400 font-bold text-xs uppercase">Posted</span><p className="font-bold">{formatDateDDMMYYYY(job.createdAt)}</p></div>
-                                                <div className="bg-gray-50 rounded-xl p-3"><span className="text-gray-400 font-bold text-xs uppercase">Deadline</span><p className="font-bold">{job.deadline || '—'}</p></div>
-                                                <div className="bg-gray-50 rounded-xl p-3"><span className="text-gray-400 font-bold text-xs uppercase">Budget</span><p className="font-bold">{job.budgetRange?.min} – {job.budgetRange?.max} EGP</p></div>
-                                            </div>
-                                            {job.milestones?.length > 0 && (
-                                                <div>
-                                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Job milestones</h4>
-                                                    <ul className="space-y-2">
-                                                        {job.milestones.map((m: any, i: number) => (
-                                                            <li key={i} className="bg-gray-50 rounded-xl p-3 text-sm">{m.name} — {m.price != null ? `${m.price} EGP` : ''} {m.dueDate ? `· due ${formatDateDDMMYYYY(m.dueDate)}` : ''}</li>
-                                                        ))}
-                                                    </ul>
+                                            {adminJobClientViewLoading && (
+                                                <div className="flex justify-center py-16">
+                                                    <Loader2 className="w-10 h-10 animate-spin text-[#09BF44]" />
                                                 </div>
                                             )}
-                                            {(job.proposals || []).length > 0 && (
-                                                <div>
-                                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">All proposals</h4>
-                                                    <ul className="space-y-3">
-                                                        {(job.proposals || []).map((proposal: any, pidx: number) => (
-                                                            <li
-                                                                key={proposal._id || pidx}
-                                                                className="rounded-xl border border-gray-100 bg-gray-50/80 p-4 text-sm"
-                                                            >
-                                                                <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                                                                    <div>
-                                                                        <p className="font-black text-gray-900">
-                                                                            {proposal.freelancerId?.firstName} {proposal.freelancerId?.lastName}
-                                                                        </p>
-                                                                        {proposal.price != null && (
-                                                                            <p className="text-[#09BF44] font-bold text-xs mt-0.5">{proposal.price} EGP · {proposal.deliveryDays ?? '—'} days</p>
-                                                                        )}
-                                                                    </div>
-                                                                    <span
-                                                                        className={`text-[10px] font-black uppercase px-2 py-1 rounded-full shrink-0 ${
-                                                                            proposal.status === 'accepted'
-                                                                                ? 'bg-green-100 text-green-800'
-                                                                                : proposal.status === 'rejected'
-                                                                                  ? 'bg-red-100 text-red-800'
-                                                                                  : 'bg-amber-100 text-amber-800'
-                                                                        }`}
-                                                                    >
-                                                                        {proposal.status}
-                                                                    </span>
-                                                                </div>
-                                                                {proposal.message && (
-                                                                    <p className="text-gray-600 whitespace-pre-wrap break-words overflow-wrap-anywhere min-w-0">{proposal.message}</p>
-                                                                )}
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() =>
-                                                                        router.push(
-                                                                            `/freelancer/${String(proposal.freelancerId?._id || proposal.freelancerId)}`
-                                                                        )
-                                                                    }
-                                                                    className="text-xs font-bold text-[#09BF44] hover:underline mt-2"
-                                                                >
-                                                                    Freelancer profile
-                                                                </button>
-                                                            </li>
-                                                        ))}
-                                                    </ul>
-                                                </div>
+                                            {!adminJobClientViewLoading && adminJobClientView && (
+                                                <ClientJobViewForAdmin job={adminJobClientView} jobDeadline={inProgressDeadline} router={router} />
                                             )}
-                                            {accepted && (
-                                                <div>
-                                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Accepted proposal & submissions</h4>
-                                                    <p className="text-sm text-gray-600 mb-2">Freelancer: <button type="button" className="text-[#09BF44] font-bold hover:underline" onClick={() => router.push(`/freelancer/${String(accepted.freelancerId?._id || accepted.freelancerId)}`)}>Open profile</button></p>
-                                                    {(accepted.milestones || []).length > 0 && (
-                                                        <ul className="space-y-2 mb-3">
-                                                            {accepted.milestones.map((m: any, i: number) => (
-                                                                <li key={i} className="bg-blue-50/80 rounded-xl p-3 text-sm border border-blue-100">
-                                                                    <span className="font-bold">{m.name}</span> — {m.status}
-                                                                    {m.submissionNote && (
-                                                                        <p className="text-gray-600 mt-1 whitespace-pre-wrap break-words overflow-wrap-anywhere min-w-0">
-                                                                            {m.submissionNote}
-                                                                        </p>
-                                                                    )}
-                                                                    {(m.submissionLinks || []).length > 0 && <p className="text-xs text-blue-700 mt-1">{(m.submissionLinks || []).join(', ')}</p>}
-                                                                </li>
-                                                            ))}
-                                                        </ul>
-                                                    )}
-                                                    {accepted.workSubmission?.message && (
-                                                        <div className="bg-gray-50 rounded-xl p-4 text-sm min-w-0 max-w-full">
-                                                            <p className="font-bold text-gray-700 mb-1">Work submission</p>
-                                                            <p className="text-gray-600 whitespace-pre-wrap break-words overflow-wrap-anywhere min-w-0">
-                                                                {accepted.workSubmission.message}
-                                                            </p>
-                                                            {(accepted.workSubmission.links || []).map((l: string, i: number) => (
-                                                                <a key={i} href={l} target="_blank" rel="noreferrer" className="text-[#09BF44] text-xs block mt-1">{l}</a>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </div>
+                                            {!adminJobClientViewLoading && !adminJobClientView && (
+                                                <p className="text-center text-red-600 font-bold py-8">Could not load full job details. Try again.</p>
                                             )}
                                         </>
                                     );
@@ -1984,10 +1922,6 @@ export default function AdminDashboard() {
                                 );
                                 return (
                                     <div className="space-y-10">
-                                        <div>
-                                            <h2 className="text-2xl font-black text-gray-900">Orders</h2>
-                                            <p className="text-sm text-gray-500 mt-1">Active pipeline and finished orders (completed or refunded).</p>
-                                        </div>
                                         {ordersLoading && (
                                             <div className="flex justify-center p-12">
                                                 <Loader2 className="w-8 h-8 animate-spin text-[#09BF44]" />
@@ -3312,7 +3246,7 @@ export default function AdminDashboard() {
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     {chat.adminHasUnread && (
-                                                        <span className="bg-[#09BF44] text-white text-[10px] font-black uppercase px-2 py-1 rounded-full">
+                                                        <span className="bg-red-600 text-white text-[10px] font-black uppercase px-2 py-1 rounded-full">
                                                             Unread
                                                         </span>
                                                     )}

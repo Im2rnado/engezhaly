@@ -28,6 +28,7 @@ const {
     updateProject,
     deleteProject,
     getAllJobs,
+    getAdminJobById,
     updateJob,
     deleteJob,
     getAllOrders,
@@ -76,6 +77,7 @@ router.put('/projects/:id', [authVerified, adminAuth], updateProject);
 router.delete('/projects/:id', [authVerified, adminAuth], deleteProject);
 
 router.get('/jobs', [authVerified, adminAuth], getAllJobs);
+router.get('/jobs/:id/client-view', [authVerified, adminAuth], getAdminJobById);
 router.put('/jobs/:id', [authVerified, adminAuth], updateJob);
 router.delete('/jobs/:id', [authVerified, adminAuth], deleteJob);
 

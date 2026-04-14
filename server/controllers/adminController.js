@@ -17,6 +17,7 @@ const WithdrawalRequest = require('../models/WithdrawalRequest');
 const WithdrawalMethod = require('../models/WithdrawalMethod');
 const { ORDER_PLATFORM_FEE_EGP } = require('../config/fees');
 const { reviewStatsForSeller } = require('../utils/reviewStatsForSeller');
+const { notifyAdminChatsListRefresh } = require('../services/chatContextRefresh');
 
 const getPendingFreelancers = async (req, res) => {
     try {
@@ -358,6 +359,7 @@ const sendAdminMessage = async (req, res) => {
                 isAdmin: true,
                 isRead: false
             });
+            notifyAdminChatsListRefresh(io, conversation._id);
         }
 
         // Same as regular chat: push if online, otherwise offline email (was missing for admin messages)
@@ -722,6 +724,23 @@ const getAllJobs = async (req, res) => {
             .sort({ createdAt: -1 })
             .lean();
         res.json(jobs);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+/** Same populated shape as client job detail (proposals + freelancer profiles) for admin parity UI */
+const getAdminJobById = async (req, res) => {
+    try {
+        const job = await Job.findById(req.params.id)
+            .populate('clientId', 'firstName lastName email username')
+            .populate({
+                path: 'proposals.freelancerId',
+                select: 'firstName lastName email username freelancerProfile'
+            });
+        if (!job) return res.status(404).json({ msg: 'Job not found' });
+        res.json(job);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
@@ -1119,6 +1138,7 @@ module.exports = {
     updateProject,
     deleteProject,
     getAllJobs,
+    getAdminJobById,
     updateJob,
     deleteJob,
     getAllOrders,

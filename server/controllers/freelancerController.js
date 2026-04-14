@@ -374,7 +374,7 @@ const getMyOrders = async (req, res) => {
         const orders = await Order.find({ sellerId: freelancerId })
             .populate('projectId', 'title packages subCategory')
             .populate('buyerId', 'firstName lastName email')
-            .populate('offerId', 'revisions revisionsUnlimited deliveryDate')
+            .populate('offerId', 'revisions revisionsUnlimited deliveryDate whatsIncluded milestones')
             .sort({ createdAt: -1 });
 
         res.json(orders.map((ord) => orderWithRevisionFallback(ord)));

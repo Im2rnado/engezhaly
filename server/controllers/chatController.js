@@ -19,7 +19,7 @@ const {
 } = require('../templates/emailTemplates');
 const { isUserInConversation } = require('../services/presence');
 const { emitToUser, isUserOnline } = require('../services/notificationService');
-const { emitChatContextRefresh } = require('../services/chatContextRefresh');
+const { emitChatContextRefresh, notifyAdminChatsListRefresh } = require('../services/chatContextRefresh');
 
 // Helper for curse words - common abusive/profane terms
 const BAD_WORDS = [
@@ -408,6 +408,7 @@ const sendMessage = async (req, res) => {
                 isBlurred: isBlurred || false
             };
             io.to(roomId).emit('message', payload);
+            notifyAdminChatsListRefresh(io, conversation._id);
         }
 
         // 9. Notify recipient: if online -> push notification; if offline -> email
@@ -845,6 +846,7 @@ const createConsultationMeeting = async (req, res) => {
                 isAdmin: false,
                 isRead: false
             });
+            notifyAdminChatsListRefresh(io, conversation._id);
         }
 
         res.json({ meetingLink: link, message: meetingMsg });

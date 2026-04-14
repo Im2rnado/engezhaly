@@ -965,6 +965,19 @@ export const api = {
             if (!res.ok && isUnauthorized(res)) throw new Error('Session expired. Please log in again.');
             return res.json();
         },
+        /** Same job payload as client job detail (proposals populated) */
+        getJobClientView: async (id: string) => {
+            const res = await fetch(`${API_URL}/admin/jobs/${id}/client-view`, {
+                method: 'GET',
+                headers: getHeaders()
+            });
+            if (!res.ok && isUnauthorized(res)) throw new Error('Session expired. Please log in again.');
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.msg || 'Failed to load job');
+            }
+            return res.json();
+        },
         updateJob: async (id: string, data: any) => {
             const res = await fetch(`${API_URL}/admin/jobs/${id}`, {
                 method: 'PUT',

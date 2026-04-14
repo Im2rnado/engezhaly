@@ -156,6 +156,8 @@ export default function FreelancerOrderDetailPage() {
     const revLabel = formatRevisionsLabel(order.revisionsUnlimited, order.revisions, 'short');
     const orderDeadlineIso = getOrderDeliveryDeadlineIso(order);
     const showOrderTimer = orderStatusShowsDeliveryCountdown(order.status) && orderDeadlineIso;
+    const offer = order.offerId && typeof order.offerId === 'object' ? order.offerId : null;
+    const isCustomOffer = !!offer;
 
     return (
         <div className="min-h-screen bg-gray-50 flex font-sans text-gray-900">
@@ -240,17 +242,40 @@ export default function FreelancerOrderDetailPage() {
                             )}
                         </dl>
 
-                        {order.description && (
-                            <div>
-                                <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Description</h2>
-                                <p className="text-gray-800 whitespace-pre-wrap text-sm leading-relaxed">{order.description}</p>
+                        {isCustomOffer && offer?.whatsIncluded && (
+                            <div className="min-w-0 max-w-full">
+                                <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">What&apos;s included</h2>
+                                <p className="text-gray-800 whitespace-pre-wrap text-sm leading-relaxed break-words overflow-wrap-anywhere min-w-0">
+                                    {offer.whatsIncluded}
+                                </p>
                             </div>
                         )}
 
-                        {order.offerId && typeof order.offerId === 'object' && order.offerId.whatsIncluded && (
+                        {isCustomOffer && Array.isArray(offer?.milestones) && offer.milestones.length > 0 && (
                             <div>
-                                <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">What&apos;s included (custom offer)</h2>
-                                <p className="text-gray-800 whitespace-pre-wrap text-sm leading-relaxed">{order.offerId.whatsIncluded}</p>
+                                <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Milestones</h2>
+                                <ul className="space-y-2 text-sm">
+                                    {offer.milestones.map((m: any, i: number) => (
+                                        <li key={i} className="rounded-xl border border-gray-100 bg-gray-50 p-3 break-words min-w-0">
+                                            <span className="font-bold text-gray-900">{m.name}</span>
+                                            {m.price != null && m.price > 0 && (
+                                                <span className="text-[#09BF44] font-bold ml-2">{m.price} EGP</span>
+                                            )}
+                                            {m.dueDate && (
+                                                <span className="text-gray-500 ml-2">· Due {formatDateDDMMYYYY(m.dueDate)}</span>
+                                            )}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+
+                        {!isCustomOffer && order.description && (
+                            <div className="min-w-0 max-w-full">
+                                <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Your request</h2>
+                                <p className="text-gray-800 whitespace-pre-wrap text-sm leading-relaxed break-words overflow-wrap-anywhere min-w-0">
+                                    {order.description}
+                                </p>
                             </div>
                         )}
 

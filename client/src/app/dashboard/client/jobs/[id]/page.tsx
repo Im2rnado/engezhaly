@@ -293,7 +293,9 @@ function JobDetailPageContent() {
                     <div className="space-y-4 mb-6">
                         <div>
                             <h3 className="text-sm font-bold text-gray-500 mb-2">Description</h3>
-                            <p className="text-gray-700 leading-relaxed">{job.description}</p>
+                            <p className="text-gray-700 leading-relaxed whitespace-pre-wrap break-words overflow-wrap-anywhere min-w-0">
+                                {job.description}
+                            </p>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

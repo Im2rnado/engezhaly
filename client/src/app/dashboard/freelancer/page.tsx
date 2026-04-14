@@ -481,6 +481,16 @@ function FreelancerDashboardContent() {
                                     </>
                                 )}
                             </div>
+                            {order.offerId && typeof order.offerId === 'object' && order.offerId.whatsIncluded && (
+                                <p className="text-sm text-gray-600 mt-3 pt-3 border-t border-gray-200 line-clamp-4 break-words overflow-wrap-anywhere min-w-0 max-w-full">
+                                    {order.offerId.whatsIncluded}
+                                </p>
+                            )}
+                            {!order.offerId && order.description && (
+                                <p className="text-sm text-gray-600 mt-3 pt-3 border-t border-gray-200 line-clamp-4 break-words overflow-wrap-anywhere min-w-0 max-w-full">
+                                    {order.description}
+                                </p>
+                            )}
                             <p className="text-xs font-bold text-[#09BF44] mt-3">View details →</p>
                         </button>
                         );

@@ -9,11 +9,13 @@ module.exports = (io) => {
     io.on('connection', (socket) => {
         let userId = null;
 
+        let userRole = null;
         try {
             const token = socket.handshake.auth?.token || socket.handshake.headers?.['x-auth-token'];
             if (token) {
                 const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
                 userId = decoded.user?.id || decoded.user?._id;
+                userRole = decoded.user?.role || null;
             }
         } catch (e) {
             // No auth - allow connection but no userId
@@ -22,6 +24,10 @@ module.exports = (io) => {
         // Join user-specific room for global notifications
         if (userId) {
             socket.join(`user:${userId}`);
+        }
+        if (userId && userRole === 'admin') {
+            const { ADMIN_CHATS_ROOM } = require('../services/chatContextRefresh');
+            socket.join(ADMIN_CHATS_ROOM);
         }
 
         socket.on('join_chat', (conversationId) => {

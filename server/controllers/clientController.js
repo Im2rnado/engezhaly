@@ -338,7 +338,7 @@ const getMyOrders = async (req, res) => {
         const orders = await Order.find({ buyerId: userId })
             .populate('projectId', 'title packages')
             .populate('sellerId', 'firstName lastName')
-            .populate('offerId', 'revisions revisionsUnlimited')
+            .populate('offerId', 'revisions revisionsUnlimited deliveryDate whatsIncluded milestones')
             .sort({ createdAt: -1 });
         const ordersArr = orders.map((ord) => orderWithRevisionFallback(ord));
         const pendingPaymentIds = ordersArr.filter(o => o.status === 'pending_payment').map(o => o._id?.toString()).filter(Boolean);
@@ -452,7 +452,7 @@ const cancelPendingOrderRequest = async (req, res) => {
         const fresh = await Order.findById(orderId)
             .populate('projectId', 'title packages')
             .populate('sellerId', 'firstName lastName')
-            .populate('offerId', 'revisions revisionsUnlimited');
+            .populate('offerId', 'revisions revisionsUnlimited deliveryDate whatsIncluded milestones');
         res.json(orderWithRevisionFallback(fresh));
     } catch (err) {
         console.error(err);
