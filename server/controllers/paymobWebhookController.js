@@ -25,11 +25,14 @@ const fulfillCharge = async (pendingCharge, app) => {
 
     switch (meta.type) {
         case 'job_proposal': {
-            const job = await Job.findById(meta.jobId).populate('clientId freelancerId');
+            const job = await Job.findById(meta.jobId)
+                .populate('clientId', 'firstName lastName email')
+                .populate('proposals.freelancerId', 'firstName lastName email');
             if (!job || job.status !== 'open') return;
             const proposal = job.proposals.id(meta.proposalId);
             if (!proposal) return;
-            const freelancerId = proposal.freelancerId;
+            const freelancerId = proposal.freelancerId?._id || proposal.freelancerId;
+            const freelancerUser = proposal.freelancerId;
             const totalClientPaid = pendingCharge.amountCents / 100;
 
             // ESCROW: Do NOT credit freelancer - money stays in escrow until client approves work
@@ -59,14 +62,13 @@ const fulfillCharge = async (pendingCharge, app) => {
 
             // Email notifications
             const client = job.clientId;
-            const freelancer = job.freelancerId;
             if (client?.email) {
                 const { subject, html } = emailTemplates.paymentConfirmed(client.firstName, totalClientPaid, 'Job Payment', job.title);
                 sendAndLog(client.email, subject, html, 'payment_confirmed');
             }
-            if (freelancer?.email) {
+            if (freelancerUser?.email) {
                 const { subject, html } = emailTemplates.offerPurchased(client?.firstName || 'A client', job.title, proposal.price, null);
-                sendAndLog(freelancer.email, subject, html, 'offer_purchased');
+                sendAndLog(freelancerUser.email, subject, html, 'offer_purchased');
             }
             break;
         }
