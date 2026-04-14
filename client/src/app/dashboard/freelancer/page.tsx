@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Briefcase, DollarSign, PlusCircle, ShoppingBag, Star, CheckCircle, Loader2, Edit, Award, PanelLeft } from 'lucide-react';
+import { Briefcase, DollarSign, PlusCircle, ShoppingBag, Star, CheckCircle, Loader2, Edit, Award, PanelLeft, Trash2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { formatEgyptianPhoneForDisplay } from '@/lib/phoneUtils';
 import { formatStatus, formatDateDDMMYYYY } from '@/lib/utils';
@@ -269,8 +269,27 @@ function FreelancerDashboardContent() {
                                                     project={project}
                                                     onEdit={() => router.push(`/dashboard/freelancer/offers/${project._id}/edit`)}
                                                 />
-                                                <div className="px-2 text-xs font-bold text-gray-500">
-                                                    Orders received: {orderCountByProject[project._id] || 0}
+                                                <div className="px-2 flex flex-wrap items-center gap-2 text-xs font-bold text-gray-500">
+                                                    <span>Orders received: {orderCountByProject[project._id] || 0}</span>
+                                                    {(orderCountByProject[project._id] || 0) === 0 && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={async () => {
+                                                                if (!confirm('Delete this offer permanently?')) return;
+                                                                try {
+                                                                    await api.projects.delete(project._id);
+                                                                    showModal({ title: 'Deleted', message: 'Offer removed.', type: 'success' });
+                                                                    await fetchProjects();
+                                                                    await fetchOrders();
+                                                                } catch (e: any) {
+                                                                    showModal({ title: 'Error', message: e.message || 'Failed to delete', type: 'error' });
+                                                                }
+                                                            }}
+                                                            className="inline-flex items-center gap-1 text-red-600 hover:text-red-700 font-bold"
+                                                        >
+                                                            <Trash2 className="w-3.5 h-3.5" /> Delete
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
                                         ))}
@@ -361,8 +380,27 @@ function FreelancerDashboardContent() {
                                                 project={project}
                                                 onEdit={() => router.push(`/dashboard/freelancer/offers/${project._id}/edit`)}
                                             />
-                                            <div className="px-2 text-xs font-bold text-gray-500">
-                                                Orders received: {orderCountByProject[project._id] || 0}
+                                            <div className="px-2 flex flex-wrap items-center gap-2 text-xs font-bold text-gray-500">
+                                                <span>Orders received: {orderCountByProject[project._id] || 0}</span>
+                                                {(orderCountByProject[project._id] || 0) === 0 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={async () => {
+                                                            if (!confirm('Delete this offer permanently? You can create a new one later.')) return;
+                                                            try {
+                                                                await api.projects.delete(project._id);
+                                                                showModal({ title: 'Deleted', message: 'Offer removed.', type: 'success' });
+                                                                await fetchProjects();
+                                                                await fetchOrders();
+                                                            } catch (e: any) {
+                                                                showModal({ title: 'Error', message: e.message || 'Failed to delete', type: 'error' });
+                                                            }
+                                                        }}
+                                                        className="inline-flex items-center gap-1 text-red-600 hover:text-red-700 font-bold"
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5" /> Delete offer
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     ))}

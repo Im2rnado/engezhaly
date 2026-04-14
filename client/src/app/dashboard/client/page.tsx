@@ -40,6 +40,9 @@ function ClientDashboardContent() {
     const [reviewSubmitting, setReviewSubmitting] = useState(false);
     const [expandedDelivery, setExpandedDelivery] = useState<string | null>(null);
     const [actionLoadingOrderId, setActionLoadingOrderId] = useState<string | null>(null);
+    const [disputeOrderTarget, setDisputeOrderTarget] = useState<any | null>(null);
+    const [disputeReasonInput, setDisputeReasonInput] = useState('');
+    const [disputeSubmitting, setDisputeSubmitting] = useState(false);
 
     const fetchJobs = useCallback(async () => {
         setJobsLoading(true);
@@ -374,94 +377,128 @@ function ClientDashboardContent() {
                     </div>
                 )}
 
-                {activeTab === 'jobs' && (
-                    <div className="space-y-4">
-                        {jobsLoading ? (
-                            <div className="flex justify-center py-16"><Loader2 className="w-10 h-10 animate-spin text-[#09BF44]" /></div>
-                        ) : jobs.length > 0 ? (
-                            jobs.map((job) => (
-                                <div key={job._id} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
-                                    <div className="flex justify-between items-start gap-4 mb-4">
-                                        <div className="flex-1">
-                                            <button
-                                                onClick={() => router.push(`/dashboard/client/jobs/${job._id}`)}
-                                                className="text-left text-xl font-bold text-gray-900 hover:text-[#09BF44] transition-colors"
-                                            >
-                                                {job.title}
-                                            </button>
-                                            <p className="text-gray-600 mt-2">{job.description.substring(0, 120)}...</p>
-                                        </div>
-                                        <div className="bg-green-50 text-[#09BF44] font-bold px-4 py-2 rounded-xl shrink-0">
-                                            {job.budgetRange.min} - {job.budgetRange.max} EGP
-                                        </div>
-                                    </div>
-                                    <div className="flex flex-wrap items-center gap-3 mb-4">
-                                        <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">
-                                            {job.proposals?.length || 0} proposal(s)
-                                        </span>
-                                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${job.status === 'open' ? 'bg-green-100 text-green-700' : job.status === 'in_progress' ? 'bg-blue-100 text-blue-700' : job.status === 'completed' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'}`}>
-                                            {formatStatus(job.status)}
-                                        </span>
-                                        <span className="text-xs text-gray-500 font-bold">
-                                            Posted {formatDateDDMMYYYY(job.createdAt)}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-2 pt-4 border-t border-gray-100">
-                                        {job.status === 'open' && (
-                                            <button
-                                                onClick={() => router.push(`/dashboard/client/jobs/${job._id}/edit`)}
-                                                className="bg-gray-100 text-gray-700 font-bold px-4 py-2 rounded-xl hover:bg-[#09BF44]/10 hover:text-[#09BF44] transition-colors flex items-center gap-2"
-                                                title="Edit"
-                                            >
-                                                <Edit className="w-4 h-4" /> Edit
-                                            </button>
-                                        )}
-                                        <button
-                                            onClick={() => router.push(`/dashboard/client/jobs/${job._id}`)}
-                                            className="bg-gray-100 text-gray-700 font-bold px-4 py-2 rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2"
-                                            title="View"
-                                        >
-                                            <Eye className="w-4 h-4" /> View
-                                        </button>
-                                        {job.status === 'completed' && job.rating == null && (
-                                            <button
-                                                onClick={() => {
-                                                    setReviewModal({ type: 'job', job });
-                                                    setReviewRating(5);
-                                                    setReviewText('');
-                                                }}
-                                                className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2"
-                                            >
-                                                <Star className="w-4 h-4" /> Leave Review
-                                            </button>
-                                        )}
-                                        {job.status === 'open' && (
-                                            <button
-                                                onClick={() => handleDeleteJob(job._id)}
-                                                className="bg-red-50 text-red-600 font-bold px-4 py-2 rounded-xl hover:bg-red-100 transition-colors flex items-center gap-2"
-                                                title="Delete"
-                                            >
-                                                <X className="w-4 h-4" /> Delete
-                                            </button>
-                                        )}
-                                    </div>
+                {activeTab === 'jobs' && (() => {
+                    const renderJobCard = (job: any) => (
+                        <div key={job._id} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
+                            <div className="flex justify-between items-start gap-4 mb-4">
+                                <div className="flex-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => router.push(`/dashboard/client/jobs/${job._id}`)}
+                                        className="text-left text-xl font-bold text-gray-900 hover:text-[#09BF44] transition-colors"
+                                    >
+                                        {job.title}
+                                    </button>
+                                    <p className="text-gray-600 mt-2">{job.description.substring(0, 120)}...</p>
                                 </div>
-                            ))
-                        ) : (
-                            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-12 text-center text-gray-400">
-                                <Briefcase className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                                <h3 className="text-xl font-bold text-gray-900 mb-2">No Jobs Yet</h3>
-                                <p className="text-gray-500 mb-6">Post your first job to find talented freelancers.</p>
-                                <button
-                                    onClick={() => router.push('/dashboard/client/jobs/create')}
-                                    className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-colors mx-auto"
-                                >
-                                    <PlusCircle className="w-5 h-5" /> Post your first Job
-                                </button>
+                                <div className="bg-green-50 text-[#09BF44] font-bold px-4 py-2 rounded-xl shrink-0">
+                                    {job.budgetRange.min} - {job.budgetRange.max} EGP
+                                </div>
                             </div>
-                        )}
-                    </div>
-                )}
+                            <div className="flex flex-wrap items-center gap-3 mb-4">
+                                <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">
+                                    {job.proposals?.length || 0} proposal(s)
+                                </span>
+                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${job.status === 'open' ? 'bg-green-100 text-green-700' : job.status === 'in_progress' ? 'bg-blue-100 text-blue-700' : job.status === 'completed' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'}`}>
+                                    {formatStatus(job.status)}
+                                </span>
+                                <span className="text-xs text-gray-500 font-bold">
+                                    Posted {formatDateDDMMYYYY(job.createdAt)}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2 pt-4 border-t border-gray-100">
+                                {job.status === 'open' && (
+                                    <button
+                                        type="button"
+                                        onClick={() => router.push(`/dashboard/client/jobs/${job._id}/edit`)}
+                                        className="bg-gray-100 text-gray-700 font-bold px-4 py-2 rounded-xl hover:bg-[#09BF44]/10 hover:text-[#09BF44] transition-colors flex items-center gap-2"
+                                        title="Edit"
+                                    >
+                                        <Edit className="w-4 h-4" /> Edit
+                                    </button>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={() => router.push(`/dashboard/client/jobs/${job._id}`)}
+                                    className="bg-gray-100 text-gray-700 font-bold px-4 py-2 rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2"
+                                    title="View"
+                                >
+                                    <Eye className="w-4 h-4" /> View details
+                                </button>
+                                {job.status === 'completed' && job.rating == null && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setReviewModal({ type: 'job', job });
+                                            setReviewRating(5);
+                                            setReviewText('');
+                                        }}
+                                        className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2"
+                                    >
+                                        <Star className="w-4 h-4" /> Leave Review
+                                    </button>
+                                )}
+                                {job.status === 'open' && (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDeleteJob(job._id)}
+                                        className="bg-red-50 text-red-600 font-bold px-4 py-2 rounded-xl hover:bg-red-100 transition-colors flex items-center gap-2"
+                                        title="Delete"
+                                    >
+                                        <X className="w-4 h-4" /> Delete
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    );
+
+                    const activeJobsPosted = jobs.filter((j) => j.status === 'open' || j.status === 'in_progress');
+                    const finishedJobs = jobs.filter((j) => j.status === 'completed' || j.status === 'closed');
+
+                    return (
+                        <div className="space-y-10">
+                            {jobsLoading ? (
+                                <div className="flex justify-center py-16"><Loader2 className="w-10 h-10 animate-spin text-[#09BF44]" /></div>
+                            ) : jobs.length > 0 ? (
+                                <>
+                                    <section>
+                                        <h3 className="text-lg font-black text-gray-900 mb-4">Active Jobs Posted</h3>
+                                        {activeJobsPosted.length > 0 ? (
+                                            <div className="space-y-4">{activeJobsPosted.map(renderJobCard)}</div>
+                                        ) : (
+                                            <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center text-gray-400 text-sm font-medium">
+                                                No active job postings.
+                                            </div>
+                                        )}
+                                    </section>
+                                    <section>
+                                        <h3 className="text-lg font-black text-gray-900 mb-4">Finished Jobs</h3>
+                                        {finishedJobs.length > 0 ? (
+                                            <div className="space-y-4">{finishedJobs.map(renderJobCard)}</div>
+                                        ) : (
+                                            <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center text-gray-400 text-sm font-medium">
+                                                No finished jobs yet.
+                                            </div>
+                                        )}
+                                    </section>
+                                </>
+                            ) : (
+                                <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-12 text-center text-gray-400">
+                                    <Briefcase className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                                    <h3 className="text-xl font-bold text-gray-900 mb-2">No Jobs Yet</h3>
+                                    <p className="text-gray-500 mb-6">Post your first job to find talented freelancers.</p>
+                                    <button
+                                        type="button"
+                                        onClick={() => router.push('/dashboard/client/jobs/create')}
+                                        className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-colors mx-auto"
+                                    >
+                                        <PlusCircle className="w-5 h-5" /> Post your first Job
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })()}
 
                 {activeTab === 'orders' && (() => {
                     const activeList = orders.filter((o: any) =>
@@ -611,23 +648,14 @@ function ClientDashboardContent() {
                                         )}
                                         <button
                                             type="button"
-                                            onClick={async () => {
-                                                if (!confirm('Raise a dispute? Our team will review and resolve it.')) return;
-                                                setActionLoadingOrderId(order._id);
-                                                try {
-                                                    await api.client.raiseDispute(order._id);
-                                                    showModal({ title: 'Dispute Raised', message: 'Our team will review and resolve it shortly.', type: 'success' });
-                                                    fetchOrders();
-                                                } catch (e: any) {
-                                                    showModal({ title: 'Error', message: e.message || 'Failed to raise dispute', type: 'error' });
-                                                } finally {
-                                                    setActionLoadingOrderId(null);
-                                                }
+                                            onClick={() => {
+                                                setDisputeOrderTarget(order);
+                                                setDisputeReasonInput('');
                                             }}
                                             disabled={actionLoadingOrderId === order._id}
                                             className="text-amber-600 hover:text-amber-700 text-xs font-bold flex items-center gap-1 px-2 py-2 rounded-xl hover:bg-amber-50 disabled:opacity-70 disabled:cursor-not-allowed"
                                         >
-                                            {actionLoadingOrderId === order._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Flag className="w-3.5 h-3.5" />} Raise Dispute
+                                            <Flag className="w-3.5 h-3.5" /> Raise Dispute
                                         </button>
                                     </>
                                 )}
@@ -744,6 +772,62 @@ function ClientDashboardContent() {
                             showModal({ title: 'Payment Submitted', message: 'Your payment screenshot has been submitted. We will verify and activate your order shortly.', type: 'success' });
                         }}
                     />
+                )}
+
+                {disputeOrderTarget && (
+                    <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4" onClick={() => !disputeSubmitting && setDisputeOrderTarget(null)}>
+                        <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
+                            <h3 className="text-lg font-bold mb-2 text-gray-900">Raise a dispute</h3>
+                            <p className="text-sm text-gray-600 mb-3">
+                                Describe the issue so our team can help. Minimum 10 characters.
+                            </p>
+                            <textarea
+                                value={disputeReasonInput}
+                                onChange={(e) => setDisputeReasonInput(e.target.value)}
+                                rows={5}
+                                className="w-full p-3 rounded-xl border-2 border-gray-200 focus:border-[#09BF44] outline-none resize-none text-gray-900 mb-4"
+                                placeholder="What went wrong?"
+                                disabled={disputeSubmitting}
+                            />
+                            <div className="flex gap-2 justify-end">
+                                <button
+                                    type="button"
+                                    disabled={disputeSubmitting}
+                                    onClick={() => setDisputeOrderTarget(null)}
+                                    className="px-4 py-2 rounded-xl font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={disputeSubmitting}
+                                    onClick={async () => {
+                                        const r = disputeReasonInput.trim();
+                                        if (r.length < 10) {
+                                            showModal({ title: 'Reason required', message: 'Please enter at least 10 characters.', type: 'error' });
+                                            return;
+                                        }
+                                        setDisputeSubmitting(true);
+                                        try {
+                                            await api.client.raiseDispute(disputeOrderTarget._id, r);
+                                            setDisputeOrderTarget(null);
+                                            setDisputeReasonInput('');
+                                            showModal({ title: 'Dispute Raised', message: 'Our team will review and resolve it shortly.', type: 'success' });
+                                            fetchOrders();
+                                        } catch (e: any) {
+                                            showModal({ title: 'Error', message: e.message || 'Failed to raise dispute', type: 'error' });
+                                        } finally {
+                                            setDisputeSubmitting(false);
+                                        }
+                                    }}
+                                    className="px-4 py-2 rounded-xl font-bold bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 flex items-center gap-2"
+                                >
+                                    {disputeSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                                    Submit dispute
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 )}
 
                 {reviewModal && (

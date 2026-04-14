@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const authVerified = require('../middleware/authVerified');
 const optionalAuth = require('../middleware/optionalAuth');
-const { createJob, getJobs, applyToJob, getFreelancerJobs, submitWork } = require('../controllers/jobController');
+const { createJob, getJobs, applyToJob, getFreelancerJobs, getFreelancerJobById, submitWork } = require('../controllers/jobController');
 
 // @route   POST api/jobs
 // @desc    Create a new job post
@@ -23,6 +23,7 @@ router.post('/:id/apply', authVerified, applyToJob);
 // @desc    Get freelancer jobs (applied + accepted/in-progress)
 // @access  Private (Freelancer)
 router.get('/freelancer/my-jobs', authVerified, getFreelancerJobs);
+router.get('/freelancer/my-jobs/:jobId', authVerified, getFreelancerJobById);
 
 // @route   POST api/jobs/:id/submit-work
 // @desc    Submit work for accepted in-progress job

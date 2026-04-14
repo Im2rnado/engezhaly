@@ -1790,7 +1790,13 @@ function ChatPageContent() {
                                                         </div>
                                                     )}
                                                     {offer.status === 'rejected' && (
-                                                        <div className={`text-center text-sm font-bold py-2 ${isMyOffer ? 'text-white/95' : 'text-red-600'}`}>
+                                                        <div
+                                                            className={
+                                                                isMyOffer
+                                                                    ? 'rounded-xl px-3 py-2.5 text-center text-sm font-black bg-red-600 text-white border border-red-400/80 shadow-inner'
+                                                                    : 'rounded-xl px-3 py-2.5 text-center text-sm font-black bg-red-50 text-red-700 border-2 border-red-200'
+                                                            }
+                                                        >
                                                             Offer denied by client
                                                         </div>
                                                     )}

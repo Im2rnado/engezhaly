@@ -226,14 +226,16 @@ const getConversationOffers = async (req, res) => {
         if (!mongoose.Types.ObjectId.isValid(String(conversationId))) {
             return res.status(400).json({ msg: 'Invalid conversation id' });
         }
-        const conversation = await Conversation.findById(conversationId);
+        const convOid = new mongoose.Types.ObjectId(String(conversationId));
+        const conversation = await Conversation.findById(convOid);
         if (!conversation) {
             return res.status(404).json({ msg: 'Conversation not found' });
         }
-        const offers = await Offer.find({ conversationId })
+        const offers = await Offer.find({ conversationId: convOid })
             .populate('senderId', 'firstName lastName role')
             .populate('receiverId', 'firstName lastName role')
-            .sort({ createdAt: 1 });
+            .sort({ createdAt: 1 })
+            .lean();
         res.json(offers);
     } catch (err) {
         console.error(err.message);

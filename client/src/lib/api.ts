@@ -474,6 +474,15 @@ export const api = {
             if (!res.ok) throw new Error('Failed to fetch freelancer jobs');
             return res.json();
         },
+        getFreelancerJobById: async (jobId: string) => {
+            const res = await fetch(`${API_URL}/jobs/freelancer/my-jobs/${encodeURIComponent(jobId)}`, {
+                method: 'GET',
+                headers: getHeaders()
+            });
+            const result = await res.json().catch(() => ({ msg: 'Failed to fetch job' }));
+            if (!res.ok) throw new Error(result.msg || 'Failed to fetch job');
+            return result;
+        },
         submitWork: async (id: string, data: any) => {
             const res = await fetch(`${API_URL}/jobs/${id}/submit-work`, {
                 method: 'POST',
@@ -537,6 +546,15 @@ export const api = {
             });
             const result = await res.json().catch(() => ({ msg: 'Failed to update project' }));
             if (!res.ok) throw new Error(result.msg || 'Failed to update project');
+            return result;
+        },
+        delete: async (id: string) => {
+            const res = await fetch(`${API_URL}/projects/${id}`, {
+                method: 'DELETE',
+                headers: getHeaders(),
+            });
+            const result = await res.json().catch(() => ({ msg: 'Failed to delete offer' }));
+            if (!res.ok) throw new Error(result.msg || 'Failed to delete offer');
             return result;
         },
         createOrder: async (projectId: string, packageIndex: number, description: string) => {
@@ -707,11 +725,14 @@ export const api = {
             return res.json();
         },
         getChatOffers: async (conversationId: string) => {
-            const res = await fetch(`${API_URL}/admin/chats/${conversationId}/offers`, {
+            const res = await fetch(`${API_URL}/admin/custom-offers/${encodeURIComponent(conversationId)}`, {
                 method: 'GET',
                 headers: getHeaders()
             });
-            if (!res.ok) throw new Error('Failed to fetch chat offers');
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.msg || 'Failed to fetch chat offers');
+            }
             return res.json();
         },
         freezeChat: async (id: string) => {

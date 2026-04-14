@@ -218,7 +218,9 @@ function AdminChatMergedFeed({ messages, offers, selectedChat }: { messages: any
                                     <p className="text-center text-sm font-bold text-green-700 py-2">Offer accepted</p>
                                 )}
                                 {offer.status === 'rejected' && (
-                                    <p className="text-center text-sm font-bold text-red-600 py-2">Offer denied by client</p>
+                                    <p className="text-center text-sm font-black py-2.5 rounded-xl bg-red-50 text-red-700 border-2 border-red-200">
+                                        Offer denied by client
+                                    </p>
                                 )}
                             </div>
                         </div>
@@ -226,17 +228,6 @@ function AdminChatMergedFeed({ messages, offers, selectedChat }: { messages: any
                 }
                 return <AdminChatMessageRow key={item.id} msg={item.data} selectedChat={selectedChat} />;
             })}
-        </>
-    );
-}
-
-function AdminChatBubbles({ messages, selectedChat }: { messages: any[]; selectedChat: any }) {
-    if (!selectedChat) return null;
-    return (
-        <>
-            {messages.map((msg: any) => (
-                <AdminChatMessageRow key={msg._id} msg={msg} selectedChat={selectedChat} />
-            ))}
         </>
     );
 }
@@ -612,6 +603,7 @@ export default function AdminDashboard() {
     const [disputesLoading, setDisputesLoading] = useState(false);
     const [selectedDispute, setSelectedDispute] = useState<any | null>(null);
     const [disputeChatMessages, setDisputeChatMessages] = useState<any[]>([]);
+    const [disputeChatOffers, setDisputeChatOffers] = useState<any[]>([]);
     const [disputeChatLoading, setDisputeChatLoading] = useState(false);
 
     const [supportChatModalOpen, setSupportChatModalOpen] = useState(false);
@@ -645,10 +637,7 @@ export default function AdminDashboard() {
 
     const fetchChatMessages = useCallback(async (conversationId: string) => {
         try {
-            const [data, offersData] = await Promise.all([
-                api.chat.getMessages(conversationId),
-                api.admin.getChatOffers(conversationId).catch(() => [])
-            ]);
+            const data = await api.chat.getMessages(conversationId);
             const formatted = (data || []).map((m: any) => ({
                 _id: m._id,
                 content: m.content,
@@ -659,10 +648,17 @@ export default function AdminDashboard() {
                 createdAt: m.createdAt
             }));
             setChatMessages(formatted);
-            setChatOffers(Array.isArray(offersData) ? offersData : []);
         } catch (err) {
             console.error('Failed to fetch chat messages', err);
             showModal({ title: 'Error', message: 'Failed to load messages', type: 'error' });
+            return;
+        }
+        try {
+            const offersData = await api.admin.getChatOffers(conversationId);
+            setChatOffers(Array.isArray(offersData) ? offersData : []);
+        } catch (err) {
+            console.error('Failed to fetch chat offers (admin)', err);
+            setChatOffers([]);
         }
     }, [showModal]);
 
@@ -886,11 +882,14 @@ export default function AdminDashboard() {
         const convId = selectedDispute?.conversationId;
         if (!convId) {
             setDisputeChatMessages([]);
+            setDisputeChatOffers([]);
             return;
         }
         let cancelled = false;
         setDisputeChatLoading(true);
-        api.chat.getMessages(String(convId))
+        setDisputeChatOffers([]);
+        api.chat
+            .getMessages(String(convId))
             .then((data: any[]) => {
                 if (cancelled) return;
                 const formatted = (data || []).map((m: any) => ({
@@ -909,6 +908,18 @@ export default function AdminDashboard() {
             })
             .finally(() => {
                 if (!cancelled) setDisputeChatLoading(false);
+            });
+        api.admin
+            .getChatOffers(String(convId))
+            .then((offersData: any) => {
+                if (cancelled) return;
+                setDisputeChatOffers(Array.isArray(offersData) ? offersData : []);
+            })
+            .catch((err) => {
+                if (!cancelled) {
+                    console.error('Failed to fetch dispute chat offers', err);
+                    setDisputeChatOffers([]);
+                }
             });
         return () => {
             cancelled = true;
@@ -1854,11 +1865,12 @@ export default function AdminDashboard() {
                                         <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44]" /></div>
                                     ) : (
                                         <div className="max-h-[420px] overflow-y-auto p-4 space-y-4 bg-gray-50 rounded-2xl border border-gray-100">
-                                            {disputeChatMessages.length === 0 ? (
-                                                <p className="text-center text-gray-400 text-sm py-8">No messages.</p>
+                                            {disputeChatMessages.length === 0 && disputeChatOffers.length === 0 ? (
+                                                <p className="text-center text-gray-400 text-sm py-8">No messages or offers.</p>
                                             ) : (
-                                                <AdminChatBubbles
+                                                <AdminChatMergedFeed
                                                     messages={disputeChatMessages}
+                                                    offers={disputeChatOffers}
                                                     selectedChat={{ participants: [selectedDispute.buyerId, selectedDispute.sellerId] }}
                                                 />
                                             )}

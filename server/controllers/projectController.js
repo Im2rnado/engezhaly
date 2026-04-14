@@ -293,11 +293,37 @@ ${description.trim()}`,
     }
 };
 
+const deleteMyProject = async (req, res) => {
+    try {
+        const project = await Project.findById(req.params.id);
+        if (!project) {
+            return res.status(404).json({ msg: 'Project not found' });
+        }
+        if (project.sellerId.toString() !== req.user.id) {
+            return res.status(403).json({ msg: 'Not authorized to delete this project' });
+        }
+
+        const orderCount = await Order.countDocuments({ projectId: project._id });
+        if (orderCount > 0) {
+            return res.status(400).json({
+                msg: 'Cannot delete this offer while it has orders from clients. Remove or complete orders first.'
+            });
+        }
+
+        await project.deleteOne();
+        res.json({ msg: 'Offer deleted successfully' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: err.message || 'Server Error' });
+    }
+};
+
 module.exports = {
     createProject,
     getProjects,
     getFreelancerProjects,
     getProjectById,
     updateProject,
-    createProjectOrder
+    createProjectOrder,
+    deleteMyProject
 };

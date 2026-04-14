@@ -26,6 +26,9 @@ export default function FreelancerOrderDetailPage() {
     const [submittingWork, setSubmittingWork] = useState(false);
     const [uploadProgress, setUploadProgress] = useState<number | null>(null);
     const [workSubmission, setWorkSubmission] = useState({ message: '', links: '', files: [] as File[] });
+    const [disputeOpen, setDisputeOpen] = useState(false);
+    const [disputeReason, setDisputeReason] = useState('');
+    const [disputeSubmitting, setDisputeSubmitting] = useState(false);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -310,15 +313,9 @@ export default function FreelancerOrderDetailPage() {
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={async () => {
-                                            if (!confirm('Raise a dispute?')) return;
-                                            try {
-                                                await api.freelancer.raiseDispute(order._id);
-                                                showModal({ title: 'Dispute raised', message: 'Our team will review.', type: 'success' });
-                                                await refreshOrder();
-                                            } catch (e: any) {
-                                                showModal({ title: 'Error', message: e.message || 'Failed', type: 'error' });
-                                            }
+                                        onClick={() => {
+                                            setDisputeReason('');
+                                            setDisputeOpen(true);
                                         }}
                                         className="text-amber-700 px-4 py-2 rounded-xl font-bold hover:bg-amber-50 flex items-center gap-2"
                                     >
@@ -372,6 +369,56 @@ export default function FreelancerOrderDetailPage() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {disputeOpen && order && (
+                <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => !disputeSubmitting && setDisputeOpen(false)}>
+                    <div className="bg-white rounded-2xl w-full max-w-md shadow-xl p-6" onClick={(e) => e.stopPropagation()}>
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">Raise a dispute</h3>
+                        <p className="text-sm text-gray-600 mb-3">Describe the issue (minimum 10 characters).</p>
+                        <textarea
+                            value={disputeReason}
+                            onChange={(e) => setDisputeReason(e.target.value)}
+                            rows={5}
+                            disabled={disputeSubmitting}
+                            className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:border-[#09BF44] outline-none resize-none mb-4"
+                            placeholder="What went wrong?"
+                        />
+                        <div className="flex justify-end gap-2">
+                            <button type="button" disabled={disputeSubmitting} onClick={() => setDisputeOpen(false)} className="px-4 py-2 rounded-xl bg-gray-100 font-bold text-gray-700">
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                disabled={disputeSubmitting}
+                                onClick={async () => {
+                                    const r = disputeReason.trim();
+                                    if (r.length < 10) {
+                                        showModal({ title: 'Reason required', message: 'Please enter at least 10 characters.', type: 'error' });
+                                        return;
+                                    }
+                                    setDisputeSubmitting(true);
+                                    try {
+                                        await api.freelancer.raiseDispute(order._id, r);
+                                        setDisputeOpen(false);
+                                        setDisputeReason('');
+                                        showModal({ title: 'Dispute raised', message: 'Our team will review.', type: 'success' });
+                                        const o = await api.freelancer.getOrder(id);
+                                        setOrder(o);
+                                    } catch (e: any) {
+                                        showModal({ title: 'Error', message: e.message || 'Failed', type: 'error' });
+                                    } finally {
+                                        setDisputeSubmitting(false);
+                                    }
+                                }}
+                                className="px-4 py-2 rounded-xl bg-amber-600 text-white font-bold flex items-center gap-2 disabled:opacity-50"
+                            >
+                                {disputeSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                                Submit
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

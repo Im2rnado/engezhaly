@@ -48,6 +48,7 @@ router.patch('/freelancers/:id/star', [authVerified, adminAuth], starFreelancer)
 router.patch('/freelancers/:id/unstar', [authVerified, adminAuth], unstarFreelancer);
 router.get('/chats', [authVerified, adminAuth], getActiveChats);
 router.get('/chats/:conversationId/offers', [authVerified, adminAuth], getConversationOffers);
+router.get('/custom-offers/:conversationId', [authVerified, adminAuth], getConversationOffers);
 router.put('/chats/:id/freeze', [authVerified, adminAuth], freezeChat);
 router.put('/chats/:id/unfreeze', [authVerified, adminAuth], unfreezeChat);
 router.post('/chats/message', [authVerified, adminAuth], sendAdminMessage);

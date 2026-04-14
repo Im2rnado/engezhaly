@@ -212,6 +212,35 @@ const getFreelancerJobs = async (req, res) => {
     }
 };
 
+const getFreelancerJobById = async (req, res) => {
+    try {
+        if (req.user.role !== 'freelancer') {
+            return res.status(403).json({ msg: 'Only freelancers can access this resource' });
+        }
+        const freelancerId = req.user.id;
+        const { jobId } = req.params;
+
+        const job = await Job.findOne({ _id: jobId, 'proposals.freelancerId': freelancerId })
+            .populate('clientId', 'firstName lastName email');
+
+        if (!job) {
+            return res.status(404).json({ msg: 'Job not found' });
+        }
+
+        const myProposal = job.proposals.find(
+            (p) => p.freelancerId && p.freelancerId.toString() === freelancerId
+        );
+
+        res.json({
+            ...job.toObject(),
+            myProposal: myProposal || null
+        });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Server Error' });
+    }
+};
+
 const submitWork = async (req, res) => {
     try {
         if (req.user.role !== 'freelancer') {
@@ -259,5 +288,6 @@ module.exports = {
     getJobs,
     applyToJob,
     getFreelancerJobs,
+    getFreelancerJobById,
     submitWork
 };

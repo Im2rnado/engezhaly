@@ -58,9 +58,9 @@ const updateProfile = async (req, res) => {
             return res.status(404).json({ msg: 'User not found' });
         }
 
-        if (user.role !== 'freelancer') {
-            return res.status(403).json({ msg: 'Access denied. User is not a freelancer.' });
-        }
+        // if (user.role !== 'freelancer') {
+        //     return res.status(403).json({ msg: 'Access denied. User is not a freelancer.' });
+        // }
 
         if (phoneNumber !== undefined) {
             const trimmed = typeof phoneNumber === 'string' ? phoneNumber.trim() : '';
@@ -319,6 +319,10 @@ const raiseDispute = async (req, res) => {
         const userId = req.user.id;
         const orderId = req.params.id;
         const { reason } = req.body;
+        const reasonStr = typeof reason === 'string' ? reason.trim() : '';
+        if (!reasonStr || reasonStr.length < 10) {
+            return res.status(400).json({ msg: 'Please provide a dispute reason (at least 10 characters).' });
+        }
 
         const order = await Order.findById(orderId);
         if (!order) return res.status(404).json({ msg: 'Order not found' });
@@ -330,7 +334,7 @@ const raiseDispute = async (req, res) => {
         }
 
         order.status = 'disputed';
-        if (reason) order.disputeReason = reason;
+        order.disputeReason = reasonStr;
         await order.save();
 
         res.json({ msg: 'Dispute raised. Our team will review and resolve it shortly.', order });

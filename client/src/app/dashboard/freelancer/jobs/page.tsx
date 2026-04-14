@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useModal } from '@/context/ModalContext';
-import { Loader2, MessageSquare, PanelLeft, X } from 'lucide-react';
+import { Loader2, MessageSquare, PanelLeft, X, ArrowRight } from 'lucide-react';
 import FreelancerSidebar from '@/components/FreelancerSidebar';
 import CountdownTimer from '@/components/CountdownTimer';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
@@ -232,7 +232,7 @@ export default function MyJobsPage() {
                     <p className="text-sm md:text-base text-gray-500">My applications and active jobs.</p>
                 </header>
 
-                <section className="mb-10">
+                <section className="mb-10 space-y-10">
                     {myJobsLoading ? (
                         <div className="flex items-center justify-center h-24">
                             <Loader2 className="w-6 h-6 animate-spin text-gray-300" />
@@ -242,18 +242,19 @@ export default function MyJobsPage() {
                             You have not applied to any jobs yet.
                         </div>
                     ) : (
-                        <div className="space-y-4">
-                            {myJobs.map((job) => {
+                        (() => {
+                            const activeJobs = myJobs.filter((j) => j.status === 'open' || j.status === 'in_progress');
+                            const finishedJobs = myJobs.filter((j) => j.status === 'completed' || j.status === 'closed');
+
+                            const renderJobCard = (job: any) => {
                                 const myProposal = job.myProposal;
                                 const acceptedAndActive = myProposal?.status === 'accepted' && job.status === 'in_progress';
                                 const hasDeadline = !!job.deadline && !Number.isNaN(new Date(job.deadline).getTime());
                                 return (
                                     <div key={job._id} className="relative bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-                                        {acceptedAndActive && hasDeadline && (
-                                            <CountdownTimer deadline={job.deadline} variant="card" />
-                                        )}
+                                        {acceptedAndActive && hasDeadline && <CountdownTimer deadline={job.deadline} variant="card" />}
                                         <div className="flex justify-between items-start gap-4">
-                                            <div>
+                                            <div className="min-w-0">
                                                 <h3 className="text-xl font-bold text-gray-900">{job.title}</h3>
                                                 <p className="text-sm text-gray-500 mt-1">
                                                     Client: {job.clientId?.firstName} {job.clientId?.lastName}
@@ -261,24 +262,23 @@ export default function MyJobsPage() {
                                                 </p>
                                                 <p className="text-gray-600 mt-2 line-clamp-2">{job.description}</p>
                                             </div>
-                                            <div className="text-right">
-                                                <span className={`text-xs font-bold px-3 py-1 rounded-full ${
-                                                    myProposal?.status === 'accepted'
-                                                        ? 'bg-green-100 text-green-700'
-                                                        : myProposal?.status === 'rejected'
-                                                            ? 'bg-red-100 text-red-700'
-                                                            : 'bg-blue-100 text-blue-700'
-                                                }`}>
+                                            <div className="text-right shrink-0">
+                                                <span
+                                                    className={`text-xs font-bold px-3 py-1 rounded-full ${
+                                                        myProposal?.status === 'accepted'
+                                                            ? 'bg-green-100 text-green-700'
+                                                            : myProposal?.status === 'rejected'
+                                                              ? 'bg-red-100 text-red-700'
+                                                              : 'bg-blue-100 text-blue-700'
+                                                    }`}
+                                                >
                                                     {myProposal?.status || 'pending'}
                                                 </span>
-                                                <p className="text-sm font-bold text-[#09BF44] mt-2">
-                                                    Your offer: {myProposal?.price || '-'} EGP
-                                                </p>
+                                                <p className="text-sm font-bold text-[#09BF44] mt-2">Your offer: {myProposal?.price || '-'} EGP</p>
                                             </div>
                                         </div>
                                         {acceptedAndActive && (
                                             <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
-                                                {/* Delivery milestones */}
                                                 {myProposal?.milestones && myProposal.milestones.length > 0 && (
                                                     <div>
                                                         <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Delivery milestones</p>
@@ -291,15 +291,20 @@ export default function MyJobsPage() {
                                                                         {m.dueDate && <p className="text-xs text-gray-500">Due: {new Date(m.dueDate).toLocaleDateString()}</p>}
                                                                     </div>
                                                                     <div className="flex items-center gap-2">
-                                                                        <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                                                                            m.status === 'submitted' ? 'bg-blue-100 text-blue-700' :
-                                                                            m.status === 'done' ? 'bg-green-100 text-green-700' :
-                                                                            'bg-gray-200 text-gray-600'
-                                                                        }`}>
+                                                                        <span
+                                                                            className={`text-xs font-bold px-2 py-1 rounded-full ${
+                                                                                m.status === 'submitted'
+                                                                                    ? 'bg-blue-100 text-blue-700'
+                                                                                    : m.status === 'done'
+                                                                                      ? 'bg-green-100 text-green-700'
+                                                                                      : 'bg-gray-200 text-gray-600'
+                                                                            }`}
+                                                                        >
                                                                             {m.status || 'pending'}
                                                                         </span>
                                                                         {m.status !== 'done' && (
                                                                             <button
+                                                                                type="button"
                                                                                 onClick={() => {
                                                                                     setMilestoneSubmitModal({ job, milestoneIdx: idx });
                                                                                     setMilestoneWork({ message: '', links: '', files: [] });
@@ -315,26 +320,28 @@ export default function MyJobsPage() {
                                                         </div>
                                                     </div>
                                                 )}
-                                                <div className="flex items-center justify-between">
+                                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                                                     <div className="text-sm text-gray-600">
                                                         {myProposal?.workSubmission?.updatedAt
                                                             ? `Last submitted: ${new Date(myProposal.workSubmission.updatedAt).toLocaleString()}`
                                                             : 'No full work submitted yet'}
                                                     </div>
-                                                    <div className="flex gap-2">
+                                                    <div className="flex flex-wrap gap-2">
                                                         <button
+                                                            type="button"
                                                             onClick={() => openChatWithClient(job)}
                                                             className="bg-gray-100 text-gray-700 px-4 py-2 rounded-xl font-bold hover:bg-gray-200 transition-colors flex items-center gap-2"
                                                         >
                                                             <MessageSquare className="w-4 h-4" /> Message Client
                                                         </button>
                                                         <button
+                                                            type="button"
                                                             onClick={() => {
                                                                 setWorkJob(job);
                                                                 setWorkSubmission({
                                                                     message: myProposal?.workSubmission?.message || '',
                                                                     links: (myProposal?.workSubmission?.links || []).join(', '),
-                                                                    files: []
+                                                                    files: [],
                                                                 });
                                                             }}
                                                             className="bg-[#09BF44] text-white px-5 py-2 rounded-xl font-bold hover:bg-[#07a63a] transition-colors"
@@ -346,8 +353,9 @@ export default function MyJobsPage() {
                                             </div>
                                         )}
                                         {!acceptedAndActive && (
-                                            <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
+                                            <div className="mt-4 pt-4 border-t border-gray-100 flex flex-wrap justify-end gap-2">
                                                 <button
+                                                    type="button"
                                                     onClick={() => openChatWithClient(job)}
                                                     className="bg-gray-100 text-gray-700 px-4 py-2 rounded-xl font-bold hover:bg-gray-200 transition-colors flex items-center gap-2"
                                                 >
@@ -355,10 +363,40 @@ export default function MyJobsPage() {
                                                 </button>
                                             </div>
                                         )}
+                                        <div className="mt-4 pt-3 border-t border-gray-100">
+                                            <button
+                                                type="button"
+                                                onClick={() => router.push(`/dashboard/freelancer/jobs/${job._id}`)}
+                                                className="w-full sm:w-auto text-left sm:text-center bg-white border-2 border-[#09BF44]/30 text-[#09BF44] font-bold px-4 py-2.5 rounded-xl hover:bg-[#09BF44]/5 transition-colors flex items-center justify-center gap-2"
+                                            >
+                                                View details <ArrowRight className="w-4 h-4" />
+                                            </button>
+                                        </div>
                                     </div>
                                 );
-                            })}
-                        </div>
+                            };
+
+                            return (
+                                <>
+                                    <div>
+                                        <h2 className="text-lg font-black text-gray-900 mb-4">Active Jobs</h2>
+                                        {activeJobs.length > 0 ? (
+                                            <div className="space-y-4">{activeJobs.map(renderJobCard)}</div>
+                                        ) : (
+                                            <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center text-gray-400 text-sm font-medium">No active jobs.</div>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <h2 className="text-lg font-black text-gray-900 mb-4">Finished Jobs</h2>
+                                        {finishedJobs.length > 0 ? (
+                                            <div className="space-y-4">{finishedJobs.map(renderJobCard)}</div>
+                                        ) : (
+                                            <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center text-gray-400 text-sm font-medium">No finished jobs yet.</div>
+                                        )}
+                                    </div>
+                                </>
+                            );
+                        })()
                     )}
                 </section>
 
