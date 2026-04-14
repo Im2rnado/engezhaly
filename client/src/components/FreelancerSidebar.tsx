@@ -48,7 +48,7 @@ export default function FreelancerSidebar({ user, profile, onToggleBusy, toggleB
     const isPending = profile?.freelancerProfile?.status === 'pending';
     const isBusy = profile?.freelancerProfile?.isBusy;
 
-    const inFlightOrderStatuses = ['pending_approval', 'pending_payment', 'active', 'disputed'];
+    const inFlightOrderStatuses = ['pending_approval', 'pending_payment', 'active'];
     const activeOrdersCount = orders.filter((o: any) => inFlightOrderStatuses.includes(o.status)).length;
     const activeJobsCount = myJobs.filter((job: any) => {
         const p = job.myProposal;

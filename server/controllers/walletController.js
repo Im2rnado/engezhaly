@@ -157,7 +157,12 @@ const getTransactions = async (req, res) => {
     try {
         const excludeManualTopUp = req.query.excludeManualTopUp === 'true';
         const query = { userId: req.user.id };
-        if (excludeManualTopUp) query.isManualAdminTopUp = { $ne: true };
+        if (excludeManualTopUp) {
+            query.$and = [
+                { $or: [{ isManualAdminTopUp: { $ne: true } }, { isManualAdminTopUp: { $exists: false } }] },
+                { $or: [{ isManualAdminDeduction: { $ne: true } }, { isManualAdminDeduction: { $exists: false } }] }
+            ];
+        }
         const transactions = await Transaction.find(query).sort({ createdAt: -1 });
         res.json(transactions);
     } catch (err) {

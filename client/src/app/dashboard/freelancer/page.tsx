@@ -5,7 +5,14 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Briefcase, DollarSign, PlusCircle, ShoppingBag, Star, CheckCircle, Loader2, Edit, Award, PanelLeft, Trash2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { formatEgyptianPhoneForDisplay } from '@/lib/phoneUtils';
-import { formatStatus, formatDateDDMMYYYY, getOrderDeliveryDeadlineIso, orderStatusShowsDeliveryCountdown } from '@/lib/utils';
+import {
+    formatDateDDMMYYYY,
+    formatOrderStatusForParty,
+    formatStatus,
+    getOrderDeliveryDeadlineIso,
+    orderStatusBadgeClassForParty,
+    orderStatusShowsDeliveryCountdown
+} from '@/lib/utils';
 import { useModal } from '@/context/ModalContext';
 import ProjectCard from '@/components/ProjectCard';
 import { MAIN_CATEGORIES } from '@/lib/categories';
@@ -152,9 +159,9 @@ function FreelancerDashboardContent() {
     const isPending = profile.freelancerProfile?.status === 'pending';
     const walletBalance = user.walletBalance || 0;
     const activeOrdersCount = orders.filter((o: any) =>
-        ['pending_approval', 'pending_payment', 'active', 'disputed'].includes(o.status)
+        ['pending_approval', 'pending_payment', 'active'].includes(o.status)
     ).length;
-    const completedOrders = orders.filter(o => o.status === 'completed').length;
+    const completedOrders = orders.filter((o) => ['completed', 'disputed'].includes(o.status)).length;
     const avgRating =
         reviewStats && reviewStats.reviewCount > 0
             ? Number(reviewStats.avgRating).toFixed(1)
@@ -444,9 +451,9 @@ function FreelancerDashboardContent() {
 
                 {activeTab === 'orders' && (() => {
                     const activeList = orders.filter((o: any) =>
-                        ['pending_approval', 'pending_payment', 'active', 'disputed'].includes(o.status)
+                        ['pending_approval', 'pending_payment', 'active'].includes(o.status)
                     );
-                    const finishedList = orders.filter((o: any) => ['completed', 'refunded'].includes(o.status));
+                    const finishedList = orders.filter((o: any) => ['completed', 'refunded', 'disputed'].includes(o.status));
 
                     const OrderCard = ({ order }: { order: any }) => {
                         const deadlineIso = getOrderDeliveryDeadlineIso(order);
@@ -471,8 +478,8 @@ function FreelancerDashboardContent() {
                                 </div>
                                 <div className="text-right shrink-0">
                                     <p className="text-lg font-black text-gray-900">{order.amount} EGP</p>
-                                    <span className={`inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'disputed' ? 'bg-amber-100 text-amber-700' : order.status === 'refunded' ? 'bg-gray-100 text-gray-700' : order.status === 'pending_approval' || order.status === 'pending_payment' ? 'bg-amber-100 text-amber-700' : order.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
-                                        {formatStatus(order.status)}
+                                    <span className={`inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${orderStatusBadgeClassForParty(order.status)}`}>
+                                        {formatOrderStatusForParty(order.status)}
                                     </span>
                                 </div>
                             </div>

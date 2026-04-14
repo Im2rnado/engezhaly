@@ -310,17 +310,19 @@ function JobsPageContent() {
                                 key={job._id}
                                 className="bg-white border-2 border-gray-100 rounded-2xl p-4 md:p-6 hover:border-[#09BF44] hover:shadow-xl transition-all"
                             >
-                                <div className="flex items-start justify-between gap-3 mb-4">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-3 mb-3">
-                                            <h3 className="text-lg md:text-xl font-bold text-gray-900">{job.title}</h3>
+                                <div className="flex items-start justify-between gap-3 mb-4 min-w-0">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex flex-wrap items-center gap-3 mb-3 min-w-0">
+                                            <h3 className="text-lg md:text-xl font-bold text-gray-900 break-words [overflow-wrap:anywhere] min-w-0 flex-1">
+                                              {job.title}
+                                            </h3>
                                             {job.status === 'open' && (
                                                 <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold">
                                                     Open
                                                 </span>
                                             )}
                                         </div>
-                                        <p className="text-gray-600 text-sm mb-4 line-clamp-3">{job.description}</p>
+                                        <p className="text-gray-600 text-sm mb-4 line-clamp-3 break-words [overflow-wrap:anywhere] min-w-0">{job.description}</p>
                                         <div className="flex flex-wrap items-center gap-4 text-sm mb-4">
                                             <div className="flex items-center gap-2">
                                                 <span className="text-gray-500 font-bold">Budget:</span>

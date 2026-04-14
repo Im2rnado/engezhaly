@@ -60,7 +60,26 @@ export function getOrderDeliveryDeadlineIso(order: any): string | null {
 
 /** Show delivery countdown for in-flight marketplace / custom orders (not completed or refunded). */
 export function orderStatusShowsDeliveryCountdown(status: string | undefined): boolean {
-    return ['pending_approval', 'pending_payment', 'active', 'disputed'].includes(status || '');
+    return ['pending_approval', 'pending_payment', 'active'].includes(status || '');
+}
+
+/**
+ * Client/freelancer-facing order label. Disputed orders are shown as finished (admin still sees real status).
+ */
+export function formatOrderStatusForParty(status: string | undefined): string {
+    if (!status) return '';
+    if (status === 'disputed') return 'FINISHED';
+    return formatStatus(status);
+}
+
+/** Tailwind classes for order status pill on client/freelancer (disputed → same as completed). */
+export function orderStatusBadgeClassForParty(status: string | undefined): string {
+    const s = status || '';
+    if (s === 'completed' || s === 'disputed') return 'bg-green-100 text-green-700';
+    if (s === 'refunded') return 'bg-gray-100 text-gray-700';
+    if (s === 'pending_approval' || s === 'pending_payment') return 'bg-amber-100 text-amber-700';
+    if (s === 'active') return 'bg-blue-100 text-blue-700';
+    return 'bg-red-100 text-red-700';
 }
 
 /** Posted-job delivery instant: job createdAt + accepted proposal deliveryDays (job.deadline is a label string, not a Date). */

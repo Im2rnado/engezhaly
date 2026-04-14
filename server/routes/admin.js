@@ -23,6 +23,7 @@ const {
     getUserById,
     updateUser,
     topUpUserBalance,
+    deductUserBalance,
     deleteUser,
     getAllProjects,
     updateProject,
@@ -70,6 +71,7 @@ router.get('/users', [authVerified, adminAuth], getAllUsers);
 router.get('/users/:id', [authVerified, adminAuth], getUserById);
 router.put('/users/:id', [authVerified, adminAuth], updateUser);
 router.put('/users/:id/topup', [authVerified, adminAuth], topUpUserBalance);
+router.put('/users/:id/deduct', [authVerified, adminAuth], deductUserBalance);
 router.delete('/users/:id', [authVerified, adminAuth], deleteUser);
 
 router.get('/projects', [authVerified, adminAuth], getAllProjects);

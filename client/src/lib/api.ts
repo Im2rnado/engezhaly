@@ -941,6 +941,16 @@ export const api = {
             if (!res.ok) throw new Error(result.msg || 'Failed to top up balance');
             return result;
         },
+        deductUserBalance: async (id: string, amount: number) => {
+            const res = await fetch(`${API_URL}/admin/users/${id}/deduct`, {
+                method: 'PUT',
+                headers: getHeaders(),
+                body: JSON.stringify({ amount })
+            });
+            const result = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(result.msg || 'Failed to deduct balance');
+            return result;
+        },
         deleteUser: async (id: string) => {
             const res = await fetch(`${API_URL}/admin/users/${id}`, {
                 method: 'DELETE',

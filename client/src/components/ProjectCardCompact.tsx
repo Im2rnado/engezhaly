@@ -115,7 +115,7 @@ export default function ProjectCardCompact({ project }: ProjectCardCompactProps)
                         )}
                     </div>
                     <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-gray-900 text-base md:text-lg line-clamp-2 group-hover:text-[#09BF44] transition-colors">
+                        <h3 className="font-bold text-gray-900 text-base md:text-lg line-clamp-2 group-hover:text-[#09BF44] transition-colors break-words [overflow-wrap:anywhere]">
                             {project.title}
                         </h3>
                         <div className="flex items-center justify-between gap-2 mt-0.5 min-w-0 w-full">
@@ -138,7 +138,7 @@ export default function ProjectCardCompact({ project }: ProjectCardCompactProps)
 
                 {/* Brief/summary below title */}
                 {brief && (
-                    <p className="text-sm text-gray-600 line-clamp-2 mb-3">{brief}</p>
+                    <p className="text-sm text-gray-600 line-clamp-2 mb-3 break-words [overflow-wrap:anywhere] min-w-0">{brief}</p>
                 )}
 
                 {/* Skills as ticks */}

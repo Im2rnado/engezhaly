@@ -50,7 +50,7 @@ export default function ClientSidebar({ user, profile, activeTab, mobileOpen = f
     }, [user?._id, user?.id]);
 
     const activeJobs = jobs.filter((j: any) => j.status === 'open' || j.status === 'in_progress').length;
-    const inFlightOrderStatuses = ['pending_approval', 'pending_payment', 'active', 'disputed'];
+    const inFlightOrderStatuses = ['pending_approval', 'pending_payment', 'active'];
     const activeOrders = orders.filter((o: any) => inFlightOrderStatuses.includes(o.status)).length;
 
     return (

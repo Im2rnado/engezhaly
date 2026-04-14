@@ -10,7 +10,8 @@ const TransactionSchema = new mongoose.Schema({
     referenceId: { type: String },
     orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Order' },
     relatedUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // buyer or seller for order payments
-    isManualAdminTopUp: { type: Boolean, default: false }
+    isManualAdminTopUp: { type: Boolean, default: false },
+    isManualAdminDeduction: { type: Boolean, default: false }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Transaction', TransactionSchema);

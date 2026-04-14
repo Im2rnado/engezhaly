@@ -5,7 +5,14 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { Briefcase, Clock, PlusCircle, ShoppingBag, CreditCard, Edit, Loader2, X, Eye, PanelLeft, Flag, Star, CheckCircle } from 'lucide-react';
 import { api } from '@/lib/api';
-import { formatStatus, formatDateDDMMYYYY, getOrderDeliveryDeadlineIso, orderStatusShowsDeliveryCountdown } from '@/lib/utils';
+import {
+    formatDateDDMMYYYY,
+    formatOrderStatusForParty,
+    formatStatus,
+    getOrderDeliveryDeadlineIso,
+    orderStatusBadgeClassForParty,
+    orderStatusShowsDeliveryCountdown
+} from '@/lib/utils';
 import { useModal } from '@/context/ModalContext';
 import ClientSidebar from '@/components/ClientSidebar';
 import ClientProfileEditModal from '@/components/ClientProfileEditModal';
@@ -209,8 +216,8 @@ function ClientDashboardContent() {
 
     const activeJobs = jobs.filter(j => j.status === 'open' || j.status === 'in_progress').length;
     const completedJobs = jobs.filter(j => j.status === 'completed').length;
-    const activeOrders = orders.filter(o => o.status === 'active').length;
-    const completedOrders = orders.filter(o => o.status === 'completed').length;
+    const activeOrders = orders.filter((o) => ['pending_approval', 'pending_payment', 'active'].includes(o.status)).length;
+    const completedOrders = orders.filter((o) => ['completed', 'refunded', 'disputed'].includes(o.status)).length;
 
     return (
         <div className="min-h-screen bg-gray-50 flex font-sans text-gray-900">
@@ -300,10 +307,10 @@ function ClientDashboardContent() {
                                 {jobs.length > 0 ? (
                                     <div className="space-y-4">
                                         {jobs.slice(0, 5).map((job) => (
-                                            <div key={job._id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                                                <div className="flex-1">
-                                                    <h4 className="font-bold text-gray-900">{job.title}</h4>
-                                                    <p className="text-sm text-gray-500 mt-1 break-words overflow-wrap-anywhere min-w-0 line-clamp-3">
+                                            <div key={job._id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 min-w-0">
+                                                <div className="flex-1 min-w-0">
+                                                    <h4 className="font-bold text-gray-900 break-words [overflow-wrap:anywhere]">{job.title}</h4>
+                                                    <p className="text-sm text-gray-500 mt-1 break-words [overflow-wrap:anywhere] min-w-0 line-clamp-3">
                                                         {job.description ? `${job.description.substring(0, 100)}...` : ''}
                                                     </p>
                                                     <div className="flex items-center gap-4 mt-2">
@@ -350,8 +357,8 @@ function ClientDashboardContent() {
                                                     </div>
                                                     <div className="text-right">
                                                         <p className="font-black text-gray-900">{order.amount} EGP</p>
-                                                        <span className={`inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'disputed' ? 'bg-amber-100 text-amber-700' : order.status === 'refunded' ? 'bg-gray-100 text-gray-700' : order.status === 'pending_approval' || order.status === 'pending_payment' ? 'bg-amber-100 text-amber-700' : order.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
-                                                            {formatStatus(order.status)}
+                                                        <span className={`inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${orderStatusBadgeClassForParty(order.status)}`}>
+                                                            {formatOrderStatusForParty(order.status)}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -506,28 +513,26 @@ function ClientDashboardContent() {
 
                 {activeTab === 'orders' && (() => {
                     const activeList = orders.filter((o: any) =>
-                        ['pending_approval', 'pending_payment', 'active', 'disputed'].includes(o.status)
+                        ['pending_approval', 'pending_payment', 'active'].includes(o.status)
                     );
-                    const finishedList = orders.filter((o: any) => ['completed', 'refunded'].includes(o.status));
-
-                    const orderStatusBadgeClass = (status: string) =>
-                        status === 'completed'
-                            ? 'bg-green-100 text-green-700'
-                            : status === 'disputed'
-                              ? 'bg-amber-100 text-amber-700'
-                              : status === 'refunded'
-                                ? 'bg-gray-100 text-gray-700'
-                                : status === 'pending_approval' || status === 'pending_payment'
-                                  ? 'bg-amber-100 text-amber-700'
-                                  : status === 'active'
-                                    ? 'bg-blue-100 text-blue-700'
-                                    : 'bg-red-100 text-red-700';
+                    const finishedList = orders.filter((o: any) => ['completed', 'refunded', 'disputed'].includes(o.status));
 
                     const ClientOrderCard = ({ order }: { order: any }) => {
                         const odIso = getOrderDeliveryDeadlineIso(order);
                         const showOdTimer = orderStatusShowsDeliveryCountdown(order.status) && odIso;
                         return (
-                        <div className="w-full bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:border-[#09BF44]/40 hover:shadow-md transition-all min-w-0 max-w-full">
+                        <div
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => router.push(`/dashboard/client/orders/${order._id}`)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    router.push(`/dashboard/client/orders/${order._id}`);
+                                }
+                            }}
+                            className="w-full bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:border-[#09BF44]/40 hover:shadow-md transition-all min-w-0 max-w-full text-left cursor-pointer"
+                        >
                             <div className="flex items-start justify-between gap-3 mb-2">
                                 <div className="min-w-0 flex-1">
                                     <h4 className="text-lg font-bold text-gray-900 truncate">{order.projectId?.title || (order.offerId ? 'Custom offer' : 'Order')}</h4>
@@ -548,8 +553,8 @@ function ClientDashboardContent() {
                                 </div>
                                 <div className="text-right shrink-0">
                                     <p className="text-lg font-black text-gray-900">{order.amount} EGP</p>
-                                    <span className={`inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${orderStatusBadgeClass(order.status)}`}>
-                                        {formatStatus(order.status)}
+                                    <span className={`inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${orderStatusBadgeClassForParty(order.status)}`}>
+                                        {formatOrderStatusForParty(order.status)}
                                     </span>
                                 </div>
                             </div>
@@ -565,7 +570,7 @@ function ClientDashboardContent() {
                                 )}
                             </div>
                             {order.status === 'active' && order.workSubmission && (order.workSubmission.message || (order.workSubmission.links?.length > 0) || (order.workSubmission.files?.length > 0)) && (
-                                <div className="mt-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
+                                <div className="mt-4 p-4 rounded-xl bg-gray-50 border border-gray-100" onClick={(e) => e.stopPropagation()}>
                                     <button
                                         type="button"
                                         onClick={() => setExpandedDelivery(expandedDelivery === order._id ? null : order._id)}
@@ -603,7 +608,7 @@ function ClientDashboardContent() {
                                     )}
                                 </div>
                             )}
-                            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-4 pt-4 border-t border-gray-100">
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-4 pt-4 border-t border-gray-100" onClick={(e) => e.stopPropagation()}>
                                 <button
                                     type="button"
                                     onClick={() => router.push(`/dashboard/client/orders/${order._id}`)}

@@ -692,9 +692,11 @@ export default function Home() {
                     key={job._id}
                     className="bg-white border text-left border-gray-200 shadow-sm rounded-3xl p-8 hover:border-[#09BF44] transition-colors focus-within:ring-4 focus-within:ring-[#09BF44]/10 group"
                   >
-                    <div className="flex flex-col h-full">
-                      <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-5 gap-4">
-                        <h3 className="text-xl font-black text-gray-900 leading-snug group-hover:text-[#09BF44] transition-colors">{job.title}</h3>
+                    <div className="flex flex-col h-full min-w-0">
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-5 gap-4 min-w-0">
+                        <h3 className="text-xl font-black text-gray-900 leading-snug group-hover:text-[#09BF44] transition-colors break-words [overflow-wrap:anywhere] min-w-0 flex-1">
+                          {job.title}
+                        </h3>
                         {job.status === 'open' && (
                           <span className="bg-emerald-50 text-[#09BF44] border border-emerald-100 px-3.5 py-1.5 rounded-full text-xs font-black whitespace-nowrap self-start">
                             Open Right Now
@@ -702,7 +704,7 @@ export default function Home() {
                         )}
                       </div>
 
-                      <p className="text-gray-600 font-medium text-[15px] mb-6 line-clamp-2 leading-relaxed flex-1">
+                      <p className="text-gray-600 font-medium text-[15px] mb-6 line-clamp-2 leading-relaxed flex-1 break-words [overflow-wrap:anywhere] min-w-0">
                         {job.description}
                       </p>
 

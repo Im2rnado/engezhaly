@@ -252,6 +252,8 @@ function UserDetailPanel({ user, onBack, onEdit, onDelete, onRefresh }: { user: 
     const { showModal } = useModal();
     const [topUpAmount, setTopUpAmount] = useState('');
     const [topUpLoading, setTopUpLoading] = useState(false);
+    const [deductAmount, setDeductAmount] = useState('');
+    const [deductLoading, setDeductLoading] = useState(false);
     const fp = user.freelancerProfile;
     const cp = user.clientProfile;
     const isFreelancer = user.role === 'freelancer';
@@ -274,6 +276,29 @@ function UserDetailPanel({ user, onBack, onEdit, onDelete, onRefresh }: { user: 
             showModal({ title: 'Error', message: err.message || 'Failed to top up', type: 'error' });
         } finally {
             setTopUpLoading(false);
+        }
+    };
+
+    const handleDeduct = async () => {
+        const amount = Number(deductAmount);
+        if (!Number.isFinite(amount) || amount <= 0) {
+            showModal({ title: 'Invalid Amount', message: 'Please enter a positive number.', type: 'error' });
+            return;
+        }
+        if (amount > balance) {
+            showModal({ title: 'Invalid Amount', message: 'Deduction cannot exceed current balance.', type: 'error' });
+            return;
+        }
+        setDeductLoading(true);
+        try {
+            await api.admin.deductUserBalance(user._id, amount);
+            setDeductAmount('');
+            showModal({ title: 'Success', message: `${amount} EGP deducted from wallet. New balance: ${Math.max(0, balance - amount)} EGP`, type: 'success' });
+            onRefresh?.();
+        } catch (err: any) {
+            showModal({ title: 'Error', message: err.message || 'Failed to deduct', type: 'error' });
+        } finally {
+            setDeductLoading(false);
         }
     };
 
@@ -333,7 +358,7 @@ function UserDetailPanel({ user, onBack, onEdit, onDelete, onRefresh }: { user: 
                         <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                             <p className="text-xs font-bold text-gray-400 mb-1">Current balance</p>
                             <p className="text-2xl font-black text-[#09BF44]">{balance} EGP</p>
-                            <div className="flex flex-wrap items-end gap-2 mt-4">
+                            <div className="flex flex-wrap items-end gap-3 mt-4">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 mb-1">Top up amount (EGP)</label>
                                     <input
@@ -351,6 +376,25 @@ function UserDetailPanel({ user, onBack, onEdit, onDelete, onRefresh }: { user: 
                                 >
                                     {topUpLoading && <Loader2 className="w-4 h-4 animate-spin" />}
                                     Top Up
+                                </button>
+                                <div className="h-8 w-px bg-gray-200 hidden sm:block" aria-hidden />
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-1">Deduct amount (EGP)</label>
+                                    <input
+                                        type="number"
+                                        value={deductAmount}
+                                        onChange={(e) => setDeductAmount(e.target.value)}
+                                        placeholder="e.g. 50"
+                                        className="w-32 p-2 rounded-lg border-2 border-gray-200 focus:border-red-400 outline-none"
+                                    />
+                                </div>
+                                <button
+                                    onClick={handleDeduct}
+                                    disabled={deductLoading}
+                                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg disabled:opacity-70 flex items-center gap-2"
+                                >
+                                    {deductLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                                    Deduct
                                 </button>
                             </div>
                         </div>

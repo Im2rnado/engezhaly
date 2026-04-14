@@ -100,7 +100,7 @@ export default function OfferDetailPage() {
                     {/* Left column - content */}
                     <div className="lg:col-span-7 space-y-8">
                         {/* Title */}
-                        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight">
+                        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight break-words [overflow-wrap:anywhere] min-w-0">
                             {project.title}
                         </h1>
 
@@ -200,7 +200,7 @@ export default function OfferDetailPage() {
                         {project.description && (
                             <div>
                                 <h3 className="text-xl font-bold text-gray-900 mb-4">About this offer</h3>
-                                <div className="text-gray-600 leading-relaxed whitespace-pre-wrap">
+                                <div className="text-gray-600 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] min-w-0">
                                     {project.description}
                                 </div>
                             </div>

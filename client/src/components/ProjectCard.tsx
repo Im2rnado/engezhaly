@@ -304,8 +304,10 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
 
                 {/* Title and Price - default layout */}
                 {!isBundle && (
-                    <div className="flex items-start justify-between gap-2 mb-4">
-                        <h3 className="text-base md:text-xl font-bold text-gray-900 leading-tight break-words">{project.title}</h3>
+                    <div className="flex items-start justify-between gap-2 mb-4 min-w-0">
+                        <h3 className="text-base md:text-xl font-bold text-gray-900 leading-tight break-words min-w-0 flex-1 [overflow-wrap:anywhere]">
+                            {project.title}
+                        </h3>
                         <div className="text-sm md:text-lg font-bold text-gray-900 shrink-0">
                             {currentPackage.price || 0} EGP
                         </div>

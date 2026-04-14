@@ -649,6 +649,39 @@ const topUpUserBalance = async (req, res) => {
     }
 };
 
+const deductUserBalance = async (req, res) => {
+    try {
+        const { amount } = req.body;
+        const amountNum = Number(amount);
+        if (!Number.isFinite(amountNum) || amountNum <= 0) {
+            return res.status(400).json({ msg: 'Amount must be a positive number' });
+        }
+        const user = await User.findById(req.params.id);
+        if (!user) return res.status(404).json({ msg: 'User not found' });
+        const prevBalance = user.walletBalance || 0;
+        if (prevBalance < amountNum) {
+            return res.status(400).json({ msg: 'Insufficient wallet balance for this deduction' });
+        }
+        user.walletBalance = prevBalance - amountNum;
+        await user.save();
+
+        await Transaction.create({
+            userId: user._id,
+            type: 'withdrawal',
+            amount: amountNum,
+            description: 'Admin deduction',
+            status: 'completed',
+            paymentMethod: 'wallet',
+            isManualAdminDeduction: true
+        });
+
+        res.json({ user, balance: user.walletBalance });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
 const deleteUser = async (req, res) => {
     try {
         await User.findByIdAndDelete(req.params.id);
@@ -947,7 +980,12 @@ const getAllTransactions = async (req, res) => {
     try {
         const excludeManualTopUp = req.query.excludeManualTopUp === 'true';
         const query = {};
-        if (excludeManualTopUp) query.isManualAdminTopUp = { $ne: true };
+        if (excludeManualTopUp) {
+            query.$and = [
+                { $or: [{ isManualAdminTopUp: { $ne: true } }, { isManualAdminTopUp: { $exists: false } }] },
+                { $or: [{ isManualAdminDeduction: { $ne: true } }, { isManualAdminDeduction: { $exists: false } }] }
+            ];
+        }
         const transactions = await Transaction.find(query).populate('userId', 'firstName lastName');
         res.json(transactions);
     } catch (err) {
@@ -1147,6 +1185,7 @@ module.exports = {
     getUserById,
     updateUser,
     topUpUserBalance,
+    deductUserBalance,
     deleteUser,
     getAllProjects,
     updateProject,

@@ -1923,18 +1923,18 @@ function ChatPageContent() {
                                                             </div>
                                                         </div>
                                                         {offer.milestones && offer.milestones.length > 0 && (
-                                                            <div className="pt-3 border-t border-white/20">
-                                                                <p className="text-sm font-bold mb-1">Delivery milestones</p>
-                                                                <p className="text-xs opacity-90 mb-2">For scheduling only—payment is the total above, once.</p>
-                                                                {offer.milestones.map((milestone: any, idx: number) => (
-                                                                    <div key={idx} className="text-xs mb-1.5 flex items-center gap-2">
-                                                                        <div className="w-10 h-10 rounded-xl bg-linear-to-br from-indigo-500 to-purple-600 flex items-center justify-center shrink-0 shadow-indigo-100/50 shadow-lg border border-white/20"></div>
-                                                                        <span>
-                                                                            {milestone.name}
+                                                            <div className={`pt-3 border-t min-w-0 ${isMyOffer ? 'border-white/20' : 'border-gray-200'}`}>
+                                                                <p className={`text-sm font-bold mb-1 ${isMyOffer ? '' : 'text-gray-900'}`}>Delivery milestones</p>
+                                                                <p className={`text-xs mb-2 ${isMyOffer ? 'opacity-90' : 'text-gray-500'}`}>For scheduling only—payment is the total above, once.</p>
+                                                                <ul className={`list-disc pl-5 space-y-1.5 text-sm min-w-0 ${isMyOffer ? 'text-white/95' : 'text-gray-800'}`}>
+                                                                    {offer.milestones.map((milestone: any, idx: number) => (
+                                                                        <li key={idx} className="break-words [overflow-wrap:anywhere]">
+                                                                            <span className="font-bold">Milestone {idx + 1}:</span>{' '}
+                                                                            {milestone.name || '—'}
                                                                             {milestone.dueDate && ` · Due ${formatDateDDMMYYYY(milestone.dueDate)}`}
-                                                                        </span>
-                                                                    </div>
-                                                                ))}
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
                                                             </div>
                                                         )}
                                                     </div>
