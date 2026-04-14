@@ -20,6 +20,18 @@ const orderWithRevisionFallback = (order) => {
             o.revisions = off.revisionsUnlimited ? 0 : Math.max(0, Math.floor(Number(off.revisions) || 0));
             o.revisionsUnlimited = !!off.revisionsUnlimited;
         }
+        if (!o.deliveryDate && off.deliveryDate) {
+            o.deliveryDate = off.deliveryDate;
+        }
+    }
+    if (!o.deliveryDate && o.projectId && typeof o.projectId === 'object' && Array.isArray(o.projectId.packages) && o.packageType && o.createdAt) {
+        const pkg = o.projectId.packages.find((p) => p && p.type === o.packageType);
+        const days = pkg?.days;
+        if (days != null && !Number.isNaN(Number(days))) {
+            const d = new Date(o.createdAt);
+            d.setDate(d.getDate() + Number(days));
+            if (!Number.isNaN(d.getTime())) o.deliveryDate = d;
+        }
     }
     return o;
 };
@@ -361,7 +373,7 @@ const getMyOrders = async (req, res) => {
         const orders = await Order.find({ sellerId: freelancerId })
             .populate('projectId', 'title packages subCategory')
             .populate('buyerId', 'firstName lastName email')
-            .populate('offerId', 'revisions revisionsUnlimited')
+            .populate('offerId', 'revisions revisionsUnlimited deliveryDate')
             .sort({ createdAt: -1 });
 
         res.json(orders.map((ord) => orderWithRevisionFallback(ord)));

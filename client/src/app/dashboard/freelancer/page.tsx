@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Briefcase, DollarSign, PlusCircle, ShoppingBag, Star, CheckCircle, Loader2, Edit, Award, PanelLeft, Trash2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { formatEgyptianPhoneForDisplay } from '@/lib/phoneUtils';
-import { formatStatus, formatDateDDMMYYYY } from '@/lib/utils';
+import { formatStatus, formatDateDDMMYYYY, getOrderDeliveryDeadlineIso, orderStatusShowsDeliveryCountdown } from '@/lib/utils';
 import { useModal } from '@/context/ModalContext';
 import ProjectCard from '@/components/ProjectCard';
 import { MAIN_CATEGORIES } from '@/lib/categories';
@@ -324,15 +324,17 @@ function FreelancerDashboardContent() {
                             <div className="p-6">
                                 {orders.length > 0 ? (
                                     <div className="space-y-4">
-                                        {orders.slice(0, 5).map((order) => (
+                                        {orders.slice(0, 5).map((order) => {
+                                            const orderDeadlineIso = getOrderDeliveryDeadlineIso(order);
+                                            return (
                                             <div key={order._id} className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
                                                 <div className="flex items-center justify-between">
-                                                    <div>
+                                                    <div className="min-w-0">
                                                         <h4 className="font-bold text-gray-900">{order.projectId?.title || 'Offer'}</h4>
                                                         <p className="text-sm text-gray-500">Client: {order.buyerId?.firstName} {order.buyerId?.lastName}</p>
-                                                        {order.status === 'active' && order.deliveryDate && (
-                                                            <div className="mt-2">
-                                                                <CountdownTimer deadline={order.deliveryDate} variant="inline" />
+                                                        {orderStatusShowsDeliveryCountdown(order.status) && orderDeadlineIso && (
+                                                            <div className="mt-2 min-w-0 max-w-full">
+                                                                <CountdownTimer deadline={orderDeadlineIso} variant="inline" />
                                                             </div>
                                                         )}
                                                     </div>
@@ -347,14 +349,15 @@ function FreelancerDashboardContent() {
                                                     <span className="text-xs text-gray-500 font-bold">
                                                         Ordered {formatDateDDMMYYYY(order.createdAt)}
                                                     </span>
-                                                    {order.deliveryDate && (
+                                                    {orderDeadlineIso && (
                                                         <span className="text-xs text-gray-500 font-bold">
-                                                            Delivery {formatDateDDMMYYYY(order.deliveryDate)}
+                                                            Delivery {formatDateDDMMYYYY(orderDeadlineIso)}
                                                         </span>
                                                     )}
                                                 </div>
                                             </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 ) : (
                                     <div className="text-center py-12 text-gray-400">
@@ -439,7 +442,10 @@ function FreelancerDashboardContent() {
                     );
                     const finishedList = orders.filter((o: any) => ['completed', 'refunded'].includes(o.status));
 
-                    const OrderCard = ({ order }: { order: any }) => (
+                    const OrderCard = ({ order }: { order: any }) => {
+                        const deadlineIso = getOrderDeliveryDeadlineIso(order);
+                        const showTimer = orderStatusShowsDeliveryCountdown(order.status) && deadlineIso;
+                        return (
                         <button
                             type="button"
                             onClick={() => router.push(`/dashboard/freelancer/orders/${order._id}`)}
@@ -451,6 +457,11 @@ function FreelancerDashboardContent() {
                                     <p className="text-sm text-gray-500 mt-0.5">
                                         {order.buyerId?.firstName} {order.buyerId?.lastName}
                                     </p>
+                                    {showTimer && (
+                                        <div className="mt-2 min-w-0 max-w-full">
+                                            <CountdownTimer deadline={deadlineIso} variant="inline" />
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="text-right shrink-0">
                                     <p className="text-lg font-black text-gray-900">{order.amount} EGP</p>
@@ -463,16 +474,17 @@ function FreelancerDashboardContent() {
                                 <span>{order.packageType}</span>
                                 <span>·</span>
                                 <span>Ordered {formatDateDDMMYYYY(order.createdAt)}</span>
-                                {order.deliveryDate && (
+                                {deadlineIso && (
                                     <>
                                         <span>·</span>
-                                        <span>Delivery {formatDateDDMMYYYY(order.deliveryDate)}</span>
+                                        <span>Delivery {formatDateDDMMYYYY(deadlineIso)}</span>
                                     </>
                                 )}
                             </div>
                             <p className="text-xs font-bold text-[#09BF44] mt-3">View details →</p>
                         </button>
-                    );
+                        );
+                    };
 
                     return (
                         <div className="space-y-10">

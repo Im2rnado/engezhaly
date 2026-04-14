@@ -8,7 +8,7 @@ import { Loader2, MessageSquare, PanelLeft, Flag, ArrowLeft } from 'lucide-react
 import FreelancerSidebar from '@/components/FreelancerSidebar';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 import CountdownTimer from '@/components/CountdownTimer';
-import { formatStatus, formatDateDDMMYYYY, formatRevisionsLabel } from '@/lib/utils';
+import { formatStatus, formatDateDDMMYYYY, formatRevisionsLabel, getOrderDeliveryDeadlineIso, orderStatusShowsDeliveryCountdown } from '@/lib/utils';
 
 export default function FreelancerOrderDetailPage() {
     const params = useParams();
@@ -154,6 +154,8 @@ export default function FreelancerOrderDetailPage() {
 
     const title = order.projectId?.title || (order.offerId ? 'Custom offer' : 'Order');
     const revLabel = formatRevisionsLabel(order.revisionsUnlimited, order.revisions, 'short');
+    const orderDeadlineIso = getOrderDeliveryDeadlineIso(order);
+    const showOrderTimer = orderStatusShowsDeliveryCountdown(order.status) && orderDeadlineIso;
 
     return (
         <div className="min-h-screen bg-gray-50 flex font-sans text-gray-900">
@@ -201,9 +203,7 @@ export default function FreelancerOrderDetailPage() {
                             </div>
                         </div>
 
-                        {order.status === 'active' && order.deliveryDate && (
-                            <CountdownTimer deadline={order.deliveryDate} variant="inline" />
-                        )}
+                        {showOrderTimer && <CountdownTimer deadline={orderDeadlineIso} variant="inline" />}
 
                         {order.disputeResolvedAt && order.disputeResolution && (
                             <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-900">
@@ -228,10 +228,10 @@ export default function FreelancerOrderDetailPage() {
                                 <dt className="font-bold text-gray-500">Ordered</dt>
                                 <dd className="text-gray-900 font-medium">{formatDateDDMMYYYY(order.createdAt)}</dd>
                             </div>
-                            {order.deliveryDate && (
+                            {orderDeadlineIso && (
                                 <div>
                                     <dt className="font-bold text-gray-500">Delivery</dt>
-                                    <dd className="text-gray-900 font-medium">{formatDateDDMMYYYY(order.deliveryDate)}</dd>
+                                    <dd className="text-gray-900 font-medium">{formatDateDDMMYYYY(orderDeadlineIso)}</dd>
                                 </div>
                             )}
                         </dl>

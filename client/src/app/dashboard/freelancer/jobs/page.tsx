@@ -8,6 +8,7 @@ import { Loader2, MessageSquare, PanelLeft, X, ArrowRight } from 'lucide-react';
 import FreelancerSidebar from '@/components/FreelancerSidebar';
 import CountdownTimer from '@/components/CountdownTimer';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
+import { formatDateDDMMYYYY, getPostedJobDeliveryDeadlineIso } from '@/lib/utils';
 
 export default function MyJobsPage() {
     const { showModal } = useModal();
@@ -249,16 +250,20 @@ export default function MyJobsPage() {
                             const renderJobCard = (job: any) => {
                                 const myProposal = job.myProposal;
                                 const acceptedAndActive = myProposal?.status === 'accepted' && job.status === 'in_progress';
-                                const hasDeadline = !!job.deadline && !Number.isNaN(new Date(job.deadline).getTime());
+                                const deliveryIso = getPostedJobDeliveryDeadlineIso(job);
                                 return (
                                     <div key={job._id} className="relative bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-                                        {acceptedAndActive && hasDeadline && <CountdownTimer deadline={job.deadline} variant="card" />}
+                                        {acceptedAndActive && deliveryIso && <CountdownTimer deadline={deliveryIso} variant="card" />}
                                         <div className="flex justify-between items-start gap-4">
                                             <div className="min-w-0">
                                                 <h3 className="text-xl font-bold text-gray-900">{job.title}</h3>
                                                 <p className="text-sm text-gray-500 mt-1">
                                                     Client: {job.clientId?.firstName} {job.clientId?.lastName}
-                                                    {job.deadline ? ` • Deadline: ${job.deadline}` : ''}
+                                                    {acceptedAndActive && deliveryIso
+                                                        ? ` • Deliver by ${formatDateDDMMYYYY(deliveryIso)}`
+                                                        : job.deadline
+                                                          ? ` • Client timeline: ${job.deadline}`
+                                                          : ''}
                                                 </p>
                                                 <p className="text-gray-600 mt-2 line-clamp-2">{job.description}</p>
                                             </div>

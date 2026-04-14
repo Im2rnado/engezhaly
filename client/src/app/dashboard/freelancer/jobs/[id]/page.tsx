@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { useModal } from "@/context/ModalContext";
@@ -8,6 +8,7 @@ import { Loader2, MessageSquare, PanelLeft, ArrowLeft, X } from "lucide-react";
 import FreelancerSidebar from "@/components/FreelancerSidebar";
 import DashboardMobileTopStrip from "@/components/DashboardMobileTopStrip";
 import CountdownTimer from "@/components/CountdownTimer";
+import { formatDateDDMMYYYY } from "@/lib/utils";
 
 export default function FreelancerJobDetailPage() {
     const params = useParams();
@@ -173,6 +174,18 @@ export default function FreelancerJobDetailPage() {
         }
     };
 
+    /** Posting `job.deadline` is a label string ("1 week"), not a Date — match client job countdown: createdAt + deliveryDays. */
+    const inProgressDeliveryDeadline = useMemo(() => {
+        if (!job || job.status !== "in_progress") return null;
+        const proposal = job.myProposal;
+        if (!proposal || proposal.status !== "accepted") return null;
+        const days = proposal.deliveryDays;
+        if (days == null || Number.isNaN(Number(days))) return null;
+        const d = new Date(job.createdAt);
+        d.setDate(d.getDate() + Number(days));
+        return Number.isNaN(d.getTime()) ? null : d.toISOString();
+    }, [job]);
+
     if (loading || !profile) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -185,7 +198,6 @@ export default function FreelancerJobDetailPage() {
 
     const myProposal = job.myProposal;
     const acceptedAndActive = myProposal?.status === "accepted" && job.status === "in_progress";
-    const hasDeadline = !!job.deadline && !Number.isNaN(new Date(job.deadline).getTime());
 
     return (
         <div className="min-h-screen bg-gray-50 flex font-sans text-gray-900">
@@ -227,11 +239,17 @@ export default function FreelancerJobDetailPage() {
                     </div>
 
                     <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-8 relative">
-                        {acceptedAndActive && hasDeadline && <CountdownTimer deadline={job.deadline} variant="card" />}
+                        {acceptedAndActive && inProgressDeliveryDeadline && (
+                            <CountdownTimer deadline={inProgressDeliveryDeadline} variant="card" />
+                        )}
                         <h1 className="text-2xl md:text-3xl font-black text-gray-900 mt-2">{job.title}</h1>
                         <p className="text-sm text-gray-500 mt-2">
                             Client: {job.clientId?.firstName} {job.clientId?.lastName}
-                            {job.deadline ? ` • Deadline: ${job.deadline}` : ""}
+                            {acceptedAndActive && inProgressDeliveryDeadline
+                                ? ` • Deliver by ${formatDateDDMMYYYY(inProgressDeliveryDeadline)}`
+                                : job.deadline
+                                  ? ` • Client timeline: ${job.deadline}`
+                                  : ""}
                         </p>
                         <p className="text-gray-700 mt-4 whitespace-pre-wrap">{job.description}</p>
                         <div className="flex flex-wrap gap-2 mt-4">

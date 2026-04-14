@@ -21,11 +21,11 @@ export interface RevisionsFieldProps {
 
 const WRAPPER: Record<RevisionsFieldVariant, string> = {
     default:
-        "rounded-xl border-2 border-gray-200 overflow-hidden bg-gray-50 focus-within:border-[#09BF44] focus-within:ring-2 focus-within:ring-[#09BF44]/15 transition-all",
+        "rounded-xl border-2 border-gray-200 bg-gray-50 focus-within:border-[#09BF44] focus-within:ring-2 focus-within:ring-[#09BF44]/15 transition-all",
     compact:
-        "rounded-lg border border-gray-200 overflow-hidden bg-gray-50 focus-within:border-[#09BF44] transition-all",
-    jobs: "rounded-xl border-2 border-transparent overflow-hidden bg-gray-50 focus-within:border-[#09BF44] transition-all",
-    auth: "rounded-lg border border-gray-200 overflow-hidden bg-gray-50 focus-within:border-[#09BF44] transition-all"
+        "rounded-lg border border-gray-200 bg-gray-50 focus-within:border-[#09BF44] transition-all",
+    jobs: "rounded-xl border-2 border-transparent bg-gray-50 focus-within:border-[#09BF44] transition-all",
+    auth: "rounded-lg border border-gray-200 bg-gray-50 focus-within:border-[#09BF44] transition-all"
 };
 
 const INPUT_PAD: Record<RevisionsFieldVariant, string> = {
@@ -102,20 +102,21 @@ export default function RevisionsField({
                 ) : (
                     <div className={`flex-1 min-w-0 ${pad} flex items-center font-bold text-gray-700 text-sm`}>Unlimited</div>
                 )}
-                <div className={`relative shrink-0 border-l border-gray-200 bg-white ${selPad}`}>
+                <div className={`relative flex min-h-[2.75rem] shrink-0 items-stretch border-l border-gray-200 bg-white ${selPad}`}>
                     <select
                         value={unlimited ? "unlimited" : "fixed"}
                         onChange={(e) => handleMode(e.target.value === "unlimited")}
                         disabled={disabled}
-                        className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
                         aria-label="Revision type: fixed count or unlimited"
+                        className="h-full min-h-[2.75rem] w-full min-w-0 cursor-pointer appearance-none bg-transparent py-2 pl-1 pr-7 text-[10px] font-black uppercase tracking-wide text-gray-700 outline-none"
+                    >
+                        <option value="fixed">Fixed</option>
+                        <option value="unlimited">Unlimited</option>
+                    </select>
+                    <ChevronDown
+                        className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 shrink-0 -translate-y-1/2 text-gray-500"
+                        aria-hidden
                     />
-                    <div className={`flex h-full items-center justify-between gap-1 pointer-events-none`}>
-                        <span className="text-[10px] font-black uppercase tracking-wide text-gray-600 truncate">
-                            {unlimited ? "Unlimited" : "Fixed"}
-                        </span>
-                        <ChevronDown className="h-4 w-4 shrink-0 text-gray-500" />
-                    </div>
                 </div>
             </div>
         </div>
