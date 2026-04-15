@@ -39,6 +39,47 @@ function resolveMediaUrl(url: string) {
     return `${base}${u.startsWith('/') ? '' : '/'}${u}`;
 }
 
+function AdminAvatarWithPresence({
+    src,
+    initial,
+    alt = '',
+    online,
+    sizeClass = 'w-10 h-10',
+    initialBgClass = 'bg-blue-100 text-blue-600'
+}: {
+    src?: string | null;
+    initial: string;
+    alt?: string;
+    online: boolean;
+    sizeClass?: string;
+    initialBgClass?: string;
+}) {
+    const ring = 'ring-2 ring-white';
+    return (
+        <div className="relative shrink-0 inline-block">
+            {src ? (
+                <Image
+                    src={resolveMediaUrl(src)}
+                    alt={alt}
+                    width={40}
+                    height={40}
+                    className={`${sizeClass} rounded-full object-cover ${ring}`}
+                    unoptimized
+                />
+            ) : (
+                <div className={`${sizeClass} rounded-full ${ring} ${initialBgClass} flex items-center justify-center text-xs font-bold`}>
+                    {initial}
+                </div>
+            )}
+            <span
+                aria-hidden
+                className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full ring-2 ring-white ${online ? 'bg-[#09BF44]' : 'bg-gray-300'}`}
+                title={online ? 'Online' : 'Offline'}
+            />
+        </div>
+    );
+}
+
 function AdminChatMessageRow({ msg, selectedChat }: { msg: any; selectedChat: any }) {
     const raw = msg.content || '';
     const isVoice = msg.messageType === 'voice';
@@ -642,6 +683,7 @@ export default function AdminDashboard() {
     const [chatOffers, setChatOffers] = useState<any[]>([]);
     const [adminMessageInput, setAdminMessageInput] = useState('');
     const [socket, setSocket] = useState<any>(null);
+    const [userPresenceById, setUserPresenceById] = useState<Record<string, boolean>>({});
     const selectedConversationIdRef = useRef<string | null>(null);
     selectedConversationIdRef.current = selectedChat?._id ?? null;
     const adminChatMessagesScrollRef = useRef<HTMLDivElement | null>(null);
@@ -1300,6 +1342,34 @@ export default function AdminDashboard() {
     }, [socket, fetchChats]);
 
     useEffect(() => {
+        setUserPresenceById((prev) => {
+            const next = { ...prev };
+            for (const u of users) {
+                if (u?._id != null && u.isOnline !== undefined) next[String(u._id)] = !!u.isOnline;
+            }
+            for (const c of activeChats) {
+                for (const p of c.participants || []) {
+                    if (p?._id != null && p.isOnline !== undefined) next[String(p._id)] = !!p.isOnline;
+                }
+            }
+            return next;
+        });
+    }, [users, activeChats]);
+
+    useEffect(() => {
+        if (!socket) return;
+        const onAdminUserPresence = (payload: { userId?: string; online?: boolean }) => {
+            const id = payload?.userId != null ? String(payload.userId) : '';
+            if (!id) return;
+            setUserPresenceById((prev) => ({ ...prev, [id]: !!payload.online }));
+        };
+        socket.on('admin_user_presence', onAdminUserPresence);
+        return () => {
+            socket.off('admin_user_presence', onAdminUserPresence);
+        };
+    }, [socket]);
+
+    useEffect(() => {
         if (!socket) return;
         const onCtx = (payload: { conversationId?: string }) => {
             const cid = selectedConversationIdRef.current;
@@ -1771,19 +1841,34 @@ export default function AdminDashboard() {
                                     <div className="p-8 text-center text-gray-500">No users yet.</div>
                                 ) : (
                                     <div className="divide-y divide-gray-100">
-                                        {users.map(user => (
+                                        {users.map(user => {
+                                            const uid = user._id != null ? String(user._id) : '';
+                                            const listPic = user.freelancerProfile?.profilePicture || user.clientProfile?.profilePicture;
+                                            const listInitial = (user.firstName?.[0] || user.email?.[0] || '?').toUpperCase();
+                                            const listOnline = uid ? (userPresenceById[uid] ?? !!user.isOnline) : false;
+                                            return (
                                             <div
                                                 key={user._id}
                                                 onClick={() => handleSelectUser(user)}
                                                 className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${selectedUser?._id === user._id ? 'bg-[#09BF44]/10 border-l-4 border-[#09BF44]' : ''}`}
                                             >
-                                                <p className="font-bold text-gray-900">{user.firstName} {user.lastName}</p>
-                                                <p className="text-sm text-gray-500 truncate">{user.email}</p>
-                                                <span className={`inline-block mt-1 px-2 py-0.5 rounded text-xs font-bold ${user.role === 'admin' ? 'bg-purple-100 text-purple-600' : user.role === 'freelancer' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                                                    {user.role}{user.role === 'freelancer' && user.freelancerProfile?.category ? ` · ${user.freelancerProfile.category}` : ''}
-                                                </span>
+                                                <div className="flex items-start gap-3">
+                                                    <AdminAvatarWithPresence
+                                                        src={listPic}
+                                                        initial={listInitial}
+                                                        alt={`${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email}
+                                                        online={listOnline}
+                                                    />
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="font-bold text-gray-900">{user.firstName} {user.lastName}</p>
+                                                        <p className="text-sm text-gray-500 truncate">{user.email}</p>
+                                                        <span className={`inline-block mt-1 px-2 py-0.5 rounded text-xs font-bold ${user.role === 'admin' ? 'bg-purple-100 text-purple-600' : user.role === 'freelancer' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                                                            {user.role}{user.role === 'freelancer' && user.freelancerProfile?.category ? ` · ${user.freelancerProfile.category}` : ''}
+                                                        </span>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        ))}
+                                        );})}
                                     </div>
                                 )}
                             </div>
@@ -2262,6 +2347,127 @@ export default function AdminDashboard() {
                                                     <MessageSquare className="w-3.5 h-3.5" /> Open buyer–seller chat
                                                 </button>
                                             </div>
+                                            {!offer && order.projectId && (
+                                                <div className="rounded-2xl border-2 border-[#09BF44]/40 bg-linear-to-br from-[#09BF44]/12 to-white p-5 space-y-3">
+                                                    <div className="flex flex-wrap items-center gap-2 justify-between gap-y-1">
+                                                        <p className="text-xs font-black uppercase tracking-wider text-[#09BF44] flex items-center gap-2">
+                                                            <ShoppingBag className="w-4 h-4 shrink-0" /> Bundle purchased
+                                                        </p>
+                                                        {(order.projectId.subCategory || order.projectId.category) && (
+                                                            <span className="text-xs font-bold text-gray-500">
+                                                                {order.projectId.subCategory || order.projectId.category}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex flex-wrap items-start gap-4">
+                                                        <span className="inline-flex items-center px-4 py-2.5 rounded-2xl bg-[#09BF44] text-white text-xl font-black shadow-md shadow-green-200/40 shrink-0">
+                                                            {order.packageType}
+                                                        </span>
+                                                        {(() => {
+                                                            const packages = order.projectId.packages || [];
+                                                            const pkg = packages.find((p: any) => p?.type === order.packageType);
+                                                            if (!pkg) {
+                                                                return (
+                                                                    <p className="text-sm text-gray-600 font-bold">
+                                                                        {order.amount} EGP · details not loaded for this package type
+                                                                    </p>
+                                                                );
+                                                            }
+                                                            return (
+                                                                <div className="text-sm min-w-0 flex-1">
+                                                                    <p className="font-black text-gray-900 text-base">{order.amount} EGP</p>
+                                                                    <p className="text-gray-700 font-bold mt-0.5">{pkg.days} days delivery</p>
+                                                                    {Array.isArray(pkg.features) && pkg.features.length > 0 && (
+                                                                        <ul className="mt-2 text-gray-700 text-sm list-disc pl-5 space-y-0.5 max-w-2xl">
+                                                                            {pkg.features.map((f: string, i: number) => (
+                                                                                <li key={i}>{f}</li>
+                                                                            ))}
+                                                                        </ul>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })()}
+                                                    </div>
+                                                    {order.projectId.title && (
+                                                        <p className="text-xs text-gray-600">
+                                                            Listing:{' '}
+                                                            <span className="font-bold text-gray-900">{order.projectId.title}</span>
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            )}
+                                            {offer && (
+                                                <div className="rounded-2xl border-2 border-violet-300 bg-violet-50/70 p-5 space-y-2">
+                                                    <p className="text-xs font-black uppercase tracking-wider text-violet-900 flex items-center gap-2">
+                                                        <FileText className="w-4 h-4 shrink-0" /> Custom offer (paid)
+                                                    </p>
+                                                    <p className="text-lg font-black text-gray-900">{order.amount} EGP</p>
+                                                    {offer.deliveryDate && (
+                                                        <p className="text-sm text-gray-800 font-bold">
+                                                            Delivery target: {formatDateDDMMYYYY(offer.deliveryDate)}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            )}
+                                            {(() => {
+                                                const clientBrief =
+                                                    typeof order.description === 'string' ? order.description.trim() : '';
+                                                const offerScope =
+                                                    typeof offer?.whatsIncluded === 'string' ? offer.whatsIncluded.trim() : '';
+                                                if (!clientBrief && !offerScope) {
+                                                    return (
+                                                        <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+                                                            <span className="font-bold text-gray-800">No stored brief. </span>
+                                                            There is no client requirements text and no offer scope text on this order.
+                                                        </div>
+                                                    );
+                                                }
+                                                const sameCopy = clientBrief && offerScope && clientBrief === offerScope;
+                                                return (
+                                                    <div className="rounded-2xl border border-gray-200 bg-gray-50/90 p-5 space-y-4">
+                                                        <h3 className="text-sm font-black text-gray-900 uppercase tracking-wide">
+                                                            Client brief and scope
+                                                        </h3>
+                                                        {sameCopy ? (
+                                                            <div className="rounded-xl bg-white border border-gray-100 p-4 min-w-0">
+                                                                <p className="text-[10px] font-black uppercase text-gray-400 mb-2">
+                                                                    {offer
+                                                                        ? 'Offer scope (same text on the order record)'
+                                                                        : 'Client requirements for this bundle'}
+                                                                </p>
+                                                                <p className="text-sm text-gray-800 whitespace-pre-wrap break-words overflow-wrap-anywhere min-w-0">
+                                                                    {clientBrief}
+                                                                </p>
+                                                            </div>
+                                                        ) : (
+                                                            <>
+                                                                {clientBrief && (
+                                                                    <div className="rounded-xl bg-white border border-gray-100 p-4 min-w-0">
+                                                                        <p className="text-[10px] font-black uppercase text-gray-400 mb-2">
+                                                                            {offer
+                                                                                ? 'Text on the order record'
+                                                                                : 'Client requirements for this bundle'}
+                                                                        </p>
+                                                                        <p className="text-sm text-gray-800 whitespace-pre-wrap break-words overflow-wrap-anywhere min-w-0">
+                                                                            {clientBrief}
+                                                                        </p>
+                                                                    </div>
+                                                                )}
+                                                                {offerScope && (
+                                                                    <div className="rounded-xl bg-white border border-gray-100 p-4 min-w-0">
+                                                                        <p className="text-[10px] font-black uppercase text-gray-400 mb-2">
+                                                                            {"What's included (accepted custom offer)"}
+                                                                        </p>
+                                                                        <p className="text-sm text-gray-800 whitespace-pre-wrap break-words overflow-wrap-anywhere min-w-0">
+                                                                            {offerScope}
+                                                                        </p>
+                                                                    </div>
+                                                                )}
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })()}
                                             <div className="grid sm:grid-cols-2 gap-4">
                                                 <div className="bg-gray-50 rounded-xl p-4">
                                                     <p className="text-xs font-bold text-gray-400 uppercase">Client</p>
@@ -3472,6 +3678,10 @@ export default function AdminDashboard() {
                                         const participant2Initial = participant2?.firstName?.[0]?.toUpperCase() || 'U';
                                         const p1Pic = participant1?.freelancerProfile?.profilePicture || participant1?.clientProfile?.profilePicture;
                                         const p2Pic = participant2?.freelancerProfile?.profilePicture || participant2?.clientProfile?.profilePicture;
+                                        const p1Id = participant1?._id != null ? String(participant1._id) : '';
+                                        const p2Id = participant2?._id != null ? String(participant2._id) : '';
+                                        const p1Online = p1Id ? (userPresenceById[p1Id] ?? !!participant1?.isOnline) : false;
+                                        const p2Online = p2Id ? (userPresenceById[p2Id] ?? !!participant2?.isOnline) : false;
                                         const participantNames = chat.kind === 'support' && participants.length >= 2
                                             ? `Engezhaly Team & ${participants.find((p: any) => !(p?.firstName === 'Engezhaly' && p?.lastName === 'Team'))?.firstName || 'User'}`
                                             : participants.length >= 2
@@ -3489,22 +3699,20 @@ export default function AdminDashboard() {
                                                 <div className="flex items-center gap-3 flex-1">
                                                     <div className="flex -space-x-2">
                                                         {participants.length > 0 && (
-                                                            p1Pic ? (
-                                                                <Image src={resolveMediaUrl(p1Pic)} alt="" width={40} height={40} className="w-10 h-10 rounded-full border-2 border-white object-cover" unoptimized />
-                                                            ) : (
-                                                                <div className="w-10 h-10 bg-blue-100 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold text-blue-600">
-                                                                    {participant1Initial}
-                                                                </div>
-                                                            )
+                                                            <AdminAvatarWithPresence
+                                                                src={p1Pic}
+                                                                initial={participant1Initial}
+                                                                online={p1Online}
+                                                                initialBgClass="bg-blue-100 text-blue-600"
+                                                            />
                                                         )}
                                                         {participants.length > 1 && (
-                                                            p2Pic ? (
-                                                                <Image src={resolveMediaUrl(p2Pic)} alt="" width={40} height={40} className="w-10 h-10 rounded-full border-2 border-white object-cover" unoptimized />
-                                                            ) : (
-                                                                <div className="w-10 h-10 bg-purple-100 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold text-purple-600">
-                                                                    {participant2Initial}
-                                                                </div>
-                                                            )
+                                                            <AdminAvatarWithPresence
+                                                                src={p2Pic}
+                                                                initial={participant2Initial}
+                                                                online={p2Online}
+                                                                initialBgClass="bg-purple-100 text-purple-600"
+                                                            />
                                                         )}
                                                     </div>
                                                     <div className="flex-1 min-w-0">
@@ -3553,12 +3761,17 @@ export default function AdminDashboard() {
                                         <div className="flex -space-x-2">
                                             {selectedChat.participants?.map((p: any, idx: number) => {
                                                 const pic = p?.freelancerProfile?.profilePicture || p?.clientProfile?.profilePicture;
-                                                return pic ? (
-                                                    <Image key={idx} src={resolveMediaUrl(pic)} alt="" width={40} height={40} className={`w-10 h-10 rounded-full border-2 border-white object-cover ${idx === 0 ? '' : ''}`} unoptimized />
-                                                ) : (
-                                                    <div key={idx} className={`w-10 h-10 ${idx === 0 ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'} rounded-full border-2 border-white flex items-center justify-center text-xs font-bold`}>
-                                                        {p?.firstName?.[0]?.toUpperCase() || 'U'}
-                                                    </div>
+                                                const pid = p?._id != null ? String(p._id) : '';
+                                                const pOnline = pid ? (userPresenceById[pid] ?? !!p.isOnline) : false;
+                                                const initialBg = idx === 0 ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600';
+                                                return (
+                                                    <AdminAvatarWithPresence
+                                                        key={pid || idx}
+                                                        src={pic}
+                                                        initial={p?.firstName?.[0]?.toUpperCase() || 'U'}
+                                                        online={pOnline}
+                                                        initialBgClass={initialBg}
+                                                    />
                                                 );
                                             })}
                                         </div>
@@ -3568,6 +3781,16 @@ export default function AdminDashboard() {
                                                     ? `Engezhaly Team & ${selectedChat.participants.find((p: any) => !(p?.firstName === 'Engezhaly' && p?.lastName === 'Team'))?.firstName || 'User'}`
                                                     : selectedChat.participants?.map((p: any) => p?.firstName).filter(Boolean).join(' & ') || 'Unknown Users'}
                                             </h3>
+                                            {selectedChat.participants && selectedChat.participants.length > 0 && (
+                                                <p className="text-xs text-gray-500 mt-0.5">
+                                                    {selectedChat.participants.map((p: any) => {
+                                                        const pid = p?._id != null ? String(p._id) : '';
+                                                        const on = pid ? (userPresenceById[pid] ?? !!p.isOnline) : false;
+                                                        const label = p?.firstName || 'User';
+                                                        return `${label}: ${on ? 'Online' : 'Offline'}`;
+                                                    }).join(' · ')}
+                                                </p>
+                                            )}
                                             {selectedChat.isFrozen && (
                                                 <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1 mt-1">
                                                     <Flag className="w-3 h-3" /> Frozen

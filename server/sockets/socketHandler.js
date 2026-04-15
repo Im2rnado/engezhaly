@@ -1,5 +1,13 @@
 const jwt = require('jsonwebtoken');
 const { usersInRoom } = require('../services/presence');
+const { ADMIN_CHATS_ROOM } = require('../services/chatContextRefresh');
+
+function userRoomMemberCount(io, userId) {
+    if (!userId) return 0;
+    const roomId = `user:${String(userId)}`;
+    const room = io.sockets?.adapter?.rooms?.get(roomId);
+    return room ? room.size : 0;
+}
 
 function getRoomId(conversationId) {
     return `conversation:${String(conversationId)}`;
@@ -24,9 +32,11 @@ module.exports = (io) => {
         // Join user-specific room for global notifications
         if (userId) {
             socket.join(`user:${userId}`);
+            if (userRole !== 'admin' && userRoomMemberCount(io, userId) === 1) {
+                io.to(ADMIN_CHATS_ROOM).emit('admin_user_presence', { userId: String(userId), online: true });
+            }
         }
         if (userId && userRole === 'admin') {
-            const { ADMIN_CHATS_ROOM } = require('../services/chatContextRefresh');
             socket.join(ADMIN_CHATS_ROOM);
         }
 
@@ -78,6 +88,11 @@ module.exports = (io) => {
 
         socket.on('disconnect', () => {
             if (userId) {
+                const wasLastInUserRoom =
+                    userRole !== 'admin' && userRoomMemberCount(io, userId) <= 1;
+                if (wasLastInUserRoom) {
+                    io.to(ADMIN_CHATS_ROOM).emit('admin_user_presence', { userId: String(userId), online: false });
+                }
                 socket.leave(`user:${userId}`);
                 usersInRoom.forEach((set, roomId) => {
                     if (set.has(userId)) {

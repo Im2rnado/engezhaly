@@ -147,6 +147,7 @@ const fulfillCharge = async (pendingCharge, app) => {
                 platformFee: orderPlatformFee,
                 status: 'active',
                 deliveryDate: orderDeliveryDate,
+                description: (offer.whatsIncluded && String(offer.whatsIncluded).trim()) || 'Custom offer',
                 revisions: revNum,
                 revisionsUnlimited: revUnlimited
             });

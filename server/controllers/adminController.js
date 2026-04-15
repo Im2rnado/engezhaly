@@ -191,6 +191,15 @@ const getActiveChats = async (req, res) => {
                 adminHasUnread = !readAt || new Date(lm.createdAt) > new Date(readAt);
             }
 
+            const participantsOut = participants.map((p) => {
+                const plain = p && typeof p.toObject === 'function' ? p.toObject() : { ...(p || {}) };
+                const id = plain._id;
+                return {
+                    ...plain,
+                    isOnline: id ? isUserOnline(req.app, id) : false
+                };
+            });
+
             return {
                 _id: conv._id,
                 kind: conv.kind || 'direct',
@@ -201,7 +210,7 @@ const getActiveChats = async (req, res) => {
                 createdAt: conv.createdAt,
                 adminLastReadAt: conv.adminLastReadAt,
                 adminHasUnread,
-                participants: participants,
+                participants: participantsOut,
                 // For backward compatibility
                 senderId: participant1,
                 receiverId: participant2
@@ -583,8 +592,12 @@ const searchUsersPartial = async (req, res) => {
 
 const getAllUsers = async (req, res) => {
     try {
-        const users = await User.find().select('-password +freelancerProfile.cvUrl').sort({ createdAt: -1 });
-        res.json(users);
+        const users = await User.find().select('-password +freelancerProfile.cvUrl').sort({ createdAt: -1 }).lean();
+        const withPresence = users.map((u) => ({
+            ...u,
+            isOnline: u._id ? isUserOnline(req.app, u._id) : false
+        }));
+        res.json(withPresence);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
@@ -808,7 +821,7 @@ const getAllOrders = async (req, res) => {
         const orders = await Order.find()
             .populate('buyerId', 'firstName lastName email username freelancerProfile.profilePicture')
             .populate('sellerId', 'firstName lastName email username freelancerProfile.profilePicture')
-            .populate('projectId', 'title description category')
+            .populate('projectId', 'title description category subCategory packages')
             .populate('offerId')
             .sort({ createdAt: -1 })
             .lean();
@@ -824,7 +837,7 @@ const getDisputedOrders = async (req, res) => {
         const orders = await Order.find({ status: 'disputed' })
             .populate('buyerId', 'firstName lastName email username phoneNumber freelancerProfile.profilePicture clientProfile.profilePicture')
             .populate('sellerId', 'firstName lastName email username freelancerProfile.profilePicture')
-            .populate('projectId', 'title description category')
+            .populate('projectId', 'title description category subCategory packages')
             .populate({ path: 'offerId', select: 'price milestones revisions revisionsUnlimited deliveryDate conversationId whatsIncluded' })
             .sort({ updatedAt: -1 })
             .lean();
