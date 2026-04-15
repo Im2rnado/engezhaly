@@ -19,6 +19,7 @@ const jwt = require('jsonwebtoken');
 const { sendAndLog } = require('../services/mailgunService');
 const { verification: verificationTemplate, passwordReset: passwordResetTemplate } = require('../templates/emailTemplates');
 const { isValidEgyptianE164 } = require('../utils/phoneValidation');
+const { getPasswordPolicyError } = require('../utils/passwordPolicy');
 
 const register = async (req, res) => {
     try {
@@ -40,6 +41,11 @@ const register = async (req, res) => {
         let user = await User.findOne({ $or: [{ email: emailRegex }, { username }] });
         if (user) {
             return res.status(400).json({ message: 'User with this email or username already exists' });
+        }
+
+        const pwdErr = getPasswordPolicyError(password);
+        if (pwdErr) {
+            return res.status(400).json({ message: pwdErr });
         }
 
         const salt = await bcrypt.genSalt(10);
@@ -349,8 +355,9 @@ const resetPassword = async (req, res) => {
         if (!token || !newPassword) {
             return res.status(400).json({ msg: 'Token and new password are required' });
         }
-        if (newPassword.length < 6) {
-            return res.status(400).json({ msg: 'Password must be at least 6 characters' });
+        const resetPwdErr = getPasswordPolicyError(newPassword);
+        if (resetPwdErr) {
+            return res.status(400).json({ msg: resetPwdErr });
         }
 
         const vt = await VerificationToken.findOne({ token, type: 'password_reset' });

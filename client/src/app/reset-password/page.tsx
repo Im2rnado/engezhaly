@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useModal } from '@/context/ModalContext';
+import { getPasswordPolicyError, PASSWORD_POLICY_HINT } from '@/lib/passwordPolicy';
 
 function ResetPasswordPageContent() {
     const router = useRouter();
@@ -26,8 +27,9 @@ function ResetPasswordPageContent() {
             setError('Invalid reset link');
             return;
         }
-        if (password.length < 6) {
-            setError('Password must be at least 6 characters');
+        const policyErr = getPasswordPolicyError(password);
+        if (policyErr) {
+            setError(policyErr);
             return;
         }
         if (password !== confirmPassword) {
@@ -72,7 +74,8 @@ function ResetPasswordPageContent() {
             </Link>
             <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full">
                 <h1 className="text-xl font-bold text-gray-900 mb-2 text-center">Reset Password</h1>
-                <p className="text-gray-500 text-sm text-center mb-6">Enter your new password below.</p>
+                <p className="text-gray-500 text-sm text-center mb-2">Enter your new password below.</p>
+                <p className="text-gray-500 text-xs text-center mb-6">{PASSWORD_POLICY_HINT}</p>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">{error}</div>}
                     <div>
@@ -83,9 +86,10 @@ function ResetPasswordPageContent() {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
-                                minLength={6}
+                                minLength={8}
+                                autoComplete="new-password"
                                 className="w-full p-3 pr-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#09BF44] focus:border-[#09BF44] outline-none text-gray-900"
-                                placeholder="At least 6 characters"
+                                placeholder="New password"
                             />
                             <button
                                 type="button"
@@ -103,7 +107,8 @@ function ResetPasswordPageContent() {
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             required
-                            minLength={6}
+                            minLength={8}
+                            autoComplete="new-password"
                             className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#09BF44] focus:border-[#09BF44] outline-none text-gray-900"
                             placeholder="Confirm your password"
                         />

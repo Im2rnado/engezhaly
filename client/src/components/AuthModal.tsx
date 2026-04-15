@@ -12,6 +12,7 @@ import DatePicker from '@/components/DatePicker';
 import ImageCropModal from '@/components/ImageCropModal';
 import VimeoStarterOfferEmbed from '@/components/VimeoStarterOfferEmbed';
 import RevisionsField from '@/components/RevisionsField';
+import { getPasswordPolicyError, PASSWORD_POLICY_HINT } from '@/lib/passwordPolicy';
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -220,7 +221,6 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
     if (!isOpen) return null;
 
     const validateUsername = (u: string) => !(u || '').includes(' ');
-    const validatePassword = (p: string) => (p || '').length >= 6;
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -228,8 +228,8 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
 
     const handleLoginSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!validatePassword(formData.password)) {
-            setError('Password must be at least 6 characters');
+        if (!formData.password?.trim()) {
+            setError('Please enter your password');
             return;
         }
         setLoading(true);
@@ -282,8 +282,9 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             setError('Username cannot contain spaces');
             return;
         }
-        if (!validatePassword(formData.password)) {
-            setError('Password must be at least 6 characters');
+        const signupPwdErr = getPasswordPolicyError(formData.password);
+        if (signupPwdErr) {
+            setError(signupPwdErr);
             return;
         }
         if (formData.businessType === 'company' && !formData.companyName?.trim()) {
@@ -359,8 +360,9 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             setError('Username cannot contain spaces');
             return;
         }
-        if (!validatePassword(formData.password)) {
-            setError('Password must be at least 6 characters');
+        const freelancerPwdErr = getPasswordPolicyError(formData.password);
+        if (freelancerPwdErr) {
+            setError(freelancerPwdErr);
             return;
         }
         if (!profilePicture) {
@@ -851,10 +853,11 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                     )}
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div className="relative">
-                                            <input name="password" type={showPassword ? "text" : "password"} placeholder="Password (min 6 chars)" required minLength={6} onChange={handleChange} value={formData.password} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400 pr-12" />
+                                            <input name="password" type={showPassword ? "text" : "password"} placeholder="Password" required minLength={8} autoComplete="new-password" onChange={handleChange} value={formData.password} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400 pr-12" />
                                             <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
                                                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                             </button>
+                                            <p className="text-xs text-gray-500 mt-1.5">{PASSWORD_POLICY_HINT}</p>
                                         </div>
                                         <select name="businessType" onChange={handleChange} value={formData.businessType} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900">
                                             <option value="personal">Personal</option>
@@ -965,11 +968,12 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                         <p className="text-xs text-gray-500 -mt-2">Egyptian mobile: exactly 11 digits starting with 01.</p>
                                     )}
                                     <div className="relative">
-                                        <input name="password" type={showPassword ? "text" : "password"} placeholder="Password (min 6 chars)" required minLength={6} onChange={handleChange} value={formData.password} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400 pr-12" />
+                                        <input name="password" type={showPassword ? "text" : "password"} placeholder="Password" required minLength={8} autoComplete="new-password" onChange={handleChange} value={formData.password} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400 pr-12" />
                                         <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
                                             {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                         </button>
                                     </div>
+                                    <p className="text-xs text-gray-500 -mt-2">{PASSWORD_POLICY_HINT}</p>
 
                                     {/* Profile Picture Upload */}
                                     <div>
