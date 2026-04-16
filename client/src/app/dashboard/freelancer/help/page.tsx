@@ -198,27 +198,39 @@ export default function FreelancerHelpPage() {
                         </div>
                     </section>
 
+                    <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm mb-8">
+                        <h2 className="text-xl md:text-2xl font-black text-gray-900 mb-2 flex items-center gap-2">
+                            <Video className="w-6 h-6 text-[#09BF44]" />
+                            Freelancer guide — video
+                        </h2>
+                        <p className="text-gray-600 text-sm md:text-base mb-5 max-w-3xl">
+                            Step-by-step walkthrough on how to use Engezhaly as a freelancer.
+                        </p>
+                        <div className="p-6">
+                            <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-gray-200 bg-black">
+                                <iframe
+                                    src="https://player.vimeo.com/video/1183454770?h=3c2270a5b2"
+                                    title="Freelancer guide"
+                                    allow="autoplay; fullscreen; picture-in-picture"
+                                    className="absolute inset-0 w-full h-full"
+                                    allowFullScreen
+                                />
+                            </div>
+                        </div>
+                    </section>
+
                     <section className="bg-white rounded-2xl border border-gray-200 p-6 md:p-8 shadow-sm mb-8">
                         <h2 className="text-xl md:text-2xl font-black text-gray-900 mb-2 flex items-center gap-2">
                             <Video className="w-6 h-6 text-[#09BF44]" />
                             Starter offer — video guide
                         </h2>
                         <p className="text-gray-600 text-sm md:text-base mb-5 max-w-3xl">
-                            Step-by-step walkthrough for building your first offer when you sign up (same video as in registration).
+                            Step-by-step walkthrough for building your first offer when you sign up.
                         </p>
-                        <div className="max-w-3xl">
-                            <VimeoStarterOfferEmbed title="" />
-                        </div>
-                    </section>
-
-                    <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm mb-8">
-                        <h2 className="text-lg font-bold text-gray-900 p-6 border-b border-gray-100">
-                            Freelancer guide — video
-                        </h2>
                         <div className="p-6">
                             <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-gray-200 bg-black">
                                 <iframe
-                                    src="https://player.vimeo.com/video/1183454770?h=3c2270a5b2"
+                                    src="https://player.vimeo.com/video/1182764212?badge=0&autopause=0&player_id=0&app_id=58479"
                                     title="Freelancer guide"
                                     allow="autoplay; fullscreen; picture-in-picture"
                                     className="absolute inset-0 w-full h-full"

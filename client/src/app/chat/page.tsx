@@ -1871,7 +1871,7 @@ function ChatPageContent() {
 
                                         return (
                                                 <div key={item.id} className={`flex w-full min-w-0 ${isMyOffer ? 'justify-end' : 'justify-start'}`}>
-                                                    <div className={`min-w-0 p-4 rounded-2xl md:rounded-3xl shadow-md relative w-full max-w-lg md:max-w-xl border-2 ${isMyOffer
+                                                    <div className={`min-w-0 p-4 rounded-2xl md:rounded-3xl shadow-md relative w-full max-w-lg md:max-w-xl border-2 overflow-x-hidden ${isMyOffer
                                                         ? 'bg-emerald-700 text-white border-emerald-800'
                                                         : 'bg-emerald-50/95 border-[#09BF44]/50 text-gray-900'
                                                     }`}>
@@ -1930,9 +1930,11 @@ function ChatPageContent() {
                                                                 <p className={`text-xs mb-2 ${isMyOffer ? 'opacity-90' : 'text-gray-500'}`}>For scheduling only—payment is the total above, once.</p>
                                                                 <ul className={`list-disc pl-5 space-y-1.5 text-sm min-w-0 overflow-x-hidden ${isMyOffer ? 'text-white/95' : 'text-gray-800'}`}>
                                                                     {offer.milestones.map((milestone: any, idx: number) => (
-                                                                        <li key={idx} className="break-words overflow-wrap-anywhere [overflow-wrap:anywhere] min-w-0">
+                                                                        <li key={idx} className="break-all overflow-wrap-anywhere [overflow-wrap:anywhere] min-w-0">
                                                                             <span className="font-bold">Milestone {idx + 1}:</span>{' '}
-                                                                            {milestone.name || '—'}
+                                                                            <span className="break-all overflow-wrap-anywhere [overflow-wrap:anywhere] inline">
+                                                                                {milestone.name || '—'}
+                                                                            </span>
                                                                             {milestone.dueDate && ` · Due ${formatDateDDMMYYYY(milestone.dueDate)}`}
                                                                         </li>
                                                                     ))}

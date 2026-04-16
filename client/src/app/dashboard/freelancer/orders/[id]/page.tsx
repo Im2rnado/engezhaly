@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useModal } from '@/context/ModalContext';
-import { Loader2, MessageSquare, PanelLeft, Flag, ArrowLeft } from 'lucide-react';
+import { Loader2, MessageSquare, PanelLeft, Flag, ArrowLeft, X } from 'lucide-react';
 import FreelancerSidebar from '@/components/FreelancerSidebar';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 import CountdownTimer from '@/components/CountdownTimer';
@@ -453,34 +453,36 @@ export default function FreelancerOrderDetailPage() {
 
             {milestoneSubmitIndex != null && (
                 <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
-                        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-                            <h3 className="text-lg font-bold text-gray-900">
-                                Submit phase: {offerMilestones?.[milestoneSubmitIndex]?.name || `Phase ${milestoneSubmitIndex + 1}`}
-                            </h3>
+                    <div className="bg-white p-6 rounded-3xl max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-xl font-bold text-gray-900">Submit Milestone</h2>
                             <button
                                 type="button"
                                 onClick={() => setMilestoneSubmitIndex(null)}
-                                className="text-gray-400 hover:text-gray-600"
+                                className="p-2 hover:bg-gray-100 rounded-full"
                                 disabled={milestoneSubmitting}
                             >
-                                ×
+                                <X className="w-5 h-5 text-gray-500" />
                             </button>
                         </div>
-                        <form onSubmit={handleSubmitMilestoneWork} className="space-y-4 p-6">
+                        <p className="text-sm font-medium text-gray-700 mb-4">
+                            {offerMilestones?.[milestoneSubmitIndex]?.name || `Phase ${milestoneSubmitIndex + 1}`}
+                        </p>
+
+                        <form onSubmit={handleSubmitMilestoneWork} className="space-y-3">
                             <textarea
                                 value={milestoneWork.message}
                                 onChange={(e) => setMilestoneWork((p) => ({ ...p, message: e.target.value }))}
-                                rows={4}
-                                className="w-full border rounded-xl px-4 py-3 text-sm text-gray-900"
-                                placeholder="Message / notes"
+                                rows={3}
+                                className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none resize-none"
+                                placeholder="Notes..."
                             />
                             <textarea
                                 value={milestoneWork.links}
                                 onChange={(e) => setMilestoneWork((p) => ({ ...p, links: e.target.value }))}
                                 rows={2}
-                                className="w-full border rounded-xl px-4 py-3 text-sm text-gray-900"
-                                placeholder="Links (comma or new line)"
+                                className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none resize-none"
+                                placeholder="Links..."
                             />
                             <input
                                 type="file"
@@ -489,13 +491,14 @@ export default function FreelancerOrderDetailPage() {
                                 className="w-full text-sm"
                             />
                             {milestoneUploadProgress !== null && milestoneWork.files.length > 0 && (
-                                <p className="text-xs text-[#09BF44] font-bold">Uploading… {milestoneUploadProgress}%</p>
+                                <p className="text-xs font-bold text-[#09BF44]">Uploading… {milestoneUploadProgress}%</p>
                             )}
-                            <div className="flex justify-end gap-2">
+
+                            <div className="flex gap-3 pt-2">
                                 <button
                                     type="button"
                                     onClick={() => setMilestoneSubmitIndex(null)}
-                                    className="px-4 py-2 rounded-xl bg-gray-100 font-bold"
+                                    className="flex-1 bg-gray-100 font-bold py-3 rounded-xl"
                                     disabled={milestoneSubmitting}
                                 >
                                     Cancel
@@ -503,10 +506,10 @@ export default function FreelancerOrderDetailPage() {
                                 <button
                                     type="submit"
                                     disabled={milestoneSubmitting}
-                                    className="px-5 py-2 rounded-xl bg-[#09BF44] text-white font-bold flex items-center gap-2"
+                                    className="flex-1 bg-[#09BF44] text-white font-bold py-3 rounded-xl flex justify-center gap-2"
                                 >
                                     {milestoneSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                                    Submit phase
+                                    Submit
                                 </button>
                             </div>
                         </form>
@@ -516,27 +519,33 @@ export default function FreelancerOrderDetailPage() {
 
             {workOpen && (
                 <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
-                        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-                            <h3 className="text-lg font-bold text-gray-900">Submit work</h3>
-                            <button type="button" onClick={() => setWorkOpen(false)} className="text-gray-400 hover:text-gray-600" disabled={submittingWork}>
-                                ×
+                    <div className="bg-white p-8 rounded-3xl max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-2xl font-bold text-gray-900">
+                                Submit Work: {order?.projectId?.title || (order?.offerId ? 'Custom offer' : 'Order')}
+                            </h2>
+                            <button
+                                type="button"
+                                onClick={() => setWorkOpen(false)}
+                                className="p-2 hover:bg-gray-100 rounded-full"
+                                disabled={submittingWork}
+                            >
+                                <X className="w-5 h-5 text-gray-500" />
                             </button>
                         </div>
-                        <form onSubmit={handleSubmitWork} className="space-y-4 p-6">
+
+                        <form onSubmit={handleSubmitWork} className="space-y-4">
                             <textarea
                                 value={workSubmission.message}
                                 onChange={(e) => setWorkSubmission((p) => ({ ...p, message: e.target.value }))}
-                                rows={4}
-                                className="w-full border rounded-xl px-4 py-3 text-sm text-gray-900"
-                                placeholder="Message / notes"
+                                className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none h-28 resize-none"
+                                placeholder="Describe what you completed..."
                             />
                             <textarea
                                 value={workSubmission.links}
                                 onChange={(e) => setWorkSubmission((p) => ({ ...p, links: e.target.value }))}
-                                rows={2}
-                                className="w-full border rounded-xl px-4 py-3 text-sm text-gray-900"
-                                placeholder="Links (comma or new line)"
+                                className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none h-24 resize-none"
+                                placeholder="Links..."
                             />
                             <input
                                 type="file"
@@ -545,11 +554,23 @@ export default function FreelancerOrderDetailPage() {
                                 className="w-full text-sm"
                             />
                             {uploadProgress !== null && workSubmission.files.length > 0 && (
-                                <p className="text-xs text-[#09BF44] font-bold">Uploading… {uploadProgress}%</p>
+                                <p className="text-xs font-bold text-[#09BF44]">Uploading… {uploadProgress}%</p>
                             )}
-                            <div className="flex justify-end gap-2">
-                                <button type="button" onClick={() => setWorkOpen(false)} className="px-4 py-2 rounded-xl bg-gray-100 font-bold" disabled={submittingWork}>Cancel</button>
-                                <button type="submit" disabled={submittingWork} className="px-5 py-2 rounded-xl bg-[#09BF44] text-white font-bold flex items-center gap-2">
+
+                            <div className="flex gap-4 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setWorkOpen(false)}
+                                    className="flex-1 bg-gray-100 font-bold p-3 rounded-xl"
+                                    disabled={submittingWork}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={submittingWork}
+                                    className="flex-1 bg-[#09BF44] text-white font-bold p-3 rounded-xl flex justify-center gap-2"
+                                >
                                     {submittingWork && <Loader2 className="w-4 h-4 animate-spin" />}
                                     Submit
                                 </button>
