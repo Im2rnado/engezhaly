@@ -235,7 +235,7 @@ function AdminChatMergedFeed({ messages, offers, selectedChat }: { messages: any
                                 <p className="text-xs text-gray-500 mb-3">
                                     From {from?.firstName || '—'} {from?.lastName || ''} → {to?.firstName || '—'} {to?.lastName || ''}
                                 </p>
-                                <div className="space-y-3 mb-2 text-gray-700">
+                                <div className="space-y-3 mb-2 text-gray-700 overflow-x-hidden">
                                     <div className="flex items-center justify-between rounded-xl p-3 bg-gray-50">
                                         <span className="text-sm font-bold shrink-0">Price:</span>
                                         <span className="text-lg font-black truncate ml-2">{offer.price} EGP</span>
@@ -263,9 +263,16 @@ function AdminChatMergedFeed({ messages, offers, selectedChat }: { messages: any
                                             <p className="text-sm font-bold mb-1 text-gray-900">Delivery milestones</p>
                                             <p className="text-xs text-gray-500 mb-2">For scheduling only—payment is the total above, once.</p>
                                             {offer.milestones.map((milestone: any, idx: number) => (
-                                                <div key={idx} className="text-xs mb-1.5 text-gray-700">
-                                                    {milestone.name}
-                                                    {milestone.dueDate && ` · Due ${formatDateDDMMYYYY(milestone.dueDate)}`}
+                                                <div
+                                                    key={idx}
+                                                    className="text-xs mb-1.5 text-gray-700 break-all overflow-wrap-anywhere min-w-0 whitespace-pre-wrap"
+                                                >
+                                                    <span className="break-all overflow-wrap-anywhere min-w-0">{milestone.name}</span>
+                                                    {milestone.dueDate && (
+                                                        <span className="break-all overflow-wrap-anywhere min-w-0">
+                                                            {' '}· Due {formatDateDDMMYYYY(milestone.dueDate)}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             ))}
                                         </div>
@@ -1847,28 +1854,29 @@ export default function AdminDashboard() {
                                             const listInitial = (user.firstName?.[0] || user.email?.[0] || '?').toUpperCase();
                                             const listOnline = uid ? (userPresenceById[uid] ?? !!user.isOnline) : false;
                                             return (
-                                            <div
-                                                key={user._id}
-                                                onClick={() => handleSelectUser(user)}
-                                                className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${selectedUser?._id === user._id ? 'bg-[#09BF44]/10 border-l-4 border-[#09BF44]' : ''}`}
-                                            >
-                                                <div className="flex items-start gap-3">
-                                                    <AdminAvatarWithPresence
-                                                        src={listPic}
-                                                        initial={listInitial}
-                                                        alt={`${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email}
-                                                        online={listOnline}
-                                                    />
-                                                    <div className="min-w-0 flex-1">
-                                                        <p className="font-bold text-gray-900">{user.firstName} {user.lastName}</p>
-                                                        <p className="text-sm text-gray-500 truncate">{user.email}</p>
-                                                        <span className={`inline-block mt-1 px-2 py-0.5 rounded text-xs font-bold ${user.role === 'admin' ? 'bg-purple-100 text-purple-600' : user.role === 'freelancer' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                                                            {user.role}{user.role === 'freelancer' && user.freelancerProfile?.category ? ` · ${user.freelancerProfile.category}` : ''}
-                                                        </span>
+                                                <div
+                                                    key={user._id}
+                                                    onClick={() => handleSelectUser(user)}
+                                                    className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${selectedUser?._id === user._id ? 'bg-[#09BF44]/10 border-l-4 border-[#09BF44]' : ''}`}
+                                                >
+                                                    <div className="flex items-start gap-3">
+                                                        <AdminAvatarWithPresence
+                                                            src={listPic}
+                                                            initial={listInitial}
+                                                            alt={`${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email}
+                                                            online={listOnline}
+                                                        />
+                                                        <div className="min-w-0 flex-1">
+                                                            <p className="font-bold text-gray-900">{user.firstName} {user.lastName}</p>
+                                                            <p className="text-sm text-gray-500 truncate">{user.email}</p>
+                                                            <span className={`inline-block mt-1 px-2 py-0.5 rounded text-xs font-bold ${user.role === 'admin' ? 'bg-purple-100 text-purple-600' : user.role === 'freelancer' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                                                                {user.role}{user.role === 'freelancer' && user.freelancerProfile?.category ? ` · ${user.freelancerProfile.category}` : ''}
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        );})}
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>
@@ -1989,9 +1997,8 @@ export default function AdminDashboard() {
                                             <p className="text-gray-600 mb-4">{project.description || '—'}</p>
                                             <div className="flex flex-wrap items-center gap-2 mb-4">
                                                 <span
-                                                    className={`text-xs font-black px-2 py-1 rounded-full ${
-                                                        project.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
-                                                    }`}
+                                                    className={`text-xs font-black px-2 py-1 rounded-full ${project.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+                                                        }`}
                                                 >
                                                     {project.isActive ? 'Active listing' : 'Inactive'}
                                                 </span>
@@ -2105,15 +2112,14 @@ export default function AdminDashboard() {
                                         className="text-left bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:border-[#09BF44]/50 hover:shadow-md transition-all w-full"
                                     >
                                         <span
-                                            className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
-                                                job.status === 'open'
+                                            className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${job.status === 'open'
                                                     ? 'bg-green-100 text-green-700'
                                                     : job.status === 'in_progress'
-                                                      ? 'bg-blue-100 text-blue-700'
-                                                      : job.status === 'completed'
-                                                        ? 'bg-purple-100 text-purple-700'
-                                                        : 'bg-gray-100 text-gray-600'
-                                            }`}
+                                                        ? 'bg-blue-100 text-blue-700'
+                                                        : job.status === 'completed'
+                                                            ? 'bg-purple-100 text-purple-700'
+                                                            : 'bg-gray-100 text-gray-600'
+                                                }`}
                                         >
                                             {job.status}
                                         </span>
