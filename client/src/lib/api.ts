@@ -61,6 +61,18 @@ export const api = {
                 throw err;
             }
         },
+        checkAvailability: async (data: { username?: string; email?: string }) => {
+            const res = await fetch(`${API_URL}/auth/check-availability`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data || {})
+            });
+            const result = await res.json();
+            if (!res.ok) {
+                throw new Error(result?.message || result?.msg || 'Failed to validate availability');
+            }
+            return result;
+        },
         login: async (data: any) => {
             const res = await fetch(`${API_URL}/auth/login`, {
                 method: 'POST',

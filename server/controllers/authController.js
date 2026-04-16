@@ -225,6 +225,40 @@ const register = async (req, res) => {
     }
 };
 
+// Used by signup UI to validate username/email availability per step.
+// Expects JSON body: { username?: string, email?: string }
+const checkAvailability = async (req, res) => {
+    try {
+        const username = (req.body?.username || req.query?.username || '').toString().trim();
+        const emailNorm = (req.body?.email || req.query?.email || '').toString().trim().toLowerCase();
+
+        if (!username && !emailNorm) {
+            return res.status(400).json({ message: 'Username or email is required' });
+        }
+
+        const emailRegex = emailNorm
+            ? new RegExp(`^${emailNorm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i')
+            : null;
+
+        const [emailUser, usernameUser] = await Promise.all([
+            emailRegex ? User.findOne({ email: emailRegex }).select('_id').lean() : Promise.resolve(null),
+            username ? User.findOne({ username }).select('_id').lean() : Promise.resolve(null)
+        ]);
+
+        const emailExists = !!emailUser;
+        const usernameExists = !!usernameUser;
+
+        res.json({
+            exists: emailExists || usernameExists,
+            emailExists,
+            usernameExists
+        });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
 const login = async (req, res) => {
     try {
         const { identifier, password } = req.body;
@@ -383,6 +417,7 @@ const resetPassword = async (req, res) => {
 
 module.exports = {
     register,
+    checkAvailability,
     login,
     verifyEmail,
     forgotPassword,

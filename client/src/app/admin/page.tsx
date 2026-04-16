@@ -2498,9 +2498,15 @@ export default function AdminDashboard() {
                                             {offer?.milestones?.length > 0 && (
                                                 <div>
                                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Offer milestones</h4>
-                                                    <ul className="space-y-2">
+                                                    <ul className="space-y-2 min-w-0">
                                                         {offer.milestones.map((m: any, i: number) => (
-                                                            <li key={i} className="bg-gray-50 rounded-xl p-3 text-sm">{m.name} {m.dueDate ? `· ${formatDateDDMMYYYY(m.dueDate)}` : ''}</li>
+                                                            <li
+                                                                key={i}
+                                                                className="bg-gray-50 rounded-xl p-3 text-sm break-words overflow-wrap-anywhere min-w-0 whitespace-pre-wrap"
+                                                            >
+                                                                <span className="break-words overflow-wrap-anywhere min-w-0">{m.name}</span>{' '}
+                                                                {m.dueDate ? `· ${formatDateDDMMYYYY(m.dueDate)}` : ''}
+                                                            </li>
                                                         ))}
                                                     </ul>
                                                 </div>
@@ -2659,9 +2665,15 @@ export default function AdminDashboard() {
                                 {selectedDispute.offerId?.milestones?.length > 0 && (
                                     <div>
                                         <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Milestones (offer)</h4>
-                                        <ul className="space-y-2">
+                                        <ul className="space-y-2 min-w-0">
                                             {selectedDispute.offerId.milestones.map((m: any, i: number) => (
-                                                <li key={i} className="bg-gray-50 rounded-xl p-3 text-sm">{m.name}{m.dueDate ? ` · ${formatDateDDMMYYYY(m.dueDate)}` : ''}</li>
+                                                <li
+                                                    key={i}
+                                                    className="bg-gray-50 rounded-xl p-3 text-sm break-words overflow-wrap-anywhere min-w-0 whitespace-pre-wrap"
+                                                >
+                                                    <span className="break-words overflow-wrap-anywhere min-w-0">{m.name}</span>
+                                                    {m.dueDate ? ` · ${formatDateDDMMYYYY(m.dueDate)}` : ''}
+                                                </li>
                                             ))}
                                         </ul>
                                     </div>

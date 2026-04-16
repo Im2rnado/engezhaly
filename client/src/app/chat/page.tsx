@@ -469,7 +469,9 @@ function ChatPageContent() {
     // Freelancer: fetch pending_approval order for this chat partner
     useEffect(() => {
         const stored = JSON.parse(localStorage.getItem('user') || '{}');
-        if (stored.role !== 'freelancer' || !activeChat?.partnerId || !conversationId) {
+        // This action should be available even when `conversationId` is not yet created
+        // (e.g. pendingNew chats / bundle purchase flow). We only need partnerId + order data.
+        if (stored.role !== 'freelancer' || !activeChat?.partnerId) {
             setPendingOrderForChat(null);
             return;
         }
@@ -480,7 +482,7 @@ function ChatPageContent() {
             );
             setPendingOrderForChat(pending || null);
         }).catch(() => setPendingOrderForChat(null));
-    }, [conversationId, activeChat?.partnerId, activeChat?.id]);
+    }, [activeChat?.partnerId, activeChat?.id]);
 
     // Freelancer: in-progress job with this client (chat banner)
     useEffect(() => {
@@ -1918,7 +1920,7 @@ function ChatPageContent() {
                                                         </div>
                                                         <div className={`pt-3 border-t min-w-0 ${isMyOffer ? 'border-white/20' : 'border-gray-200'}`}>
                                                             <p className="text-sm font-bold mb-2">What&apos;s Included:</p>
-                                                            <div className={`text-sm leading-relaxed max-h-48 overflow-y-auto break-words [overflow-wrap:anywhere] ${isMyOffer ? '' : 'text-gray-800'}`}>
+                                                            <div className={`text-sm leading-relaxed max-h-48 overflow-y-auto overflow-x-hidden break-words [overflow-wrap:anywhere] ${isMyOffer ? '' : 'text-gray-800'}`}>
                                                                 {offer.whatsIncluded}
                                                             </div>
                                                         </div>
@@ -1926,9 +1928,9 @@ function ChatPageContent() {
                                                             <div className={`pt-3 border-t min-w-0 ${isMyOffer ? 'border-white/20' : 'border-gray-200'}`}>
                                                                 <p className={`text-sm font-bold mb-1 ${isMyOffer ? '' : 'text-gray-900'}`}>Delivery milestones</p>
                                                                 <p className={`text-xs mb-2 ${isMyOffer ? 'opacity-90' : 'text-gray-500'}`}>For scheduling only—payment is the total above, once.</p>
-                                                                <ul className={`list-disc pl-5 space-y-1.5 text-sm min-w-0 ${isMyOffer ? 'text-white/95' : 'text-gray-800'}`}>
+                                                                <ul className={`list-disc pl-5 space-y-1.5 text-sm min-w-0 overflow-x-hidden ${isMyOffer ? 'text-white/95' : 'text-gray-800'}`}>
                                                                     {offer.milestones.map((milestone: any, idx: number) => (
-                                                                        <li key={idx} className="break-words [overflow-wrap:anywhere]">
+                                                                        <li key={idx} className="break-words overflow-wrap-anywhere [overflow-wrap:anywhere] min-w-0">
                                                                             <span className="font-bold">Milestone {idx + 1}:</span>{' '}
                                                                             {milestone.name || '—'}
                                                                             {milestone.dueDate && ` · Due ${formatDateDDMMYYYY(milestone.dueDate)}`}

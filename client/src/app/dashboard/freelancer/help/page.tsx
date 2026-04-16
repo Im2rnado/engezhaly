@@ -211,6 +211,23 @@ export default function FreelancerHelpPage() {
                         </div>
                     </section>
 
+                    <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm mb-8">
+                        <h2 className="text-lg font-bold text-gray-900 p-6 border-b border-gray-100">
+                            Freelancer guide — video
+                        </h2>
+                        <div className="p-6">
+                            <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-gray-200 bg-black">
+                                <iframe
+                                    src="https://player.vimeo.com/video/1183454770?h=3c2270a5b2"
+                                    title="Freelancer guide"
+                                    allow="autoplay; fullscreen; picture-in-picture"
+                                    className="absolute inset-0 w-full h-full"
+                                    allowFullScreen
+                                />
+                            </div>
+                        </div>
+                    </section>
+
                     <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
                         <h2 className="text-lg font-bold text-gray-900 p-6 border-b border-gray-100">
                             Frequently Asked Questions

@@ -287,6 +287,23 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             setError(signupPwdErr);
             return;
         }
+        // Step validation: avoid ending up at the final submit with "username/email already exists".
+        try {
+            const availability = await api.auth.checkAvailability({
+                username: formData.username,
+                email: formData.email
+            });
+            if (availability?.usernameExists) {
+                setError('Username already exists');
+                return;
+            }
+            if (availability?.emailExists) {
+                setError('Email already exists');
+                return;
+            }
+        } catch {
+            // If availability check fails (network/server), fall back to the server validation on final submit.
+        }
         if (formData.businessType === 'company' && !formData.companyName?.trim()) {
             setError('Company name is required for company accounts');
             return;
@@ -350,7 +367,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
         }
     };
 
-    const handleFreelancerStep1Submit = (e: React.FormEvent) => {
+    const handleFreelancerStep1Submit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!validatePhone(formData.phoneNumber, formData.phoneCountryCode as import('libphonenumber-js').CountryCode)) {
             setError('Please enter a valid phone number for the selected country');
@@ -364,6 +381,27 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
         if (freelancerPwdErr) {
             setError(freelancerPwdErr);
             return;
+        }
+        // Step validation: check uniqueness early (prevents error only at the end).
+        setLoading(true);
+        setError('');
+        try {
+            const availability = await api.auth.checkAvailability({
+                username: formData.username,
+                email: formData.email
+            });
+            if (availability?.usernameExists) {
+                setError('Username already exists');
+                return;
+            }
+            if (availability?.emailExists) {
+                setError('Email already exists');
+                return;
+            }
+        } catch {
+            // If check fails, proceed with the existing server-side final validation.
+        } finally {
+            setLoading(false);
         }
         if (!profilePicture) {
             setError('Profile picture is required. Please upload a photo that clearly shows your face.');

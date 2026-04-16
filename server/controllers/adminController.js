@@ -186,9 +186,16 @@ const getActiveChats = async (req, res) => {
                 lm &&
                 (lm.isAdmin || (typeof lm.content === 'string' && lm.content.includes('[Engezhaly Admin]')));
             let adminHasUnread = false;
-            if (lm && lm.createdAt && !lastIsAdminSide) {
-                const readAt = conv.adminLastReadAt;
-                adminHasUnread = !readAt || new Date(lm.createdAt) > new Date(readAt);
+            const readAt = conv.adminLastReadAt;
+            if (lm && lm.createdAt) {
+                // Standard case: unread depends on actual last message timestamp.
+                if (!lastIsAdminSide) {
+                    adminHasUnread = !readAt || new Date(lm.createdAt) > new Date(readAt);
+                }
+            } else {
+                // Fallback case: some events (e.g. offer previews) may update `lastMessage`
+                // but keep `lastMessageId` null. In that case, rely on conversation `updatedAt`.
+                adminHasUnread = !readAt || new Date(conv.updatedAt) > new Date(readAt);
             }
 
             const participantsOut = participants.map((p) => {
@@ -681,7 +688,8 @@ const deductUserBalance = async (req, res) => {
         await Transaction.create({
             userId: user._id,
             type: 'withdrawal',
-            amount: amountNum,
+            // Client UI treats positive amounts as credits and negative amounts as debits.
+            amount: -amountNum,
             description: 'Admin deduction',
             status: 'completed',
             paymentMethod: 'wallet',
