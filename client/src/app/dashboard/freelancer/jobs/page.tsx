@@ -259,8 +259,8 @@ export default function MyJobsPage() {
                                             </div>
                                         )}
                                         <div className="flex justify-between items-start gap-4">
-                                            <div className="min-w-0">
-                                                <h3 className="text-xl font-bold text-gray-900">{job.title}</h3>
+                                            <div className="min-w-0 overflow-hidden">
+                                                <h3 className="text-xl font-bold text-gray-900 break-words [overflow-wrap:anywhere]">{job.title}</h3>
                                                 <p className="text-sm text-gray-500 mt-1">
                                                     Client: {job.clientId?.firstName} {job.clientId?.lastName}
                                                     {acceptedAndActive && deliveryIso
@@ -413,8 +413,8 @@ export default function MyJobsPage() {
                 {workJob && (
                     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
                         <div className="bg-white p-8 rounded-3xl max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto">
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-2xl font-bold text-gray-900">Submit Work: {workJob.title}</h2>
+                            <div className="flex items-start justify-between mb-6 gap-3">
+                                <h2 className="text-2xl font-bold text-gray-900 break-words [overflow-wrap:anywhere] min-w-0 flex-1">Submit Work: {workJob.title}</h2>
                                 <button
                                     onClick={() => setWorkJob(null)}
                                     className="p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -505,7 +505,7 @@ export default function MyJobsPage() {
                                     <X className="w-5 h-5 text-gray-500" />
                                 </button>
                             </div>
-                            <p className="text-sm text-gray-600 mb-1 font-medium">
+                            <p className="text-sm text-gray-600 mb-1 font-medium break-words [overflow-wrap:anywhere]">
                                 {milestoneSubmitModal.job.myProposal?.milestones?.[milestoneSubmitModal.milestoneIdx]?.name}
                             </p>
                             <p className="text-xs text-gray-500 mb-4">The client will be notified but cannot approve/release payment for this milestone individually. Full payment is released at the end.</p>

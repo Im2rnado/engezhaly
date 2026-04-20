@@ -389,8 +389,6 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
-            <div className="hidden md:block absolute top-1/4 left-1/6 right-1/6 h-1 bg-gray-200 z-0"></div>
-
             {[
               { icon: Search, title: "1. Find Your Match", desc: "Browse vetted freelancers by category, reviews, and price. Or post a job and let them come to you." },
               { icon: CheckCircle2, title: "2. Create Your Deal", desc: "Chat directly, customize your offer, or bud a bundle deal and pay securely. We hold your money until you’re satisfied." },
@@ -404,24 +402,6 @@ export default function Home() {
                 <p className="text-gray-600 font-medium px-4">{step.desc}</p>
               </motion.div>
             ))}
-          </div>
-
-          <div className="mt-12 md:mt-14 bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="p-6 md:p-8">
-              <h3 className="text-xl md:text-2xl font-black text-gray-900 mb-2">Client guide — video</h3>
-              <p className="text-gray-600 font-medium mb-6 max-w-2xl">
-                Quick walkthrough for clients: choose a bundle, start a chat, review the offer, and approve work through Engezhaly.
-              </p>
-              <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-gray-200 bg-black">
-                <iframe
-                  src="https://player.vimeo.com/video/1183454885?h=2b3c71cb0e"
-                  title="Client guide"
-                  className="absolute inset-0 w-full h-full"
-                  allow="autoplay; fullscreen; picture-in-picture"
-                  allowFullScreen
-                />
-              </div>
-            </div>
           </div>
         </div>
       </section>

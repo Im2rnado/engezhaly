@@ -406,8 +406,8 @@ function JobsPageContent() {
             {applyJob && user?.role === 'freelancer' && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
                     <div className="bg-white text-gray-900 p-8 rounded-3xl max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto">
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-2xl font-bold text-gray-900">Apply to {applyJob.title}</h2>
+                        <div className="flex items-start justify-between mb-6 gap-3">
+                            <h2 className="text-2xl font-bold text-gray-900 break-words [overflow-wrap:anywhere] min-w-0 flex-1">Apply to {applyJob.title}</h2>
                             <button
                                 onClick={() => {
                                     setApplyJob(null);
