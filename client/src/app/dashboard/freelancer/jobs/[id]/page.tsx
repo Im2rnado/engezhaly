@@ -254,8 +254,8 @@ export default function FreelancerJobDetailPage() {
                         </div>
                     )}
 
-                    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-8">
-                        <h1 className="text-2xl md:text-3xl font-black text-gray-900">{job.title}</h1>
+                    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-8 min-w-0">
+                        <h1 className="text-2xl md:text-3xl font-black text-gray-900 break-words [overflow-wrap:anywhere]">{job.title}</h1>
                         <p className="text-sm text-gray-500 mt-2">
                             Client: {job.clientId?.firstName} {job.clientId?.lastName}
                             {showDeliveryWorkspace && inProgressDeliveryDeadline
@@ -264,7 +264,7 @@ export default function FreelancerJobDetailPage() {
                                   ? ` • Client timeline: ${job.deadline}`
                                   : ""}
                         </p>
-                        <p className="text-gray-700 mt-4 whitespace-pre-wrap">{job.description}</p>
+                        <p className="text-gray-700 mt-4 whitespace-pre-wrap break-words [overflow-wrap:anywhere] min-w-0">{job.description}</p>
 
                         {myProposal && (
                             <div className="mt-5 text-sm text-gray-600 space-y-1">
@@ -280,12 +280,12 @@ export default function FreelancerJobDetailPage() {
                         )}
 
                         {myProposal?.message?.trim() && (
-                            <div className="mt-5 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                            <div className="mt-5 p-4 bg-gray-50 rounded-xl border border-gray-100 min-w-0">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <MessageSquare className="w-4 h-4 text-gray-500" />
+                                    <MessageSquare className="w-4 h-4 text-gray-500 shrink-0" />
                                     <span className="text-sm font-bold text-gray-800">Your proposal message</span>
                                 </div>
-                                <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{myProposal.message}</p>
+                                <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{myProposal.message}</p>
                             </div>
                         )}
 
@@ -503,9 +503,9 @@ export default function FreelancerJobDetailPage() {
             {workOpen && (
                 <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
                     <div className="bg-white p-8 rounded-3xl max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto">
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-2xl font-bold text-gray-900">Submit Work: {job.title}</h2>
-                            <button type="button" onClick={() => setWorkOpen(false)} className="p-2 hover:bg-gray-100 rounded-full" disabled={submittingWork}>
+                        <div className="flex items-start justify-between mb-6 gap-3">
+                            <h2 className="text-2xl font-bold text-gray-900 break-words [overflow-wrap:anywhere] min-w-0 flex-1">Submit Work: {job.title}</h2>
+                            <button type="button" onClick={() => setWorkOpen(false)} className="p-2 hover:bg-gray-100 rounded-full shrink-0" disabled={submittingWork}>
                                 <X className="w-5 h-5 text-gray-500" />
                             </button>
                         </div>
@@ -554,7 +554,7 @@ export default function FreelancerJobDetailPage() {
                                 <X className="w-5 h-5 text-gray-500" />
                             </button>
                         </div>
-                        <p className="text-sm font-medium text-gray-700 mb-4">{myProposal.milestones[milestoneSubmitModal.milestoneIdx].name}</p>
+                        <p className="text-sm font-medium text-gray-700 mb-4 break-words [overflow-wrap:anywhere]">{myProposal.milestones[milestoneSubmitModal.milestoneIdx].name}</p>
                         <div className="space-y-3">
                             <textarea
                                 value={milestoneWork.message}

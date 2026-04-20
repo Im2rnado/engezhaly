@@ -311,15 +311,15 @@ export default function FreelancerOrderDetailPage() {
                                     {offerMilestones.map((m: any, i: number) => {
                                         const sub = getMilestoneSubmission(i);
                                         return (
-                                            <li key={i} className="rounded-xl border border-gray-100 bg-gray-50 p-3 break-words [overflow-wrap:anywhere] min-w-0 space-y-2 overflow-hidden">
-                                                <div className="flex flex-wrap items-start justify-between gap-2">
-                                                    <div>
-                                                        <span className="font-bold text-gray-900 break-words overflow-wrap-anywhere whitespace-pre-wrap">{m.name}</span>
+                                            <li key={i} className="rounded-xl border border-gray-100 bg-gray-50 p-3 min-w-0 space-y-2 overflow-hidden">
+                                                <div className="flex flex-wrap items-start justify-between gap-2 min-w-0">
+                                                    <div className="min-w-0 flex-1">
+                                                        <span className="font-bold text-gray-900 break-words [overflow-wrap:anywhere]">{m.name}</span>
                                                         {m.price != null && m.price > 0 && (
                                                             <span className="text-[#09BF44] font-bold ml-2">{m.price} EGP</span>
                                                         )}
                                                         {m.dueDate && (
-                                                            <span className="text-gray-500 ml-2 break-words overflow-wrap-anywhere">· Due {formatDateDDMMYYYY(m.dueDate)}</span>
+                                                            <span className="text-gray-500 ml-2 break-words [overflow-wrap:anywhere]">· Due {formatDateDDMMYYYY(m.dueDate)}</span>
                                                         )}
                                                     </div>
                                                     {order.status === 'active' && (

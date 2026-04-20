@@ -402,9 +402,9 @@ function JobDetailPageContent() {
                                                         m.status === 'submitted' ||
                                                         m.status === 'done';
                                                     return (
-                                                        <li key={mi} className="rounded-xl border border-indigo-100 bg-white/90 p-3">
-                                                            <div className="flex flex-wrap items-baseline justify-between gap-2">
-                                                                <span className="font-bold text-gray-900">{m.name || `Milestone ${mi + 1}`}</span>
+                                                        <li key={mi} className="rounded-xl border border-indigo-100 bg-white/90 p-3 min-w-0">
+                                                            <div className="flex flex-wrap items-baseline justify-between gap-2 min-w-0">
+                                                                <span className="font-bold text-gray-900 break-words [overflow-wrap:anywhere] min-w-0 flex-1">{m.name || `Milestone ${mi + 1}`}</span>
                                                                 {m.dueDate && (
                                                                     <span className="text-xs text-indigo-700">
                                                                         Due {new Date(m.dueDate).toLocaleDateString()}
@@ -482,12 +482,12 @@ function JobDetailPageContent() {
                                     )}
 
                                     {proposal.message && (
-                                        <div className="mb-4 p-4 bg-gray-50 rounded-xl">
+                                        <div className="mb-4 p-4 bg-gray-50 rounded-xl min-w-0">
                                             <div className="flex items-center gap-2 mb-2">
-                                                <MessageSquare className="w-4 h-4 text-gray-500" />
+                                                <MessageSquare className="w-4 h-4 text-gray-500 shrink-0" />
                                                 <span className="text-sm font-bold text-gray-700">Proposal Message</span>
                                             </div>
-                                            <p className="text-gray-600 text-sm leading-relaxed">{proposal.message}</p>
+                                            <p className="text-gray-600 text-sm leading-relaxed break-words [overflow-wrap:anywhere]">{proposal.message}</p>
                                         </div>
                                     )}
 
