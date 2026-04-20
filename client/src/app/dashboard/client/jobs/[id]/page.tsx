@@ -276,9 +276,9 @@ function JobDetailPageContent() {
                 {/* Job Details */}
                 <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-5 md:p-8 mb-6">
                     <div className="flex items-start justify-between mb-6">
-                        <div>
-                            <h1 className="text-2xl md:text-3xl font-black text-gray-900 mb-2">{job.title}</h1>
-                            <div className="flex items-center gap-4 text-sm text-gray-500">
+                        <div className="min-w-0 flex-1">
+                            <h1 className="text-2xl md:text-3xl font-black text-gray-900 mb-2 break-words [overflow-wrap:anywhere]">{job.title}</h1>
+                            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
                                 <span className="flex items-center gap-1">
                                     <Clock className="w-4 h-4" />
                                     Posted {formatDateDDMMYYYY(job.createdAt)}
@@ -332,10 +332,10 @@ function JobDetailPageContent() {
                                 <p className="text-xs text-gray-500 mb-3">Expected delivery phases. You pay once when you approve the completed project.</p>
                                 <div className="space-y-2">
                                     {job.milestones.map((m: any, idx: number) => (
-                                        <div key={idx} className="flex flex-wrap items-center justify-between gap-2 p-3 bg-gray-50 rounded-xl border border-gray-200">
-                                            <span className="font-bold text-gray-900">{m.name}</span>
+                                        <div key={idx} className="flex flex-wrap items-center justify-between gap-2 p-3 bg-gray-50 rounded-xl border border-gray-200 min-w-0">
+                                            <span className="font-bold text-gray-900 break-words [overflow-wrap:anywhere] min-w-0 flex-1">{m.name}</span>
                                             {m.dueDate && (
-                                                <span className="text-sm text-gray-500">Due: {formatDateDDMMYYYY(m.dueDate)}</span>
+                                                <span className="text-sm text-gray-500 shrink-0">Due: {formatDateDDMMYYYY(m.dueDate)}</span>
                                             )}
                                         </div>
                                     ))}

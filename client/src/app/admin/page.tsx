@@ -2505,15 +2505,32 @@ export default function AdminDashboard() {
                                                 <div>
                                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Offer milestones</h4>
                                                     <ul className="space-y-2 min-w-0">
-                                                        {offer.milestones.map((m: any, i: number) => (
-                                                            <li
-                                                                key={i}
-                                                                className="bg-gray-50 rounded-xl p-3 text-sm break-words overflow-wrap-anywhere min-w-0 whitespace-pre-wrap"
-                                                            >
-                                                                <span className="break-words overflow-wrap-anywhere min-w-0">{m.name}</span>{' '}
-                                                                {m.dueDate ? `· ${formatDateDDMMYYYY(m.dueDate)}` : ''}
-                                                            </li>
-                                                        ))}
+                                                        {offer.milestones.map((m: any, i: number) => {
+                                                            const sub = (order.offerMilestoneSubmissions || []).find((s: any) => Number(s.milestoneIndex) === i);
+                                                            return (
+                                                                <li key={i} className="bg-gray-50 rounded-xl p-3 text-sm break-words overflow-wrap-anywhere min-w-0">
+                                                                    <div className="flex justify-between items-start gap-2">
+                                                                        <span className="font-bold text-gray-900 break-words overflow-wrap-anywhere min-w-0 whitespace-pre-wrap">{m.name}</span>
+                                                                        {m.dueDate && <span className="text-xs text-gray-500 shrink-0">· Due {formatDateDDMMYYYY(m.dueDate)}</span>}
+                                                                    </div>
+                                                                    {sub ? (
+                                                                        <div className="mt-2 bg-white rounded-lg border border-gray-100 p-3 space-y-2">
+                                                                            <p className="text-[10px] font-black uppercase text-[#09BF44] tracking-wide">Milestone Submission</p>
+                                                                            {sub.message && <p className="text-gray-800 whitespace-pre-wrap break-words min-w-0">{sub.message}</p>}
+                                                                            {(sub.links || []).map((l: string, li: number) => (
+                                                                                <a key={li} href={l} target="_blank" rel="noreferrer" className="text-[#09BF44] font-bold block truncate">{l}</a>
+                                                                            ))}
+                                                                            {(sub.files || []).map((f: string, fi: number) => (
+                                                                                <a key={fi} href={resolveMediaUrl(f)} target="_blank" rel="noreferrer" className="text-blue-600 font-bold block">File {fi + 1}</a>
+                                                                            ))}
+                                                                            {sub.submittedAt && <p className="text-[10px] text-gray-400">Submitted {formatDateDDMMYYYY(sub.submittedAt)}</p>}
+                                                                        </div>
+                                                                    ) : (
+                                                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide">No submission yet</p>
+                                                                    )}
+                                                                </li>
+                                                            );
+                                                        })}
                                                     </ul>
                                                 </div>
                                             )}
@@ -2527,25 +2544,39 @@ export default function AdminDashboard() {
                                                     <p className="text-xs text-green-700/80 mt-1">{formatDateDDMMYYYY(order.disputeResolvedAt)}</p>
                                                 </div>
                                             )}
-                                            {order.workSubmission?.message || (order.workSubmission?.links || []).length > 0 ? (
-                                                <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 min-w-0 max-w-full">
-                                                    <h4 className="font-bold text-gray-900 mb-2">Submitted work</h4>
-                                                    {order.workSubmission?.message && (
-                                                        <p className="text-sm text-gray-700 whitespace-pre-wrap break-words overflow-wrap-anywhere min-w-0 max-w-full">{order.workSubmission.message}</p>
-                                                    )}
-                                                    {(order.workSubmission?.links || []).map((l: string, i: number) => (
-                                                        <a key={i} href={l} target="_blank" rel="noreferrer" className="text-[#09BF44] text-sm block mt-2">{l}</a>
-                                                    ))}
-                                                    {(order.workSubmission?.files || []).map((f: string, i: number) => (
-                                                        <a key={i} href={resolveMediaUrl(f)} target="_blank" rel="noreferrer" className="text-blue-600 text-sm block mt-1">File {i + 1}</a>
-                                                    ))}
-                                                    {order.workSubmission?.submittedAt && (
-                                                        <p className="text-xs text-gray-500 mt-2">Submitted {formatDateDDMMYYYY(order.workSubmission.submittedAt)}</p>
-                                                    )}
-                                                </div>
-                                            ) : (
-                                                <p className="text-sm text-gray-500">No work submission recorded yet.</p>
-                                            )}
+                                            {(() => {
+                                                const hasWork = order.workSubmission?.message || (order.workSubmission?.links || []).length > 0 || (order.workSubmission?.files || []).length > 0;
+                                                const hasMilestoneSubmissions = (order.offerMilestoneSubmissions || []).length > 0;
+
+                                                if (hasWork) {
+                                                    return (
+                                                        <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 min-w-0 max-w-full">
+                                                            <h4 className="font-bold text-gray-900 mb-2">Final work submission</h4>
+                                                            {order.workSubmission?.message && (
+                                                                <p className="text-sm text-gray-700 whitespace-pre-wrap break-words overflow-wrap-anywhere min-w-0 max-w-full">{order.workSubmission.message}</p>
+                                                            )}
+                                                            {(order.workSubmission?.links || []).map((l: string, i: number) => (
+                                                                <a key={i} href={l} target="_blank" rel="noreferrer" className="text-[#09BF44] text-sm block mt-2 truncate">{l}</a>
+                                                            ))}
+                                                            {(order.workSubmission?.files || []).map((f: string, i: number) => (
+                                                                <a key={i} href={resolveMediaUrl(f)} target="_blank" rel="noreferrer" className="text-blue-600 text-sm block mt-1">File {i + 1}</a>
+                                                            ))}
+                                                            {order.workSubmission?.submittedAt && (
+                                                                <p className="text-xs text-gray-500 mt-2">Submitted {formatDateDDMMYYYY(order.workSubmission.submittedAt)}</p>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                } else if (hasMilestoneSubmissions) {
+                                                    return (
+                                                        <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-4">
+                                                            <h4 className="font-bold text-gray-900 mb-1">Work progress</h4>
+                                                            <p className="text-sm text-emerald-800">Final work not submitted yet, but milestone work has been recorded above.</p>
+                                                        </div>
+                                                    );
+                                                } else {
+                                                    return <p className="text-sm text-gray-500">No work submission recorded yet.</p>;
+                                                }
+                                            })()}
                                             {order.status === 'disputed' && (
                                                 <button
                                                     type="button"
@@ -2672,27 +2703,66 @@ export default function AdminDashboard() {
                                     <div>
                                         <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Milestones (offer)</h4>
                                         <ul className="space-y-2 min-w-0">
-                                            {selectedDispute.offerId.milestones.map((m: any, i: number) => (
-                                                <li
-                                                    key={i}
-                                                    className="bg-gray-50 rounded-xl p-3 text-sm break-words overflow-wrap-anywhere min-w-0 whitespace-pre-wrap"
-                                                >
-                                                    <span className="break-words overflow-wrap-anywhere min-w-0">{m.name}</span>
-                                                    {m.dueDate ? ` · ${formatDateDDMMYYYY(m.dueDate)}` : ''}
-                                                </li>
-                                            ))}
+                                            {selectedDispute.offerId.milestones.map((m: any, i: number) => {
+                                                const sub = (selectedDispute.offerMilestoneSubmissions || []).find((s: any) => Number(s.milestoneIndex) === i);
+                                                return (
+                                                    <li
+                                                        key={i}
+                                                        className="bg-gray-50 rounded-xl p-3 text-sm break-words overflow-wrap-anywhere min-w-0"
+                                                    >
+                                                        <div className="flex justify-between items-start gap-2">
+                                                            <span className="font-bold text-gray-900 break-words overflow-wrap-anywhere min-w-0 whitespace-pre-wrap">{m.name}</span>
+                                                            {m.dueDate && <span className="text-xs text-gray-500 shrink-0">· Due {formatDateDDMMYYYY(m.dueDate)}</span>}
+                                                        </div>
+                                                        {sub ? (
+                                                            <div className="mt-2 bg-white rounded-lg border border-gray-100 p-3 space-y-2">
+                                                                <p className="text-[10px] font-black uppercase text-[#09BF44] tracking-wide">Milestone Submission</p>
+                                                                {sub.message && <p className="text-gray-800 whitespace-pre-wrap break-words min-w-0">{sub.message}</p>}
+                                                                {(sub.links || []).map((l: string, li: number) => (
+                                                                    <a key={li} href={l} target="_blank" rel="noreferrer" className="text-[#09BF44] font-bold block truncate">{l}</a>
+                                                                ))}
+                                                                {(sub.files || []).map((f: string, fi: number) => (
+                                                                    <a key={fi} href={resolveMediaUrl(f)} target="_blank" rel="noreferrer" className="text-blue-600 font-bold block">File {fi + 1}</a>
+                                                                ))}
+                                                                {sub.submittedAt && <p className="text-[10px] text-gray-400">Submitted {formatDateDDMMYYYY(sub.submittedAt)}</p>}
+                                                            </div>
+                                                        ) : (
+                                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide">No submission yet</p>
+                                                        )}
+                                                    </li>
+                                                );
+                                            })}
                                         </ul>
                                     </div>
                                 )}
-                                {selectedDispute.workSubmission?.message || (selectedDispute.workSubmission?.links || []).length > 0 ? (
-                                    <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4">
-                                        <h4 className="font-bold text-gray-900 mb-2">Submitted work</h4>
-                                        {selectedDispute.workSubmission?.message && <p className="text-sm text-gray-700 whitespace-pre-wrap">{selectedDispute.workSubmission.message}</p>}
-                                        {(selectedDispute.workSubmission?.links || []).map((l: string, i: number) => (
-                                            <a key={i} href={l} target="_blank" rel="noreferrer" className="text-[#09BF44] text-sm block mt-2">{l}</a>
-                                        ))}
-                                    </div>
-                                ) : null}
+                                {(() => {
+                                    const hasWork = selectedDispute.workSubmission?.message || (selectedDispute.workSubmission?.links || []).length > 0 || (selectedDispute.workSubmission?.files || []).length > 0;
+                                    const hasMilestoneSubmissions = (selectedDispute.offerMilestoneSubmissions || []).length > 0;
+
+                                    if (hasWork) {
+                                        return (
+                                            <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4">
+                                                <h4 className="font-bold text-gray-900 mb-2">Final work submission</h4>
+                                                {selectedDispute.workSubmission?.message && <p className="text-sm text-gray-700 whitespace-pre-wrap break-words overflow-wrap-anywhere">{selectedDispute.workSubmission.message}</p>}
+                                                {(selectedDispute.workSubmission?.links || []).map((l: string, i: number) => (
+                                                    <a key={i} href={l} target="_blank" rel="noreferrer" className="text-[#09BF44] text-sm block mt-2 truncate">{l}</a>
+                                                ))}
+                                                {(selectedDispute.workSubmission?.files || []).map((f: string, i: number) => (
+                                                    <a key={i} href={resolveMediaUrl(f)} target="_blank" rel="noreferrer" className="text-blue-600 text-sm block mt-1">File {i + 1}</a>
+                                                ))}
+                                            </div>
+                                        );
+                                    } else if (hasMilestoneSubmissions) {
+                                        return (
+                                            <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-4">
+                                                <h4 className="font-bold text-gray-900 mb-1">Work progress</h4>
+                                                <p className="text-sm text-emerald-800">Final work not submitted yet, but milestone work has been recorded above.</p>
+                                            </div>
+                                        );
+                                    } else {
+                                        return <p className="text-sm text-gray-500">No work submission recorded yet.</p>;
+                                    }
+                                })()}
                                 <div>
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Chat between parties</h4>
                                     {disputeConvoResolving || disputeChatLoading ? (

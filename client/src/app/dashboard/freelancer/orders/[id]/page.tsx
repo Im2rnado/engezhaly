@@ -311,7 +311,7 @@ export default function FreelancerOrderDetailPage() {
                                     {offerMilestones.map((m: any, i: number) => {
                                         const sub = getMilestoneSubmission(i);
                                         return (
-                                            <li key={i} className="rounded-xl border border-gray-100 bg-gray-50 p-3 break-words overflow-wrap-anywhere min-w-0 space-y-2">
+                                            <li key={i} className="rounded-xl border border-gray-100 bg-gray-50 p-3 break-words [overflow-wrap:anywhere] min-w-0 space-y-2 overflow-hidden">
                                                 <div className="flex flex-wrap items-start justify-between gap-2">
                                                     <div>
                                                         <span className="font-bold text-gray-900 break-words overflow-wrap-anywhere whitespace-pre-wrap">{m.name}</span>
@@ -454,8 +454,8 @@ export default function FreelancerOrderDetailPage() {
             {milestoneSubmitIndex != null && (
                 <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
                     <div className="bg-white p-6 rounded-3xl max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-xl font-bold text-gray-900">Submit Milestone</h2>
+                        <div className="flex items-start justify-between mb-4 gap-3">
+                            <h2 className="text-xl font-bold text-gray-900 break-words [overflow-wrap:anywhere] min-w-0 flex-1">Submit Milestone</h2>
                             <button
                                 type="button"
                                 onClick={() => setMilestoneSubmitIndex(null)}
@@ -465,7 +465,7 @@ export default function FreelancerOrderDetailPage() {
                                 <X className="w-5 h-5 text-gray-500" />
                             </button>
                         </div>
-                        <p className="text-sm font-medium text-gray-700 mb-4">
+                        <p className="text-sm font-medium text-gray-700 mb-4 break-words [overflow-wrap:anywhere]">
                             {offerMilestones?.[milestoneSubmitIndex]?.name || `Phase ${milestoneSubmitIndex + 1}`}
                         </p>
 
@@ -520,8 +520,8 @@ export default function FreelancerOrderDetailPage() {
             {workOpen && (
                 <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
                     <div className="bg-white p-8 rounded-3xl max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto">
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-2xl font-bold text-gray-900">
+                        <div className="flex items-start justify-between mb-6 gap-3">
+                            <h2 className="text-2xl font-bold text-gray-900 break-words [overflow-wrap:anywhere] min-w-0 flex-1">
                                 Submit Work: {order?.projectId?.title || (order?.offerId ? 'Custom offer' : 'Order')}
                             </h2>
                             <button

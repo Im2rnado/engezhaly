@@ -296,8 +296,8 @@ export default function MyJobsPage() {
                                                             {myProposal.milestones.map((m: any, idx: number) => (
                                                                 <div key={idx} className="flex items-center justify-between bg-gray-50 rounded-xl p-3">
                                                                     <div>
-                                                                        <p className="font-medium text-gray-900 text-sm">{m.name}</p>
-                                                                        {m.dueDate && <p className="text-xs text-gray-500">Due: {new Date(m.dueDate).toLocaleDateString()}</p>}
+                                                                        <p className="font-medium text-gray-900 text-sm break-words [overflow-wrap:anywhere] min-w-0 flex-1">{m.name}</p>
+                                                                        {m.dueDate && <p className="text-xs text-gray-500 break-words [overflow-wrap:anywhere]">Due: {new Date(m.dueDate).toLocaleDateString()}</p>}
                                                                     </div>
                                                                     <div className="flex items-center gap-2">
                                                                         <span
@@ -499,8 +499,8 @@ export default function MyJobsPage() {
                 {milestoneSubmitModal && (
                     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
                         <div className="bg-white p-6 rounded-3xl max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto">
-                            <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-xl font-bold text-gray-900">Submit Milestone</h2>
+                            <div className="flex items-start justify-between mb-4 gap-3">
+                                <h2 className="text-xl font-bold text-gray-900 break-words [overflow-wrap:anywhere] min-w-0 flex-1">Submit Milestone</h2>
                                 <button onClick={() => setMilestoneSubmitModal(null)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                                     <X className="w-5 h-5 text-gray-500" />
                                 </button>

@@ -225,7 +225,7 @@ export default function ClientOrderDetailPage() {
                                         return (
                                             <li key={i} className="rounded-xl border border-gray-100 bg-gray-50 p-3 break-words min-w-0 space-y-2">
                                                 <div>
-                                                    <span className="font-bold text-gray-900">{m.name}</span>
+                                                    <span className="font-bold text-gray-900 break-words [overflow-wrap:anywhere]">{m.name}</span>
                                                     {m.price != null && m.price > 0 && (
                                                         <span className="text-[#09BF44] font-bold ml-2">{m.price} EGP</span>
                                                     )}
@@ -237,7 +237,7 @@ export default function ClientOrderDetailPage() {
                                                     <div className="rounded-lg bg-white border border-gray-100 p-3 text-sm">
                                                         <p className="text-xs font-bold text-gray-400 uppercase mb-1">Submitted for this phase</p>
                                                         {sub.message ? (
-                                                            <p className="text-gray-800 whitespace-pre-wrap break-words min-w-0">{sub.message}</p>
+                                                            <p className="text-gray-800 whitespace-pre-wrap break-words [overflow-wrap:anywhere] min-w-0">{sub.message}</p>
                                                         ) : null}
                                                         {Array.isArray(sub.links) && sub.links.length > 0 && (
                                                             <ul className="mt-2 list-disc list-inside break-all">
@@ -285,7 +285,7 @@ export default function ClientOrderDetailPage() {
                             <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 min-w-0 max-w-full">
                                 <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Submitted work</h2>
                                 {order.workSubmission.message && (
-                                    <p className="text-sm text-gray-800 whitespace-pre-wrap break-words overflow-wrap-anywhere min-w-0">{order.workSubmission.message}</p>
+                                    <p className="text-sm text-gray-800 whitespace-pre-wrap break-words [overflow-wrap:anywhere] min-w-0">{order.workSubmission.message}</p>
                                 )}
                                 {Array.isArray(order.workSubmission.links) && order.workSubmission.links.length > 0 && (
                                     <ul className="mt-2 text-sm list-disc list-inside break-all">
