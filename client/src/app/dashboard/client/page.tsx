@@ -394,7 +394,7 @@ function ClientDashboardContent() {
                                     <button
                                         type="button"
                                         onClick={() => router.push(`/dashboard/client/jobs/${job._id}`)}
-                                        className="text-left text-xl font-bold text-gray-900 hover:text-[#09BF44] transition-colors break-words [overflow-wrap:anywhere] min-w-0"
+                                        className="w-full text-left text-xl font-bold text-gray-900 hover:text-[#09BF44] transition-colors break-words [overflow-wrap:anywhere]"
                                     >
                                         {job.title}
                                     </button>
