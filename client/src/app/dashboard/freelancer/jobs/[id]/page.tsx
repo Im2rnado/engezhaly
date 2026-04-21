@@ -317,10 +317,10 @@ export default function FreelancerJobDetailPage() {
                                             (m.status === "submitted" || m.status === "done") &&
                                             (note || subLinks.length > 0 || subFiles.length > 0);
                                         return (
-                                            <div key={idx} className="bg-gray-50 rounded-xl p-3 border border-gray-100">
-                                                <div className="flex flex-wrap items-start justify-between gap-2">
-                                                    <div className="min-w-0">
-                                                        <p className="font-medium text-gray-900 text-sm">{m.name}</p>
+                                            <div key={idx} className="bg-gray-50 rounded-xl p-3 border border-gray-100 min-w-0">
+                                                <div className="flex flex-wrap items-start justify-between gap-2 min-w-0">
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="font-medium text-gray-900 text-sm break-words [overflow-wrap:anywhere]">{m.name}</p>
                                                         {m.dueDate && (
                                                             <p className="text-xs text-gray-500">Due: {new Date(m.dueDate).toLocaleDateString()}</p>
                                                         )}
@@ -354,7 +354,7 @@ export default function FreelancerJobDetailPage() {
                                                 {hasSubmission && (
                                                     <div className="mt-3 pt-3 border-t border-gray-200 space-y-2 text-sm">
                                                         <p className="text-xs font-bold text-gray-500 uppercase">What you submitted</p>
-                                                        {note && <p className="text-gray-700 whitespace-pre-wrap break-words">{note}</p>}
+                                                        {note && <p className="text-gray-700 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{note}</p>}
                                                         {subLinks.length > 0 && (
                                                             <div>
                                                                 <div className="flex items-center gap-1.5 mb-1">
@@ -420,7 +420,7 @@ export default function FreelancerJobDetailPage() {
                                     )}
                                 </div>
                                 {ws?.message?.trim() && (
-                                    <p className="text-sm text-gray-800 mb-3 leading-relaxed whitespace-pre-wrap break-words">{ws.message}</p>
+                                    <p className="text-sm text-gray-800 mb-3 leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{ws.message}</p>
                                 )}
                                 {Array.isArray(ws?.links) && ws.links.filter(Boolean).length > 0 && (
                                     <div className="mb-3">
