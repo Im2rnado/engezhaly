@@ -81,6 +81,13 @@ function FreelancerDashboardContent() {
                     router.push('/');
                     return;
                 }
+                // Pending freelancers cannot access the dashboard — redirect to home
+                if (profileData.freelancerProfile?.status === 'pending') {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    router.push('/');
+                    return;
+                }
                 const projectsData = await api.projects.getMyProjects();
                 setProjects(projectsData);
 

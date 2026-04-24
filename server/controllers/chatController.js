@@ -20,6 +20,7 @@ const {
 const { isUserInConversation } = require('../services/presence');
 const { emitToUser, isUserOnline } = require('../services/notificationService');
 const { emitChatContextRefresh, notifyAdminChatsListRefresh } = require('../services/chatContextRefresh');
+const { getPrimaryAdminEmail } = require('../utils/getAdminEmails');
 
 // Helper for curse words - common abusive/profane terms
 const BAD_WORDS = [
@@ -361,34 +362,32 @@ const sendMessage = async (req, res) => {
         await conversation.save();
 
         if (hasPhone) {
-            const adminEmail = String(process.env.ADMIN_ALERT_EMAIL || process.env.SUPPORT_EMAIL || 'support@engezhaly.com').trim();
-            if (adminEmail) {
-                try {
-                    const [senderU, receiverU] = await Promise.all([
-                        User.findById(senderId).select('firstName lastName email role').lean(),
-                        User.findById(receiverId).select('firstName lastName email role').lean()
-                    ]);
-                    const fmt = (u, id) => {
-                        if (!u) return `User ${id}`;
-                        const name = `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Unknown';
-                        const em = u.email ? ` · ${u.email}` : '';
-                        return `${name} (${u.role || 'user'})${em}`;
-                    };
-                    const adminChatsUrl = `${String(FRONTEND_URL || '').replace(/\/$/, '')}/admin`;
-                    const { subject, html } = chatFrozenPhoneAdminAlert(
-                        String(conversation._id),
-                        fmt(senderU, senderId),
-                        fmt(receiverU, receiverId),
-                        adminChatsUrl
-                    );
-                    sendAndLog(adminEmail, subject, html, 'chat_frozen_phone', {
-                        conversationId: String(conversation._id),
-                        senderId: String(senderId),
-                        receiverId: String(receiverId)
-                    }).catch((err) => console.error('[Chat] Admin freeze alert email failed:', err.message));
-                } catch (e) {
-                    console.error('[Chat] Admin freeze alert failed:', e.message);
-                }
+            try {
+                const adminEmail = await getPrimaryAdminEmail();
+                const [senderU, receiverU] = await Promise.all([
+                    User.findById(senderId).select('firstName lastName email role').lean(),
+                    User.findById(receiverId).select('firstName lastName email role').lean()
+                ]);
+                const fmt = (u, id) => {
+                    if (!u) return `User ${id}`;
+                    const name = `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Unknown';
+                    const em = u.email ? ` · ${u.email}` : '';
+                    return `${name} (${u.role || 'user'})${em}`;
+                };
+                const adminChatsUrl = `${String(FRONTEND_URL || '').replace(/\/$/, '')}/admin`;
+                const { subject, html } = chatFrozenPhoneAdminAlert(
+                    String(conversation._id),
+                    fmt(senderU, senderId),
+                    fmt(receiverU, receiverId),
+                    adminChatsUrl
+                );
+                sendAndLog(adminEmail, subject, html, 'chat_frozen_phone', {
+                    conversationId: String(conversation._id),
+                    senderId: String(senderId),
+                    receiverId: String(receiverId)
+                }).catch((err) => console.error('[Chat] Admin freeze alert email failed:', err.message));
+            } catch (e) {
+                console.error('[Chat] Admin freeze alert failed:', e.message);
             }
         }
 

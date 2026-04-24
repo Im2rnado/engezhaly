@@ -224,6 +224,8 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
+        // Clear any existing error as soon as the user starts correcting their input
+        if (error) setError('');
     };
 
     const handleLoginSubmit = async (e: React.FormEvent) => {
@@ -239,18 +241,34 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                 identifier: formData.identifier,
                 password: formData.password
             });
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('user', JSON.stringify(data.user));
 
-            // If freelancer with incomplete onboarding, stay in modal
+            // Incomplete onboarding — store token so they can continue signup
             if (data.user.role === 'freelancer' && data.user.freelancerProfile?.status === 'pending' && !data.user.freelancerProfile?.category) {
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
                 setError('');
                 setStep('freelancer-step-2');
+            } else if (data.user.role === 'freelancer' && data.user.freelancerProfile?.status === 'pending') {
+                // Completed onboarding but still waiting for admin approval.
+                // Do NOT store token — must not access the dashboard.
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                onClose();
+                showModal({
+                    title: 'Account Under Review',
+                    message: 'Your application has been submitted and is currently being reviewed by our team. You will receive an email once your account is approved. Thank you for your patience!',
+                    type: 'info',
+                    onConfirm: () => {}
+                });
             } else if (data.user.role === 'admin') {
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
                 onClose();
                 showRedirectLoader('Redirecting to admin dashboard...');
                 router.push('/admin');
             } else {
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
                 onClose();
                 showModal({
                     title: 'Login Successful',

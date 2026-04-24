@@ -1,7 +1,6 @@
 const { sendAndLog } = require('../services/mailgunService');
 const { wrapEmail } = require('../templates/emailBase');
-
-const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@engezhaly.com';
+const { getPrimaryAdminEmail } = require('../utils/getAdminEmails');
 
 function escapeHtml(s) {
     if (s == null || typeof s !== 'string') return '';
@@ -58,7 +57,8 @@ const submitContact = async (req, res) => {
 
         const mailSubject = `[Engezhaly Contact] ${subjectTrim}`;
 
-        await sendAndLog(SUPPORT_EMAIL, mailSubject, html, 'contact_form', {
+        const adminEmail = await getPrimaryAdminEmail();
+        await sendAndLog(adminEmail, mailSubject, html, 'contact_form', {
             fromEmail: emailTrim,
             fromName: nameTrim
         });
