@@ -840,6 +840,16 @@ const getAllOrders = async (req, res) => {
     }
 };
 
+const deleteOrder = async (req, res) => {
+    try {
+        await Order.findByIdAndDelete(req.params.id);
+        res.json({ msg: 'Order deleted' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
 const getDisputedOrders = async (req, res) => {
     try {
         const orders = await Order.find({ status: 'disputed' })
@@ -1216,6 +1226,7 @@ module.exports = {
     updateJob,
     deleteJob,
     getAllOrders,
+    deleteOrder,
     getDisputedOrders,
     updateOrder,
     getAllTransactions,

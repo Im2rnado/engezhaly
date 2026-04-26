@@ -33,6 +33,7 @@ const {
     updateJob,
     deleteJob,
     getAllOrders,
+    deleteOrder,
     getDisputedOrders,
     updateOrder,
     getAllTransactions,
@@ -86,6 +87,7 @@ router.delete('/jobs/:id', [authVerified, adminAuth], deleteJob);
 router.get('/orders', [authVerified, adminAuth], getAllOrders);
 router.get('/disputes', [authVerified, adminAuth], getDisputedOrders);
 router.put('/orders/:id', [authVerified, adminAuth], updateOrder);
+router.delete('/orders/:id', [authVerified, adminAuth], deleteOrder);
 
 router.get('/transactions', [authVerified, adminAuth], getAllTransactions);
 router.get('/withdrawals', [authVerified, adminAuth], getWithdrawals);
