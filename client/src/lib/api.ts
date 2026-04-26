@@ -1045,6 +1045,17 @@ export const api = {
             });
             return res.json();
         },
+        deleteOrder: async (id: string) => {
+            const res = await fetch(`${API_URL}/admin/orders/${id}`, {
+                method: 'DELETE',
+                headers: getHeaders()
+            });
+            if (!res.ok) {
+                const result = await res.json().catch(() => ({}));
+                throw new Error(result.msg || 'Failed to delete order');
+            }
+            return res.json();
+        },
         getAllTransactions: async (excludeManualTopUp?: boolean) => {
             const params = excludeManualTopUp ? '?excludeManualTopUp=true' : '';
             const res = await fetch(`${API_URL}/admin/transactions${params}`, {

@@ -1619,6 +1619,25 @@ export default function AdminDashboard() {
         });
     };
 
+    const handleDeleteOrder = async (id: string) => {
+        showModal({
+            title: 'Confirm Deletion',
+            message: 'Are you sure you want to permanently delete this order? This action cannot be undone.',
+            type: 'confirm',
+            onConfirm: async () => {
+                try {
+                    await api.admin.deleteOrder(id);
+                    showModal({ title: 'Success', message: 'Order deleted successfully', type: 'success' });
+                    setManagementDetail(null);
+                    fetchOrders();
+                } catch (err) {
+                    console.error(err);
+                    showModal({ title: 'Error', message: 'Failed to delete order', type: 'error' });
+                }
+            }
+        });
+    };
+
     const handleFreeze = async (chatId: string) => {
         try {
             await api.admin.freezeChat(chatId);
@@ -2318,7 +2337,12 @@ export default function AdminDashboard() {
                                                     <h2 className="text-2xl font-black text-gray-900">{order.projectId?.title || (order.offerId ? 'Custom offer' : 'Order')}</h2>
                                                     <p className="text-sm text-gray-500 mt-1">Order #{order.orderNumber} · {order.packageType}</p>
                                                 </div>
-                                                <span className={`px-3 py-1 rounded-full text-sm font-bold h-fit ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'disputed' ? 'bg-amber-100 text-amber-700' : order.status === 'refunded' ? 'bg-gray-100 text-gray-700' : 'bg-blue-100 text-blue-700'}`}>{formatStatus(order.status)}</span>
+                                                <div className="flex items-start gap-2">
+                                                    <span className={`px-3 py-1 rounded-full text-sm font-bold h-fit ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'disputed' ? 'bg-amber-100 text-amber-700' : order.status === 'refunded' ? 'bg-gray-100 text-gray-700' : 'bg-blue-100 text-blue-700'}`}>{formatStatus(order.status)}</span>
+                                                    <button type="button" onClick={() => handleDeleteOrder(order._id)} className="p-2 text-red-600 hover:bg-red-50 rounded-xl" title="Delete Order">
+                                                        <Trash2 className="w-5 h-5" />
+                                                    </button>
+                                                </div>
                                             </div>
                                             <div className="flex flex-wrap items-center gap-2">
                                                 <span className="text-[10px] font-black uppercase px-2 py-1 rounded-full bg-gray-100 text-gray-700 tracking-wide">

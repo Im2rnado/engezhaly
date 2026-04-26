@@ -503,7 +503,7 @@ export default function ClientOrderDetailPage() {
                             placeholder="Write your review (optional)..."
                             rows={4}
                             disabled={reviewSubmitting}
-                            className="w-full p-3 rounded-xl border-2 border-gray-200 focus:border-[#09BF44] outline-none resize-none mb-4"
+                            className="w-full max-w-full box-border p-3 rounded-xl border-2 border-gray-200 focus:border-[#09BF44] outline-none resize-none mb-4"
                         />
                         <div className="flex gap-2 justify-end">
                             <button type="button" onClick={() => setReviewOpen(false)} className="px-4 py-2 rounded-xl font-bold text-gray-600 hover:bg-gray-100" disabled={reviewSubmitting}>
