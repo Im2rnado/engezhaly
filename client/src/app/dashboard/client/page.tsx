@@ -19,7 +19,7 @@ import ClientProfileEditModal from '@/components/ClientProfileEditModal';
 import EditModal from '@/components/EditModal';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 import CountdownTimer from '@/components/CountdownTimer';
-import PaymobCheckoutModal from '@/components/PaymobCheckoutModal';
+import GeideaCheckout from '@/components/GeideaCheckout';
 import PaymentChoiceModal from '@/components/PaymentChoiceModal';
 import { payWithWalletIfPossible } from '@/lib/payWithWalletIfPossible';
 import { formatEgyptianPhoneForDisplay } from '@/lib/phoneUtils';
@@ -39,7 +39,7 @@ function ClientDashboardContent() {
     const [profileEditModal, setProfileEditModal] = useState(false);
     const [editJobModal, setEditJobModal] = useState<any>(null);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-    const [checkoutIframeUrl, setCheckoutIframeUrl] = useState<string | null>(null);
+    const [checkoutSessionId, setCheckoutSessionId] = useState<string | null>(null);
     const [paymentChoiceConfig, setPaymentChoiceConfig] = useState<{ type: string; amountCents: number; callbackSuccessUrl?: string; orderId?: string; offerId?: string; jobId?: string; proposalId?: string; conversationId?: string } | null>(null);
     const [reviewModal, setReviewModal] = useState<{ type: 'order'; order: any } | { type: 'job'; job: any } | null>(null);
     const [reviewRating, setReviewRating] = useState(5);
@@ -779,11 +779,13 @@ function ClientDashboardContent() {
                     </div>
                 )}
 
-                <PaymobCheckoutModal
-                    iframeUrl={checkoutIframeUrl}
-                    title="Complete Payment"
-                    onClose={() => {
-                        setCheckoutIframeUrl(null);
+                <GeideaCheckout
+                    sessionId={checkoutSessionId}
+                    onComplete={(success) => {
+                        setCheckoutSessionId(null);
+                        if (success) {
+                            showModal({ title: 'Payment Successful', message: 'Your payment was completed successfully.', type: 'success' });
+                        }
                         fetchOrders();
                     }}
                 />
@@ -806,7 +808,7 @@ function ClientDashboardContent() {
                                 fetchOrders();
                                 return;
                             }
-                            setCheckoutIframeUrl(charge.iframeUrl || null);
+                            setCheckoutSessionId(charge.sessionId || null);
                         }}
                         onInstaPayComplete={() => {
                             fetchOrders();

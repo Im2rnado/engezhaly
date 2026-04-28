@@ -22,7 +22,11 @@ const EmailLogSchema = new mongoose.Schema({
             'delivery_approved',
             'job_work_approved',
             'payment_confirmed',
-            'contact_form'
+            'contact_form',
+            'chat_frozen_phone',
+            'work_submitted_milestone',
+            'bundle_purchased',
+            'admin_system_alert'
         ],
         required: true
     },

@@ -10,6 +10,7 @@ const { offerPurchased: offerPurchasedTemplate, paymentReceiptFreelancer, paymen
 const { emitToUser, isUserOnline } = require('../services/notificationService');
 const { ORDER_PLATFORM_FEE_EGP } = require('../config/fees');
 const { reviewStatsForSeller } = require('../utils/reviewStatsForSeller');
+const { notifyAdmins } = require('../utils/getAdminEmails');
 
 const createProject = async (req, res) => {
     try {
@@ -53,6 +54,16 @@ const createProject = async (req, res) => {
         });
 
         await newProject.save();
+        
+        const adminDashboardUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin`;
+        notifyAdmins(
+            `New Bundle Created: ${title}`,
+            'A Freelancer Created a New Bundle',
+            `<strong>Title:</strong> ${title}<br/><strong>Category:</strong> ${category} > ${subCategory}`,
+            'View in Admin Dashboard',
+            adminDashboardUrl
+        );
+
         res.json(newProject);
     } catch (err) {
         console.error(err.message);
@@ -306,6 +317,15 @@ ${description.trim()}`,
                 sendAndLog(seller.email, subject, html, 'offer_purchased', { orderId: order._id, buyerId, sellerId }).catch(err => console.error('[Project] Email failed:', err.message));
             }
         }
+
+        const adminDashboardUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin`;
+        notifyAdmins(
+            `New Order Placed: ${project.title}`,
+            'A Client Placed a New Order',
+            `<strong>Project:</strong> ${project.title}<br/><strong>Amount:</strong> ${amount} EGP<br/><strong>Package:</strong> ${selectedPackage.type}`,
+            'View in Admin Dashboard',
+            adminDashboardUrl
+        );
 
         // No payment receipts for pending_approval; client gets orderApproved on approval, orderDenied on deny
         res.json(populated);

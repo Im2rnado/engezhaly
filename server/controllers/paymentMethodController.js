@@ -1,14 +1,14 @@
 const PaymentMethod = require('../models/PaymentMethod');
 const PendingCharge = require('../models/PendingCharge');
 const User = require('../models/User');
-const {
-    registerOrder,
-    createPaymentKey,
-    getIframeUrl
-} = require('../services/paymobService');
-const { fulfillCharge } = require('./paymobWebhookController');
+const { createSession } = require('../services/geideaService');
+const { fulfillCharge } = require('./geideaWebhookController');
 
-const ADD_CARD_AMOUNT_CENTS = 100; // 1 EGP verification
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+const API_URL = process.env.API_URL || 'http://localhost:5001';
+
+// A minimal non-zero amount for card verification (1 EGP = 1.00)
+const ADD_CARD_AMOUNT_EGP = 1.00;
 
 /**
  * GET /payment-methods - List saved cards (client only)
@@ -20,7 +20,7 @@ const list = async (req, res) => {
         if (!user || user.role !== 'client') {
             return res.status(403).json({ msg: 'Only clients can manage payment methods' });
         }
-        const methods = await PaymentMethod.find({ userId }).select('-paymobToken').sort({ isDefault: -1, createdAt: -1 });
+        const methods = await PaymentMethod.find({ userId }).select('-geideaTokenId').sort({ isDefault: -1, createdAt: -1 });
         res.json(methods);
     } catch (err) {
         console.error(err);
@@ -29,45 +29,46 @@ const list = async (req, res) => {
 };
 
 /**
- * POST /payment-methods - Add card (returns iframe URL for Paymob)
- * Body: { callbackSuccessUrl?: string } - where to redirect after success
+ * POST /payment-methods - Add card via Geidea (returns sessionId for GeideaCheckout SDK)
  */
 const addCard = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { callbackSuccessUrl } = req.body || {};
 
         const user = await User.findById(userId).select('firstName lastName email role');
         if (!user || user.role !== 'client') {
             return res.status(403).json({ msg: 'Only clients can add payment methods' });
         }
 
-        const paymobOrderId = await registerOrder(ADD_CARD_AMOUNT_CENTS);
-        const paymentToken = await createPaymentKey({
-            amountCents: ADD_CARD_AMOUNT_CENTS,
-            paymobOrderId,
-            billingData: {
-                first_name: user.firstName || 'Customer',
-                last_name: user.lastName || '',
-                email: user.email || '',
-                phone_number: '01000000000'
-            },
-            callbackUrl: callbackSuccessUrl || `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard/client/payment-methods?success=1`,
-            metadata: { action: 'add_card', userId }
-        });
-
-        const iframeUrl = getIframeUrl(paymentToken);
-
+        // Create a unique merchantReferenceId — we'll store it on PendingCharge and Geidea will echo it back
         const pending = new PendingCharge({
             userId,
-            amountCents: ADD_CARD_AMOUNT_CENTS,
+            amountCents: Math.round(ADD_CARD_AMOUNT_EGP * 100),
             description: 'Add payment method',
-            paymobOrderId,
             meta: { type: 'add_card' }
         });
         await pending.save();
 
-        res.json({ iframeUrl, paymentToken, pendingChargeId: pending._id });
+        const merchantReferenceId = pending._id.toString();
+
+        const sessionId = await createSession({
+            amountEGP: ADD_CARD_AMOUNT_EGP,
+            merchantReferenceId,
+            callbackUrl: `${API_URL}/api/webhooks/geidea`,
+            returnUrl: `${FRONTEND_URL}/dashboard/client/wallet?success=1`,
+            customer: {
+                email: user.email || '',
+                firstName: user.firstName || 'Customer',
+                lastName: user.lastName || ''
+            },
+            cardOnFile: true
+        });
+
+        // Store the sessionId back on the pending charge for lookup
+        pending.geideaSessionId = merchantReferenceId; // merchantReferenceId IS our pendingCharge._id
+        await pending.save();
+
+        res.json({ sessionId, pendingChargeId: pending._id });
     } catch (err) {
         console.error(err);
         res.status(500).json({ msg: err.message || 'Server Error' });
@@ -122,10 +123,10 @@ const setDefault = async (req, res) => {
 };
 
 /**
- * POST /payment-methods/init-charge - Create payment for a business action
- * Returns iframe URL. Client pays, webhook fulfills.
+ * POST /payment-methods/init-charge - Create a Geidea payment session for a business action.
+ * Returns { sessionId } for the frontend to pass to GeideaCheckout SDK.
+ * If the client has sufficient wallet balance, deducts directly and returns { paidFromWallet: true }.
  * Body: { type, amountCents, ...meta }
- * If the client has sufficient wallet balance, deducts directly and returns { paidFromWallet: true }
  */
 const initCharge = async (req, res) => {
     try {
@@ -143,7 +144,7 @@ const initCharge = async (req, res) => {
         const amountEGP = amountCents / 100;
         const fulfillableTypes = ['job_proposal', 'project_order', 'custom_offer', 'consultation'];
 
-        // Check wallet balance first - if sufficient, deduct wallet and run same fulfillment as Paymob success
+        // Check wallet balance first - if sufficient, deduct wallet and run same fulfillment
         const walletBalance = user.walletBalance || 0;
         if (walletBalance >= amountEGP && fulfillableTypes.includes(type)) {
             const prevBalance = walletBalance;
@@ -167,31 +168,34 @@ const initCharge = async (req, res) => {
             return res.json({ paidFromWallet: true, remainingBalance: user.walletBalance });
         }
 
-        const paymobOrderId = await registerOrder(amountCents);
-        const paymentToken = await createPaymentKey({
-            amountCents,
-            paymobOrderId,
-            billingData: {
-                first_name: user.firstName || 'Customer',
-                last_name: user.lastName || '',
-                email: user.email || '',
-                phone_number: '01000000000'
-            },
-            callbackUrl: callbackSuccessUrl || `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard/client`,
-            metadata: { action: type, userId, ...meta }
-        });
-
+        // Create PendingCharge first so we have the _id as merchantReferenceId
         const pending = new PendingCharge({
             userId,
             amountCents,
             description: meta.description || type,
-            paymobOrderId,
             meta: { type, ...meta }
         });
         await pending.save();
 
-        const iframeUrl = getIframeUrl(paymentToken);
-        res.json({ iframeUrl, paymentToken, pendingChargeId: pending._id, walletBalance });
+        const merchantReferenceId = pending._id.toString();
+
+        const sessionId = await createSession({
+            amountEGP,
+            merchantReferenceId,
+            callbackUrl: `${API_URL}/api/webhooks/geidea`,
+            returnUrl: callbackSuccessUrl || `${FRONTEND_URL}/dashboard/client`,
+            customer: {
+                email: user.email || '',
+                firstName: user.firstName || 'Customer',
+                lastName: user.lastName || ''
+            },
+            cardOnFile: false
+        });
+
+        pending.geideaSessionId = merchantReferenceId;
+        await pending.save();
+
+        res.json({ sessionId, pendingChargeId: pending._id, walletBalance });
     } catch (err) {
         console.error(err);
         res.status(500).json({ msg: err.message || 'Server Error' });

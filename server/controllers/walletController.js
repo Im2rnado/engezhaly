@@ -6,6 +6,7 @@ const WithdrawalRequest = require('../models/WithdrawalRequest');
 const { sendAndLog } = require('../services/mailgunService');
 const { depositReceipt } = require('../templates/emailTemplates');
 const { WITHDRAWAL_FEE_EGP, WALLET_TOPUP_FEE_EGP } = require('../config/fees');
+const { notifyAdmins } = require('../utils/getAdminEmails');
 
 const DEFAULT_CONSULTATION_AMOUNT = 100;
 
@@ -236,6 +237,15 @@ const createWithdrawalRequest = async (req, res) => {
             status: 'pending',
             referenceId: withdrawal._id.toString()
         });
+
+        const adminDashboardUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin`;
+        notifyAdmins(
+            `New Withdrawal Request`,
+            'A Freelancer Requested a Withdrawal',
+            `<strong>Amount:</strong> ${amount} EGP<br/><strong>Freelancer:</strong> ${user.firstName} ${user.lastName}<br/><strong>Method:</strong> ${method}`,
+            'View in Admin Dashboard',
+            adminDashboardUrl
+        );
 
         res.json(withdrawal);
     } catch (err) {

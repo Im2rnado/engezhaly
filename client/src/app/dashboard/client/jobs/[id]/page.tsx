@@ -9,7 +9,7 @@ import { useModal } from '@/context/ModalContext';
 import ClientSidebar from '@/components/ClientSidebar';
 import CountdownTimer from '@/components/CountdownTimer';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
-import PaymobCheckoutModal from '@/components/PaymobCheckoutModal';
+import GeideaCheckout from '@/components/GeideaCheckout';
 import PaymentChoiceModal from '@/components/PaymentChoiceModal';
 import { payWithWalletIfPossible } from '@/lib/payWithWalletIfPossible';
 
@@ -51,7 +51,7 @@ function JobDetailPageContent() {
     const [loading, setLoading] = useState(true);
     const [jobDeadline, setJobDeadline] = useState<Date | null>(null);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-    const [checkoutIframeUrl, setCheckoutIframeUrl] = useState<string | null>(null);
+    const [checkoutSessionId, setCheckoutSessionId] = useState<string | null>(null);
     const [paymentChoiceConfig, setPaymentChoiceConfig] = useState<{ type: string; amountCents: number; callbackSuccessUrl?: string; jobId?: string; proposalId?: string } | null>(null);
     const [acceptingProposalId, setAcceptingProposalId] = useState<string | null>(null);
     const [rejectingProposalId, setRejectingProposalId] = useState<string | null>(null);
@@ -218,7 +218,7 @@ function JobDetailPageContent() {
     };
 
     const closeCheckout = () => {
-        setCheckoutIframeUrl(null);
+        setCheckoutSessionId(null);
         refreshJob();
     };
 
@@ -680,10 +680,15 @@ function JobDetailPageContent() {
                 </div>
             </div>
 
-            <PaymobCheckoutModal
-                iframeUrl={checkoutIframeUrl}
-                title="Pay to Accept Proposal"
-                onClose={closeCheckout}
+            <GeideaCheckout
+                sessionId={checkoutSessionId}
+                onComplete={(success) => {
+                    setCheckoutSessionId(null);
+                    if (success) {
+                        showModal({ title: 'Payment Successful', message: 'Job payment completed.', type: 'success' });
+                    }
+                    refreshJob();
+                }}
             />
 
             {jobReviewModal && (
@@ -759,7 +764,7 @@ function JobDetailPageContent() {
                             refreshJob();
                             return;
                         }
-                        setCheckoutIframeUrl(charge.iframeUrl || null);
+                        setCheckoutSessionId(charge.sessionId || null);
                     }}
                     onInstaPayComplete={() => {
                         setPaymentChoiceConfig(null);

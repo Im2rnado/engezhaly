@@ -1,4 +1,6 @@
 const User = require('../models/User');
+const { sendAndLog } = require('../services/mailgunService');
+const { adminSystemAlert } = require('../templates/emailTemplates');
 
 const FALLBACK_EMAIL = process.env.SUPPORT_EMAIL || 'support@engezhaly.com';
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -56,4 +58,24 @@ function invalidateAdminEmailCache() {
     _cacheAt = 0;
 }
 
-module.exports = { getAdminEmails, getPrimaryAdminEmail, invalidateAdminEmailCache };
+/**
+ * Helper to easily send an admin_system_alert template to all admins.
+ */
+async function notifyAdmins(subjectTitle, heading, messageHtml, linkText = null, linkUrl = null) {
+    try {
+        const emails = await getAdminEmails();
+        if (!emails || emails.length === 0) return;
+        
+        const { subject, html } = adminSystemAlert(subjectTitle, heading, messageHtml, linkText, linkUrl);
+        
+        const promises = emails.map(email => 
+            sendAndLog(email, subject, html, 'admin_system_alert', { subjectTitle })
+                .catch(err => console.error('[notifyAdmins] Failed for', email, err.message))
+        );
+        await Promise.all(promises);
+    } catch (err) {
+        console.error('[notifyAdmins] Error:', err.message);
+    }
+}
+
+module.exports = { getAdminEmails, getPrimaryAdminEmail, invalidateAdminEmailCache, notifyAdmins };

@@ -8,7 +8,7 @@ import { api } from '@/lib/api';
 import { formatDateDDMMYYYY, formatRevisionsLabel, orderHasClientVisibleDelivery } from '@/lib/utils';
 import { useModal } from '@/context/ModalContext';
 import CreateOfferModal from '@/components/CreateOfferModal';
-import PaymobCheckoutModal from '@/components/PaymobCheckoutModal';
+import GeideaCheckout from '@/components/GeideaCheckout';
 import PaymentChoiceModal from '@/components/PaymentChoiceModal';
 import ChatRulesModal from '@/components/ChatRulesModal';
 import { payWithWalletIfPossible } from '@/lib/payWithWalletIfPossible';
@@ -77,7 +77,7 @@ function ChatPageContent() {
     const [meetingTime, setMeetingTime] = useState('');
     const [meetingDuration, setMeetingDuration] = useState(30);
     const [settingMeeting, setSettingMeeting] = useState(false);
-    const [checkoutIframeUrl, setCheckoutIframeUrl] = useState<string | null>(null);
+    const [checkoutSessionId, setCheckoutSessionId] = useState<string | null>(null);
     const [checkoutTitle, setCheckoutTitle] = useState('Complete Payment');
     const [paymentChoiceConfig, setPaymentChoiceConfig] = useState<{ type: string; amountCents: number; callbackSuccessUrl?: string; orderId?: string; offerId?: string; jobId?: string; proposalId?: string; conversationId?: string; durationMinutes?: number; meetingDate?: string; meetingTime?: string } | null>(null);
     const [pendingOrderForChat, setPendingOrderForChat] = useState<any>(null);
@@ -387,7 +387,7 @@ function ChatPageContent() {
     }, [searchParams, conversationId, showModal]);
 
     const closeCheckout = useCallback(() => {
-        setCheckoutIframeUrl(null);
+        setCheckoutSessionId(null);
         if (conversationId) {
             api.chat.getConsultationStatus(conversationId).then(setConsultationStatus).catch(() => {});
             api.chat.getOffers(conversationId).then((o: any) => setOffers(o || [])).catch(() => {});
@@ -2311,10 +2311,18 @@ function ChatPageContent() {
                 />
             )}
 
-            <PaymobCheckoutModal
-                iframeUrl={checkoutIframeUrl}
-                title={checkoutTitle}
-                onClose={closeCheckout}
+            <GeideaCheckout
+                sessionId={checkoutSessionId}
+                onComplete={(success) => {
+                    setCheckoutSessionId(null);
+                    if (success) {
+                        showModal({ title: 'Payment Successful', message: 'Your payment was completed successfully.', type: 'success' });
+                    }
+                    if (conversationId) {
+                        api.chat.getConsultationStatus(conversationId).then(setConsultationStatus).catch(() => {});
+                        api.chat.getOffers(conversationId).then((o: any) => setOffers(o || [])).catch(() => {});
+                    }
+                }}
             />
 
             {paymentChoiceConfig && (
@@ -2379,7 +2387,7 @@ function ChatPageContent() {
                             return;
                         }
                         setCheckoutTitle(paymentChoiceConfig.type === 'consultation' ? 'Pay for Video Consultation' : 'Complete Payment');
-                        setCheckoutIframeUrl(charge.iframeUrl || null);
+                        setCheckoutSessionId(charge.sessionId || null);
                     }}
                     onInstaPayComplete={() => {
                         closeCheckout();

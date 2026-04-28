@@ -1,6 +1,6 @@
 const { sendAndLog } = require('../services/mailgunService');
 const { wrapEmail } = require('../templates/emailBase');
-const { getPrimaryAdminEmail } = require('../utils/getAdminEmails');
+const { getAdminEmails } = require('../utils/getAdminEmails');
 
 function escapeHtml(s) {
     if (s == null || typeof s !== 'string') return '';
@@ -57,11 +57,14 @@ const submitContact = async (req, res) => {
 
         const mailSubject = `[Engezhaly Contact] ${subjectTrim}`;
 
-        const adminEmail = await getPrimaryAdminEmail();
-        await sendAndLog(adminEmail, mailSubject, html, 'contact_form', {
-            fromEmail: emailTrim,
-            fromName: nameTrim
-        });
+        const adminEmails = await getAdminEmails();
+        const promises = adminEmails.map((adminEmail) => 
+            sendAndLog(adminEmail, mailSubject, html, 'contact_form', {
+                fromEmail: emailTrim,
+                fromName: nameTrim
+            }).catch((err) => console.error('[Contact] Admin email failed:', err.message))
+        );
+        await Promise.all(promises);
 
         res.json({ msg: 'Thanks — your message has been sent. We will get back to you soon.' });
     } catch (err) {

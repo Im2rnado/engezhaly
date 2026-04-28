@@ -509,8 +509,8 @@ const toggleFreelancerReward = async (req, res) => {
 
 const getInsights = async (req, res) => {
     try {
-        const totalUsers = await User.countDocuments();
-        const totalFreelancers = await User.countDocuments({ role: 'freelancer' });
+        const totalUsers = await User.countDocuments({ $or: [{ role: { $ne: 'freelancer' } }, { 'freelancerProfile.status': 'approved' }] });
+        const totalFreelancers = await User.countDocuments({ role: 'freelancer', 'freelancerProfile.status': 'approved' });
         const totalClients = await User.countDocuments({ role: 'client' });
 
         // Platform fees collected (card/top-up etc.)
@@ -585,7 +585,10 @@ const searchUsersPartial = async (req, res) => {
         const safe = escapeRegex(raw);
         const re = new RegExp(safe, 'i');
         const users = await User.find({
-            $or: [{ username: re }, { email: re }, { firstName: re }, { lastName: re }]
+            $and: [
+                { $or: [{ username: re }, { email: re }, { firstName: re }, { lastName: re }] },
+                { $or: [{ role: { $ne: 'freelancer' } }, { 'freelancerProfile.status': 'approved' }] }
+            ]
         })
             .select('_id username email firstName lastName role strikes')
             .limit(15)
@@ -599,7 +602,12 @@ const searchUsersPartial = async (req, res) => {
 
 const getAllUsers = async (req, res) => {
     try {
-        const users = await User.find().select('-password +freelancerProfile.cvUrl').sort({ createdAt: -1 }).lean();
+        const users = await User.find({
+            $or: [
+                { role: { $ne: 'freelancer' } },
+                { 'freelancerProfile.status': 'approved' }
+            ]
+        }).select('-password +freelancerProfile.cvUrl').sort({ createdAt: -1 }).lean();
         const withPresence = users.map((u) => ({
             ...u,
             isOnline: u._id ? isUserOnline(req.app, u._id) : false

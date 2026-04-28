@@ -19,7 +19,7 @@ import {
 } from '@/lib/utils';
 import { payWithWalletIfPossible } from '@/lib/payWithWalletIfPossible';
 import PaymentChoiceModal from '@/components/PaymentChoiceModal';
-import PaymobCheckoutModal from '@/components/PaymobCheckoutModal';
+import GeideaCheckout from '@/components/GeideaCheckout';
 
 export default function ClientOrderDetailPage() {
     const params = useParams();
@@ -36,7 +36,7 @@ export default function ClientOrderDetailPage() {
     const [disputeSubmitting, setDisputeSubmitting] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
     const [paymentChoiceConfig, setPaymentChoiceConfig] = useState<{ type: string; amountCents: number; callbackSuccessUrl?: string; orderId?: string } | null>(null);
-    const [checkoutIframeUrl, setCheckoutIframeUrl] = useState<string | null>(null);
+    const [checkoutSessionId, setCheckoutSessionId] = useState<string | null>(null);
     const [reviewOpen, setReviewOpen] = useState(false);
     const [reviewRating, setReviewRating] = useState(5);
     const [reviewText, setReviewText] = useState('');
@@ -535,11 +535,13 @@ export default function ClientOrderDetailPage() {
                 </div>
             )}
 
-            <PaymobCheckoutModal
-                iframeUrl={checkoutIframeUrl}
-                title="Complete Payment"
-                onClose={() => {
-                    setCheckoutIframeUrl(null);
+            <GeideaCheckout
+                sessionId={checkoutSessionId}
+                onComplete={(success) => {
+                    setCheckoutSessionId(null);
+                    if (success) {
+                        showModal({ title: 'Payment Successful', message: 'Your payment was completed.', type: 'success' });
+                    }
                     refreshOrder();
                 }}
             />
@@ -562,7 +564,7 @@ export default function ClientOrderDetailPage() {
                             await refreshOrder();
                             return;
                         }
-                        setCheckoutIframeUrl(charge.iframeUrl || null);
+                        setCheckoutSessionId(charge.sessionId || null);
                     }}
                     onInstaPayComplete={() => {
                         showModal({

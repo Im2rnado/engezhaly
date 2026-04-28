@@ -8,6 +8,7 @@ import ClientSidebar from '@/components/ClientSidebar';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 import { api } from '@/lib/api';
 import { formatDateDDMMYYYY } from '@/lib/utils';
+import GeideaCheckout from '@/components/GeideaCheckout';
 
 export default function PaymentMethodsPage() {
     const { showModal } = useModal();
@@ -16,7 +17,7 @@ export default function PaymentMethodsPage() {
     const [transactions, setTransactions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [addingCard, setAddingCard] = useState(false);
-    const [iframeUrl, setIframeUrl] = useState<string | null>(null);
+    const [sessionId, setSessionId] = useState<string | null>(null);
     const [user, setUser] = useState<any>(null);
     const [profile, setProfile] = useState<any>(null);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -64,8 +65,8 @@ export default function PaymentMethodsPage() {
         try {
             const callbackUrl = typeof window !== 'undefined' ? `${window.location.origin}/dashboard/client/wallet?success=1` : undefined;
             const result = await api.paymentMethods.add(callbackUrl);
-            setIframeUrl(result.iframeUrl || null);
-            if (!result.iframeUrl) {
+            setSessionId(result.sessionId || null);
+            if (!result.sessionId) {
                 showModal({ title: 'Success', message: 'Card added successfully. Refreshing...', type: 'success' });
                 fetchData();
             }
@@ -113,8 +114,8 @@ export default function PaymentMethodsPage() {
         }
     }, [fetchData]);
 
-    const closeIframe = () => {
-        setIframeUrl(null);
+    const closeCheckout = () => {
+        setSessionId(null);
         fetchData();
     };
 
@@ -288,28 +289,16 @@ export default function PaymentMethodsPage() {
             </div>
 
             {/* Credit Card iframe modal */}
-            {iframeUrl && (
-                <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
-                        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-                            <h3 className="font-bold text-gray-900">Add Payment Method</h3>
-                            <button
-                                onClick={closeIframe}
-                                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
-                            >
-                                Close
-                            </button>
-                        </div>
-                        <div className="flex-1 min-h-[400px]">
-                            <iframe
-                                src={iframeUrl}
-                                className="w-full h-full min-h-[400px] border-0"
-                                title="Credit Card Payment"
-                            />
-                        </div>
-                    </div>
-                </div>
-            )}
+            <GeideaCheckout
+                sessionId={sessionId}
+                onComplete={(success) => {
+                    setSessionId(null);
+                    if (success) {
+                        showModal({ title: 'Success', message: 'Payment method added successfully.', type: 'success' });
+                    }
+                    fetchData();
+                }}
+            />
         </div>
     );
 }

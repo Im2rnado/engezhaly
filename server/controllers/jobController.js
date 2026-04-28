@@ -4,6 +4,7 @@ const { sendAndLog } = require('../services/mailgunService');
 const { FRONTEND_URL } = require('../templates/emailBase');
 const { jobApplication: jobApplicationTemplate, workSubmitted } = require('../templates/emailTemplates');
 const { emitToUser, isUserOnline } = require('../services/notificationService');
+const { notifyAdmins } = require('../utils/getAdminEmails');
 
 const { isValidCategorySubCategory } = require('../config/categories');
 
@@ -46,6 +47,16 @@ const createJob = async (req, res) => {
         });
 
         await newJob.save();
+
+        const adminDashboardUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin`;
+        notifyAdmins(
+            `New Job Posted: ${title}`,
+            'A Client Posted a New Job',
+            `<strong>Job Title:</strong> ${title}<br/><strong>Budget:</strong> ${budgetMin} - ${budgetMax} EGP<br/><strong>Category:</strong> ${category}`,
+            'View in Admin Dashboard',
+            adminDashboardUrl
+        );
+
         res.json(newJob);
     } catch (err) {
         console.error(err.message);

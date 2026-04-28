@@ -290,6 +290,21 @@ function paymentConfirmed(userName, amount, type, title) {
     return { subject: 'Payment confirmed successfully', html: wrapEmail(content) };
 }
 
+function adminSystemAlert(subjectTitle, heading, messageHtml, linkText = null, linkUrl = null) {
+    let buttonHtml = '';
+    if (linkText && linkUrl) {
+        buttonHtml = ctaButton(linkText, linkUrl);
+    }
+    const content = `
+        <h2 style="margin: 0 0 16px; font-size: 22px; color: #111827;">${heading}</h2>
+        <div style="margin: 0 0 16px; font-size: 16px; line-height: 1.6; color: #4b5563;">
+            ${messageHtml}
+        </div>
+        ${buttonHtml}
+    `;
+    return { subject: `[Admin Alert] ${subjectTitle}`, html: wrapEmail(content) };
+}
+
 module.exports = {
     verification,
     jobApplication,
@@ -307,5 +322,6 @@ module.exports = {
     workSubmitted,
     bundlePurchased,
     paymentConfirmed,
-    chatFrozenPhoneAdminAlert
+    chatFrozenPhoneAdminAlert,
+    adminSystemAlert
 };

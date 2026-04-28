@@ -20,7 +20,7 @@ const {
 const { isUserInConversation } = require('../services/presence');
 const { emitToUser, isUserOnline } = require('../services/notificationService');
 const { emitChatContextRefresh, notifyAdminChatsListRefresh } = require('../services/chatContextRefresh');
-const { getPrimaryAdminEmail } = require('../utils/getAdminEmails');
+const { getAdminEmails, notifyAdmins } = require('../utils/getAdminEmails');
 
 // Helper for curse words - common abusive/profane terms
 const BAD_WORDS = [
@@ -363,7 +363,7 @@ const sendMessage = async (req, res) => {
 
         if (hasPhone) {
             try {
-                const adminEmail = await getPrimaryAdminEmail();
+                const adminEmails = await getAdminEmails();
                 const [senderU, receiverU] = await Promise.all([
                     User.findById(senderId).select('firstName lastName email role').lean(),
                     User.findById(receiverId).select('firstName lastName email role').lean()
@@ -381,11 +381,14 @@ const sendMessage = async (req, res) => {
                     fmt(receiverU, receiverId),
                     adminChatsUrl
                 );
-                sendAndLog(adminEmail, subject, html, 'chat_frozen_phone', {
-                    conversationId: String(conversation._id),
-                    senderId: String(senderId),
-                    receiverId: String(receiverId)
-                }).catch((err) => console.error('[Chat] Admin freeze alert email failed:', err.message));
+                const promises = adminEmails.map((adminEmail) => 
+                    sendAndLog(adminEmail, subject, html, 'chat_frozen_phone', {
+                        conversationId: String(conversation._id),
+                        senderId: String(senderId),
+                        receiverId: String(receiverId)
+                    }).catch((err) => console.error('[Chat] Admin freeze alert email failed:', err.message))
+                );
+                await Promise.all(promises);
             } catch (e) {
                 console.error('[Chat] Admin freeze alert failed:', e.message);
             }
@@ -519,6 +522,15 @@ const createOffer = async (req, res) => {
         conversation.lastMessage = lastPreview;
         conversation.lastMessageId = null;
         await conversation.save();
+
+        const adminDashboardUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin`;
+        notifyAdmins(
+            `New Custom Offer Created`,
+            'A Freelancer Created a Custom Offer',
+            `<strong>Amount:</strong> ${price} EGP<br/><strong>Delivery:</strong> ${offerData.deliveryDays || 'Custom'} Days`,
+            'View in Admin Dashboard',
+            adminDashboardUrl
+        );
 
         const io = req.app.get('io');
         if (io) {

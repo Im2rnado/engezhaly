@@ -20,6 +20,7 @@ const { sendAndLog } = require('../services/mailgunService');
 const { verification: verificationTemplate, passwordReset: passwordResetTemplate } = require('../templates/emailTemplates');
 const { isValidEgyptianE164 } = require('../utils/phoneValidation');
 const { getPasswordPolicyError } = require('../utils/passwordPolicy');
+const { notifyAdmins } = require('../utils/getAdminEmails');
 
 const register = async (req, res) => {
     try {
@@ -195,6 +196,16 @@ const register = async (req, res) => {
         // Send verification email (async, don't block response)
         const { subject, html } = verificationTemplate(token);
         sendAndLog(emailNorm, subject, html, 'verification', { userId: user._id }).catch(err => console.error('[Auth] Verification email failed:', err.message));
+
+        // Notify Admins
+        const adminDashboardUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin`;
+        notifyAdmins(
+            `New Signup: ${firstName} ${lastName}`,
+            'A New User Has Registered',
+            `<strong>Name:</strong> ${firstName} ${lastName}<br/><strong>Email:</strong> ${emailNorm}<br/><strong>Role:</strong> ${role}`,
+            'View in Admin Dashboard',
+            adminDashboardUrl
+        );
 
         // Create JWT
         const payload = { user: { id: user.id, role: user.role } };
