@@ -11,6 +11,7 @@ import MainHeader from "@/components/MainHeader";
 import { useModal } from "@/context/ModalContext";
 import { motion, Variants, useScroll, useTransform } from "framer-motion";
 import HeroVimeoEmbed from "@/components/HeroVimeoEmbed";
+import JoinPopup from "@/components/JoinPopup";
 
 // High-performance animations (no blurs, no box-shadow animations)
 const fadeIn: Variants = {
@@ -777,6 +778,9 @@ export default function Home() {
 
       {/* Parallax Logo Section before footer */}
       <ParallaxLogo />
+
+      {/* 7-second timed join popup — only shown to guests (no token/user in localStorage) */}
+      <JoinPopup />
 
     </main>
   );

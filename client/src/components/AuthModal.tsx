@@ -670,7 +670,10 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                                     <button
-                                        onClick={() => { setStep('client-auth'); }}
+                                        onClick={() => {
+                                            // TODO: redirect to client sign-up — kept for later use
+                                            // setStep('client-auth');
+                                        }}
                                         className="group flex flex-col items-center justify-center p-6 md:p-10 border-2 border-gray-100 rounded-2xl md:rounded-3xl hover:border-[#09BF44] hover:bg-green-50/50 transition-all duration-300"
                                     >
                                         <div className="w-16 h-16 md:w-24 md:h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4 md:mb-6 group-hover:bg-[#09BF44] transition-colors">
