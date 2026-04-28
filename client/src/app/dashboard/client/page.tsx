@@ -781,12 +781,15 @@ function ClientDashboardContent() {
 
                 <GeideaCheckout
                     sessionId={checkoutSessionId}
-                    onComplete={(success) => {
+                    onComplete={(success, res) => {
                         setCheckoutSessionId(null);
                         if (success) {
                             showModal({ title: 'Payment Successful', message: 'Your payment was completed successfully.', type: 'success' });
+                        } else if (res?.type === 'error') {
+                            showModal({ title: 'Payment Failed', message: 'There was an error processing your payment. Please try again.', type: 'error' });
                         }
-                        fetchOrders();
+                        // Slight delay to allow webhook to process before fetching
+                        setTimeout(() => fetchOrders(), 1500);
                     }}
                 />
 

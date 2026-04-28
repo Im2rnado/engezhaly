@@ -291,12 +291,14 @@ export default function PaymentMethodsPage() {
             {/* Credit Card iframe modal */}
             <GeideaCheckout
                 sessionId={sessionId}
-                onComplete={(success) => {
+                onComplete={(success, res) => {
                     setSessionId(null);
                     if (success) {
                         showModal({ title: 'Success', message: 'Payment method added successfully.', type: 'success' });
+                    } else if (res?.type === 'error') {
+                        showModal({ title: 'Error', message: 'There was an error adding your payment method. Please try again.', type: 'error' });
                     }
-                    fetchData();
+                    setTimeout(() => fetchData(), 1500);
                 }}
             />
         </div>

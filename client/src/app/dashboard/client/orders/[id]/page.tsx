@@ -537,12 +537,14 @@ export default function ClientOrderDetailPage() {
 
             <GeideaCheckout
                 sessionId={checkoutSessionId}
-                onComplete={(success) => {
+                onComplete={(success, res) => {
                     setCheckoutSessionId(null);
                     if (success) {
                         showModal({ title: 'Payment Successful', message: 'Your payment was completed.', type: 'success' });
+                    } else if (res?.type === 'error') {
+                        showModal({ title: 'Payment Failed', message: 'There was an error processing your payment. Please try again.', type: 'error' });
                     }
-                    refreshOrder();
+                    setTimeout(() => refreshOrder(), 1500);
                 }}
             />
 

@@ -27,15 +27,15 @@ export default function GeideaCheckout({ sessionId, onComplete }: GeideaCheckout
 
         const launch = () => {
             const onSuccess = (data: any) => {
-                onComplete(true, data);
+                onComplete(true, { type: 'success', data });
             };
             const onError = (data: any) => {
                 console.error('[Geidea] Payment error:', data);
-                onComplete(false, data);
+                onComplete(false, { type: 'error', data });
             };
             const onCancel = (data: any) => {
                 console.log('[Geidea] Payment cancelled:', data);
-                onComplete(false, data);
+                onComplete(false, { type: 'cancel', data });
             };
 
             try {
@@ -44,7 +44,7 @@ export default function GeideaCheckout({ sessionId, onComplete }: GeideaCheckout
                 payment.startPayment(sessionId);
             } catch (err) {
                 console.error('[Geidea] Failed to start payment:', err);
-                onComplete(false, { error: err });
+                onComplete(false, { type: 'error', error: err });
             }
         };
 
@@ -68,7 +68,7 @@ export default function GeideaCheckout({ sessionId, onComplete }: GeideaCheckout
         script.onload = launch;
         script.onerror = () => {
             console.error('[Geidea] Failed to load GeideaCheckout script');
-            onComplete(false, { error: 'Failed to load payment SDK' });
+            onComplete(false, { type: 'error', error: 'Failed to load payment SDK' });
         };
         document.head.appendChild(script);
     }, [sessionId, onComplete]);

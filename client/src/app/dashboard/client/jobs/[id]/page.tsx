@@ -682,12 +682,14 @@ function JobDetailPageContent() {
 
             <GeideaCheckout
                 sessionId={checkoutSessionId}
-                onComplete={(success) => {
+                onComplete={(success, res) => {
                     setCheckoutSessionId(null);
                     if (success) {
                         showModal({ title: 'Payment Successful', message: 'Job payment completed.', type: 'success' });
+                    } else if (res?.type === 'error') {
+                        showModal({ title: 'Payment Failed', message: 'There was an error processing your payment. Please try again.', type: 'error' });
                     }
-                    refreshJob();
+                    setTimeout(() => refreshJob(), 1500);
                 }}
             />
 
