@@ -13,6 +13,7 @@ const emailTemplates = require('../templates/emailTemplates');
 const { ORDER_PLATFORM_FEE_EGP } = require('../config/fees');
 const { emitChatContextRefresh } = require('../services/chatContextRefresh');
 const { sendJobProposalAcceptedChatMessage } = require('../services/jobProposalChatNotifications');
+const { notifyAdmins } = require('../utils/getAdminEmails');
 
 const INSTAPAY_PHONE = process.env.INSTAPAY_PHONE || '+201098611731';
 const INSTAPAY_LINK = process.env.INSTAPAY_LINK || 'https://ipn.eg/S/engezhaly/instapay/3mttQG';
@@ -103,6 +104,15 @@ const uploadScreenshot = async (req, res) => {
 
         payment.screenshotUrl = screenshotUrl.trim();
         await payment.save();
+
+        const adminDashboardUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin`;
+        notifyAdmins(
+            `New InstaPay Payment Pending`,
+            'A Client Uploaded an InstaPay Transfer Screenshot',
+            `<strong>Amount:</strong> ${payment.amountEGP} EGP<br/><strong>Type:</strong> ${payment.meta?.type || 'Unknown'}`,
+            'View in Admin Dashboard',
+            adminDashboardUrl
+        );
 
         res.json({ payment });
     } catch (err) {

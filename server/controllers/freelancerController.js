@@ -9,6 +9,7 @@ const { sendAndLog } = require('../services/mailgunService');
 const { FRONTEND_URL } = require('../templates/emailBase');
 const { orderApproved, orderDenied, workSubmitted } = require('../templates/emailTemplates');
 const { reviewStatsForSeller } = require('../utils/reviewStatsForSeller');
+const { notifyAdmins } = require('../utils/getAdminEmails');
 
 /** If order.revision fields were missing but linked offer has them, expose offer values (read path fix). */
 const orderWithRevisionFallback = (order) => {
@@ -360,6 +361,15 @@ const raiseDispute = async (req, res) => {
         order.status = 'disputed';
         order.disputeReason = reasonStr;
         await order.save();
+
+        const adminDashboardUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin`;
+        notifyAdmins(
+            `New Dispute Raised`,
+            'A Freelancer Raised a Dispute',
+            `<strong>Order ID:</strong> ${order._id}<br/><strong>Reason:</strong> ${reasonStr}`,
+            'View in Admin Dashboard',
+            adminDashboardUrl
+        );
 
         res.json({ msg: 'Dispute raised. Our team will review and resolve it shortly.', order });
     } catch (err) {

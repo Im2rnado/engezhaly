@@ -22,6 +22,7 @@ const orderWithRevisionFallback = (order) => {
 };
 const { sendAndLog } = require('../services/mailgunService');
 const emailTemplates = require('../templates/emailTemplates');
+const { notifyAdmins } = require('../utils/getAdminEmails');
 
 const getProfile = async (req, res) => {
     try {
@@ -566,6 +567,15 @@ const raiseDispute = async (req, res) => {
         order.status = 'disputed';
         order.disputeReason = reasonStr;
         await order.save();
+
+        const adminDashboardUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin`;
+        notifyAdmins(
+            `New Dispute Raised`,
+            'A Client Raised a Dispute',
+            `<strong>Order ID:</strong> ${order._id}<br/><strong>Reason:</strong> ${reasonStr}`,
+            'View in Admin Dashboard',
+            adminDashboardUrl
+        );
 
         res.json({ msg: 'Dispute raised. Our team will review and resolve it shortly.', order });
     } catch (err) {

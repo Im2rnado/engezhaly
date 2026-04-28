@@ -259,7 +259,7 @@ export default function OfferDetailPage() {
                                                     <span className="text-xs text-gray-400">{new Date(r.completedAt).toLocaleDateString()}</span>
                                                 )}
                                             </div>
-                                            {r.review && <p className="text-gray-700 text-sm">{r.review}</p>}
+                                            {r.review && <p className="text-gray-700 text-sm break-words [overflow-wrap:anywhere]">{r.review}</p>}
                                         </div>
                                     ))}
                                 </div>
