@@ -55,7 +55,6 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased text-[#333333] bg-white`}>
         <ModalProvider>
-          {/* PasswordGate temporarily disabled — uncomment to re-enable the site password */}
           {/* <PasswordGate> */}
             {children}
             <LandingFooterWrapper />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, ArrowRight, Code, Palette, TrendingUp, Video, Sparkles, PenTool, Mic, Search, Briefcase, ShieldCheck, Star, Loader2, CheckCircle2, Zap } from "lucide-react";
@@ -58,9 +58,32 @@ const ParallaxLogo = () => {
   );
 };
 
+/**
+ * Tiny component that owns useSearchParams.
+ * Must be isolated here so it can be wrapped in <Suspense> —
+ * using useSearchParams directly in a page component causes a
+ * build-time prerender failure in Next.js App Router.
+ */
+function SessionHandler({
+  onSessionExpired,
+}: {
+  onSessionExpired: () => void;
+}) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (searchParams.get('session_expired') === '1') {
+      router.replace('/');
+      onSessionExpired();
+    }
+  }, [searchParams, router, onSessionExpired]);
+
+  return null;
+}
+
 export default function Home() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { showModal } = useModal();
   const [user, setUser] = useState<any>(null);
   const [projects, setProjects] = useState<any[]>([]);
@@ -72,18 +95,15 @@ export default function Home() {
   const [heroSearchQuery, setHeroSearchQuery] = useState("");
   const [showSecret, setShowSecret] = useState(false);
 
-  useEffect(() => {
-    const sessionExpired = searchParams.get('session_expired');
-    if (sessionExpired === '1') {
-      router.replace('/');
-      showModal({
-        title: 'Session Expired',
-        message: 'Your session has expired. Please log in again.',
-        type: 'info'
-      });
-      return;
-    }
+  const handleSessionExpired = () => {
+    showModal({
+      title: 'Session Expired',
+      message: 'Your session has expired. Please log in again.',
+      type: 'info'
+    });
+  };
 
+  useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
       const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
@@ -105,10 +125,15 @@ export default function Home() {
     }).catch(() => {
       setLoading(false);
     });
-  }, [searchParams, router, showModal]);
+  }, []);
 
   return (
     <main className="min-h-screen bg-white text-gray-900 font-sans selection:bg-[#09BF44]/30">
+      {/* SessionHandler reads useSearchParams — must be in Suspense per Next.js App Router rules */}
+      <Suspense fallback={null}>
+        <SessionHandler onSessionExpired={handleSessionExpired} />
+      </Suspense>
+
       <MainHeader user={user} showCategories={true} />
 
       {/* Hero Section - Restored original gradient but modernized */}
