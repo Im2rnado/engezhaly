@@ -27,7 +27,7 @@ export default function ProjectCardCompact({ project }: ProjectCardCompactProps)
     const rs = project.reviewStats as { reviewCount?: number; avgRating?: number } | undefined;
     const reviewCount = Number(rs?.reviewCount) || 0;
     const avgRating = Number(rs?.avgRating) || 0;
-    const skills = [project.category, project.subCategory].filter(Boolean);
+    const skills = Array.from(new Set([project.category, project.subCategory].filter(Boolean)));
     const brief = project.description ? project.description.slice(0, 120) + (project.description.length > 120 ? '...' : '') : '';
 
     const languageTags: string[] = [];
