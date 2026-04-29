@@ -89,7 +89,6 @@ const createSession = async ({
         paymentOperation: 'Pay',
         language: 'en',
         callbackUrl,
-        cardOnFile,
         appearance: {
             showEmail: false,
             showAddress: false,
@@ -101,6 +100,14 @@ const createSession = async ({
             }
         }
     };
+
+    if (cardOnFile) {
+        payload.cardOnFile = true;
+        payload.cofAgreement = {
+            id: merchantReferenceId,
+            type: 'Unscheduled'
+        };
+    }
 
     if (returnUrl) payload.returnUrl = returnUrl;
 
