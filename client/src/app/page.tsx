@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, ArrowRight, Code, Palette, TrendingUp, Video, Sparkles, PenTool, Mic, Search, Briefcase, ShieldCheck, Star, Loader2, CheckCircle2, Zap } from "lucide-react";
@@ -71,9 +71,11 @@ function SessionHandler({
 }) {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const handledRef = useRef(false);
 
   useEffect(() => {
-    if (searchParams.get('session_expired') === '1') {
+    if (searchParams.get('session_expired') === '1' && !handledRef.current) {
+      handledRef.current = true;
       router.replace('/');
       onSessionExpired();
     }
