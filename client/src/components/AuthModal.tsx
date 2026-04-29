@@ -95,8 +95,6 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
         discoverySource: [],
         aiUsage: ''
     });
-    const [cvUrl, setCvUrl] = useState('');
-    const [cvUploading, setCvUploading] = useState(false);
     const [withdrawalMethod, setWithdrawalMethod] = useState<{ method: 'vodafone_cash' | 'instapay' | 'bank'; phoneNumber: string; accountNumber: string; bankName: string }>({
         method: 'vodafone_cash',
         phoneNumber: '',
@@ -153,7 +151,6 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             setPortfolioImageProgress(0);
             setProfessionalInfo({ category: '', experienceYears: '', technicalSkills: '', softSkills: '', bio: '', isStudent: false, certifications: [], universityIdUrl: '', idDocumentUrl: '', city: '', english: 'Fluent', arabic: 'Fluent', francoArabic: 'Fluent', extraLanguages: '' });
             setSurvey({ disagreementHandling: '', hoursPerDay: '', discoverySource: [], aiUsage: '' });
-            setCvUrl('');
             setWithdrawalMethod({ method: 'vodafone_cash', phoneNumber: '', accountNumber: '', bankName: '' });
             setSignupNotes('');
             setSurveyStep(1);
@@ -531,7 +528,6 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                 discoverySource: Array.isArray(survey.discoverySource) && survey.discoverySource.length > 0 ? survey.discoverySource.join(', ') : undefined,
                 aiUsage: survey.aiUsage?.trim() || undefined
             },
-            cvUrl: cvUrl?.trim() || undefined,
             starterOffer: {
                 title: starterOffer.title?.trim() || undefined,
                 description: starterOffer.description?.trim() || undefined,
@@ -1556,7 +1552,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                     </div>
 
                                     <button type="submit" className="w-full bg-[#09BF44] hover:bg-[#07a63a] text-white font-bold text-base md:text-lg p-3 md:p-4 rounded-xl transition-all flex items-center justify-center gap-2">
-                                        Next: Portfolio <ChevronRight className="w-5 h-5" />
+                                        Next: Portfolio / CV <ChevronRight className="w-5 h-5" />
                                     </button>
                                 </form>
                             </div>
@@ -1741,47 +1737,6 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                         </div>
                                     ))}
                                     {surveyStep === 5 && (
-                                        <div>
-                                            <label className="block font-medium text-gray-700 mb-2">Upload your CV (optional)</label>
-                                            <p className="text-sm text-gray-500 mb-3">Your CV is for admin review only and will not be shown publicly on your profile.</p>
-                                            <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#09BF44] transition-colors bg-gray-50">
-                                                <input
-                                                    type="file"
-                                                    accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                                                    className="hidden"
-                                                    onChange={async (e) => {
-                                                        const file = e.target.files?.[0];
-                                                        if (!file) return;
-
-                                                        if (file.size > 10 * 1024 * 1024) {
-                                                            setError('CV file size must be less than 10MB');
-                                                            return;
-                                                        }
-
-                                                        setError('');
-                                                        setCvUploading(true);
-                                                        try {
-                                                            const url = await api.upload.file(file, { forSignup: true });
-                                                            setCvUrl(url);
-                                                        } catch (err: any) {
-                                                            setError(err.message || 'CV upload failed');
-                                                        } finally {
-                                                            setCvUploading(false);
-                                                            e.target.value = '';
-                                                        }
-                                                    }}
-                                                />
-                                                {cvUploading ? (
-                                                    <Loader2 className="w-8 h-8 text-[#09BF44] animate-spin" />
-                                                ) : cvUrl ? (
-                                                    <div className="flex items-center gap-2 text-[#09BF44] font-medium"><CheckCircle className="w-5 h-5" /> CV uploaded</div>
-                                                ) : (
-                                                    <div className="flex flex-col items-center gap-1 text-gray-500"><Upload className="w-6 h-6" /><span className="text-sm">PDF or DOC</span></div>
-                                                )}
-                                            </label>
-                                        </div>
-                                    )}
-                                    {surveyStep === 5 && (
                                         <label className="flex items-start gap-3 cursor-pointer">
                                             <input
                                                 type="checkbox"
@@ -1829,7 +1784,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                 <div className="flex items-center justify-center gap-2 mb-4 text-sm font-bold text-gray-400 uppercase tracking-wider">
                                     <span className="text-[#09BF44]">Step 3</span><span>/</span><span>6</span>
                                 </div>
-                                <h3 className="text-xl md:text-2xl font-bold text-center mb-2">Portfolio</h3>
+                                <h3 className="text-xl md:text-2xl font-bold text-center mb-2">Portfolio / CV</h3>
                                 <p className="text-center text-gray-600 mb-6">Add 1–3 projects to showcase your work. (Optional)</p>
 
                                 {error && <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center gap-2 text-sm mb-4"><div className="w-2 h-2 bg-red-500 rounded-full"></div>{error}</div>}
