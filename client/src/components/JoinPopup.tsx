@@ -7,6 +7,8 @@ import AuthModal from "@/components/AuthModal";
 
 // Session key — popup only shows once per browser session (tab).
 const SESSION_KEY = "engezhaly_join_popup_dismissed";
+// Shared key — set by MainHeader (or any auth trigger) when AuthModal opens
+const AUTH_OPENED_KEY = "engezhaly_auth_modal_opened";
 // Delay in ms before the popup appears
 const POPUP_DELAY_MS = 5000;
 
@@ -32,6 +34,10 @@ export default function JoinPopup() {
     }
 
     const timer = setTimeout(() => {
+      // Don't show the popup if the user already opened the AuthModal manually
+      if (sessionStorage.getItem(AUTH_OPENED_KEY)) {
+        return;
+      }
       setVisible(true);
     }, POPUP_DELAY_MS);
 
@@ -41,6 +47,7 @@ export default function JoinPopup() {
   const dismiss = () => {
     setVisible(false);
     sessionStorage.setItem(SESSION_KEY, "1");
+    sessionStorage.setItem(AUTH_OPENED_KEY, "1");
   };
 
   const openFreelancer = () => {

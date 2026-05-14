@@ -155,6 +155,8 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
     const openAuthModal = (step: 'role-selection' | 'login') => {
         setAuthStep(step);
         setIsAuthModalOpen(true);
+        // Tell JoinPopup not to show its overlay — user is already in the auth flow
+        sessionStorage.setItem('engezhaly_auth_modal_opened', '1');
     };
 
     return (
