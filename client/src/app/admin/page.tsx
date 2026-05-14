@@ -1855,7 +1855,8 @@ export default function AdminDashboard() {
                 {/* Users Tab - Split view with detail panel */}
                 {activeTab === 'users' && (
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div className="lg:col-span-1 bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                        {/* User list — hidden on mobile when a user is selected */}
+                        <div className={`lg:col-span-1 bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden ${selectedUser ? 'hidden lg:block' : 'block'}`}>
                             <div className="p-4 border-b border-gray-100">
                                 <h3 className="font-bold text-gray-900">All Users</h3>
                                 <p className="text-sm text-gray-500">{users.length} total</p>
@@ -1888,6 +1889,7 @@ export default function AdminDashboard() {
                                                         <div className="min-w-0 flex-1">
                                                             <p className="font-bold text-gray-900">{user.firstName} {user.lastName}</p>
                                                             <p className="text-sm text-gray-500 truncate">{user.email}</p>
+                                                            <p className="text-xs text-gray-400 truncate">{user.phoneNumber || ''}</p>
                                                             <span className={`inline-block mt-1 px-2 py-0.5 rounded text-xs font-bold ${user.role === 'admin' ? 'bg-purple-100 text-purple-600' : user.role === 'freelancer' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
                                                                 {user.role}{user.role === 'freelancer' && user.freelancerProfile?.category ? ` · ${user.freelancerProfile.category}` : ''}
                                                             </span>
@@ -1900,7 +1902,8 @@ export default function AdminDashboard() {
                                 )}
                             </div>
                         </div>
-                        <div className="lg:col-span-2 bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                        {/* Detail panel — full width on mobile when user is selected */}
+                        <div className={`lg:col-span-2 bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden ${selectedUser || selectedUserLoading ? 'block' : 'hidden lg:block'}`}>
                             {selectedUserLoading ? (
                                 <div className="p-16 flex justify-center"><Loader2 className="w-12 h-12 animate-spin text-[#09BF44]" /></div>
                             ) : selectedUser ? (
@@ -1915,6 +1918,7 @@ export default function AdminDashboard() {
                         </div>
                     </div>
                 )}
+
 
                 {activeTab === 'finance' && (
                     <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">

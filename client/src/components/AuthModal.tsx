@@ -31,10 +31,14 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
     const [showPassword, setShowPassword] = useState(false);
     const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
 
+    const wasOpenRef = useRef(false);
     useEffect(() => {
-        if (isOpen && initialStep) {
+        // Only reset the step when the modal newly opens (closed → open transition)
+        // This prevents jumping back to role-selection mid-signup
+        if (isOpen && !wasOpenRef.current) {
             setStep(initialStep);
         }
+        wasOpenRef.current = isOpen;
     }, [isOpen, initialStep]);
 
     useEffect(() => {
@@ -1784,8 +1788,8 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                 <div className="flex items-center justify-center gap-2 mb-4 text-sm font-bold text-gray-400 uppercase tracking-wider">
                                     <span className="text-[#09BF44]">Step 3</span><span>/</span><span>6</span>
                                 </div>
-                                <h3 className="text-xl md:text-2xl font-bold text-center mb-2">Portfolio / CV</h3>
-                                <p className="text-center text-gray-600 mb-6">Add 1–3 projects to showcase your work. (Optional)</p>
+                                <h3 className="text-xl md:text-2xl font-bold text-center mb-2">Portfolio / Your Best Work</h3>
+                                <p className="text-center text-gray-600 mb-6">Add all your work. You can add Google Drive links, Behance, or more — but make sure no personal info like your phone number, email, or social media.</p>
 
                                 {error && <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center gap-2 text-sm mb-4"><div className="w-2 h-2 bg-red-500 rounded-full"></div>{error}</div>}
 
