@@ -153,6 +153,8 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             setDocumentUploadingLabel(null);
             setPortfolioImageUploading(null);
             setPortfolioImageProgress(0);
+            setStarterOfferImageUploading(false);
+            setStarterOfferImageProgress(0);
             setProfessionalInfo({ category: '', experienceYears: '', technicalSkills: '', softSkills: '', bio: '', isStudent: false, certifications: [], universityIdUrl: '', idDocumentUrl: '', city: '', english: 'Fluent', arabic: 'Fluent', francoArabic: 'Fluent', extraLanguages: '' });
             setSurvey({ disagreementHandling: '', hoursPerDay: '', discoverySource: [], aiUsage: '' });
             setWithdrawalMethod({ method: 'vodafone_cash', phoneNumber: '', accountNumber: '', bankName: '' });
@@ -171,6 +173,8 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
     const [documentUploadingLabel, setDocumentUploadingLabel] = useState<string | null>(null);
     const [portfolioImageUploading, setPortfolioImageUploading] = useState<number | null>(null);
     const [portfolioImageProgress, setPortfolioImageProgress] = useState(0);
+    const [starterOfferImageUploading, setStarterOfferImageUploading] = useState(false);
+    const [starterOfferImageProgress, setStarterOfferImageProgress] = useState(0);
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -1613,6 +1617,67 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                 })()}
                                             </select>
                                         </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">Banner Images (Up to 7)</label>
+                                        {starterOffer.images.length > 0 && (
+                                            <div className="flex flex-wrap gap-3 mb-3">
+                                                {starterOffer.images.map((url, idx) => (
+                                                    <div key={idx} className="relative w-24 h-24 rounded-xl overflow-hidden border-2 border-gray-200 group">
+                                                        <img src={url} alt={`Banner ${idx + 1}`} className="w-full h-full object-cover" />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setStarterOffer({ ...starterOffer, images: starterOffer.images.filter((_, i) => i !== idx) })}
+                                                            className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                                                        >
+                                                            <X className="w-6 h-6 text-white" />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {starterOffer.images.length < 7 && (
+                                            <label className={`block border-2 border-dashed rounded-xl p-6 text-center transition-colors cursor-pointer ${starterOfferImageUploading ? 'border-[#09BF44] bg-green-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    multiple
+                                                    className="hidden"
+                                                    disabled={starterOfferImageUploading}
+                                                    onChange={async (e) => {
+                                                        const files = Array.from(e.target.files || []).slice(0, 7 - starterOffer.images.length);
+                                                        if (!files.length) return;
+                                                        setStarterOfferImageUploading(true);
+                                                        for (let i = 0; i < files.length; i++) {
+                                                            setStarterOfferImageProgress(0);
+                                                            try {
+                                                                const url = await api.upload.file(files[i], { forSignup: true, onProgress: (p) => setStarterOfferImageProgress(p) });
+                                                                setStarterOffer(prev => ({ ...prev, images: [...prev.images, url] }));
+                                                            } catch (err: any) {
+                                                                showModal({ title: 'Upload Failed', message: err.message || 'Failed to upload image', type: 'error' });
+                                                            }
+                                                        }
+                                                        setStarterOfferImageUploading(false);
+                                                        e.target.value = '';
+                                                    }}
+                                                />
+                                                {starterOfferImageUploading ? (
+                                                    <>
+                                                        <Loader2 className="w-8 h-8 text-[#09BF44] mx-auto mb-2 animate-spin" />
+                                                        <p className="text-sm font-bold text-[#09BF44]">Uploading... {starterOfferImageProgress}%</p>
+                                                        <div className="h-2 bg-gray-200 rounded-full overflow-hidden mt-2 max-w-[200px] mx-auto">
+                                                            <div className="h-full bg-[#09BF44] transition-all" style={{ width: `${starterOfferImageProgress}%` }} />
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                                                        <p className="text-gray-500 font-bold">Click to Upload Images</p>
+                                                        <p className="text-xs text-gray-400 mt-1">Max 7 images. JPG, PNG, WebP</p>
+                                                    </>
+                                                )}
+                                            </label>
+                                        )}
                                     </div>
                                     <div>
                                         <label className="block text-sm font-bold text-gray-700 mb-2">Packages (min 300 EGP)</label>
