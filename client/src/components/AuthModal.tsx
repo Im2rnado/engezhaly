@@ -121,6 +121,18 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
     });
     const [portfolioItems, setPortfolioItems] = useState<{ title: string; description: string; imageUrl: string; link: string; subCategory: string }[]>([{ title: '', description: '', imageUrl: '', link: '', subCategory: '' }]);
 
+    // Track funnel progress with Google Analytics
+    useEffect(() => {
+        if (isOpen && typeof window !== 'undefined' && (window as any).gtag) {
+            (window as any).gtag('event', 'signup_funnel_step', {
+                event_category: 'funnel',
+                event_label: step,
+                survey_step: step === 'freelancer-step-3-survey' ? surveyStep : undefined,
+                value: 1
+            });
+        }
+    }, [step, surveyStep, isOpen]);
+
     // Reset state when modal opens/closes
     useEffect(() => {
         if (!isOpen) {
@@ -376,6 +388,13 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
 
+            if (typeof window !== 'undefined' && (window as any).gtag) {
+                (window as any).gtag('event', 'signup_complete', {
+                    event_category: 'funnel',
+                    event_label: 'client_success'
+                });
+            }
+
             onClose();
             showModal({
                 title: 'Account Created',
@@ -608,6 +627,12 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                 }
                 await api.auth.register(registerData);
                 // Don't save token/user - freelancer is pending. Header would show Dashboard but it doesn't work until approved.
+                if (typeof window !== 'undefined' && (window as any).gtag) {
+                    (window as any).gtag('event', 'signup_complete', {
+                        event_category: 'funnel',
+                        event_label: 'freelancer_success'
+                    });
+                }
             }
             setStep('freelancer-step-4');
         } catch (err: any) {
