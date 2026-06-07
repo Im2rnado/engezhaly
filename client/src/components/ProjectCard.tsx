@@ -31,6 +31,7 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
     const [orderDescription, setOrderDescription] = useState('');
     const [isCustomizeLoading, setIsCustomizeLoading] = useState(false);
     const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
+    const [showCustomizeConfirm, setShowCustomizeConfirm] = useState(false);
     const packages = project.packages || [];
     const currentPackage = packages[selectedPackage] || {};
     const extractSellerId = (value: any): string | null => {
@@ -230,46 +231,11 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                         {pkg.type || ['Basic', 'Standard', 'Premium'][idx]}
                     </button>
                 ))}
-                {/* Customize Tab */}
-                <button
+                {/* Customize Tab */}                <button
                     onClick={async () => {
-                        if (!checkClientAuth()) {
-                            return;
-                        }
-                        const sellerId = await resolveSellerId();
-                        if (!sellerId) {
-                            showModal({ title: 'Error', message: 'Could not identify the freelancer.', type: 'error' });
-                            return;
-                        }
-                        setIsCustomizeLoading(true);
-                        try {
-                            const conversations = await api.chat.getConversations();
-                            let conversation = findConversationWithSeller(conversations, sellerId);
-
-                            await api.chat.sendMessage({
-                                receiverId: sellerId,
-                                content: `Custom Offer Request ${project.subcategory}\n
-                                Please tell the freelancer exactly what you need — timeline, deliverables, budget, everything. They’ll create the best custom offer for you right here in chat.`,
-                                messageType: 'order'
-                            });
-
-                            if (!conversation) {
-                                const updatedConversations = await api.chat.getConversations();
-                                conversation = findConversationWithSeller(updatedConversations, sellerId);
-                            }
-
-                            const url = `/chat?conversation=${conversation?.id ?? sellerId}`;
-                            router.push(variant === 'default' && project?._id ? `${url}&projectId=${project._id}` : url);
-                        } catch (err: any) {
-                            console.error(err);
-                            showModal({
-                                title: 'Error',
-                                message: err.message || 'Failed to open chat',
-                                type: 'error'
-                            });
-                        } finally {
-                            setIsCustomizeLoading(false);
-                        }
+                        if (!checkClientAuth()) return;
+                        // Show confirmation popup first
+                        setShowCustomizeConfirm(true);
                     }}
                     disabled={isCustomizeLoading}
                     className={`flex-1 py-3 md:py-4 text-xs md:text-sm font-bold transition-colors flex items-center justify-center gap-2 ${isCustomizeLoading
@@ -287,6 +253,68 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                     )}
                 </button>
             </div>
+
+            {/* Customize confirmation modal */}
+            {showCustomizeConfirm && (
+                <div className="fixed inset-0 bg-black/50 z-[200] flex items-center justify-center p-4" onClick={() => setShowCustomizeConfirm(false)}>
+                    <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl" onClick={e => e.stopPropagation()}>
+                        <h3 className="text-lg font-bold text-gray-900 mb-3">Open Chat with Freelancer</h3>
+                        <p className="text-sm text-gray-600 mb-6">
+                            You're about to open a direct chat with the freelancer to create a personalized offer for you. Are you sure you want to proceed?
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setShowCustomizeConfirm(false)}
+                                className="flex-1 py-2.5 rounded-xl font-bold border-2 border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    setShowCustomizeConfirm(false);
+                                    const sellerId = await resolveSellerId();
+                                    if (!sellerId) {
+                                        showModal({ title: 'Error', message: 'Could not identify the freelancer.', type: 'error' });
+                                        return;
+                                    }
+                                    setIsCustomizeLoading(true);
+                                    try {
+                                        const conversations = await api.chat.getConversations();
+                                        let conversation = findConversationWithSeller(conversations, sellerId);
+
+                                        await api.chat.sendMessage({
+                                            receiverId: sellerId,
+                                            content: `Custom Offer Request ${project.subcategory}\n
+                                 Please tell the freelancer exactly what you need — timeline, deliverables, budget, everything. They'll create the best custom offer for you right here in chat.`,
+                                            messageType: 'order'
+                                        });
+
+                                        if (!conversation) {
+                                            const updatedConversations = await api.chat.getConversations();
+                                            conversation = findConversationWithSeller(updatedConversations, sellerId);
+                                        }
+
+                                        const url = `/chat?conversation=${conversation?.id ?? sellerId}`;
+                                        router.push(variant === 'default' && project?._id ? `${url}&projectId=${project._id}` : url);
+                                    } catch (err: any) {
+                                        console.error(err);
+                                        showModal({
+                                            title: 'Error',
+                                            message: err.message || 'Failed to open chat',
+                                            type: 'error'
+                                        });
+                                    } finally {
+                                        setIsCustomizeLoading(false);
+                                    }
+                                }}
+                                className="flex-1 py-2.5 rounded-xl font-bold bg-[#09BF44] hover:bg-[#07a63a] text-white transition-colors"
+                            >
+                                Open chat
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Package Content */}
             <div className={`p-4 md:p-6 ${isBundle ? 'md:p-8' : ''}`} style={{ overflow: 'visible' }}>
@@ -561,16 +589,6 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                                                 <div>
                                                     <div className="font-bold text-gray-900">Open Chat</div>
                                                     <div className="text-xs text-gray-500">Free</div>
-                                                </div>
-                                            </button>
-                                            <button
-                                                onClick={handleBookConsultation}
-                                                className="w-full px-4 py-3 text-left hover:bg-[#09BF44]/5 flex items-center gap-3 transition-colors border-t border-gray-100"
-                                            >
-                                                <Phone className="w-5 h-5 text-[#09BF44]" />
-                                                <div>
-                                                    <div className="font-bold text-gray-900">Book Consultation</div>
-                                                    <div className="text-xs text-gray-500">100 EGP paid call</div>
                                                 </div>
                                             </button>
                                         </div>

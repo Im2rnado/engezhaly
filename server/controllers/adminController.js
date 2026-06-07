@@ -713,8 +713,43 @@ const deductUserBalance = async (req, res) => {
 
 const deleteUser = async (req, res) => {
     try {
-        await User.findByIdAndDelete(req.params.id);
-        res.json({ msg: 'User deleted' });
+        const userId = req.params.id;
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ msg: 'User not found' });
+
+        // Cascade delete: remove all data related to this user
+        // 1. Delete their projects/offers (if freelancer)
+        await Project.deleteMany({ sellerId: userId });
+
+        // 2. Delete jobs they posted (if client) or applied to (if freelancer)
+        await Job.deleteMany({ $or: [{ clientId: userId }, { 'proposals.freelancerId': userId }] });
+
+        // 3. Delete orders where user is buyer or seller
+        await Order.deleteMany({ $or: [{ clientId: userId }, { freelancerId: userId }] });
+
+        // 4. Delete custom offers sent/received
+        await Offer.deleteMany({ $or: [{ senderId: userId }, { receiverId: userId }] });
+
+        // 5. Find all conversations this user is in, then delete their messages and the conversations
+        const conversations = await Conversation.find({ participants: userId }).select('_id').lean();
+        const conversationIds = conversations.map(c => c._id);
+        if (conversationIds.length > 0) {
+            await Chat.deleteMany({ conversationId: { $in: conversationIds } });
+            await Conversation.deleteMany({ _id: { $in: conversationIds } });
+        }
+
+        // 6. Delete their wallet transactions
+        await Transaction.deleteMany({ userId });
+
+        // 7. Delete their withdrawal methods and requests
+        await WithdrawalMethod.deleteMany({ userId });
+        await WithdrawalRequest.deleteMany({ userId });
+
+        // 8. Finally, delete the user
+        await User.findByIdAndDelete(userId);
+
+        console.log(`[Admin] Cascade-deleted user ${userId} and all related data.`);
+        res.json({ msg: 'User and all related data deleted successfully' });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
