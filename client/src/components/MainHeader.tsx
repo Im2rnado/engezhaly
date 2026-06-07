@@ -526,7 +526,7 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                                                     position: 'absolute',
                                                     top: '100%',
                                                     left: 0,
-                                                    marginTop: '0.15rem',
+                                                    marginTop: '0.12rem',
                                                     zIndex: 9999
                                                 }}
                                             >

@@ -121,6 +121,18 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
     });
     const [portfolioItems, setPortfolioItems] = useState<{ title: string; description: string; imageUrl: string; link: string; subCategory: string }[]>([{ title: '', description: '', imageUrl: '', link: '', subCategory: '' }]);
 
+    // Track funnel progress with Google Analytics
+    useEffect(() => {
+        if (isOpen && typeof window !== 'undefined' && (window as any).gtag) {
+            (window as any).gtag('event', 'signup_funnel_step', {
+                event_category: 'funnel',
+                event_label: step,
+                survey_step: step === 'freelancer-step-3-survey' ? surveyStep : undefined,
+                value: 1
+            });
+        }
+    }, [step, surveyStep, isOpen]);
+
     // Reset state when modal opens/closes
     useEffect(() => {
         if (!isOpen) {
@@ -153,6 +165,8 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             setDocumentUploadingLabel(null);
             setPortfolioImageUploading(null);
             setPortfolioImageProgress(0);
+            setStarterOfferImageUploading(false);
+            setStarterOfferImageProgress(0);
             setProfessionalInfo({ category: '', experienceYears: '', technicalSkills: '', softSkills: '', bio: '', isStudent: false, certifications: [], universityIdUrl: '', idDocumentUrl: '', city: '', english: 'Fluent', arabic: 'Fluent', francoArabic: 'Fluent', extraLanguages: '' });
             setSurvey({ disagreementHandling: '', hoursPerDay: '', discoverySource: [], aiUsage: '' });
             setWithdrawalMethod({ method: 'vodafone_cash', phoneNumber: '', accountNumber: '', bankName: '' });
@@ -171,6 +185,8 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
     const [documentUploadingLabel, setDocumentUploadingLabel] = useState<string | null>(null);
     const [portfolioImageUploading, setPortfolioImageUploading] = useState<number | null>(null);
     const [portfolioImageProgress, setPortfolioImageProgress] = useState(0);
+    const [starterOfferImageUploading, setStarterOfferImageUploading] = useState(false);
+    const [starterOfferImageProgress, setStarterOfferImageProgress] = useState(0);
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -371,6 +387,13 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             const data = await api.auth.register(payload);
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
+
+            if (typeof window !== 'undefined' && (window as any).gtag) {
+                (window as any).gtag('event', 'signup_complete', {
+                    event_category: 'funnel',
+                    event_label: 'client_success'
+                });
+            }
 
             onClose();
             showModal({
@@ -604,6 +627,12 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                 }
                 await api.auth.register(registerData);
                 // Don't save token/user - freelancer is pending. Header would show Dashboard but it doesn't work until approved.
+                if (typeof window !== 'undefined' && (window as any).gtag) {
+                    (window as any).gtag('event', 'signup_complete', {
+                        event_category: 'funnel',
+                        event_label: 'freelancer_success'
+                    });
+                }
             }
             setStep('freelancer-step-4');
         } catch (err: any) {
@@ -671,8 +700,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                                     <button
                                         onClick={() => {
-                                            // TODO: redirect to client sign-up — kept for later use
-                                            // setStep('client-auth');
+                                            setStep('client-auth');
                                         }}
                                         className="group flex flex-col items-center justify-center p-6 md:p-10 border-2 border-gray-100 rounded-2xl md:rounded-3xl hover:border-[#09BF44] hover:bg-green-50/50 transition-all duration-300"
                                     >
@@ -1613,6 +1641,67 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                 })()}
                                             </select>
                                         </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">Banner Images (Up to 7)</label>
+                                        {starterOffer.images.length > 0 && (
+                                            <div className="flex flex-wrap gap-3 mb-3">
+                                                {starterOffer.images.map((url, idx) => (
+                                                    <div key={idx} className="relative w-24 h-24 rounded-xl overflow-hidden border-2 border-gray-200 group">
+                                                        <img src={url} alt={`Banner ${idx + 1}`} className="w-full h-full object-cover" />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setStarterOffer({ ...starterOffer, images: starterOffer.images.filter((_, i) => i !== idx) })}
+                                                            className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                                                        >
+                                                            <X className="w-6 h-6 text-white" />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {starterOffer.images.length < 7 && (
+                                            <label className={`block border-2 border-dashed rounded-xl p-6 text-center transition-colors cursor-pointer ${starterOfferImageUploading ? 'border-[#09BF44] bg-green-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    multiple
+                                                    className="hidden"
+                                                    disabled={starterOfferImageUploading}
+                                                    onChange={async (e) => {
+                                                        const files = Array.from(e.target.files || []).slice(0, 7 - starterOffer.images.length);
+                                                        if (!files.length) return;
+                                                        setStarterOfferImageUploading(true);
+                                                        for (let i = 0; i < files.length; i++) {
+                                                            setStarterOfferImageProgress(0);
+                                                            try {
+                                                                const url = await api.upload.file(files[i], { forSignup: true, onProgress: (p) => setStarterOfferImageProgress(p) });
+                                                                setStarterOffer(prev => ({ ...prev, images: [...prev.images, url] }));
+                                                            } catch (err: any) {
+                                                                showModal({ title: 'Upload Failed', message: err.message || 'Failed to upload image', type: 'error' });
+                                                            }
+                                                        }
+                                                        setStarterOfferImageUploading(false);
+                                                        e.target.value = '';
+                                                    }}
+                                                />
+                                                {starterOfferImageUploading ? (
+                                                    <>
+                                                        <Loader2 className="w-8 h-8 text-[#09BF44] mx-auto mb-2 animate-spin" />
+                                                        <p className="text-sm font-bold text-[#09BF44]">Uploading... {starterOfferImageProgress}%</p>
+                                                        <div className="h-2 bg-gray-200 rounded-full overflow-hidden mt-2 max-w-[200px] mx-auto">
+                                                            <div className="h-full bg-[#09BF44] transition-all" style={{ width: `${starterOfferImageProgress}%` }} />
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                                                        <p className="text-gray-500 font-bold">Click to Upload Images</p>
+                                                        <p className="text-xs text-gray-400 mt-1">Max 7 images. JPG, PNG, WebP</p>
+                                                    </>
+                                                )}
+                                            </label>
+                                        )}
                                     </div>
                                     <div>
                                         <label className="block text-sm font-bold text-gray-700 mb-2">Packages (min 300 EGP)</label>
