@@ -41,6 +41,26 @@ app.use(cors({
 // 15MB limit for JSON (registration sends base64 profile picture + certificates)
 app.use(express.json({ limit: '15mb' }));
 
+const rateLimit = require('express-rate-limit');
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 200, // Limit each IP to 200 requests per `window` (here, per 15 minutes)
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { msg: 'Too many requests from this IP, please try again after 15 minutes' }
+});
+
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 30, // Limit each IP to 30 auth requests per `window`
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { msg: 'Too many authentication attempts, please try again after 15 minutes' }
+});
+
+// Apply general rate limiter to all requests
+app.use(limiter);
+
 const auth = require('./middleware/auth');
 const adminAuth = require('./middleware/adminAuth');
 
@@ -81,7 +101,7 @@ const connectWithRetry = () => {
 connectWithRetry();
 
 // Routes
-app.use('/api/auth', require('./routes/auth'));
+app.use('/api/auth', authLimiter, require('./routes/auth'));
 app.use('/api/freelancer', require('./routes/freelancer'));
 app.use('/api/client', require('./routes/client'));
 app.use('/api/jobs', require('./routes/jobs'));

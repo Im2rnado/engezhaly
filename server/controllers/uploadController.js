@@ -76,9 +76,11 @@ const handleUpload = async (req, res, isSecure = false) => {
         } else {
             const isAudio = req.file.mimetype.startsWith('audio/');
             const fallbackExt = isAudio ? '.webm' : '.pdf';
-            const ext = path.extname(req.file.originalname) || fallbackExt;
+            const ext = path.extname(req.file.originalname).toLowerCase() || fallbackExt;
+            const allowedExts = ['.pdf', '.doc', '.docx', '.mp3', '.mpeg', '.webm', '.ogg', '.wav', '.mp4'];
+            const safeExt = allowedExts.includes(ext) ? ext : '.bin';
             const base = path.basename(req.file.originalname, ext);
-            filename = `${sanitizeBase(base)}-${timestamp}${ext}`;
+            filename = `${sanitizeBase(base)}-${timestamp}${safeExt}`;
             const filepath = path.join(targetDir, filename);
             fs.writeFileSync(filepath, req.file.buffer);
         }

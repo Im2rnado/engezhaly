@@ -1,0 +1,16 @@
+#!/usr/bin/expect -f
+set timeout 120
+spawn ssh root@144.91.126.52
+expect "password:"
+send "Engezhaly6699\r"
+expect "#"
+send "cd /var/www/engezhaly\r"
+expect "#"
+send "./update.sh\r"
+expect "#"
+send "cd server\r"
+expect "#"
+send "node scripts/migrateSecureDocs.js\r"
+expect "#"
+send "exit\r"
+expect eof

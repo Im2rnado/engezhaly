@@ -7,21 +7,20 @@ const upload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
     fileFilter: (_req, file, cb) => {
-        const allowed =
-            /\.(jpg|jpeg|png|gif|webp|pdf|doc|docx)$/i.test(file.originalname) ||
+        const allowedExts = /\.(jpg|jpeg|png|gif|webp|pdf|doc|docx|mp3|mpeg|webm|ogg|wav|mp4)$/i;
+        const hasAllowedExt = allowedExts.test(file.originalname);
+
+        const isAllowedMime =
             file.mimetype.startsWith('image/') ||
             file.mimetype === 'application/pdf' ||
             file.mimetype === 'application/x-pdf' ||
-            (file.mimetype === 'application/msword' || file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') ||
+            file.mimetype === 'application/msword' || 
+            file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
             file.mimetype.startsWith('audio/') ||
-            file.mimetype === 'audio/mpeg' ||
-            file.mimetype === 'audio/mp3' ||
-            file.mimetype === 'audio/webm' ||
-            file.mimetype === 'audio/ogg' ||
-            file.mimetype === 'audio/wav' ||
-            file.mimetype === 'audio/mp4';
-        if (allowed) cb(null, true);
-        else cb(new Error('Only images, PDFs, DOC/DOCX, and audio files are allowed'));
+            file.mimetype === 'video/mp4';
+
+        if (hasAllowedExt && isAllowedMime) cb(null, true);
+        else cb(new Error('Only images, PDFs, DOC/DOCX, and audio files with valid extensions are allowed'));
     }
 });
 
@@ -30,12 +29,15 @@ const chatUpload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 10 * 1024 * 1024 },
     fileFilter: (_req, file, cb) => {
+        const allowedExts = /\.(jpg|jpeg|png|gif|webp|pdf)$/i;
+        const hasAllowedExt = allowedExts.test(file.originalname);
+
         const ok =
             file.mimetype.startsWith('image/') ||
             file.mimetype === 'application/pdf' ||
             file.mimetype === 'application/x-pdf';
-        if (ok) cb(null, true);
-        else cb(new Error('Chat attachments must be a PDF or image'));
+        if (hasAllowedExt && ok) cb(null, true);
+        else cb(new Error('Chat attachments must be a PDF or image with a valid extension'));
     }
 });
 

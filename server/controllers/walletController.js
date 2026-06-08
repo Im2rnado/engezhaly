@@ -10,11 +10,12 @@ const { notifyAdmins } = require('../utils/getAdminEmails');
 
 const DEFAULT_CONSULTATION_AMOUNT = 100;
 
-// Mock Deposit (Top Up)
+// Admin Manual Top Up
 const topUpWallet = async (req, res) => {
     try {
-        const { amount, paymentMethod } = req.body; // paymentMethod: 'card'
-        const userId = req.user.id;
+        const { amount, paymentMethod, targetUserId } = req.body;
+        // If an admin provides a targetUserId, top up that user; otherwise top up themselves.
+        const userId = targetUserId || req.user.id;
 
         if (amount <= 0) return res.status(400).json({ msg: 'Invalid amount' });
 
@@ -35,9 +36,10 @@ const topUpWallet = async (req, res) => {
             userId,
             type: 'deposit',
             amount: amount,
-            description: 'Wallet Top-up via Card',
+            description: 'Admin Manual Top-up',
             status: 'completed',
-            paymentMethod: paymentMethod || 'card'
+            paymentMethod: paymentMethod || 'card',
+            isManualAdminTopUp: true
         });
         await deposit.save();
 
@@ -65,6 +67,7 @@ const topUpWallet = async (req, res) => {
         res.status(500).send('Server Error');
     }
 };
+
 
 const getBalance = async (req, res) => {
     try {
