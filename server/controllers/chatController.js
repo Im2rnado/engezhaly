@@ -726,7 +726,7 @@ const getConsultationStatus = async (req, res) => {
             status: 'pending'
         });
 
-        const isFree = !!(activeOrder || activeJob || activeOffer);
+        const isFree = true; // All consultation calls are now free
 
         res.json({
             hasUnusedPayment: !!unusedPayment,
@@ -783,7 +783,7 @@ const createConsultationMeeting = async (req, res) => {
             status: 'pending'
         });
 
-        const isFree = !!(activeOrder || activeJob || activeOffer);
+        const isFree = true; // All consultation calls are now free
 
         if (!payment && !isFree) {
             return res.status(400).json({ msg: 'No active job/order and no unused consultation payment. Please pay first.' });

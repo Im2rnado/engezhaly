@@ -141,7 +141,7 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
             });
             showModal({
                 title: 'Consultation Request Sent',
-                message: `Chat opened. Click the video call button to pay and schedule your consultation.`,
+                message: `Chat opened. Click the video call button to schedule your consultation.`,
                 type: 'success'
             });
             handleOpenChat(project._id);

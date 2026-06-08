@@ -247,17 +247,7 @@ export default function CreateOfferPage() {
                                         </div>
                                     )}
 
-                                    <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-2">Consultation Price (EGP)</label>
-                                        <p className="text-xs text-gray-500 mb-1">Price for video/voice calls when clients book a consultation. This amount goes to your balance.</p>
-                                        <input
-                                            type="number"
-                                            value={projectData.consultationPrice}
-                                            onChange={(e) => setProjectData({ ...projectData, consultationPrice: e.target.value })}
-                                            placeholder="e.g. 100"
-                                            className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none max-w-xs placeholder:text-gray-400 placeholder:opacity-70"
-                                        />
-                                    </div>
+
 
                                     <div>
                                         <label className="block text-sm font-bold text-gray-700 mb-2">Banner Images (Up to 7)</label>
