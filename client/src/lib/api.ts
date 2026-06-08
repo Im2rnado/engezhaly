@@ -114,10 +114,13 @@ export const api = {
         }
     },
     upload: {
-        file: async (file: File, options?: { forSignup?: boolean; onProgress?: (percent: number) => void }): Promise<string> => {
+        file: async (file: File, options?: { forSignup?: boolean; forSecure?: boolean; onProgress?: (percent: number) => void }): Promise<string> => {
             const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
             const useSignupEndpoint = options?.forSignup ?? !token;
-            const uploadPath = useSignupEndpoint ? `${API_URL}/upload/signup` : `${API_URL}/upload`;
+            let uploadPath = useSignupEndpoint ? `${API_URL}/upload/signup` : `${API_URL}/upload`;
+            if (options?.forSecure) {
+                uploadPath = useSignupEndpoint ? `${API_URL}/upload/signup-secure` : `${API_URL}/upload/secure`;
+            }
             const form = new FormData();
             form.append('file', file);
             const onProgress = options?.onProgress;

@@ -41,8 +41,14 @@ app.use(cors({
 // 15MB limit for JSON (registration sends base64 profile picture + certificates)
 app.use(express.json({ limit: '15mb' }));
 
+const auth = require('./middleware/auth');
+const adminAuth = require('./middleware/adminAuth');
+
 // Uploaded files (public)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Secure uploads (admin only)
+app.use('/secure-uploads', auth, adminAuth, express.static(path.join(__dirname, 'secure_uploads')));
 
 // Database Connection
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/engezhaly';

@@ -488,7 +488,7 @@ function UserDetailPanel({ user, onBack, onEdit, onDelete, onRefresh }: { user: 
                                     {fp?.cvUrl && (
                                         <div className="bg-gray-50 p-4 rounded-xl md:col-span-2">
                                             <p className="text-xs font-bold text-gray-400 mb-1">CV (admin only, not public)</p>
-                                            <a href={fp.cvUrl} target="_blank" rel="noopener noreferrer" className="text-[#09BF44] hover:underline font-medium flex items-center gap-1">
+                                            <a href={`${fp.cvUrl}?token=${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`} target="_blank" rel="noopener noreferrer" className="text-[#09BF44] hover:underline font-medium flex items-center gap-1">
                                                 <FileText className="w-4 h-4" /> View CV
                                             </a>
                                         </div>
@@ -606,12 +606,12 @@ function UserDetailPanel({ user, onBack, onEdit, onDelete, onRefresh }: { user: 
                                 <div className="space-y-4">
                                     <div className="bg-gray-50 p-4 rounded-xl">
                                         <p className="text-xs font-bold text-gray-400 mb-2">Government ID</p>
-                                        {fp?.idDocument ? <a href={fp.idDocument} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline"><FileText className="w-4 h-4" /> View</a> : <p className="text-sm text-gray-400">None</p>}
+                                        {fp?.idDocument ? <a href={`${fp.idDocument}?token=${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline"><FileText className="w-4 h-4" /> View</a> : <p className="text-sm text-gray-400">None</p>}
                                     </div>
                                     {fp?.isStudent && fp?.universityId && (
                                         <div className="bg-gray-50 p-4 rounded-xl">
                                             <p className="text-xs font-bold text-gray-400 mb-2">University ID</p>
-                                            <a href={fp.universityId} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline"><FileText className="w-4 h-4" /> View</a>
+                                            <a href={`${fp.universityId}?token=${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline"><FileText className="w-4 h-4" /> View</a>
                                         </div>
                                     )}
                                     {fp?.certifications?.length > 0 && (
@@ -3373,7 +3373,7 @@ export default function AdminDashboard() {
                                             {selectedFreelancer.freelancerProfile?.cvUrl && (
                                                 <div className="bg-gray-50 p-4 rounded-xl md:col-span-2">
                                                     <p className="text-xs font-bold text-gray-400 mb-1">CV (admin only, not public)</p>
-                                                    <a href={selectedFreelancer.freelancerProfile.cvUrl} target="_blank" rel="noopener noreferrer" className="text-[#09BF44] hover:underline font-medium flex items-center gap-1">
+                                                    <a href={`${selectedFreelancer.freelancerProfile.cvUrl}?token=${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`} target="_blank" rel="noopener noreferrer" className="text-[#09BF44] hover:underline font-medium flex items-center gap-1">
                                                         <FileText className="w-4 h-4" /> View CV
                                                     </a>
                                                 </div>
@@ -3564,7 +3564,7 @@ export default function AdminDashboard() {
                                             <div className="bg-gray-50 p-4 rounded-xl">
                                                 <p className="text-xs font-bold text-gray-400 mb-2">Government ID</p>
                                                 {selectedFreelancer.freelancerProfile?.idDocument ? (
-                                                    <a href={selectedFreelancer.freelancerProfile.idDocument} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline font-medium">
+                                                    <a href={`${selectedFreelancer.freelancerProfile.idDocument}?token=${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline font-medium">
                                                         <FileText className="w-4 h-4" /> View Document
                                                     </a>
                                                 ) : (
@@ -3576,7 +3576,7 @@ export default function AdminDashboard() {
                                                 <div className="bg-gray-50 p-4 rounded-xl">
                                                     <p className="text-xs font-bold text-gray-400 mb-2">University ID</p>
                                                     {selectedFreelancer.freelancerProfile?.universityId ? (
-                                                        <a href={selectedFreelancer.freelancerProfile.universityId} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline font-medium">
+                                                        <a href={`${selectedFreelancer.freelancerProfile.universityId}?token=${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline font-medium">
                                                             <FileText className="w-4 h-4" /> View University ID
                                                         </a>
                                                     ) : (

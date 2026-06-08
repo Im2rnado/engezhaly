@@ -4,18 +4,21 @@ const sharp = require('sharp');
 
 const UPLOAD_DIR = path.join(__dirname, '..', 'uploads');
 
+const SECURE_UPLOAD_DIR = path.join(__dirname, '..', 'secure_uploads');
+
 const sanitizeBase = (name) => {
     return ((name || 'file').replace(/\s+/g, '-').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 50) || 'file');
 };
 
-const uploadFile = async (req, res) => {
+const handleUpload = async (req, res, isSecure = false) => {
     try {
         if (!req.file) {
             return res.status(400).json({ message: 'No file uploaded' });
         }
 
-        if (!fs.existsSync(UPLOAD_DIR)) {
-            fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+        const targetDir = isSecure ? SECURE_UPLOAD_DIR : UPLOAD_DIR;
+        if (!fs.existsSync(targetDir)) {
+            fs.mkdirSync(targetDir, { recursive: true });
         }
 
         const baseUrl = process.env.API_URL || `http://localhost:${process.env.PORT || 5000}`;
@@ -41,7 +44,6 @@ const uploadFile = async (req, res) => {
                 const base = path.basename(req.file.originalname, path.extname(req.file.originalname) || '');
 
                 if (isPng) {
-                    // Keep PNG for transparency/graphics with high compression but no loss
                     processedBuffer = await pipeline
                         .png({ quality: 100, compressionLevel: 9, adaptiveFiltering: true })
                         .toBuffer();
@@ -52,12 +54,11 @@ const uploadFile = async (req, res) => {
                         .toBuffer();
                     filename = `${sanitizeBase(base)}-${timestamp}.webp`;
                 } else {
-                    // Default to high quality JPG with progressive loading
                     processedBuffer = await pipeline
                         .jpeg({ 
                             quality: 95, 
                             progressive: true, 
-                            chromaSubsampling: '4:4:4', // Best color quality
+                            chromaSubsampling: '4:4:4', 
                             trellisQuantisation: true,
                             overshootDeringing: true,
                             optimizeScans: true
@@ -66,7 +67,7 @@ const uploadFile = async (req, res) => {
                     filename = `${sanitizeBase(base)}-${timestamp}.jpg`;
                 }
 
-                const filepath = path.join(UPLOAD_DIR, filename);
+                const filepath = path.join(targetDir, filename);
                 fs.writeFileSync(filepath, processedBuffer);
             } catch (err) {
                 console.error('[Upload] Sharp failed:', err.message);
@@ -78,11 +79,12 @@ const uploadFile = async (req, res) => {
             const ext = path.extname(req.file.originalname) || fallbackExt;
             const base = path.basename(req.file.originalname, ext);
             filename = `${sanitizeBase(base)}-${timestamp}${ext}`;
-            const filepath = path.join(UPLOAD_DIR, filename);
+            const filepath = path.join(targetDir, filename);
             fs.writeFileSync(filepath, req.file.buffer);
         }
 
-        const url = `${baseUrl}/uploads/${filename}`;
+        const urlPrefix = isSecure ? '/secure-uploads/' : '/uploads/';
+        const url = `${baseUrl}${urlPrefix}${filename}`;
         res.json({ url });
     } catch (err) {
         console.error(err.message);
@@ -90,4 +92,7 @@ const uploadFile = async (req, res) => {
     }
 };
 
-module.exports = { uploadFile };
+const uploadFile = (req, res) => handleUpload(req, res, false);
+const uploadSecureFile = (req, res) => handleUpload(req, res, true);
+
+module.exports = { uploadFile, uploadSecureFile };

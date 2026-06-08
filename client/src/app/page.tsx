@@ -454,7 +454,7 @@ export default function Home() {
                 'Development & Tech': Code,
                 'Design & Creative': Palette,
                 'Marketing': TrendingUp,
-                'Video Editor': Video,
+                'Photo/Video Editor': Video,
                 'AI and Automations': Sparkles,
                 'Writing & Language': PenTool,
                 'Voice Over': Mic

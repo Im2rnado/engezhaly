@@ -231,7 +231,8 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                         {pkg.type || ['Basic', 'Standard', 'Premium'][idx]}
                     </button>
                 ))}
-                {/* Customize Tab */}                <button
+                {/* Customize Tab */}
+                <button
                     onClick={async () => {
                         if (!checkClientAuth()) return;
                         // Show confirmation popup first
@@ -260,7 +261,7 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                     <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl" onClick={e => e.stopPropagation()}>
                         <h3 className="text-lg font-bold text-gray-900 mb-3">Open Chat with Freelancer</h3>
                         <p className="text-sm text-gray-600 mb-6">
-                            You're about to open a direct chat with the freelancer to create a personalized offer for you. Are you sure you want to proceed?
+                            You&apos;re about to open a direct chat with the freelancer to create a personalized offer for you. Are you sure you want to proceed?
                         </p>
                         <div className="flex gap-3">
                             <button

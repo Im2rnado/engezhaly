@@ -1,6 +1,6 @@
 const express = require('express');
 const multer = require('multer');
-const { uploadFile } = require('../controllers/uploadController');
+const { uploadFile, uploadSecureFile } = require('../controllers/uploadController');
 const auth = require('../middleware/auth');
 
 const upload = multer({
@@ -41,7 +41,9 @@ const chatUpload = multer({
 
 const router = express.Router();
 router.post('/', auth, upload.single('file'), uploadFile);
+router.post('/secure', auth, upload.single('file'), uploadSecureFile);
 router.post('/chat', auth, chatUpload.single('file'), uploadFile);
 // Signup upload - no auth required (user not yet registered)
 router.post('/signup', upload.single('file'), uploadFile);
+router.post('/signup-secure', upload.single('file'), uploadSecureFile);
 module.exports = router;

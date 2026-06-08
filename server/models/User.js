@@ -42,7 +42,7 @@ const UserSchema = new mongoose.Schema({
                 'Development & Tech',
                 'Design & Creative',
                 'Marketing',
-                'Video Editor',
+                'Photo/Video Editor',
                 'AI and Automations',
                 'Writing & Language',
                 'Voice Over'

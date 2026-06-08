@@ -288,7 +288,7 @@ const rejectProposal = async (req, res) => {
             .populate('clientId', 'firstName lastName email')
             .populate({
                 path: 'proposals.freelancerId',
-                select: 'firstName lastName email freelancerProfile'
+                select: '-password -phoneNumber -strikes -isFrozen -walletBalance -freelancerProfile.idDocument -freelancerProfile.universityId -freelancerProfile.cvUrl -freelancerProfile.signupNotes -freelancerProfile.surveyResponses -freelancerProfile.certificates'
             });
 
         res.json({ msg: 'Proposal rejected', job: updated });
@@ -366,7 +366,10 @@ const getClientOrderById = async (req, res) => {
         const userId = req.user.id;
         const order = await Order.findById(req.params.id)
             .populate('projectId', 'title packages subCategory description')
-            .populate('sellerId', 'firstName lastName email freelancerProfile')
+            .populate({
+                path: 'sellerId',
+                select: '-password -phoneNumber -strikes -isFrozen -walletBalance -freelancerProfile.idDocument -freelancerProfile.universityId -freelancerProfile.cvUrl -freelancerProfile.signupNotes -freelancerProfile.surveyResponses -freelancerProfile.certificates'
+            })
             .populate('offerId');
         if (!order) return res.status(404).json({ msg: 'Order not found' });
         if (String(order.buyerId) !== String(userId)) {
@@ -470,7 +473,7 @@ const getJobById = async (req, res) => {
             .populate('clientId', 'firstName lastName email')
             .populate({
                 path: 'proposals.freelancerId',
-                select: 'firstName lastName email freelancerProfile'
+                select: '-password -phoneNumber -strikes -isFrozen -walletBalance -freelancerProfile.idDocument -freelancerProfile.universityId -freelancerProfile.cvUrl -freelancerProfile.signupNotes -freelancerProfile.surveyResponses -freelancerProfile.certificates'
             });
 
         if (!job) {

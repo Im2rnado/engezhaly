@@ -185,7 +185,7 @@ const getPublicProfile = async (req, res) => {
         const freelancerId = req.params.id;
         const user = await User.findById(freelancerId)
             .select('-password -phoneNumber -strikes -isFrozen -walletBalance +dateOfBirth')
-            .select('-freelancerProfile.idDocument');
+            .select('-freelancerProfile.idDocument -freelancerProfile.universityId -freelancerProfile.cvUrl -freelancerProfile.signupNotes -freelancerProfile.surveyResponses -freelancerProfile.certificates');
 
         if (!user) {
             return res.status(404).json({ msg: 'Freelancer not found' });

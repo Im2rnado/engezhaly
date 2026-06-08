@@ -52,13 +52,17 @@ const register = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
+        if (role && !['client', 'freelancer'].includes(role)) {
+            return res.status(400).json({ message: 'Invalid role provided' });
+        }
+
         const userData = {
             firstName,
             lastName,
             username,
             email: emailNorm,
             password: hashedPassword,
-            role,
+            role: role || 'client',
             phoneNumber,
             emailVerified: false
         };

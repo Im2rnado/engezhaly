@@ -1412,7 +1412,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                                 setDocumentUploadingLabel('universityId');
                                                                 setDocumentUploadProgress(0);
                                                                 try {
-                                                                    const url = await api.upload.file(file, { onProgress: (p) => setDocumentUploadProgress(p) });
+                                                                    const url = await api.upload.file(file, { forSecure: true, forSignup: true, onProgress: (p) => setDocumentUploadProgress(p) });
                                                                     setProfessionalInfo((prev) => ({ ...prev, universityIdUrl: url }));
                                                                 } catch (err: any) {
                                                                     setError(err.message || 'Upload failed');
@@ -1551,7 +1551,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                             setDocumentUploadingLabel('idDocument');
                                                             setDocumentUploadProgress(0);
                                                             try {
-                                                                const url = await api.upload.file(file, { onProgress: (p) => setDocumentUploadProgress(p) });
+                                                                const url = await api.upload.file(file, { forSecure: true, forSignup: true, onProgress: (p) => setDocumentUploadProgress(p) });
                                                                 setProfessionalInfo((prev) => ({ ...prev, idDocumentUrl: url }));
                                                             } catch (err: any) {
                                                                 setError(err.message || 'Upload failed');

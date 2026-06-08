@@ -19,8 +19,9 @@ const CATEGORIES = {
         'Media Buyer (paid ads)',
         'Email Marketing'
     ],
-    'Video Editor': [
+    'Photo/Video Editor': [
         'Video Editor - (Long / Short Content)',
+        'Photo Editor',
     ],
     'AI and Automations': [
         'AI Content Creation (photos or videos)',
