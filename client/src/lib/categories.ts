@@ -18,7 +18,7 @@ export const CATEGORIES = {
         'Media Buyer (paid ads)',
         'Email Marketing'
     ],
-    'Photo/Video Editors': [
+    'Photo/Video Editor': [
         'Video Editor - (Long / Short Content)',
         'Photo Editor',
     ],

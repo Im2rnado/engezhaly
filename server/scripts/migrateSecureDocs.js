@@ -30,7 +30,7 @@ const migrate = async () => {
                 { 'freelancerProfile.universityId': { $regex: '/uploads/' } },
                 { 'freelancerProfile.cvUrl': { $regex: '/uploads/' } }
             ]
-        });
+        }).select('+freelancerProfile.idDocument +freelancerProfile.cvUrl').lean();
 
         console.log(`Found ${users.length} users with documents to migrate.`);
 
