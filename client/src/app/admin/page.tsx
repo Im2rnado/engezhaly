@@ -385,7 +385,25 @@ function UserDetailPanel({ user, onBack, onEdit, onDelete, onRefresh }: { user: 
                     <div>
                         <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Personal Information</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="bg-gray-50 p-4 rounded-xl"><p className="text-xs font-bold text-gray-400 mb-1">Email</p><p className="font-medium text-gray-900">{user.email}</p></div>
+                            <div className="bg-gray-50 p-4 rounded-xl">
+                                <p className="text-xs font-bold text-gray-400 mb-1">Email</p>
+                                <p className="font-medium text-gray-900">{user.email}</p>
+                                {user.emailVerified === false && (
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                await api.admin.resendVerificationEmail(user._id);
+                                                showModal({ title: 'Success', message: 'Verification email resent successfully.', type: 'success' });
+                                            } catch (err: any) {
+                                                showModal({ title: 'Error', message: err.message || 'Failed to resend email.', type: 'error' });
+                                            }
+                                        }}
+                                        className="mt-2 text-xs font-bold text-[#09BF44] hover:underline"
+                                    >
+                                        Resend Verification Email
+                                    </button>
+                                )}
+                            </div>
                             <div className="bg-gray-50 p-4 rounded-xl"><p className="text-xs font-bold text-gray-400 mb-1">Phone</p><p className="font-medium text-gray-900">{user.phoneNumber || 'Not provided'}</p></div>
                             {(isFreelancer || user.dateOfBirth) && <div className="bg-gray-50 p-4 rounded-xl"><p className="text-xs font-bold text-gray-400 mb-1">Date of Birth</p><p className="font-medium text-gray-900">{user.dateOfBirth ? formatDateDDMMYYYY(user.dateOfBirth) : 'Not provided'}</p></div>}
                             {fp?.city && <div className="bg-gray-50 p-4 rounded-xl"><p className="text-xs font-bold text-gray-400 mb-1">City</p><p className="font-medium text-gray-900">{fp.city}</p></div>}
@@ -644,6 +662,7 @@ export default function AdminDashboard() {
     const [activeChats, setActiveChats] = useState<any[]>([]);
     const [insights, setInsights] = useState<any>(null);
     const [users, setUsers] = useState<any[]>([]);
+    const [unverifiedUsers, setUnverifiedUsers] = useState<any[]>([]);
     const [projects, setProjects] = useState<any[]>([]);
     const [jobs, setJobs] = useState<any[]>([]);
     const [adminJobClientView, setAdminJobClientView] = useState<any | null>(null);
@@ -893,6 +912,8 @@ export default function AdminDashboard() {
         try {
             const data = await api.admin.getAllUsers();
             setUsers(data);
+            const unverifiedData = await api.admin.getUnverifiedUsers();
+            setUnverifiedUsers(unverifiedData);
         } catch (err) {
             console.error('Failed to fetch users', err);
         } finally {
@@ -1854,11 +1875,11 @@ export default function AdminDashboard() {
 
                 {/* Users Tab - Split view with detail panel */}
                 {activeTab === 'users' && (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                         {/* User list — hidden on mobile when a user is selected */}
                         <div className={`lg:col-span-1 bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden ${selectedUser ? 'hidden lg:block' : 'block'}`}>
                             <div className="p-4 border-b border-gray-100">
-                                <h3 className="font-bold text-gray-900">All Users</h3>
+                                <h3 className="font-bold text-gray-900">Verified Users</h3>
                                 <p className="text-sm text-gray-500">{users.length} total</p>
                             </div>
                             <div className="overflow-y-auto max-h-[calc(100vh-16rem)]">
@@ -1893,6 +1914,50 @@ export default function AdminDashboard() {
                                                             <span className={`inline-block mt-1 px-2 py-0.5 rounded text-xs font-bold ${user.role === 'admin' ? 'bg-purple-100 text-purple-600' : user.role === 'freelancer' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
                                                                 {user.role}{user.role === 'freelancer' && user.freelancerProfile?.category ? ` · ${user.freelancerProfile.category}` : ''}
                                                             </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        {/* Unverified Users list */}
+                        <div className={`lg:col-span-1 bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden ${selectedUser ? 'hidden lg:block' : 'block'}`}>
+                            <div className="p-4 border-b border-gray-100">
+                                <h3 className="font-bold text-gray-900">Unverified Users</h3>
+                                <p className="text-sm text-gray-500">{unverifiedUsers.length} total</p>
+                            </div>
+                            <div className="overflow-y-auto max-h-[calc(100vh-16rem)]">
+                                {usersLoading ? (
+                                    <div className="p-8 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44]" /></div>
+                                ) : unverifiedUsers.length === 0 ? (
+                                    <div className="p-8 text-center text-gray-500">No unverified users.</div>
+                                ) : (
+                                    <div className="divide-y divide-gray-100">
+                                        {unverifiedUsers.map(user => {
+                                            const uid = user._id != null ? String(user._id) : '';
+                                            const listPic = user.freelancerProfile?.profilePicture || user.clientProfile?.profilePicture;
+                                            const listInitial = (user.firstName?.[0] || user.email?.[0] || '?').toUpperCase();
+                                            const listOnline = uid ? (userPresenceById[uid] ?? !!user.isOnline) : false;
+                                            return (
+                                                <div
+                                                    key={user._id}
+                                                    onClick={() => handleSelectUser(user)}
+                                                    className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${selectedUser?._id === user._id ? 'bg-[#09BF44]/10 border-l-4 border-[#09BF44]' : ''}`}
+                                                >
+                                                    <div className="flex items-start gap-3">
+                                                        <AdminAvatarWithPresence
+                                                            src={listPic}
+                                                            initial={listInitial}
+                                                            alt={`${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email}
+                                                            online={listOnline}
+                                                        />
+                                                        <div className="min-w-0 flex-1">
+                                                            <p className="font-bold text-gray-900">{user.firstName} {user.lastName}</p>
+                                                            <p className="text-sm text-gray-500 truncate">{user.email}</p>
+                                                            <span className="inline-block mt-1 px-2 py-0.5 rounded text-xs font-bold bg-red-100 text-red-700">Unverified</span>
                                                         </div>
                                                     </div>
                                                 </div>

@@ -922,6 +922,25 @@ export const api = {
                 { _id: string; username: string; email: string; firstName: string; lastName: string; role: string; strikes?: number }[]
             >;
         },
+        
+        getUnverifiedUsers: async () => {
+            const res = await fetch(`${API_URL}/admin/users/unverified`, {
+                headers: getHeaders()
+            });
+            if (!res.ok) throw new Error(await res.text());
+            return res.json();
+        },
+        resendVerificationEmail: async (userId: string) => {
+            const res = await fetch(`${API_URL}/admin/users/${userId}/resend-verification`, {
+                method: 'POST',
+                headers: getHeaders()
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.msg || data.message || 'Failed to resend email');
+            }
+            return res.json();
+        },
         getAllUsers: async () => {
             const res = await fetch(`${API_URL}/admin/users`, {
                 method: 'GET',

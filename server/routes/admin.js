@@ -19,7 +19,7 @@ const {
     getInsights,
     searchUser,
     searchUsersPartial,
-    getAllUsers,
+    getAllUsers, getUnverifiedUsers, resendVerificationEmail,
     getUserById,
     updateUser,
     topUpUserBalance,
@@ -69,6 +69,8 @@ router.get('/users/search/partial', [authVerified, adminAuth], searchUsersPartia
 
 // New Routes for Full Access
 router.get('/users', [authVerified, adminAuth], getAllUsers);
+router.get('/users/unverified', [authVerified, adminAuth], getUnverifiedUsers);
+router.post('/users/:id/resend-verification', [authVerified, adminAuth], resendVerificationEmail);
 router.get('/users/:id', [authVerified, adminAuth], getUserById);
 router.put('/users/:id', [authVerified, adminAuth], updateUser);
 router.put('/users/:id/topup', [authVerified, adminAuth], topUpUserBalance);
