@@ -1875,14 +1875,16 @@ export default function AdminDashboard() {
 
                 {/* Users Tab - Split view with detail panel */}
                 {activeTab === 'users' && (
-                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                        {/* User list — hidden on mobile when a user is selected */}
-                        <div className={`lg:col-span-1 bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden ${selectedUser ? 'hidden lg:block' : 'block'}`}>
-                            <div className="p-4 border-b border-gray-100">
-                                <h3 className="font-bold text-gray-900">Verified Users</h3>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Left Column: Lists */}
+                        <div className={`lg:col-span-1 flex flex-col gap-6 h-[calc(100vh-16rem)] ${selectedUser ? 'hidden lg:flex' : 'flex'}`}>
+                            {/* User list */}
+                            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden flex-1 flex flex-col min-h-0">
+                                <div className="p-4 border-b border-gray-100 shrink-0">
+                                    <h3 className="font-bold text-gray-900">Verified Users</h3>
                                 <p className="text-sm text-gray-500">{users.length} total</p>
                             </div>
-                            <div className="overflow-y-auto max-h-[calc(100vh-16rem)]">
+                            <div className="overflow-y-auto flex-1">
                                 {usersLoading ? (
                                     <div className="p-8 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44]" /></div>
                                 ) : users.length === 0 ? (
@@ -1923,13 +1925,13 @@ export default function AdminDashboard() {
                                 )}
                             </div>
                         </div>
-                        {/* Unverified Users list */}
-                        <div className={`lg:col-span-1 bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden ${selectedUser ? 'hidden lg:block' : 'block'}`}>
-                            <div className="p-4 border-b border-gray-100">
-                                <h3 className="font-bold text-gray-900">Unverified Users</h3>
+                            {/* Unverified Users list */}
+                            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden flex-1 flex flex-col min-h-0">
+                                <div className="p-4 border-b border-gray-100 shrink-0">
+                                    <h3 className="font-bold text-gray-900">Unverified Users</h3>
                                 <p className="text-sm text-gray-500">{unverifiedUsers.length} total</p>
                             </div>
-                            <div className="overflow-y-auto max-h-[calc(100vh-16rem)]">
+                            <div className="overflow-y-auto flex-1">
                                 {usersLoading ? (
                                     <div className="p-8 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44]" /></div>
                                 ) : unverifiedUsers.length === 0 ? (
@@ -1966,6 +1968,7 @@ export default function AdminDashboard() {
                                     </div>
                                 )}
                             </div>
+                        </div>
                         </div>
                         {/* Detail panel — full width on mobile when user is selected */}
                         <div className={`lg:col-span-2 bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden ${selectedUser || selectedUserLoading ? 'block' : 'hidden lg:block'}`}>
