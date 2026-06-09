@@ -1877,98 +1877,98 @@ export default function AdminDashboard() {
                 {activeTab === 'users' && (
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         {/* Left Column: Lists */}
-                        <div className={`lg:col-span-1 flex flex-col gap-6 overflow-y-auto h-[calc(100vh-16rem)] pr-2 ${selectedUser ? "hidden lg:flex" : "flex"}`}>
+                        <div className={`lg:col-span-1 flex flex-col gap-6 overflow-y-auto h-[calc(100vh)] pr-2 ${selectedUser ? "hidden lg:flex" : "flex"}`}>
                             {/* User list */}
                             <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden shrink-0">
                                 <div className="p-4 border-b border-gray-100 sticky top-0 bg-white z-10">
                                     <h3 className="font-bold text-gray-900">Verified Users</h3>
-                                <p className="text-sm text-gray-500">{users.length} total</p>
-                            </div>
-                            <div>
-                                {usersLoading ? (
-                                    <div className="p-8 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44]" /></div>
-                                ) : users.length === 0 ? (
-                                    <div className="p-8 text-center text-gray-500">No users yet.</div>
-                                ) : (
-                                    <div className="divide-y divide-gray-100">
-                                        {users.map(user => {
-                                            const uid = user._id != null ? String(user._id) : '';
-                                            const listPic = user.freelancerProfile?.profilePicture || user.clientProfile?.profilePicture;
-                                            const listInitial = (user.firstName?.[0] || user.email?.[0] || '?').toUpperCase();
-                                            const listOnline = uid ? (userPresenceById[uid] ?? !!user.isOnline) : false;
-                                            return (
-                                                <div
-                                                    key={user._id}
-                                                    onClick={() => handleSelectUser(user)}
-                                                    className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${selectedUser?._id === user._id ? 'bg-[#09BF44]/10 border-l-4 border-[#09BF44]' : ''}`}
-                                                >
-                                                    <div className="flex items-start gap-3">
-                                                        <AdminAvatarWithPresence
-                                                            src={listPic}
-                                                            initial={listInitial}
-                                                            alt={`${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email}
-                                                            online={listOnline}
-                                                        />
-                                                        <div className="min-w-0 flex-1">
-                                                            <p className="font-bold text-gray-900">{user.firstName} {user.lastName}</p>
-                                                            <p className="text-sm text-gray-500 truncate">{user.email}</p>
-                                                            <p className="text-xs text-gray-400 truncate">{user.phoneNumber || ''}</p>
-                                                            <span className={`inline-block mt-1 px-2 py-0.5 rounded text-xs font-bold ${user.role === 'admin' ? 'bg-purple-100 text-purple-600' : user.role === 'freelancer' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                                                                {user.role}{user.role === 'freelancer' && user.freelancerProfile?.category ? ` · ${user.freelancerProfile.category}` : ''}
-                                                            </span>
+                                    <p className="text-sm text-gray-500">{users.length} total</p>
+                                </div>
+                                <div>
+                                    {usersLoading ? (
+                                        <div className="p-8 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44]" /></div>
+                                    ) : users.length === 0 ? (
+                                        <div className="p-8 text-center text-gray-500">No users yet.</div>
+                                    ) : (
+                                        <div className="divide-y divide-gray-100">
+                                            {users.map(user => {
+                                                const uid = user._id != null ? String(user._id) : '';
+                                                const listPic = user.freelancerProfile?.profilePicture || user.clientProfile?.profilePicture;
+                                                const listInitial = (user.firstName?.[0] || user.email?.[0] || '?').toUpperCase();
+                                                const listOnline = uid ? (userPresenceById[uid] ?? !!user.isOnline) : false;
+                                                return (
+                                                    <div
+                                                        key={user._id}
+                                                        onClick={() => handleSelectUser(user)}
+                                                        className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${selectedUser?._id === user._id ? 'bg-[#09BF44]/10 border-l-4 border-[#09BF44]' : ''}`}
+                                                    >
+                                                        <div className="flex items-start gap-3">
+                                                            <AdminAvatarWithPresence
+                                                                src={listPic}
+                                                                initial={listInitial}
+                                                                alt={`${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email}
+                                                                online={listOnline}
+                                                            />
+                                                            <div className="min-w-0 flex-1">
+                                                                <p className="font-bold text-gray-900">{user.firstName} {user.lastName}</p>
+                                                                <p className="text-sm text-gray-500 truncate">{user.email}</p>
+                                                                <p className="text-xs text-gray-400 truncate">{user.phoneNumber || ''}</p>
+                                                                <span className={`inline-block mt-1 px-2 py-0.5 rounded text-xs font-bold ${user.role === 'admin' ? 'bg-purple-100 text-purple-600' : user.role === 'freelancer' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                                                                    {user.role}{user.role === 'freelancer' && user.freelancerProfile?.category ? ` · ${user.freelancerProfile.category}` : ''}
+                                                                </span>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                        </div>
                             {/* Unverified Users list */}
                             <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden shrink-0 mb-4">
                                 <div className="p-4 border-b border-gray-100 sticky top-0 bg-white z-10">
                                     <h3 className="font-bold text-gray-900">Unverified Users</h3>
-                                <p className="text-sm text-gray-500">{unverifiedUsers.length} total</p>
-                            </div>
-                            <div>
-                                {usersLoading ? (
-                                    <div className="p-8 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44]" /></div>
-                                ) : unverifiedUsers.length === 0 ? (
-                                    <div className="p-8 text-center text-gray-500">No unverified users.</div>
-                                ) : (
-                                    <div className="divide-y divide-gray-100">
-                                        {unverifiedUsers.map(user => {
-                                            const uid = user._id != null ? String(user._id) : '';
-                                            const listPic = user.freelancerProfile?.profilePicture || user.clientProfile?.profilePicture;
-                                            const listInitial = (user.firstName?.[0] || user.email?.[0] || '?').toUpperCase();
-                                            const listOnline = uid ? (userPresenceById[uid] ?? !!user.isOnline) : false;
-                                            return (
-                                                <div
-                                                    key={user._id}
-                                                    onClick={() => handleSelectUser(user)}
-                                                    className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${selectedUser?._id === user._id ? 'bg-[#09BF44]/10 border-l-4 border-[#09BF44]' : ''}`}
-                                                >
-                                                    <div className="flex items-start gap-3">
-                                                        <AdminAvatarWithPresence
-                                                            src={listPic}
-                                                            initial={listInitial}
-                                                            alt={`${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email}
-                                                            online={listOnline}
-                                                        />
-                                                        <div className="min-w-0 flex-1">
-                                                            <p className="font-bold text-gray-900">{user.firstName} {user.lastName}</p>
-                                                            <p className="text-sm text-gray-500 truncate">{user.email}</p>
-                                                            <span className="inline-block mt-1 px-2 py-0.5 rounded text-xs font-bold bg-red-100 text-red-700">Unverified</span>
+                                    <p className="text-sm text-gray-500">{unverifiedUsers.length} total</p>
+                                </div>
+                                <div>
+                                    {usersLoading ? (
+                                        <div className="p-8 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44]" /></div>
+                                    ) : unverifiedUsers.length === 0 ? (
+                                        <div className="p-8 text-center text-gray-500">No unverified users.</div>
+                                    ) : (
+                                        <div className="divide-y divide-gray-100">
+                                            {unverifiedUsers.map(user => {
+                                                const uid = user._id != null ? String(user._id) : '';
+                                                const listPic = user.freelancerProfile?.profilePicture || user.clientProfile?.profilePicture;
+                                                const listInitial = (user.firstName?.[0] || user.email?.[0] || '?').toUpperCase();
+                                                const listOnline = uid ? (userPresenceById[uid] ?? !!user.isOnline) : false;
+                                                return (
+                                                    <div
+                                                        key={user._id}
+                                                        onClick={() => handleSelectUser(user)}
+                                                        className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${selectedUser?._id === user._id ? 'bg-[#09BF44]/10 border-l-4 border-[#09BF44]' : ''}`}
+                                                    >
+                                                        <div className="flex items-start gap-3">
+                                                            <AdminAvatarWithPresence
+                                                                src={listPic}
+                                                                initial={listInitial}
+                                                                alt={`${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email}
+                                                                online={listOnline}
+                                                            />
+                                                            <div className="min-w-0 flex-1">
+                                                                <p className="font-bold text-gray-900">{user.firstName} {user.lastName}</p>
+                                                                <p className="text-sm text-gray-500 truncate">{user.email}</p>
+                                                                <span className="inline-block mt-1 px-2 py-0.5 rounded text-xs font-bold bg-red-100 text-red-700">Unverified</span>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                        </div>
                         </div>
                         {/* Detail panel — full width on mobile when user is selected */}
                         <div className={`lg:col-span-2 bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden ${selectedUser || selectedUserLoading ? 'block' : 'hidden lg:block'}`}>
@@ -2204,12 +2204,12 @@ export default function AdminDashboard() {
                                     >
                                         <span
                                             className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${job.status === 'open'
-                                                    ? 'bg-green-100 text-green-700'
-                                                    : job.status === 'in_progress'
-                                                        ? 'bg-blue-100 text-blue-700'
-                                                        : job.status === 'completed'
-                                                            ? 'bg-purple-100 text-purple-700'
-                                                            : 'bg-gray-100 text-gray-600'
+                                                ? 'bg-green-100 text-green-700'
+                                                : job.status === 'in_progress'
+                                                    ? 'bg-blue-100 text-blue-700'
+                                                    : job.status === 'completed'
+                                                        ? 'bg-purple-100 text-purple-700'
+                                                        : 'bg-gray-100 text-gray-600'
                                                 }`}
                                         >
                                             {job.status}
