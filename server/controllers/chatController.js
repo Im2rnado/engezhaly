@@ -811,10 +811,8 @@ const createConsultationMeeting = async (req, res) => {
             // Log a 0-amount payment for tracking purposes
             await ConsultationPayment.create({
                 conversationId,
-                buyerId: participants.find(id => String(id) !== String(userId)) || userId, // simplified
-                sellerId: participants.find(id => String(id) === String(userId)) || userId,
+                userId,
                 amount: 0,
-                status: 'paid',
                 used: true,
                 meetingLink: link,
                 meetingDate: scheduledAt,
