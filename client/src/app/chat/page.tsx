@@ -2049,7 +2049,7 @@ function ChatPageContent() {
                                                         </div>
                                                     )}
                                                     {isVoice ? (
-                                                        <audio controls src={msg.text} className="max-w-full min-w-[200px] h-10 rounded-lg" />
+                                                        <audio controls src={resolveChatMediaUrl(msg.text || '')} className="max-w-full min-w-[200px] h-10 rounded-lg" />
                                                     ) : isFile && fileSrc ? (
                                                         <div className="space-y-2">
                                                             {chatAttachmentIsImageUrl(fileSrc) ? (
