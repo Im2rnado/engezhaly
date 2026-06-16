@@ -321,7 +321,10 @@ const sendMessage = async (req, res) => {
 
         // 4. Phone Number Detection (Freeze Logic) - skip for voice/file (content is a URL)
         const phoneRegex = /(\d{11})|(\d{3}\s\d{4}\s\d{4})/;
-        const hasPhone = messageType !== 'voice' && messageType !== 'file' && phoneRegex.test(content);
+        // Remove URLs from content before checking for phone numbers to avoid false positives (e.g. 11 digit IDs in URLs)
+        const urlRegex = /https?:\/\/[^\s]+/gi;
+        const contentWithoutUrls = typeof content === 'string' ? content.replace(urlRegex, '') : '';
+        const hasPhone = messageType !== 'voice' && messageType !== 'file' && phoneRegex.test(contentWithoutUrls);
 
         let finalContent = content;
         let isChatFrozen = false;

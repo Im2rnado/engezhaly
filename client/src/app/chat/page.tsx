@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
-import { Send, Video, Paperclip, FileText, CheckCircle, XCircle, MessageSquare, Shield, PanelLeft, ArrowLeft, Loader2, Mic, Square, Trash2, ScrollText, Link as LinkIcon, Clock } from 'lucide-react';
+import { Send, Video, Paperclip, FileText, CheckCircle, XCircle, MessageSquare, Shield, PanelLeft, ArrowLeft, Loader2, Mic, Square, Trash2, ScrollText, Link as LinkIcon, Clock, Globe, ExternalLink } from 'lucide-react';
 import { api } from '@/lib/api';
 import { formatDateDDMMYYYY, formatRevisionsLabel, orderHasClientVisibleDelivery } from '@/lib/utils';
 import { useModal } from '@/context/ModalContext';
@@ -28,6 +28,81 @@ function resolveChatMediaUrl(url: string) {
     const base = API_ORIGIN || (typeof window !== 'undefined' ? window.location.origin : '');
     if (!base) return u;
     return `${base}${u.startsWith('/') ? '' : '/'}${u}`;
+}
+
+function LinkPreviewCard({ url, isMyMsg }: { url: string; isMyMsg: boolean }) {
+    let hostname = '';
+    try {
+        hostname = new URL(url).hostname;
+    } catch {
+        hostname = url;
+    }
+
+    return (
+        <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`flex flex-col gap-1 mt-2 p-3 rounded-xl border transition-all duration-200 hover:scale-[1.01] text-left block no-underline ${
+                isMyMsg
+                    ? 'bg-emerald-900/45 border-emerald-600/30 text-white hover:bg-emerald-900/60'
+                    : 'bg-white border-gray-200/80 text-gray-900 hover:bg-gray-50'
+            }`}
+            style={{ maxWidth: '340px' }}
+        >
+            <div className="flex items-center gap-2">
+                <Globe className={`w-3.5 h-3.5 shrink-0 ${isMyMsg ? 'text-emerald-300' : 'text-emerald-600'}`} />
+                <span className={`text-[10px] font-extrabold uppercase tracking-wider ${isMyMsg ? 'text-emerald-300' : 'text-emerald-600'}`}>
+                    {hostname}
+                </span>
+            </div>
+            <span className="text-xs font-semibold line-clamp-1 break-all mt-0.5 opacity-90">
+                {url}
+            </span>
+            <div className="flex items-center gap-1 mt-1 text-[10px] opacity-75 font-medium">
+                <span>Visit Link</span>
+                <ExternalLink className="w-2.5 h-2.5" />
+            </div>
+        </a>
+    );
+}
+
+function renderMessageText(text: string, isBlurred: boolean, isMyMsg: boolean) {
+    if (!text) return null;
+    if (isBlurred) {
+        return <p className="text-sm md:text-base leading-relaxed break-words whitespace-pre-wrap blur-sm select-none">{text}</p>;
+    }
+
+    const urlRegex = /(https?:\/\/[^\s]+)/gi;
+    const parts = text.split(urlRegex);
+    const urls: string[] = [];
+
+    const renderedText = parts.map((part, index) => {
+        if (part.match(urlRegex)) {
+            urls.push(part);
+            return (
+                <a
+                    key={index}
+                    href={part}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`underline break-all font-semibold ${isMyMsg ? 'text-emerald-100 hover:text-white' : 'text-emerald-600 hover:text-emerald-800'}`}
+                >
+                    {part}
+                </a>
+            );
+        }
+        return part;
+    });
+
+    return (
+        <div className="space-y-1">
+            <p className="text-sm md:text-base leading-relaxed break-words whitespace-pre-wrap">{renderedText}</p>
+            {urls.map((url, i) => (
+                <LinkPreviewCard key={i} url={url} isMyMsg={isMyMsg} />
+            ))}
+        </div>
+    );
 }
 
 function chatAttachmentIsImageUrl(url: string) {
@@ -2087,7 +2162,7 @@ function ChatPageContent() {
                                                             )}
                                                         </div>
                                                     ) : (
-                                                        <p className={`text-sm md:text-base leading-relaxed break-words whitespace-pre-wrap ${msg.isBlurred ? 'blur-sm select-none' : ''}`}>{content}</p>
+                                                        renderMessageText(content, !!msg.isBlurred, msg.sender === 'me')
                                                     )}
                                                     {meetingLink && (
                                                         <a
