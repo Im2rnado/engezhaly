@@ -54,7 +54,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const t = translations[lang];
+  const t = translations[lang] as unknown as typeof translations.en;
   const isRTL = lang === "ar";
 
   return (
