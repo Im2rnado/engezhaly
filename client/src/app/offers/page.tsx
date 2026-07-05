@@ -6,10 +6,12 @@ import { X, ChevronDown, Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
 import MainHeader from "@/components/MainHeader";
 import ProjectCardCompact from "@/components/ProjectCardCompact";
+import { useLanguage } from "@/context/LanguageContext";
 
 function OffersPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { t } = useLanguage();
     const [projects, setProjects] = useState<any[]>([]);
     const [filteredProjects, setFilteredProjects] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -137,23 +139,23 @@ function OffersPageContent() {
             <MainHeader
                 user={user}
                 onSearch={handleHeaderSearch}
-                searchPlaceholder="What service are you looking for?"
+                searchPlaceholder={t.offersPage.searchPlaceholder}
                 showCategories={true}
             />
 
             <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6 py-6 md:py-8">
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-5 md:mb-6">Find a Freelancer</h1>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-5 md:mb-6">{t.offersPage.title}</h1>
                 <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
                     <div className="space-y-3 lg:space-y-0 lg:flex lg:items-end lg:gap-4">
                         <div className="w-full lg:w-auto">
-                            <label className="block text-xs font-bold text-gray-500 mb-1">Budget</label>
+                            <label className="block text-xs font-bold text-gray-500 mb-1">{t.offersPage.budgetLabel}</label>
                             <div className="relative w-full sm:w-auto">
                                 <select
                                     value={filters.budget}
                                     onChange={(e) => setFilters({ ...filters, budget: e.target.value })}
                                     className="pl-3 pr-8 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 font-bold text-sm outline-none focus:border-[#09BF44] appearance-none w-full sm:min-w-[170px]"
                                 >
-                                    <option value="">Budget</option>
+                                    <option value="">{t.offersPage.budgetAny}</option>
                                     <option value="500-1000" className="text-gray-900">500 - 1,000 EGP</option>
                                     <option value="1000-2500" className="text-gray-900">1,000 - 2,500 EGP</option>
                                     <option value="2500-5000" className="text-gray-900">2,500 - 5,000 EGP</option>
@@ -165,36 +167,36 @@ function OffersPageContent() {
                         </div>
 
                         <div className="w-full lg:w-auto">
-                            <label className="block text-xs font-bold text-gray-500 mb-1">Delivery Time</label>
+                            <label className="block text-xs font-bold text-gray-500 mb-1">{t.offersPage.deliveryTimeLabel}</label>
                             <div className="relative w-full sm:w-auto">
                                 <select
                                     value={filters.deliveryTime}
                                     onChange={(e) => setFilters({ ...filters, deliveryTime: e.target.value })}
                                     className="pl-3 pr-8 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 font-bold text-sm outline-none focus:border-[#09BF44] appearance-none w-full sm:min-w-[170px]"
                                 >
-                                    <option value="">Delivery Time</option>
-                                    <option value="1" className="text-gray-900">1 day</option>
-                                    <option value="3" className="text-gray-900">3 days</option>
-                                    <option value="7" className="text-gray-900">7 days</option>
-                                    <option value="14" className="text-gray-900">14 days</option>
-                                    <option value="30" className="text-gray-900">30+ days</option>
+                                    <option value="">{t.offersPage.deliveryAny}</option>
+                                    <option value="1" className="text-gray-900">{t.offersPage.deliveryDay1}</option>
+                                    <option value="3" className="text-gray-900">{t.offersPage.deliveryDays3}</option>
+                                    <option value="7" className="text-gray-900">{t.offersPage.deliveryDays7}</option>
+                                    <option value="14" className="text-gray-900">{t.offersPage.deliveryDays14}</option>
+                                    <option value="30" className="text-gray-900">{t.offersPage.deliveryDays30}</option>
                                 </select>
                                 <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
                             </div>
                         </div>
 
                         <div className="w-full lg:w-auto lg:ml-auto">
-                            <label className="block text-xs font-bold text-gray-500 mb-1">Sorting</label>
+                            <label className="block text-xs font-bold text-gray-500 mb-1">{t.offersPage.sortingLabel}</label>
                             <div className="relative flex-1 lg:flex-none">
                                 <select
                                     value={sortBy}
                                     onChange={(e) => setSortBy(e.target.value)}
                                     className="w-full lg:w-auto pl-3 pr-8 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 font-bold text-sm outline-none focus:border-[#09BF44] appearance-none lg:min-w-[180px]"
                                 >
-                                    <option value="best-selling" className="text-gray-900">Best Selling</option>
-                                    <option value="newest" className="text-gray-900">Newest Arrivals</option>
-                                    <option value="price-low" className="text-gray-900">Price: Low to High</option>
-                                    <option value="price-high" className="text-gray-900">Price: High to Low</option>
+                                    <option value="best-selling" className="text-gray-900">{t.offersPage.bestSelling}</option>
+                                    <option value="newest" className="text-gray-900">{t.offersPage.newestArrivals}</option>
+                                    <option value="price-low" className="text-gray-900">{t.offersPage.priceLow}</option>
+                                    <option value="price-high" className="text-gray-900">{t.offersPage.priceHigh}</option>
                                 </select>
                                 <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
                             </div>
@@ -204,7 +206,7 @@ function OffersPageContent() {
                                 onClick={clearFilters}
                                 className="w-full lg:w-auto flex items-center justify-center gap-1 px-3 py-2.5 text-sm font-bold text-gray-600 hover:text-[#09BF44] hover:border-[#09BF44]/50 border border-gray-200 rounded-lg"
                             >
-                                <X className="w-4 h-4" /> Clear
+                                <X className="w-4 h-4" /> {t.offersPage.clear}
                             </button>
                         )}
                     </div>
@@ -212,14 +214,14 @@ function OffersPageContent() {
 
                 <div className="mb-4">
                     <p className="text-gray-600 font-bold">
-                        {filteredProjects.length} {filteredProjects.length === 1 ? 'result' : 'results'}
+                        {filteredProjects.length} {filteredProjects.length === 1 ? t.offersPage.result_one : t.offersPage.result_other}
                     </p>
                 </div>
 
                 {loading ? (
                     <div className="flex flex-col items-center justify-center py-16">
                         <Loader2 className="w-10 h-10 animate-spin text-[#09BF44] mb-4" />
-                        <p className="text-gray-600 font-bold mb-6">Exploring offers...</p>
+                        <p className="text-gray-600 font-bold mb-6">{t.offersPage.exploringOffers}</p>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
                             {[1, 2, 3, 4, 5, 6].map((i) => (
                                 <div key={i} className="bg-white rounded-2xl border border-gray-100 p-6 animate-pulse">
@@ -238,8 +240,8 @@ function OffersPageContent() {
                     </div>
                 ) : (
                     <div className="text-center py-12 bg-white rounded-xl">
-                        <p className="text-gray-400 text-lg font-bold">No offers found</p>
-                        <p className="text-gray-500 text-sm mt-2">Try adjusting your filters</p>
+                        <p className="text-gray-400 text-lg font-bold">{t.offersPage.noOffersFound}</p>
+                        <p className="text-gray-500 text-sm mt-2">{t.offersPage.adjustFilters}</p>
                     </div>
                 )}
             </div>

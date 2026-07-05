@@ -10,11 +10,13 @@ import { useModal } from "@/context/ModalContext";
 import DatePicker from "@/components/DatePicker";
 import RevisionsField from "@/components/RevisionsField";
 import { minDateYYYYMMDDForMilestone, milestoneDatesOrderError } from "@/lib/utils";
+import { useLanguage } from "@/context/LanguageContext";
 
 function JobsPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { showModal } = useModal();
+    const { t } = useLanguage();
     const [jobs, setJobs] = useState<any[]>([]);
     const [filteredJobs, setFilteredJobs] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -208,41 +210,41 @@ function JobsPageContent() {
             <MainHeader
                 user={user}
                 onSearch={handleHeaderSearch}
-                searchPlaceholder="Search for jobs..."
+                searchPlaceholder={t.jobsPage.title}
                 showCategories={true}
             />
 
             <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6 py-6 md:py-8">
                 {/* Page Title */}
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-5 md:mb-6">Browse Jobs</h1>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-5 md:mb-6">{t.jobsPage.title}</h1>
                 {/* Filters Bar */}
                 <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
                     <div className="space-y-3 lg:space-y-0 lg:flex lg:items-end lg:gap-4">
                         <div className="w-full lg:w-auto">
-                            <label className="block text-xs font-bold text-gray-500 mb-1">Status</label>
+                            <label className="block text-xs font-bold text-gray-500 mb-1">{t.jobsPage.statusLabel}</label>
                             <div className="relative w-full sm:w-auto">
                                 <select
                                     value={filters.status}
                                     onChange={(e) => setFilters({ ...filters, status: e.target.value })}
                                     className="pl-3 pr-8 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 font-bold text-sm outline-none focus:border-[#09BF44] appearance-none w-full sm:min-w-[170px]"
                                 >
-                                    <option value="open" className="text-gray-900">Open Jobs</option>
-                                    <option value="in_progress" className="text-gray-900">In Progress</option>
-                                    <option value="completed" className="text-gray-900">Completed</option>
-                                    <option value="" className="text-gray-900">All Status</option>
+                                    <option value="open" className="text-gray-900">{t.jobsPage.statusOpen}</option>
+                                    <option value="in_progress" className="text-gray-900">{t.jobsPage.statusInProgress}</option>
+                                    <option value="completed" className="text-gray-900">{t.jobsPage.statusCompleted}</option>
+                                    <option value="" className="text-gray-900">{t.jobsPage.statusAll}</option>
                                 </select>
                                 <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
                             </div>
                         </div>
                         <div className="w-full lg:w-auto">
-                            <label className="block text-xs font-bold text-gray-500 mb-1">Budget</label>
+                            <label className="block text-xs font-bold text-gray-500 mb-1">{t.jobsPage.budgetLabel}</label>
                             <div className="relative w-full sm:w-auto">
                                 <select
                                     value={filters.budget}
                                     onChange={(e) => setFilters({ ...filters, budget: e.target.value })}
                                     className="pl-3 pr-8 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 font-bold text-sm outline-none focus:border-[#09BF44] appearance-none w-full sm:min-w-[170px]"
                                 >
-                                    <option value="">Budget Range</option>
+                                    <option value="">{t.jobsPage.budgetRange}</option>
                                     <option value="500-1000" className="text-gray-900">500 - 1,000 EGP</option>
                                     <option value="1000-2500" className="text-gray-900">1,000 - 2,500 EGP</option>
                                     <option value="2500-5000" className="text-gray-900">2,500 - 5,000 EGP</option>
@@ -253,16 +255,16 @@ function JobsPageContent() {
                             </div>
                         </div>
                         <div className="w-full lg:w-auto lg:ml-auto">
-                            <label className="block text-xs font-bold text-gray-500 mb-1">Sorting</label>
+                            <label className="block text-xs font-bold text-gray-500 mb-1">{t.jobsPage.sortingLabel}</label>
                             <div className="relative flex-1 lg:flex-none">
                                 <select
                                     value={sortBy}
                                     onChange={(e) => setSortBy(e.target.value)}
                                     className="w-full lg:w-auto pl-3 pr-8 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 font-bold text-sm outline-none focus:border-[#09BF44] appearance-none lg:min-w-[180px]"
                                 >
-                                    <option value="newest" className="text-gray-900">Newest First</option>
-                                    <option value="budget-low" className="text-gray-900">Budget: Low to High</option>
-                                    <option value="budget-high" className="text-gray-900">Budget: High to Low</option>
+                                    <option value="newest" className="text-gray-900">{t.jobsPage.newestFirst}</option>
+                                    <option value="budget-low" className="text-gray-900">{t.jobsPage.budgetLow}</option>
+                                    <option value="budget-high" className="text-gray-900">{t.jobsPage.budgetHigh}</option>
                                 </select>
                                 <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
                             </div>
@@ -272,7 +274,7 @@ function JobsPageContent() {
                                 onClick={clearFilters}
                                 className="w-full lg:w-auto flex items-center justify-center gap-1 px-3 py-2.5 text-sm font-bold text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg"
                             >
-                                <X className="w-4 h-4" /> Clear
+                                <X className="w-4 h-4" /> {t.jobsPage.clear}
                             </button>
                         )}
                     </div>
@@ -281,14 +283,14 @@ function JobsPageContent() {
                 {/* Results */}
                 <div className="mb-4">
                     <p className="text-gray-600 font-bold">
-                        {filteredJobs.length} {filteredJobs.length === 1 ? 'job' : 'jobs'} found
+                        {filteredJobs.length} {filteredJobs.length === 1 ? t.jobsPage.jobsFound_one : t.jobsPage.jobsFound_other}
                     </p>
                 </div>
 
                 {loading ? (
                     <div className="flex flex-col items-center justify-center py-16">
                         <Loader2 className="w-10 h-10 animate-spin text-[#09BF44] mb-4" />
-                        <p className="text-gray-600 font-bold mb-6">Finding jobs...</p>
+                        <p className="text-gray-600 font-bold mb-6">{t.jobsPage.findingJobs}</p>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
                             {[1, 2, 3, 4].map((i) => (
                                 <div key={i} className="bg-white rounded-2xl border border-gray-100 p-6 animate-pulse">
@@ -318,20 +320,20 @@ function JobsPageContent() {
                                             </h3>
                                             {job.status === 'open' && (
                                                 <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold">
-                                                    Open
+                                                    {t.jobsPage.statusOpenBadge}
                                                 </span>
                                             )}
                                         </div>
                                         <p className="text-gray-600 text-sm mb-4 line-clamp-3 break-words [overflow-wrap:anywhere] min-w-0">{job.description}</p>
                                         <div className="flex flex-wrap items-center gap-4 text-sm mb-4">
                                             <div className="flex items-center gap-2">
-                                                <span className="text-gray-500 font-bold">Budget:</span>
+                                                <span className="text-gray-500 font-bold">{t.jobsPage.budgetColon}</span>
                                                 <span className="text-gray-900 font-bold">
                                                     {job.budgetRange?.min || 0} - {job.budgetRange?.max || 0} EGP
                                                 </span>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-gray-500 font-bold">Deadline:</span>
+                                                <span className="text-gray-500 font-bold">{t.jobsPage.deadlineColon}</span>
                                                 <span className="text-gray-900 font-bold">{job.deadline || 'N/A'}</span>
                                             </div>
                                         </div>
@@ -346,10 +348,10 @@ function JobsPageContent() {
                                                     </span>
                                                 ))}
                                                 {job.skills.length > 5 && (
-                                                    <span className="text-gray-500 text-xs font-bold">+{job.skills.length - 5} more</span>
+                                                    <span className="text-gray-500 text-xs font-bold">+{job.skills.length - 5} {t.jobsPage.moreSkills}</span>
                                                 )}
                                                 {job.hasApplied && (
-                                                    <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">Applied</span>
+                                                    <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">{t.jobsPage.alreadyApplied}</span>
                                                 )}
                                             </div>
                                         )}
@@ -358,14 +360,14 @@ function JobsPageContent() {
                                 {(user?.role === 'freelancer' || !user) && job.status === 'open' && (
                                     job.hasApplied ? (
                                         <span className="w-full bg-gray-100 text-gray-500 px-6 py-3 rounded-xl font-bold text-center block">
-                                            Already Applied
+                                            {t.jobsPage.alreadyApplied}
                                         </span>
                                     ) : (
                                         <button
                                             onClick={() => handleApplyClick(job)}
                                             className="w-full bg-[#09BF44] hover:bg-[#07a63a] text-white px-6 py-3 rounded-xl font-bold transition-colors shadow-md hover:shadow-lg"
                                         >
-                                            Apply Now
+                                            {t.jobsPage.applyNow}
                                         </button>
                                     )
                                 )}
@@ -375,13 +377,13 @@ function JobsPageContent() {
                 ) : (
                     <div className="text-center py-12 bg-white rounded-xl">
                         <Briefcase className="w-12 h-12 mx-auto mb-3 opacity-20 text-gray-400" />
-                        <p className="text-gray-400 text-lg font-bold">No jobs found</p>
+                        <p className="text-gray-400 text-lg font-bold">{t.jobsPage.noJobsFound}</p>
                         {user?.role === 'freelancer' && profile && !profile.freelancerProfile?.category ? (
                             <p className="text-gray-600 text-sm mt-2 max-w-md mx-auto">
-                                Add your main category in your profile to see jobs in your field. Until then, the job list stays empty.
+                                {t.jobsPage.noCategory}
                             </p>
                         ) : (
-                            <p className="text-gray-500 text-sm mt-2">Try adjusting your filters</p>
+                            <p className="text-gray-500 text-sm mt-2">{t.jobsPage.adjustFilters}</p>
                         )}
                     </div>
                 )}
@@ -407,7 +409,7 @@ function JobsPageContent() {
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
                     <div className="bg-white text-gray-900 p-8 rounded-3xl max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto">
                         <div className="flex items-start justify-between mb-6 gap-3">
-                            <h2 className="text-2xl font-bold text-gray-900 break-words [overflow-wrap:anywhere] min-w-0 flex-1">Apply to {applyJob.title}</h2>
+                            <h2 className="text-2xl font-bold text-gray-900 break-words [overflow-wrap:anywhere] min-w-0 flex-1">{t.jobsPage.applyTo} {applyJob.title}</h2>
                             <button
                                 onClick={() => {
                                     setApplyJob(null);
@@ -423,7 +425,7 @@ function JobsPageContent() {
                         <form onSubmit={handleApplySubmit} className="space-y-4">
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                 <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Price (EGP)</label>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">{t.jobsPage.priceEGP}</label>
                                     <input
                                         required
                                         type="number"
@@ -434,7 +436,7 @@ function JobsPageContent() {
                                 </div>
                                 {!showMilestones && (
                                     <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-2">Delivery (days)</label>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">{t.jobsPage.deliveryDays}</label>
                                         <input
                                             required
                                             type="number"
@@ -447,13 +449,13 @@ function JobsPageContent() {
                                 )}
                                 {showMilestones && (
                                     <div className="col-span-2 md:col-span-1 flex items-end">
-                                        <p className="text-xs text-gray-500 font-medium pb-3">Delivery is calculated from your last milestone due date.</p>
+                                        <p className="text-xs text-gray-500 font-medium pb-3">{t.jobsPage.deliveryCalc}</p>
                                     </div>
                                 )}
                                 <div className="col-span-2 md:col-span-1">
                                     <RevisionsField
                                         variant="jobs"
-                                        label="Revisions"
+                                        label={t.jobsPage.revisionsLabel}
                                         required
                                         unlimited={proposal.revisionsUnlimited}
                                         revisions={proposal.revisions}
@@ -467,8 +469,8 @@ function JobsPageContent() {
                             <div className="p-4 rounded-2xl border-2 border-gray-100 bg-gray-50/50">
                                 <div className="flex items-center justify-between mb-4">
                                     <div>
-                                        <label className="block text-sm font-bold text-gray-900">Delivery Milestones</label>
-                                        <p className="text-xs text-gray-600 font-medium">Optional phases you will deliver by. The client pays once when they approve the full job.</p>
+                                        <label className="block text-sm font-bold text-gray-900">{t.jobsPage.deliveryMilestones}</label>
+                                        <p className="text-xs text-gray-600 font-medium">{t.jobsPage.milestoneDesc}</p>
                                     </div>
                                     <button
                                         type="button"
@@ -478,7 +480,7 @@ function JobsPageContent() {
                                         }}
                                         className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${showMilestones ? 'bg-[#09BF44] text-white' : 'bg-gray-200 text-gray-700'}`}
                                     >
-                                        {showMilestones ? 'Enabled' : 'Add delivery milestones'}
+                                        {showMilestones ? t.jobsPage.milestoneBtnEnabled : t.jobsPage.milestoneBtnAdd}
                                     </button>
                                 </div>
                                 {showMilestones && (
@@ -486,7 +488,7 @@ function JobsPageContent() {
                                         {milestones.map((m, idx) => (
                                             <div key={idx} className="flex flex-col sm:flex-row gap-2 bg-white p-3 rounded-xl border border-gray-200 items-center">
                                                 <input
-                                                    placeholder="Delivery phase name"
+                                                    placeholder={t.jobsPage.milestonePhaseName}
                                                     value={m.name}
                                                     onChange={e => {
                                                         const newMs = [...milestones];
@@ -503,7 +505,7 @@ function JobsPageContent() {
                                                         setMilestones(newMs);
                                                     }}
                                                     min={minDateYYYYMMDDForMilestone(idx, milestones)}
-                                                    placeholder="Due date *"
+                                                    placeholder={t.jobsPage.milestoneDueDate}
                                                     className="w-48"
                                                 />
                                                 <button
@@ -520,19 +522,19 @@ function JobsPageContent() {
                                             onClick={() => setMilestones([...milestones, { name: '', dueDate: '' }])}
                                             className="w-full py-2 border-2 border-dashed border-gray-300 rounded-xl text-sm font-bold text-gray-500 hover:border-[#09BF44] hover:text-[#09BF44] transition-all"
                                         >
-                                            + Add delivery milestone
+                                            {t.jobsPage.addMilestone}
                                         </button>
                                     </div>
                                 )}
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Your Proposal</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">{t.jobsPage.yourProposal}</label>
                                 <textarea
                                     required
                                     value={proposal.message}
                                     onChange={e => setProposal({ ...proposal, message: e.target.value })}
                                     className="w-full p-3 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none h-32 resize-none text-gray-900 placeholder:text-gray-500"
-                                    placeholder="Tell the client why you're the perfect fit..."
+                                    placeholder={t.jobsPage.proposalPlaceholder}
                                 />
                             </div>
                             <div className="flex gap-4 pt-4">
@@ -546,14 +548,14 @@ function JobsPageContent() {
                                 }}
                                     className="flex-1 bg-gray-100 text-gray-700 font-bold p-3 rounded-xl hover:bg-gray-200 transition-colors"
                                 >
-                                    Cancel
+                                    {t.jobsPage.cancel}
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={applyLoading}
                                     className="flex-1 bg-[#09BF44] text-white font-bold p-3 rounded-xl hover:bg-[#07a63a] transition-colors disabled:opacity-70"
                                 >
-                                    {applyLoading ? 'Sending...' : 'Send Proposal'}
+                                    {applyLoading ? t.jobsPage.sending : t.jobsPage.sendProposal}
                                 </button>
                             </div>
                         </form>

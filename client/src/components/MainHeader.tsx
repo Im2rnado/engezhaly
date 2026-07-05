@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Search, User, Plus, ChevronDown, Menu, X } from "lucide-react";
 import { MAIN_CATEGORIES, CATEGORIES } from "@/lib/categories";
 import AuthModal from "@/components/AuthModal";
+import { useLanguage } from "@/context/LanguageContext";
 
 // Flatten categories and subcategories for search suggestions
 const SEARCH_SUGGESTIONS = [
@@ -20,10 +21,12 @@ interface MainHeaderProps {
     showCategories?: boolean;
 }
 
-function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service are you looking for?", showCategories = true }: MainHeaderProps) {
+function MainHeaderContent({ user, onSearch, searchPlaceholder, showCategories = true }: MainHeaderProps) {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
+    const { t, toggleLang, isRTL } = useLanguage();
+
     const [searchQuery, setSearchQuery] = useState("");
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [authStep, setAuthStep] = useState<'role-selection' | 'login'>('role-selection');
@@ -37,6 +40,8 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
     const [mobileSelectedCategory, setMobileSelectedCategory] = useState('');
     const searchDropdownRef = useRef<HTMLDivElement>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
+
+    const resolvedPlaceholder = searchPlaceholder ?? t.search.searchFreelancers;
 
     const filteredSuggestions = useMemo(() => {
         const q = searchQuery.trim().toLowerCase();
@@ -159,11 +164,22 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
         sessionStorage.setItem('engezhaly_auth_modal_opened', '1');
     };
 
+    // ── Language Toggle Button ────────────────────────────────────────────────
+    const LangToggleBtn = ({ className = "" }: { className?: string }) => (
+        <button
+            onClick={toggleLang}
+            className={`text-xs font-bold border border-gray-300 hover:border-[#09BF44] hover:text-[#09BF44] text-gray-600 px-2.5 py-1.5 rounded-md transition-all ${className}`}
+            aria-label="Toggle language"
+        >
+            {t.nav.langToggle}
+        </button>
+    );
+
     return (
         <>
             <header className="border-b border-gray-200 sticky top-0 bg-white/95 backdrop-blur-sm z-50 transition-all duration-300 shadow-sm" style={{ overflow: 'visible' }}>
                 {/* Mobile Header */}
-                <div className="md:hidden max-w-[95%] mx-auto px-3 py-2.5">
+                <div dir="ltr" className="md:hidden max-w-[95%] mx-auto px-3 py-2.5">
                     <div className="grid grid-cols-3 items-center gap-2">
                         <div className="flex justify-start">
                             <button
@@ -181,20 +197,21 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                         >
                             <Image src="/logos/logo-green.png" alt="Engezhaly" width={170} height={42} className="w-28 h-auto" priority />
                         </button>
-                        <div className="flex justify-end">
+                        <div className="flex justify-end items-center gap-2">
+                            <LangToggleBtn />
                             {user ? (
                                 <button
                                     onClick={() => router.push(getDashboardPath())}
                                     className="text-xs font-bold bg-[#09BF44] text-white px-3 py-2 rounded-md"
                                 >
-                                    Dashboard
+                                    {t.nav.dashboard}
                                 </button>
                             ) : (
                                 <button
                                     onClick={() => openAuthModal('role-selection')}
                                     className="text-xs font-bold bg-[#09BF44] text-white px-3 py-2 rounded-md"
                                 >
-                                    Join
+                                    {t.nav.join}
                                 </button>
                             )}
                         </div>
@@ -210,7 +227,7 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                                         setShowAutofill(true);
                                     }}
                                     onFocus={() => setShowAutofill(true)}
-                                    placeholder={pathname === '/jobs' ? 'Search jobs...' : 'Search freelancers...'}
+                                    placeholder={pathname === '/jobs' ? t.search.searchJobs : t.search.searchFreelancers}
                                     className="flex-1 px-3 py-2.5 text-sm text-gray-700 placeholder-gray-400 outline-none rounded-l-lg"
                                 />
                                 <button type="submit" className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-3 py-2.5 transition-colors rounded-r-lg">
@@ -240,7 +257,7 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                 </div>
 
                 {/* Main Header */}
-                <div className="hidden md:flex max-w-[95%] md:max-w-[90%] mx-auto px-3 sm:px-4 md:px-6 h-14 sm:h-16 md:h-20 items-center justify-between gap-3" style={{ overflow: 'visible' }}>
+                <div dir="ltr" className="hidden md:flex max-w-[95%] md:max-w-[90%] mx-auto px-3 sm:px-4 md:px-6 h-14 sm:h-16 md:h-20 items-center justify-between gap-3" style={{ overflow: 'visible' }}>
                     <div className="flex items-center gap-4 md:gap-8 flex-1 min-w-0">
                         {/* Logo */}
                         <div
@@ -265,9 +282,9 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                                     <button
                                         type="button"
                                         onClick={() => setShowSearchDropdown(!showSearchDropdown)}
-                                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium z-10 flex items-center gap-1"
+                                        className="absolute start-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium z-10 flex items-center gap-1"
                                     >
-                                        {searchType === 'projects' ? 'Freelancer' : 'Jobs'}
+                                        {searchType === 'projects' ? t.search.freelancer : t.search.jobs}
                                         <ChevronDown className="w-3 h-3" />
                                     </button>
                                     {showSearchDropdown && (
@@ -280,7 +297,7 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                                                 }}
                                                 className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${searchType === 'projects' ? 'bg-[#09BF44]/10 text-[#09BF44]' : 'text-gray-700 hover:bg-[#09BF44]/5'}`}
                                             >
-                                                Find Freelancer
+                                                {t.search.findFreelancer}
                                             </button>
                                             <button
                                                 type="button"
@@ -290,7 +307,7 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                                                 }}
                                                 className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors border-t border-gray-100 ${searchType === 'jobs' ? 'bg-[#09BF44]/10 text-[#09BF44]' : 'text-gray-700 hover:bg-[#09BF44]/5'}`}
                                             >
-                                                Search Jobs
+                                                {t.search.searchJobs2}
                                             </button>
                                         </div>
                                     )}
@@ -306,8 +323,12 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                                         setShowAutofill(true);
                                     }}
                                     onFocus={() => setShowAutofill(true)}
-                                    placeholder={pathname === '/' ? (searchType === 'projects' ? 'Search freelancers...' : 'Search jobs...') : (pathname === '/jobs' ? 'Search jobs...' : (pathname === '/offers' ? 'Search freelancers...' : searchPlaceholder))}
-                                    className={`flex-1 px-4 py-2 text-sm text-gray-700 placeholder-gray-400 outline-none rounded-l-lg ${pathname === '/' ? 'pl-26' : ''}`}
+                                    placeholder={
+                                        pathname === '/'
+                                            ? (searchType === 'projects' ? t.search.searchFreelancers : t.search.searchJobs)
+                                            : (pathname === '/jobs' ? t.search.searchJobs : (pathname === '/offers' ? t.search.searchFreelancers : resolvedPlaceholder))
+                                    }
+                                    className={`flex-1 px-4 py-2 text-sm text-gray-700 placeholder-gray-400 outline-none rounded-l-lg ${pathname === '/' ? 'ps-26' : ''}`}
                                 />
                                 <button type="submit" className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-4 py-2 transition-colors rounded-r-lg">
                                     <Search className="w-4 h-4" />
@@ -342,21 +363,25 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                                 onClick={() => router.push('/offers')}
                                 className={`hover:text-[#09BF44] transition-colors ${pathname === '/offers' ? 'text-[#09BF44]' : ''}`}
                             >
-                                Find a Freelancer
+                                {t.nav.findFreelancer}
                             </button>
                             <button
                                 onClick={() => router.push('/jobs')}
                                 className={`hover:text-[#09BF44] transition-colors ${pathname === '/jobs' ? 'text-[#09BF44]' : ''}`}
                             >
-                                Browse Jobs
+                                {t.nav.browseJobs}
                             </button>
                             <button
                                 onClick={() => router.push('/help-and-rules')}
                                 className={`hover:text-[#09BF44] transition-colors ${pathname === '/help-and-rules' ? 'text-[#09BF44]' : ''}`}
                             >
-                                How it works
+                                {t.nav.howItWorks}
                             </button>
                         </nav>
+
+                        {/* Language toggle — desktop */}
+                        <LangToggleBtn />
+
                         {user ? (
                             <div className="flex items-center gap-3">
                                 {user.role === 'client' ? (
@@ -366,14 +391,14 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                                             className="flex items-center gap-2 border border-[#09BF44] text-[#09BF44] hover:bg-[#09BF44] hover:text-white text-sm font-bold px-4 py-2 rounded-md transition-all bg-transparent"
                                         >
                                             <Plus className="w-4 h-4" />
-                                            Post Job
+                                            {t.nav.postJob}
                                         </button>
                                         <button
                                             onClick={() => router.push(getDashboardPath())}
                                             className="flex items-center gap-2 bg-[#09BF44] hover:bg-[#07a63a] text-white text-sm font-bold px-4 py-2 rounded-md transition-all shadow-md hover:shadow-lg"
                                         >
                                             <User className="w-4 h-4" />
-                                            Dashboard
+                                            {t.nav.dashboard}
                                         </button>
                                     </>
                                 ) : user.role === 'freelancer' ? (
@@ -383,14 +408,14 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                                             className="flex items-center gap-2 border border-[#09BF44] text-[#09BF44] hover:bg-[#09BF44] hover:text-white text-sm font-bold px-4 py-2 rounded-md transition-all bg-transparent"
                                         >
                                             <Plus className="w-4 h-4" />
-                                            Create Offer
+                                            {t.nav.createOffer}
                                         </button>
                                         <button
                                             onClick={() => router.push(getDashboardPath())}
                                             className="flex items-center gap-2 bg-[#09BF44] hover:bg-[#07a63a] text-white text-sm font-bold px-4 py-2 rounded-md transition-all shadow-md hover:shadow-lg"
                                         >
                                             <User className="w-4 h-4" />
-                                            Dashboard
+                                            {t.nav.dashboard}
                                         </button>
                                     </>
                                 ) : (
@@ -399,7 +424,7 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                                         className="flex items-center gap-2 bg-[#09BF44] hover:bg-[#07a63a] text-white text-sm font-bold px-4 py-2 rounded-md transition-all shadow-md hover:shadow-lg"
                                     >
                                         <User className="w-4 h-4" />
-                                        Dashboard
+                                        {t.nav.dashboard}
                                     </button>
                                 )}
                             </div>
@@ -409,13 +434,13 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                                     onClick={() => openAuthModal('login')}
                                     className="hidden md:block border border-[#09BF44] text-[#09BF44] hover:bg-[#09BF44] hover:text-white text-sm font-bold px-6 py-2 rounded-md transition-all"
                                 >
-                                    Sign In
+                                    {t.nav.signIn}
                                 </button>
                                 <button
                                     onClick={() => openAuthModal('role-selection')}
                                     className="hidden md:block bg-[#09BF44] hover:bg-[#07a63a] text-white text-sm font-bold px-6 py-2 rounded-md transition-all shadow-md hover:shadow-lg"
                                 >
-                                    Join
+                                    {t.nav.join}
                                 </button>
                             </>
                         )}
@@ -424,17 +449,17 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                 {mobileMenuOpen && (
                     <div className="md:hidden border-t border-gray-100 bg-white">
                         <div className="max-w-[95%] mx-auto px-3 py-3 space-y-2">
-                            <button onClick={() => { router.push('/offers'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-[#09BF44]/5">Find a Freelancer</button>
-                            <button onClick={() => { router.push('/jobs'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-[#09BF44]/5">Browse Jobs</button>
-                            <button onClick={() => { router.push('/help-and-rules'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-[#09BF44]/5">How it works</button>
+                            <button onClick={() => { router.push('/offers'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-[#09BF44]/5">{t.nav.findFreelancer}</button>
+                            <button onClick={() => { router.push('/jobs'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-[#09BF44]/5">{t.nav.browseJobs}</button>
+                            <button onClick={() => { router.push('/help-and-rules'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-[#09BF44]/5">{t.nav.howItWorks}</button>
                             {user?.role === 'client' && (
-                                <button onClick={() => { router.push('/dashboard/client/jobs/create'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-[#09BF44]/5">Post Job</button>
+                                <button onClick={() => { router.push('/dashboard/client/jobs/create'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-[#09BF44]/5">{t.nav.postJob}</button>
                             )}
                             {user?.role === 'freelancer' && (
-                                <button onClick={() => { router.push('/dashboard/freelancer/offers/create'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-[#09BF44]/5">Create Offer</button>
+                                <button onClick={() => { router.push('/dashboard/freelancer/offers/create'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-[#09BF44]/5">{t.nav.createOffer}</button>
                             )}
                             <div className="pt-2 border-t border-gray-100">
-                                <p className="text-xs font-bold text-gray-500 mb-2 px-1">Categories</p>
+                                <p className="text-xs font-bold text-gray-500 mb-2 px-1">{t.nav.categories}</p>
                                 <select
                                     value={mobileSelectedCategory}
                                     onChange={(e) => {
@@ -448,9 +473,9 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                                     }}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700"
                                 >
-                                    <option value="">Select category</option>
+                                    <option value="">{t.nav.selectCategory}</option>
                                     {MAIN_CATEGORIES.map((category) => (
-                                        <option key={category} value={category}>{category}</option>
+                                        <option key={category} value={category}>{t.categoryMap[category] ?? category}</option>
                                     ))}
                                 </select>
                                 {mobileSelectedCategory && (
@@ -466,7 +491,7 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                                                 }}
                                                 className="w-full text-left px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-[#09BF44]/5"
                                             >
-                                                {subCategory}
+                                                {t.categoryMap[subCategory] ?? subCategory}
                                             </button>
                                         ))}
                                     </div>
@@ -474,8 +499,8 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                             </div>
                             {!user && (
                                 <div className="flex gap-2 pt-1">
-                                    <button onClick={() => { openAuthModal('login'); setMobileMenuOpen(false); }} className="flex-1 border border-[#09BF44] text-[#09BF44] text-sm font-bold px-3 py-2 rounded-md">Sign In</button>
-                                    <button onClick={() => { openAuthModal('role-selection'); setMobileMenuOpen(false); }} className="flex-1 bg-[#09BF44] text-white text-sm font-bold px-3 py-2 rounded-md">Join</button>
+                                    <button onClick={() => { openAuthModal('login'); setMobileMenuOpen(false); }} className="flex-1 border border-[#09BF44] text-[#09BF44] text-sm font-bold px-3 py-2 rounded-md">{t.nav.signIn}</button>
+                                    <button onClick={() => { openAuthModal('role-selection'); setMobileMenuOpen(false); }} className="flex-1 bg-[#09BF44] text-white text-sm font-bold px-3 py-2 rounded-md">{t.nav.join}</button>
                                 </div>
                             )}
                         </div>
@@ -498,7 +523,7 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                                         : 'text-gray-600 hover:bg-[#09BF44]/10 hover:text-[#09BF44]'
                                         }`}
                                 >
-                                    All Categories
+                                    {t.nav.allCategories}
                                 </button>
                                 {MAIN_CATEGORIES.map((category) => (
                                     <div
@@ -515,7 +540,7 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                                                 : 'text-gray-600 hover:bg-[#09BF44]/10 hover:text-[#09BF44]'
                                                 }`}
                                         >
-                                            {category}
+                                            {t.categoryMap[category] ?? category}
                                         </button>
 
                                         {/* Subcategory Dropdown Menu */}
@@ -539,7 +564,7 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder = "What service a
                                                             : 'text-gray-700 hover:bg-[#09BF44]/5'
                                                             }`}
                                                     >
-                                                        {subCategory}
+                                                        {t.categoryMap[subCategory] ?? subCategory}
                                                     </button>
                                                 ))}
                                             </div>

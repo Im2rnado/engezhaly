@@ -3,9 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Instagram } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function LandingFooter() {
     const year = new Date().getFullYear();
+    const { t } = useLanguage();
 
     return (
         <footer className="w-full border-t border-gray-200 bg-white pb-4 md:py-8">
@@ -23,10 +25,10 @@ export default function LandingFooter() {
                         </Link>
                     </div>
                     <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm">
-                        <Link href="/terms" className="text-gray-600 hover:text-[#09BF44] transition-colors">Terms and Conditions</Link>
-                        <Link href="/privacy" className="text-gray-600 hover:text-[#09BF44] transition-colors">Privacy Policy</Link>
-                        <Link href="/refund" className="text-gray-600 hover:text-[#09BF44] transition-colors">Refund Policy</Link>
-                        <Link href="/contact" className="text-gray-600 hover:text-[#09BF44] transition-colors">Contact</Link>
+                        <Link href="/terms" className="text-gray-600 hover:text-[#09BF44] transition-colors">{t.footer.terms}</Link>
+                        <Link href="/privacy" className="text-gray-600 hover:text-[#09BF44] transition-colors">{t.footer.privacy}</Link>
+                        <Link href="/refund" className="text-gray-600 hover:text-[#09BF44] transition-colors">{t.footer.refund}</Link>
+                        <Link href="/contact" className="text-gray-600 hover:text-[#09BF44] transition-colors">{t.footer.contact}</Link>
                         <a
                             href="https://www.instagram.com/engezhaly"
                             target="_blank"
@@ -61,7 +63,7 @@ export default function LandingFooter() {
                             rel="noopener noreferrer"
                             className="text-sm text-gray-600 hover:text-[#09BF44] transition-colors"
                         >
-                            Developed by Webicco
+                            {t.footer.developedBy}
                         </a>
                     </div>
                 </div>

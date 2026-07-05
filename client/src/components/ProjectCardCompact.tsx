@@ -122,7 +122,7 @@ export default function ProjectCardCompact({ project }: ProjectCardCompactProps)
                             <span className="text-xs text-gray-500 truncate min-w-0 flex-1 text-left">{freelancerName}</span>
                             {languageTags.length > 0 && (
                                 <div className="flex flex-wrap justify-end gap-1 shrink-0">
-                                    {languageTags.map((tag) => (
+                                    {Array.from(new Set(languageTags)).map((tag) => (
                                         <span
                                             key={tag}
                                             className="px-1.5 py-0.5 rounded-md bg-gray-100 text-gray-600 text-[10px] font-bold uppercase tracking-wide whitespace-nowrap"

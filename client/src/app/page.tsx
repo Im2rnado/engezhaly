@@ -12,6 +12,7 @@ import { useModal } from "@/context/ModalContext";
 import { motion, Variants, useScroll, useTransform } from "framer-motion";
 import HeroVimeoEmbed from "@/components/HeroVimeoEmbed";
 import JoinPopup from "@/components/JoinPopup";
+import { useLanguage } from "@/context/LanguageContext";
 
 // High-performance animations (no blurs, no box-shadow animations)
 const fadeIn: Variants = {
@@ -87,6 +88,7 @@ function SessionHandler({
 export default function Home() {
   const router = useRouter();
   const { showModal } = useModal();
+  const { t, isRTL } = useLanguage();
   const [user, setUser] = useState<any>(null);
   const [projects, setProjects] = useState<any[]>([]);
   const [jobs, setJobs] = useState<any[]>([]);
@@ -99,8 +101,8 @@ export default function Home() {
 
   const handleSessionExpired = () => {
     showModal({
-      title: 'Session Expired',
-      message: 'Your session has expired. Please log in again.',
+      title: t.misc.sessionExpiredTitle,
+      message: t.misc.sessionExpiredMsg,
       type: 'info'
     });
   };
@@ -154,16 +156,16 @@ export default function Home() {
           >
             <motion.div variants={fadeIn} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/90 text-[#07a63a] font-bold text-sm w-fit mb-6 border border-gray-100 shadow-sm">
               <Sparkles className="w-4 h-4 text-[#09BF44]" />
-              <span>The #1 Freelance Network in Egypt</span>
+              <span>{t.hero.badge}</span>
             </motion.div>
 
             <motion.h1 variants={fadeIn} className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tight leading-[1.05] mb-6 text-gray-900 drop-shadow-sm">
-              Find the perfect <br />
-              <span className="text-[#09BF44] italic pr-2 drop-shadow-sm">freelancer</span>
+              {t.hero.heading1} <br />
+              <span className="text-[#09BF44] italic pr-2 drop-shadow-sm">{t.hero.heading2}</span>
             </motion.h1>
 
             <motion.p variants={fadeIn} className="text-lg md:text-xl text-gray-700 mb-8 max-w-lg leading-relaxed font-medium">
-              Connect with top-tier talent for your business needs. Quality work, secure payments, and amazing results in minutes.
+              {t.hero.subtext}
             </motion.p>
 
             <motion.form
@@ -181,21 +183,21 @@ export default function Home() {
               </div>
               <input
                 type="text"
-                placeholder='Try "building mobile app"'
+                placeholder={t.search.heroPlaceholder}
                 value={heroSearchQuery}
                 onChange={(e) => setHeroSearchQuery(e.target.value)}
                 className="flex-1 px-4 py-3 text-gray-900 outline-none placeholder-gray-400 text-base md:text-lg bg-transparent font-medium"
               />
               <button type="submit" className="bg-[#09BF44] hover:bg-[#07a63a] text-white px-8 py-3.5 rounded-xl font-bold transition-transform hover:scale-105 mt-2 sm:mt-0 shadow-md">
-                Search
+                {t.search.searchBtn}
               </button>
             </motion.form>
 
             <motion.div variants={fadeIn} className="flex flex-wrap items-center gap-3 text-sm font-bold text-gray-700">
-              <span>Popular:</span>
-              <span className="bg-white/60 hover:bg-white px-4 py-1.5 rounded-full cursor-pointer transition-colors border border-white/50 shadow-sm">Website Design</span>
-              <span className="bg-white/60 hover:bg-white px-4 py-1.5 rounded-full cursor-pointer transition-colors border border-white/50 shadow-sm">Logo Design</span>
-              <span className="bg-white/60 hover:bg-white px-4 py-1.5 rounded-full cursor-pointer transition-colors border border-white/50 shadow-sm">Video Editing</span>
+              <span>{t.hero.popular}</span>
+              <span className="bg-white/60 hover:bg-white px-4 py-1.5 rounded-full cursor-pointer transition-colors border border-white/50 shadow-sm">{t.hero.tag1}</span>
+              <span className="bg-white/60 hover:bg-white px-4 py-1.5 rounded-full cursor-pointer transition-colors border border-white/50 shadow-sm">{t.hero.tag2}</span>
+              <span className="bg-white/60 hover:bg-white px-4 py-1.5 rounded-full cursor-pointer transition-colors border border-white/50 shadow-sm">{t.hero.tag3}</span>
             </motion.div>
           </motion.div>
 
@@ -245,8 +247,8 @@ export default function Home() {
                     <Star className="w-4 h-4" fill="currentColor" />
                   </div>
                   <div className="min-w-0">
-                    <p className="font-black text-gray-900 text-xs">4.9/5 Rating</p>
-                    <p className="text-[10px] text-gray-500 font-bold truncate">Client Average</p>
+                    <p className="font-black text-gray-900 text-xs">{t.hero.ratingLabel}</p>
+                    <p className="text-[10px] text-gray-500 font-bold truncate">{t.hero.ratingSub}</p>
                   </div>
                 </div>
                 <div className="flex-1 min-w-0 bg-white p-3 rounded-2xl shadow-md border border-gray-100 flex items-center gap-2">
@@ -254,8 +256,8 @@ export default function Home() {
                     <ShieldCheck className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
-                    <p className="font-black text-gray-900 text-xs">100% Secure</p>
-                    <p className="text-[10px] text-gray-500 font-bold truncate">Payments</p>
+                    <p className="font-black text-gray-900 text-xs">{t.hero.secureLabel}</p>
+                    <p className="text-[10px] text-gray-500 font-bold truncate">{t.hero.secureSub}</p>
                   </div>
                 </div>
               </div>
@@ -281,7 +283,7 @@ export default function Home() {
                   variants={fadeIn}
                   className="text-[#09BF44] font-black text-sm uppercase tracking-[0.2em] mb-3"
                 >
-                  About Engezhaly
+                  {t.about.eyebrow}
                 </motion.p>
                 <motion.h2
                   initial="hidden"
@@ -290,7 +292,7 @@ export default function Home() {
                   variants={fadeIn}
                   className="text-4xl md:text-5xl lg:text-6xl font-black text-gray-900 leading-[1.1] tracking-tight"
                 >
-                  We’re built <span className="text-[#09BF44]">different.</span>
+                  {t.about.heading} <span className="text-[#09BF44]">{t.about.headingHighlight}</span>
                 </motion.h2>
               </div>
               
@@ -301,15 +303,9 @@ export default function Home() {
                 variants={fadeIn}
                 className="space-y-6 text-lg md:text-xl text-gray-600 leading-relaxed"
               >
-                <p>
-                  Egypt is moving fast. People are building brands, launching businesses, and chasing ideas. You need the right people beside you — people who deliver quality, speed, and fair prices.
-                </p>
-                <p>
-                  That’s exactly why Engezhaly exists. Chat with freelancers, build custom deals, and pay only when you’re satisfied. Everything is done through one clean platform built for YOU.
-                </p>
-                <p className="font-bold text-gray-900">
-                  The future of freelancing in the Middle East starts here.
-                </p>
+                <p>{t.about.para1}</p>
+                <p>{t.about.para2}</p>
+                <p className="font-bold text-gray-900">{t.about.para3}</p>
               </motion.div>
             </div>
 
@@ -329,12 +325,12 @@ export default function Home() {
                     <div className="p-3 bg-white/15 rounded-2xl">
                       <ShieldCheck className="w-7 h-7 text-white" />
                     </div>
-                    <h3 className="font-black text-xl md:text-2xl tracking-tight">For Business Owners</h3>
+                    <h3 className="font-black text-xl md:text-2xl tracking-tight">{t.about.forBusiness}</h3>
                   </div>
                   <ul className="space-y-3 text-white/95 text-sm md:text-base font-semibold leading-relaxed list-disc pl-5">
-                    <li>100% free no subscriptions, no surprises.</li>
-                    <li>Hire skilled and vetted freelancers in minutes.</li>
-                    <li>Your money is held safely until the job is done right and you are happy.</li>
+                    <li>{t.about.businessPoint1}</li>
+                    <li>{t.about.businessPoint2}</li>
+                    <li>{t.about.businessPoint3}</li>
                   </ul>
                 </motion.div>
                 <motion.div
@@ -345,12 +341,12 @@ export default function Home() {
                     <div className="p-3 bg-white/15 rounded-2xl">
                       <Zap className="w-7 h-7 text-white" />
                     </div>
-                    <h3 className="font-black text-xl md:text-2xl tracking-tight">For Freelancers</h3>
+                    <h3 className="font-black text-xl md:text-2xl tracking-tight">{t.about.forFreelancers}</h3>
                   </div>
                   <ul className="space-y-3 text-white/95 text-sm md:text-base font-semibold leading-relaxed list-disc pl-5">
-                    <li>Free to join, zero commission.</li>
-                    <li>Get paid securely we hold the money before work starts.</li>
-                    <li>Find clients who are serious and ready to hire.</li>
+                    <li>{t.about.freelancerPoint1}</li>
+                    <li>{t.about.freelancerPoint2}</li>
+                    <li>{t.about.freelancerPoint3}</li>
                   </ul>
                 </motion.div>
               </motion.div>
@@ -362,7 +358,7 @@ export default function Home() {
               onClick={() => setShowSecret(!showSecret)}
               className="px-6 py-3 rounded-full bg-white border border-gray-200 hover:border-[#09BF44]/30 hover:bg-gray-50 flex items-center justify-center transition-all mb-6 text-gray-500 hover:text-[#09BF44] font-bold text-sm shadow-sm"
             >
-              <Sparkles className="w-4 h-4 mr-2" /> Secret Message
+              <Sparkles className="w-4 h-4 mr-2" /> {t.about.secretBtn}
             </button>
             
             {showSecret && (
@@ -372,7 +368,7 @@ export default function Home() {
                 className="bg-gradient-to-r from-[#09BF44]/10 to-emerald-500/10 px-8 py-5 rounded-3xl border border-[#09BF44]/20 shadow-sm max-w-2xl text-center"
               >
                 <p className="text-xl md:text-2xl font-black text-[#09BF44]">
-                  &quot;W ehna ma3ko min awel matna2o el freelancer le8ayet matestelmo el shoghl 😉&quot;
+                  {t.about.secretMsg}
                 </p>
               </motion.div>
             )}
@@ -387,21 +383,17 @@ export default function Home() {
 
         <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6 relative z-10">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={stagger} className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8 text-center divide-x divide-white/10">
-            {/* <motion.div variants={fadeIn} className="group cursor-default py-4">
-              <p className="text-6xl md:text-7xl font-black text-white mb-3 tracking-tighter group-hover:text-[#09BF44] group-hover:scale-110 transition-all duration-300 transform-gpu">100+</p>
-              <p className="text-xs md:text-sm text-gray-400 font-bold uppercase tracking-[0.2em] group-hover:text-gray-200 transition-colors">Active Projects</p>
-            </motion.div> */}
             <motion.div variants={fadeIn} className="group cursor-default py-4">
               <p className="text-6xl md:text-7xl font-black text-white mb-3 tracking-tighter group-hover:text-[#09BF44] group-hover:scale-110 transition-all duration-300 transform-gpu">99%</p>
-              <p className="text-xs md:text-sm text-gray-400 font-bold uppercase tracking-[0.2em] group-hover:text-gray-200 transition-colors">Client Satisfaction</p>
+              <p className="text-xs md:text-sm text-gray-400 font-bold uppercase tracking-[0.2em] group-hover:text-gray-200 transition-colors">{t.stats.clientSatisfaction}</p>
             </motion.div>
             <motion.div variants={fadeIn} className="group cursor-default py-4">
               <p className="text-6xl md:text-7xl font-black text-white mb-3 tracking-tighter group-hover:text-[#09BF44] group-hover:scale-110 transition-all duration-300 transform-gpu">24/7</p>
-              <p className="text-xs md:text-sm text-gray-400 font-bold uppercase tracking-[0.2em] group-hover:text-gray-200 transition-colors">Support Available</p>
+              <p className="text-xs md:text-sm text-gray-400 font-bold uppercase tracking-[0.2em] group-hover:text-gray-200 transition-colors">{t.stats.supportAvailable}</p>
             </motion.div>
             <motion.div variants={fadeIn} className="group cursor-default py-4">
               <p className="text-6xl md:text-7xl font-black text-white mb-3 tracking-tighter group-hover:text-[#09BF44] group-hover:scale-110 transition-all duration-300 transform-gpu">100%</p>
-              <p className="text-xs md:text-sm text-gray-400 font-bold uppercase tracking-[0.2em] group-hover:text-gray-200 transition-colors">Secure Payments</p>
+              <p className="text-xs md:text-sm text-gray-400 font-bold uppercase tracking-[0.2em] group-hover:text-gray-200 transition-colors">{t.stats.securePayments}</p>
             </motion.div>
           </motion.div>
         </div>
@@ -412,15 +404,15 @@ export default function Home() {
         <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6">
           <div className="text-center mb-16">
             <motion.h2 initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeIn} className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight">
-              How Engezhaly Works
+              {t.howItWorks.heading}
             </motion.h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
             {[
-              { icon: Search, title: "1. Find Your Match", desc: "Browse vetted freelancers by category, reviews, and price. Or post a job and let them come to you." },
-              { icon: CheckCircle2, title: "2. Create Your Deal", desc: "Chat directly, customize your offer, or bud a bundle deal and pay securely. We hold your money until you’re satisfied." },
-              { icon: Zap, title: "3. Get It Done Guaranteed", desc: "Work done right — you release the payment. Bad quality or missed deadline? We step in and make it right." }
+              { icon: Search, title: t.howItWorks.step1Title, desc: t.howItWorks.step1Desc },
+              { icon: CheckCircle2, title: t.howItWorks.step2Title, desc: t.howItWorks.step2Desc },
+              { icon: Zap, title: t.howItWorks.step3Title, desc: t.howItWorks.step3Desc }
             ].map((step, i) => (
               <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.15 }} key={i} className="relative z-10 flex flex-col items-center text-center">
                 <div className="w-20 h-20 rounded-2xl bg-white border-2 border-gray-100 shadow-xl flex items-center justify-center mb-6 text-[#09BF44] transform-gpu hover:scale-105 transition-transform">
@@ -441,8 +433,8 @@ export default function Home() {
             initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={fadeIn}
             className="text-center md:text-left mb-12"
           >
-            <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">Popular Professional Services</h2>
-            <p className="text-gray-500 mt-3 text-lg font-medium">Explore our most demanded categories</p>
+            <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">{t.services.heading}</h2>
+            <p className="text-gray-500 mt-3 text-lg font-medium">{t.services.subtext}</p>
           </motion.div>
 
           <motion.div
@@ -567,14 +559,14 @@ export default function Home() {
         <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeIn} className="flex flex-col sm:flex-row sm:items-end justify-between mb-12 gap-4">
             <div>
-              <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">Services you might like</h2>
-              <p className="text-gray-500 mt-3 text-lg font-medium">Explore professional services from talented freelancers</p>
+              <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">{t.projects.heading}</h2>
+              <p className="text-gray-500 mt-3 text-lg font-medium">{t.projects.subtext}</p>
             </div>
             <button
               onClick={() => router.push('/offers')}
               className="flex items-center gap-2 text-gray-900 hover:text-[#09BF44] font-bold transition-colors group"
             >
-              View More <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              {t.projects.viewMore} <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
           </motion.div>
 
@@ -614,8 +606,8 @@ export default function Home() {
           ) : (
             <div className="text-center py-16">
               <Briefcase className="w-16 h-16 mx-auto mb-4 text-gray-200" />
-              <h3 className="text-lg font-black text-gray-900 mb-1">No Services Available</h3>
-              <p className="text-gray-500 font-medium">Check back later for new offers.</p>
+              <h3 className="text-lg font-black text-gray-900 mb-1">{t.projects.noServicesTitle}</h3>
+              <p className="text-gray-500 font-medium">{t.projects.noServicesDesc}</p>
             </div>
           )}
         </div>
@@ -629,15 +621,15 @@ export default function Home() {
         <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6 relative z-10 flex flex-col lg:flex-row items-center gap-16">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger} className="w-full lg:w-1/2">
             <motion.h2 variants={fadeIn} className="text-3xl md:text-5xl font-black text-white mb-6 leading-tight">
-              A whole world of freelance talent at your fingertips
+              {t.value.heading}
             </motion.h2>
 
             <div className="space-y-8">
               {[
-                { title: 'The best for every budget', desc: 'Find high-quality services at every price point. No hourly rates, just project-based pricing.' },
-                { title: 'Quality work done quickly', desc: 'Find the right freelancer to begin working on your project within minutes.' },
-                { title: 'Protected payments, every time', desc: 'Your money stays protected and is only released when you approve the work.' },
-                { title: 'Work your way, your choice', desc: 'Choose how you want to get things done pick a bundle, chat for a custom deal, or post a job and receive offers.' }
+                { title: t.value.item1Title, desc: t.value.item1Desc },
+                { title: t.value.item2Title, desc: t.value.item2Desc },
+                { title: t.value.item3Title, desc: t.value.item3Desc },
+                { title: t.value.item4Title, desc: t.value.item4Desc }
               ].map((item, i) => (
                 <motion.div variants={fadeIn} key={i} className="flex gap-5 items-start">
                   <div className="mt-1 bg-white p-1.5 rounded-full text-[#09BF44]">
@@ -694,14 +686,14 @@ export default function Home() {
         <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeIn} className="flex flex-col sm:flex-row sm:items-end justify-between mb-12 gap-4">
             <div>
-              <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">Recent Opportunities</h2>
-              <p className="text-gray-500 mt-3 text-lg font-medium">Browse available jobs and send your proposals</p>
+              <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">{t.jobs.heading}</h2>
+              <p className="text-gray-500 mt-3 text-lg font-medium">{t.jobs.subtext}</p>
             </div>
             <button
               onClick={() => router.push('/jobs')}
               className="flex items-center gap-2 text-gray-900 hover:text-[#09BF44] font-bold transition-colors group"
             >
-              View all jobs <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              {t.jobs.viewAll} <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
           </motion.div>
 
@@ -725,7 +717,7 @@ export default function Home() {
                         </h3>
                         {job.status === 'open' && (
                           <span className="bg-emerald-50 text-[#09BF44] border border-emerald-100 px-3.5 py-1.5 rounded-full text-xs font-black whitespace-nowrap self-start">
-                            Open Right Now
+                            {t.jobs.openNow}
                           </span>
                         )}
                       </div>
@@ -736,14 +728,14 @@ export default function Home() {
 
                       <div className="flex flex-wrap items-center gap-5 text-sm mb-6 pb-6 border-b border-gray-100">
                         <div>
-                          <span className="text-gray-400 font-bold block mb-1 text-xs uppercase tracking-wider">Budget</span>
+                          <span className="text-gray-400 font-bold block mb-1 text-xs uppercase tracking-wider">{t.jobs.budget}</span>
                           <span className="text-gray-900 font-black whitespace-nowrap">
                             EGP {job.budgetRange?.min || 0} - {job.budgetRange?.max || 0}
                           </span>
                         </div>
                         <div className="h-8 w-px bg-gray-200"></div>
                         <div>
-                          <span className="text-gray-400 font-bold block mb-1 text-xs uppercase tracking-wider">Deadline</span>
+                          <span className="text-gray-400 font-bold block mb-1 text-xs uppercase tracking-wider">{t.jobs.deadline}</span>
                           <span className="text-gray-900 font-black">{job.deadline || 'N/A'}</span>
                         </div>
                       </div>
@@ -765,7 +757,7 @@ export default function Home() {
                             onClick={() => router.push(`/jobs`)}
                             className="bg-gray-900 hover:bg-[#09BF44] text-white px-6 py-2.5 rounded-xl font-black transition-colors shadow-md text-sm whitespace-nowrap ml-4 active:scale-95 transform-gpu"
                           >
-                            Submit Proposal
+                            {t.jobs.submitProposal}
                           </button>
                         )}
                       </div>
@@ -796,8 +788,8 @@ export default function Home() {
           ) : (
             <div className="text-center py-16">
               <Briefcase className="w-16 h-16 mx-auto mb-4 text-gray-200" />
-              <h3 className="text-lg font-black text-gray-900 mb-1">No Jobs Available</h3>
-              <p className="text-gray-500 font-medium">Check back later for new job postings.</p>
+              <h3 className="text-lg font-black text-gray-900 mb-1">{t.jobs.noJobsTitle}</h3>
+              <p className="text-gray-500 font-medium">{t.jobs.noJobsDesc}</p>
             </div>
           )}
         </div>

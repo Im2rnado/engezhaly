@@ -4,6 +4,7 @@ import "./globals.css";
 import GlobalNotifications from "@/components/GlobalNotifications";
 import LandingFooterWrapper from "@/components/LandingFooterWrapper";
 import { ModalProvider } from "@/context/ModalContext";
+import { LanguageProvider } from "@/context/LanguageContext";
 import Script from "next/script";
 
 const geistSans = Geist({
@@ -54,13 +55,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased text-[#333333] bg-white`}>
-        <ModalProvider>
-          {/* <PasswordGate> */}
-            {children}
-            <LandingFooterWrapper />
-            <GlobalNotifications />
-          {/* </PasswordGate> */}
-        </ModalProvider>
+        <LanguageProvider>
+          <ModalProvider>
+            {/* <PasswordGate> */}
+              {children}
+              <LandingFooterWrapper />
+              <GlobalNotifications />
+            {/* </PasswordGate> */}
+          </ModalProvider>
+        </LanguageProvider>
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-M0QL2LTRSM"
           strategy="afterInteractive"
