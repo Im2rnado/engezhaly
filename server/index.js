@@ -45,7 +45,7 @@ const rateLimit = require('express-rate-limit');
 app.set('trust proxy', 1); // Trust first proxy (NGINX/Cloudflare)
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 200, // Limit each IP to 200 requests per `window` (here, per 15 minutes)
+    max: 5000, // Limit each IP to 5000 requests per `window` (here, per 15 minutes)
     standardHeaders: true,
     legacyHeaders: false,
     message: { msg: 'Too many requests from this IP, please try again after 15 minutes' }
