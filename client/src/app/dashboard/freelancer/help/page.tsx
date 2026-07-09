@@ -189,6 +189,13 @@ export default function FreelancerHelpPage() {
                             </ul>
                         </div>
 
+                        <div className="rounded-2xl border-2 border-blue-400/40 bg-blue-50/50 p-4 md:p-6 mb-10">
+                            <h3 className="font-black text-gray-900 text-sm md:text-base mb-2">Commission:</h3>
+                            <p className="text-gray-700 text-xs md:text-sm leading-relaxed">
+                                No commission will be charged during the first 3 months unless the job value exceeds EGP 10,000, in which case a 10% commission will be deducted from the freelancer’s earnings.
+                            </p>
+                        </div>
+
                         <div className="relative pl-8 space-y-1">
                             <div className="absolute -left-2.25 top-0 w-4 h-4 rounded-full bg-red-500 border-4 border-white shadow-sm" />
                             <h3 className="font-bold text-gray-900">Need Help?</h3>
