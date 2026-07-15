@@ -152,6 +152,11 @@ export default function OfferDetailPage() {
                             </div>
                         </div>
 
+                        {/* Mobile pricing packages — directly below the freelancer description */}
+                        <div className="lg:hidden">
+                            <ProjectCard project={project} showContactMe={true} variant="bundle" />
+                        </div>
+
                         {/* Media gallery */}
                         {images.length > 0 && (
                             <div className="relative">
@@ -270,7 +275,7 @@ export default function OfferDetailPage() {
                     </div>
 
                     {/* Right column - sticky pricing card */}
-                    <div className="lg:col-span-5">
+                    <div className="hidden lg:block lg:col-span-5">
                         <div className="lg:sticky lg:top-24">
                             <ProjectCard project={project} showContactMe={true} variant="bundle" />
                         </div>

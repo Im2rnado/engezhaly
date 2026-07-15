@@ -2,11 +2,12 @@
 
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { X, ChevronDown, Loader2 } from "lucide-react";
+import { X, ChevronDown, Loader2, SlidersHorizontal } from "lucide-react";
 import { api } from "@/lib/api";
 import MainHeader from "@/components/MainHeader";
 import ProjectCardCompact from "@/components/ProjectCardCompact";
 import { useLanguage } from "@/context/LanguageContext";
+import { MAIN_CATEGORIES, CATEGORIES } from "@/lib/categories";
 
 function OffersPageContent() {
     const router = useRouter();
@@ -19,6 +20,7 @@ function OffersPageContent() {
     const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
     const [selectedSubCategory, setSelectedSubCategory] = useState(searchParams.get('subCategory') || '');
     const [sortBy, setSortBy] = useState('best-selling');
+    const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
     const [filters, setFilters] = useState({
         budget: '',
         deliveryTime: '',
@@ -145,8 +147,60 @@ function OffersPageContent() {
 
             <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6 py-6 md:py-8">
                 <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-5 md:mb-6">{t.offersPage.title}</h1>
-                <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
+                <div className="bg-white rounded-2xl border border-gray-200 p-3 md:p-4 mb-6 shadow-sm md:shadow-none">
+                    <button
+                        type="button"
+                        onClick={() => setMobileFiltersOpen((open) => !open)}
+                        className="md:hidden w-full flex items-center justify-between gap-3 rounded-xl bg-gradient-to-r from-[#09BF44] to-[#07a63a] px-4 py-3.5 text-white font-black shadow-lg shadow-green-200/70"
+                        aria-expanded={mobileFiltersOpen}
+                    >
+                        <span className="flex items-center gap-2">
+                            <SlidersHorizontal className="w-5 h-5" />
+                            Categories & Filters
+                        </span>
+                        <ChevronDown className={`w-5 h-5 transition-transform ${mobileFiltersOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    <div className={`${mobileFiltersOpen ? 'block' : 'hidden'} md:block mt-4 md:mt-0`}>
                     <div className="space-y-3 lg:space-y-0 lg:flex lg:items-end lg:gap-4">
+                        <div className="md:hidden w-full">
+                            <label className="block text-xs font-bold text-gray-500 mb-1">{t.nav.categories}</label>
+                            <div className="relative">
+                                <select
+                                    value={selectedCategory}
+                                    onChange={(e) => {
+                                        setSelectedCategory(e.target.value);
+                                        setSelectedSubCategory('');
+                                    }}
+                                    className="w-full pl-3 pr-8 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 font-bold text-sm outline-none focus:border-[#09BF44] appearance-none"
+                                >
+                                    <option value="">{t.nav.allCategories}</option>
+                                    {MAIN_CATEGORIES.map((category) => (
+                                        <option key={category} value={category}>{t.categoryMap[category] ?? category}</option>
+                                    ))}
+                                </select>
+                                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                            </div>
+                        </div>
+
+                        {selectedCategory && (
+                            <div className="md:hidden w-full">
+                                <label className="block text-xs font-bold text-gray-500 mb-1">Subcategory</label>
+                                <div className="relative">
+                                    <select
+                                        value={selectedSubCategory}
+                                        onChange={(e) => setSelectedSubCategory(e.target.value)}
+                                        className="w-full pl-3 pr-8 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 font-bold text-sm outline-none focus:border-[#09BF44] appearance-none"
+                                    >
+                                        <option value="">All subcategories</option>
+                                        {CATEGORIES[selectedCategory as keyof typeof CATEGORIES]?.map((subCategory) => (
+                                            <option key={subCategory} value={subCategory}>{t.categoryMap[subCategory] ?? subCategory}</option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                                </div>
+                            </div>
+                        )}
                         <div className="w-full lg:w-auto">
                             <label className="block text-xs font-bold text-gray-500 mb-1">{t.offersPage.budgetLabel}</label>
                             <div className="relative w-full sm:w-auto">
@@ -209,6 +263,7 @@ function OffersPageContent() {
                                 <X className="w-4 h-4" /> {t.offersPage.clear}
                             </button>
                         )}
+                    </div>
                     </div>
                 </div>
 

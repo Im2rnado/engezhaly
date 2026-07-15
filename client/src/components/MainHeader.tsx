@@ -37,7 +37,6 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder, showCategories =
     const [showAutofill, setShowAutofill] = useState(false);
     const [searchType, setSearchType] = useState<'projects' | 'jobs'>('projects');
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const [mobileSelectedCategory, setMobileSelectedCategory] = useState('');
     const searchDropdownRef = useRef<HTMLDivElement>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -458,45 +457,6 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder, showCategories =
                             {user?.role === 'freelancer' && (
                                 <button onClick={() => { router.push('/dashboard/freelancer/offers/create'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-[#09BF44]/5">{t.nav.createOffer}</button>
                             )}
-                            <div className="pt-2 border-t border-gray-100">
-                                <p className="text-xs font-bold text-gray-500 mb-2 px-1">{t.nav.categories}</p>
-                                <select
-                                    value={mobileSelectedCategory}
-                                    onChange={(e) => {
-                                        const value = e.target.value;
-                                        setMobileSelectedCategory(value);
-                                        if (value) {
-                                            setSelectedCategory(value);
-                                            setSelectedSubCategory('');
-                                            router.push(`/offers?category=${encodeURIComponent(value)}`);
-                                        }
-                                    }}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700"
-                                >
-                                    <option value="">{t.nav.selectCategory}</option>
-                                    {MAIN_CATEGORIES.map((category) => (
-                                        <option key={category} value={category}>{t.categoryMap[category] ?? category}</option>
-                                    ))}
-                                </select>
-                                {mobileSelectedCategory && (
-                                    <div className="mt-2 max-h-44 overflow-y-auto space-y-1">
-                                        {CATEGORIES[mobileSelectedCategory as keyof typeof CATEGORIES]?.map((subCategory) => (
-                                            <button
-                                                key={subCategory}
-                                                onClick={() => {
-                                                    setSelectedCategory(mobileSelectedCategory);
-                                                    setSelectedSubCategory(subCategory);
-                                                    setMobileMenuOpen(false);
-                                                    router.push(`/offers?category=${encodeURIComponent(mobileSelectedCategory)}&subCategory=${encodeURIComponent(subCategory)}`);
-                                                }}
-                                                className="w-full text-left px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-[#09BF44]/5"
-                                            >
-                                                {t.categoryMap[subCategory] ?? subCategory}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
                             {!user && (
                                 <div className="flex gap-2 pt-1">
                                     <button onClick={() => { openAuthModal('login'); setMobileMenuOpen(false); }} className="flex-1 border border-[#09BF44] text-[#09BF44] text-sm font-bold px-3 py-2 rounded-md">{t.nav.signIn}</button>
