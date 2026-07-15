@@ -147,6 +147,59 @@ function OffersPageContent() {
 
             <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6 py-6 md:py-8">
                 <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-5 md:mb-6">{t.offersPage.title}</h1>
+
+                {/* Mobile category bubbles */}
+                <div className="md:hidden mb-4">
+                    <p className="text-xs font-black uppercase tracking-wider text-gray-500 mb-2.5 px-1">{t.nav.categories}</p>
+                    <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar snap-x">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setSelectedCategory('');
+                                setSelectedSubCategory('');
+                            }}
+                            className={`shrink-0 snap-start rounded-full px-4 py-2 text-sm font-bold border transition-all ${!selectedCategory
+                                ? 'bg-[#09BF44] border-[#09BF44] text-white shadow-md shadow-green-200'
+                                : 'bg-white border-gray-200 text-gray-600'
+                                }`}
+                        >
+                            {t.nav.allCategories}
+                        </button>
+                        {MAIN_CATEGORIES.map((category) => (
+                            <button
+                                key={category}
+                                type="button"
+                                onClick={() => {
+                                    setSelectedCategory(category);
+                                    setSelectedSubCategory('');
+                                }}
+                                className={`shrink-0 snap-start rounded-full px-4 py-2 text-sm font-bold border transition-all ${selectedCategory === category
+                                    ? 'bg-[#09BF44] border-[#09BF44] text-white shadow-md shadow-green-200'
+                                    : 'bg-white border-gray-200 text-gray-600'
+                                    }`}
+                            >
+                                {t.categoryMap[category] ?? category}
+                            </button>
+                        ))}
+                    </div>
+
+                    {selectedCategory && (
+                        <div className="relative mt-2">
+                            <select
+                                value={selectedSubCategory}
+                                onChange={(e) => setSelectedSubCategory(e.target.value)}
+                                className="w-full appearance-none rounded-xl border border-gray-200 bg-white py-3 pl-4 pr-10 text-sm font-bold text-gray-700 shadow-sm outline-none transition-colors focus:border-[#09BF44]"
+                            >
+                                <option value="">All {t.categoryMap[selectedCategory] ?? selectedCategory}</option>
+                                {CATEGORIES[selectedCategory as keyof typeof CATEGORIES]?.map((subCategory) => (
+                                    <option key={subCategory} value={subCategory}>{t.categoryMap[subCategory] ?? subCategory}</option>
+                                ))}
+                            </select>
+                            <ChevronDown className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                        </div>
+                    )}
+                </div>
+
                 <div className="bg-white rounded-2xl border border-gray-200 p-3 md:p-4 mb-6 shadow-sm md:shadow-none">
                     <button
                         type="button"
@@ -156,51 +209,13 @@ function OffersPageContent() {
                     >
                         <span className="flex items-center gap-2">
                             <SlidersHorizontal className="w-5 h-5" />
-                            Categories & Filters
+                            Filters
                         </span>
                         <ChevronDown className={`w-5 h-5 transition-transform ${mobileFiltersOpen ? 'rotate-180' : ''}`} />
                     </button>
 
                     <div className={`${mobileFiltersOpen ? 'block' : 'hidden'} md:block mt-4 md:mt-0`}>
                     <div className="space-y-3 lg:space-y-0 lg:flex lg:items-end lg:gap-4">
-                        <div className="md:hidden w-full">
-                            <label className="block text-xs font-bold text-gray-500 mb-1">{t.nav.categories}</label>
-                            <div className="relative">
-                                <select
-                                    value={selectedCategory}
-                                    onChange={(e) => {
-                                        setSelectedCategory(e.target.value);
-                                        setSelectedSubCategory('');
-                                    }}
-                                    className="w-full pl-3 pr-8 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 font-bold text-sm outline-none focus:border-[#09BF44] appearance-none"
-                                >
-                                    <option value="">{t.nav.allCategories}</option>
-                                    {MAIN_CATEGORIES.map((category) => (
-                                        <option key={category} value={category}>{t.categoryMap[category] ?? category}</option>
-                                    ))}
-                                </select>
-                                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
-                            </div>
-                        </div>
-
-                        {selectedCategory && (
-                            <div className="md:hidden w-full">
-                                <label className="block text-xs font-bold text-gray-500 mb-1">Subcategory</label>
-                                <div className="relative">
-                                    <select
-                                        value={selectedSubCategory}
-                                        onChange={(e) => setSelectedSubCategory(e.target.value)}
-                                        className="w-full pl-3 pr-8 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 font-bold text-sm outline-none focus:border-[#09BF44] appearance-none"
-                                    >
-                                        <option value="">All subcategories</option>
-                                        {CATEGORIES[selectedCategory as keyof typeof CATEGORIES]?.map((subCategory) => (
-                                            <option key={subCategory} value={subCategory}>{t.categoryMap[subCategory] ?? subCategory}</option>
-                                        ))}
-                                    </select>
-                                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
-                                </div>
-                            </div>
-                        )}
                         <div className="w-full lg:w-auto">
                             <label className="block text-xs font-bold text-gray-500 mb-1">{t.offersPage.budgetLabel}</label>
                             <div className="relative w-full sm:w-auto">
