@@ -130,7 +130,7 @@ export default function JoinPopup() {
                     <div className="w-16 h-16 md:w-24 md:h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4 md:mb-6 group-hover:bg-[#09BF44] transition-colors">
                       <User className="w-8 h-8 md:w-12 md:h-12 text-gray-600 group-hover:text-white" />
                     </div>
-                    <h3 className="text-xl md:text-2xl font-bold text-gray-900">{ar ? 'أنا صاحب عمل' : 'I am a businessowner'}</h3>
+                    <h3 className="text-xl md:text-2xl font-bold text-gray-900">{ar ? 'أنا صاحب عمل' : 'I am a Businessowner'}</h3>
                     <p className="text-sm md:text-base text-gray-500 mt-2 font-medium">{ar ? 'اعثر على المواهب وأنجز أعمالك' : 'Find talent & get work done'}</p>
                   </button>
 

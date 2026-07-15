@@ -17,7 +17,7 @@ import { useLanguage } from '@/context/LanguageContext';
 
 const authCopy = {
     en: {
-        join: 'Join', choose: 'How do you want to use the platform?', businessOwner: 'I am a businessowner',
+        join: 'Join', choose: 'How do you want to use the platform?', businessOwner: 'I am a Businessowner',
         businessDesc: 'Find talent & get work done', freelance: 'I Want to Freelance', freelanceDesc: 'Sell your services & earn',
         already: 'Already have an account?', login: 'Log In', clientIntro: 'Create your client account to start posting jobs and hiring freelancers.',
         firstName: 'First Name', lastName: 'Last Name', picture: 'Profile Picture (optional)', pictureHint: 'Add a photo if you would like.',
@@ -301,7 +301,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                     title: 'Account Under Review',
                     message: 'Your application has been submitted and is currently being reviewed by our team. You will receive an email once your account is approved. Thank you for your patience!',
                     type: 'info',
-                    onConfirm: () => {}
+                    onConfirm: () => { }
                 });
             } else if (data.user.role === 'admin') {
                 localStorage.setItem('token', data.token);
