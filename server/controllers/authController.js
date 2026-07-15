@@ -64,7 +64,7 @@ const register = async (req, res) => {
             password: hashedPassword,
             role: role || 'client',
             phoneNumber,
-            emailVerified: false
+            emailVerified: (role || 'client') === 'client'
         };
 
         if (role === 'client') {
@@ -188,18 +188,19 @@ const register = async (req, res) => {
             }
         }
 
-        // Generate verification token (24h expiry)
-        const token = crypto.randomBytes(32).toString('hex');
-        await VerificationToken.create({
-            userId: user._id,
-            token,
-            type: 'email_verification',
-            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
-        });
+        // Freelancers must verify their email; clients can start immediately.
+        if (user.role === 'freelancer') {
+            const token = crypto.randomBytes(32).toString('hex');
+            await VerificationToken.create({
+                userId: user._id,
+                token,
+                type: 'email_verification',
+                expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
+            });
 
-        // Send verification email (async, don't block response)
-        const { subject, html } = verificationTemplate(token);
-        sendAndLog(emailNorm, subject, html, 'verification', { userId: user._id }).catch(err => console.error('[Auth] Verification email failed:', err.message));
+            const { subject, html } = verificationTemplate(token);
+            sendAndLog(emailNorm, subject, html, 'verification', { userId: user._id }).catch(err => console.error('[Auth] Verification email failed:', err.message));
+        }
 
         // Notify Admins
         const adminDashboardUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin`;
@@ -228,7 +229,7 @@ const register = async (req, res) => {
                         email,
                         role,
                         username,
-                        emailVerified: false,
+                        emailVerified: user.emailVerified,
                         freelancerProfile: user.freelancerProfile
                     }
                 });
@@ -307,7 +308,7 @@ const login = async (req, res) => {
             return res.status(400).json({ message: 'Invalid Credentials' });
         }
 
-        if (!user.emailVerified && user.role !== 'admin') {
+        if (!user.emailVerified && user.role === 'freelancer') {
             return res.status(403).json({
                 message: 'Please verify your email before logging in. Check your inbox for the verification link.',
                 code: 'EMAIL_NOT_VERIFIED'

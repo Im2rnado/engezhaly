@@ -13,6 +13,30 @@ import ImageCropModal from '@/components/ImageCropModal';
 import VimeoStarterOfferEmbed from '@/components/VimeoStarterOfferEmbed';
 import RevisionsField from '@/components/RevisionsField';
 import { getPasswordPolicyError, PASSWORD_POLICY_HINT } from '@/lib/passwordPolicy';
+import { useLanguage } from '@/context/LanguageContext';
+
+const authCopy = {
+    en: {
+        join: 'Join', choose: 'How do you want to use the platform?', businessOwner: 'I am a businessowner',
+        businessDesc: 'Find talent & get work done', freelance: 'I Want to Freelance', freelanceDesc: 'Sell your services & earn',
+        already: 'Already have an account?', login: 'Log In', clientIntro: 'Create your client account to start posting jobs and hiring freelancers.',
+        firstName: 'First Name', lastName: 'Last Name', picture: 'Profile Picture (optional)', pictureHint: 'Add a photo if you would like.',
+        upload: 'Click to upload profile photo', max: 'Max 20MB', username: 'Username', email: 'Email Address', phone: 'Phone number',
+        egyptPhone: 'Egyptian mobile: exactly 11 digits starting with 01.', password: 'Password', personal: 'Personal', company: 'Company',
+        companyName: 'Company Name *', companyDesc: 'Company Description (optional)', position: 'Your Position (optional)',
+        agree: 'I agree to the', terms: 'Terms and Conditions', and: 'and', privacy: 'Privacy Policy', create: 'Create Account', back: 'Back to Selection'
+    },
+    ar: {
+        join: 'انضم', choose: 'كيف تريد استخدام المنصة؟', businessOwner: 'أنا صاحب عمل',
+        businessDesc: 'اعثر على المواهب وأنجز أعمالك', freelance: 'أريد العمل كمستقل', freelanceDesc: 'قدّم خدماتك واكسب المال',
+        already: 'لديك حساب بالفعل؟', login: 'تسجيل الدخول', clientIntro: 'أنشئ حساب العميل لبدء نشر الوظائف وتوظيف المستقلين.',
+        firstName: 'الاسم الأول', lastName: 'اسم العائلة', picture: 'الصورة الشخصية (اختيارية)', pictureHint: 'يمكنك إضافة صورة إذا أردت.',
+        upload: 'اضغط لرفع صورة شخصية', max: 'الحد الأقصى 20 ميجابايت', username: 'اسم المستخدم', email: 'البريد الإلكتروني', phone: 'رقم الهاتف',
+        egyptPhone: 'رقم موبايل مصري: 11 رقماً ويبدأ بـ 01.', password: 'كلمة المرور', personal: 'شخصي', company: 'شركة',
+        companyName: 'اسم الشركة *', companyDesc: 'وصف الشركة (اختياري)', position: 'منصبك (اختياري)',
+        agree: 'أوافق على', terms: 'الشروط والأحكام', and: 'و', privacy: 'سياسة الخصوصية', create: 'إنشاء الحساب', back: 'العودة للاختيار'
+    }
+};
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -24,6 +48,8 @@ type ModalStep = 'role-selection' | 'client-auth' | 'freelancer-step-1' | 'freel
 
 export default function AuthModal({ isOpen, onClose, initialStep = 'role-selection' }: AuthModalProps) {
     const router = useRouter();
+    const { lang, isRTL } = useLanguage();
+    const copy = authCopy[lang];
     const { showModal, showRedirectLoader } = useModal();
     const [step, setStep] = useState<ModalStep>('role-selection');
     const [loading, setLoading] = useState(false);
@@ -191,8 +217,8 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        if (file.size > 5 * 1024 * 1024) {
-            setError('Image size must be less than 5MB');
+        if (file.size > 20 * 1024 * 1024) {
+            setError('Image size must be 20MB or smaller');
             return;
         }
         if (!file.type.startsWith('image/')) {
@@ -343,10 +369,6 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
             setError('Company name is required for company accounts');
             return;
         }
-        if (!profilePicture) {
-            setError('Profile picture is required. Please upload a photo that clearly shows your face.');
-            return;
-        }
         if (!acceptedTerms) {
             setError('You must agree to the Terms and Conditions and Privacy Policy to create an account');
             return;
@@ -382,7 +404,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                     profilePicture
                 };
             } else {
-                payload.clientProfile = { profilePicture };
+                payload.clientProfile = profilePicture ? { profilePicture } : {};
             }
             const data = await api.auth.register(payload);
             localStorage.setItem('token', data.token);
@@ -397,10 +419,10 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
 
             onClose();
             showModal({
-                title: 'Account Created',
-                message: 'Please check your email to verify your account. You must verify before accessing the dashboard.',
+                title: lang === 'ar' ? 'تم إنشاء الحساب' : 'Account Created',
+                message: lang === 'ar' ? 'تم إنشاء حسابك ويمكنك الآن الدخول إلى لوحة التحكم.' : 'Your account is ready. You can now access your dashboard.',
                 type: 'success',
-                onConfirm: () => router.push('/')
+                onConfirm: () => router.push('/dashboard/client')
             });
         } catch (err: any) {
             setError(err.message);
@@ -503,8 +525,8 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
     const handlePortfolioImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        if (file.size > 5 * 1024 * 1024) {
-            showModal({ title: 'Error', message: 'Image must be under 5MB', type: 'error' });
+        if (file.size > 20 * 1024 * 1024) {
+            showModal({ title: 'Error', message: 'Image must be 20MB or smaller', type: 'error' });
             return;
         }
         setPortfolioImageUploading(index);
@@ -670,7 +692,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
 
     return (
         <>
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4">
+            <div dir={isRTL ? 'rtl' : 'ltr'} className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4">
                 <div className={`relative w-full bg-white rounded-2xl md:rounded-3xl shadow-2xl max-h-[92vh] md:max-h-[90vh] flex flex-col overflow-hidden ${step === 'freelancer-step-3-offer' ? 'max-w-4xl' : 'max-w-2xl'}`}>
                     <div ref={scrollContainerRef} className="overflow-y-auto flex-1 px-4 md:px-8 pb-6 md:pb-8 min-h-0 pt-2">
 
@@ -679,7 +701,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                 <div className="flex items-center justify-between gap-3 mb-4">
                                     <div className="flex-1" />
                                     <div className="flex items-center justify-center gap-3">
-                                        <h2 className="text-2xl md:text-4xl font-black text-gray-900">Join</h2>
+                                        <h2 className="text-2xl md:text-4xl font-black text-gray-900">{copy.join}</h2>
                                         <Image
                                             src="/logos/logo-green.png"
                                             alt="Engezhaly"
@@ -695,7 +717,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                         </button>
                                     </div>
                                 </div>
-                                <p className="text-base md:text-xl text-gray-600 mb-6 md:mb-12">How do you want to use the platform?</p>
+                                <p className="text-base md:text-xl text-gray-600 mb-6 md:mb-12">{copy.choose}</p>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                                     <button
@@ -707,8 +729,8 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                         <div className="w-16 h-16 md:w-24 md:h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4 md:mb-6 group-hover:bg-[#09BF44] transition-colors">
                                             <User className="w-8 h-8 md:w-12 md:h-12 text-gray-600 group-hover:text-white" />
                                         </div>
-                                        <h3 className="text-xl md:text-2xl font-bold text-gray-900">I&apos;m Hiring</h3>
-                                        <p className="text-sm md:text-base text-gray-500 mt-2 font-medium">Find talent & get work done</p>
+                                        <h3 className="text-xl md:text-2xl font-bold text-gray-900">{copy.businessOwner}</h3>
+                                        <p className="text-sm md:text-base text-gray-500 mt-2 font-medium">{copy.businessDesc}</p>
                                     </button>
 
                                     <button
@@ -718,16 +740,16 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                         <div className="w-16 h-16 md:w-24 md:h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4 md:mb-6 group-hover:bg-[#09BF44] transition-colors">
                                             <Briefcase className="w-8 h-8 md:w-12 md:h-12 text-gray-600 group-hover:text-white" />
                                         </div>
-                                        <h3 className="text-xl md:text-2xl font-bold text-gray-900">I Want to Freelance</h3>
-                                        <p className="text-sm md:text-base text-gray-500 mt-2 font-medium">Sell your services & earn</p>
+                                        <h3 className="text-xl md:text-2xl font-bold text-gray-900">{copy.freelance}</h3>
+                                        <p className="text-sm md:text-base text-gray-500 mt-2 font-medium">{copy.freelanceDesc}</p>
                                     </button>
                                 </div>
 
                                 <div className="mt-6 md:mt-8">
                                     <p className="text-gray-600">
-                                        Already have an account?{' '}
+                                        {copy.already}{' '}
                                         <button onClick={() => setStep('login')} className="text-[#09BF44] font-bold hover:underline">
-                                            Log In
+                                            {copy.login}
                                         </button>
                                     </p>
                                 </div>
@@ -868,7 +890,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                 <div className="flex items-center justify-between gap-3 mb-4">
                                     <div className="flex-1" />
                                     <div className="flex items-center gap-3">
-                                        <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Join</h2>
+                                        <h2 className="text-2xl md:text-3xl font-bold text-gray-900">{copy.join}</h2>
                                         <Image
                                             src="/logos/logo-green.png"
                                             alt="Engezhaly"
@@ -884,17 +906,17 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                         </button>
                                     </div>
                                 </div>
-                                <p className="text-center text-gray-600 mb-8">Create your client account to start posting jobs and hiring freelancers.</p>
+                                <p className="text-center text-gray-600 mb-8">{copy.clientIntro}</p>
 
                                 <form onSubmit={handleClientSubmit} className="space-y-4">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <input name="firstName" placeholder="First Name" required onChange={handleChange} value={formData.firstName} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
-                                        <input name="lastName" placeholder="Last Name" required onChange={handleChange} value={formData.lastName} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
+                                        <input name="firstName" placeholder={copy.firstName} required onChange={handleChange} value={formData.firstName} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
+                                        <input name="lastName" placeholder={copy.lastName} required onChange={handleChange} value={formData.lastName} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
                                     </div>
                                     {/* Profile Picture Upload */}
                                     <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-2">Profile Picture *</label>
-                                        <p className="text-xs text-gray-500 mb-2">Please show your face properly.</p>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">{copy.picture}</label>
+                                        <p className="text-xs text-gray-500 mb-2">{copy.pictureHint}</p>
                                         {profilePicture ? (
                                             <div className="relative inline-block">
                                                 <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-[#09BF44] bg-gray-100">
@@ -917,45 +939,45 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                 ) : (
                                                     <>
                                                         <Upload className="w-6 h-6 mx-auto mb-2 text-gray-400" />
-                                                        <p className="text-sm font-bold">Click to upload profile photo</p>
-                                                        <p className="text-xs text-gray-400 mt-1">Max 5MB</p>
+                                                        <p className="text-sm font-bold">{copy.upload}</p>
+                                                        <p className="text-xs text-gray-400 mt-1">{copy.max}</p>
                                                     </>
                                                 )}
                                             </div>
                                         )}
                                         <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                                     </div>
-                                    <input name="username" placeholder="Username" required onChange={handleChange} value={formData.username} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
-                                    <input name="email" type="email" placeholder="Email Address" required onChange={handleChange} value={formData.email} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
+                                    <input name="username" placeholder={copy.username} required onChange={handleChange} value={formData.username} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
+                                    <input name="email" type="email" placeholder={copy.email} required onChange={handleChange} value={formData.email} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
                                     <div className="flex gap-2">
                                         <select name="phoneCountryCode" onChange={handleChange} value={formData.phoneCountryCode} className="w-48 shrink-0 p-2 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 text-sm">
                                             {PHONE_COUNTRIES.map((c) => (
                                                 <option key={c.code} value={c.code}>{getFlagEmoji(c.code)} {c.name} (+{c.callingCode})</option>
                                             ))}
                                         </select>
-                                        <input name="phoneNumber" type="tel" inputMode="numeric" autoComplete="tel-national" placeholder={formData.phoneCountryCode === 'EG' ? '01XXXXXXXXX' : 'Phone number'} required onChange={handleChange} value={formData.phoneNumber} className="flex-1 min-w-0 p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
+                                        <input name="phoneNumber" type="tel" inputMode="numeric" autoComplete="tel-national" placeholder={formData.phoneCountryCode === 'EG' ? '01XXXXXXXXX' : copy.phone} required onChange={handleChange} value={formData.phoneNumber} className="flex-1 min-w-0 p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
                                     </div>
                                     {formData.phoneCountryCode === 'EG' && (
-                                        <p className="text-xs text-gray-500 -mt-2">Egyptian mobile: exactly 11 digits starting with 01.</p>
+                                        <p className="text-xs text-gray-500 -mt-2">{copy.egyptPhone}</p>
                                     )}
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div className="relative">
-                                            <input name="password" type={showPassword ? "text" : "password"} placeholder="Password" required minLength={8} autoComplete="new-password" onChange={handleChange} value={formData.password} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400 pr-12" />
+                                            <input name="password" type={showPassword ? "text" : "password"} placeholder={copy.password} required minLength={8} autoComplete="new-password" onChange={handleChange} value={formData.password} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400 pr-12" />
                                             <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
                                                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                             </button>
                                             <p className="text-xs text-gray-500 mt-1.5">{PASSWORD_POLICY_HINT}</p>
                                         </div>
                                         <select name="businessType" onChange={handleChange} value={formData.businessType} className="w-full p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900">
-                                            <option value="personal">Personal</option>
-                                            <option value="company">Company</option>
+                                            <option value="personal">{copy.personal}</option>
+                                            <option value="company">{copy.company}</option>
                                         </select>
                                     </div>
                                     {formData.businessType === 'company' && (
                                         <div className="space-y-4 p-4 bg-gray-50 rounded-xl border-2 border-gray-100">
-                                            <input name="companyName" placeholder="Company Name *" required onChange={handleChange} value={formData.companyName} className="w-full p-4 bg-white rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
-                                            <textarea name="companyDescription" placeholder="Company Description (optional)" rows={2} onChange={handleChange} value={formData.companyDescription} className="w-full p-4 bg-white rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400 resize-none" />
-                                            <input name="position" placeholder="Your Position (optional)" onChange={handleChange} value={formData.position} className="w-full p-4 bg-white rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
+                                            <input name="companyName" placeholder={copy.companyName} required onChange={handleChange} value={formData.companyName} className="w-full p-4 bg-white rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
+                                            <textarea name="companyDescription" placeholder={copy.companyDesc} rows={2} onChange={handleChange} value={formData.companyDescription} className="w-full p-4 bg-white rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400 resize-none" />
+                                            <input name="position" placeholder={copy.position} onChange={handleChange} value={formData.position} className="w-full p-4 bg-white rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
                                             <div className="grid grid-cols-2 gap-2">
                                                 <input name="linkedIn" placeholder="LinkedIn URL" onChange={handleChange} value={formData.linkedIn} className="w-full p-3 bg-white rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400 text-sm" />
                                                 <input name="instagram" placeholder="Instagram URL" onChange={handleChange} value={formData.instagram} className="w-full p-3 bg-white rounded-xl border-2 border-transparent focus:border-[#09BF44] outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400 text-sm" />
@@ -968,10 +990,10 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                     <label className="flex items-start gap-3 cursor-pointer">
                                         <input type="checkbox" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="mt-1 w-5 h-5 rounded border-2 border-gray-300 text-[#09BF44] focus:ring-[#09BF44]" />
                                         <span className="text-sm text-gray-700">
-                                            I agree to the{' '}
-                                            <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-[#09BF44] font-bold hover:underline">Terms and Conditions</a>
-                                            {' '}and{' '}
-                                            <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#09BF44] font-bold hover:underline">Privacy Policy</a>
+                                            {copy.agree}{' '}
+                                            <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-[#09BF44] font-bold hover:underline">{copy.terms}</a>
+                                            {' '}{copy.and}{' '}
+                                            <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#09BF44] font-bold hover:underline">{copy.privacy}</a>
                                         </span>
                                     </label>
 
@@ -984,18 +1006,18 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
 
                                     <button disabled={loading} type="submit" className="w-full bg-[#09BF44] hover:bg-[#07a63a] text-white font-bold text-base md:text-lg p-3 md:p-4 rounded-xl transition-all flex items-center justify-center gap-2">
                                         {loading && <Loader2 className="w-5 h-5 animate-spin" />}
-                                        Create Account
+                                        {copy.create}
                                     </button>
                                 </form>
                                 <div className="mt-4 text-center">
                                     <p className="text-gray-600">
-                                        Already have an account?{' '}
+                                        {copy.already}{' '}
                                         <button onClick={() => setStep('login')} className="text-[#09BF44] font-bold hover:underline">
-                                            Log In
+                                            {copy.login}
                                         </button>
                                     </p>
                                 </div>
-                                <button onClick={() => setStep('role-selection')} className="mt-6 text-gray-500 hover:text-gray-900 font-medium">Back to Selection</button>
+                                <button onClick={() => setStep('role-selection')} className="mt-6 text-gray-500 hover:text-gray-900 font-medium">{copy.back}</button>
                             </div>
                         )}
 
@@ -1103,7 +1125,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                                     <>
                                                         <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
                                                         <p className="text-sm font-bold">Click to upload profile photo</p>
-                                                        <p className="text-xs text-gray-400 mt-1">Max 5MB</p>
+                                                        <p className="text-xs text-gray-400 mt-1">Max 20MB</p>
                                                     </>
                                                 )}
                                             </div>

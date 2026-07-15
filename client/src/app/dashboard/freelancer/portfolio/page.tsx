@@ -190,8 +190,8 @@ export default function PortfolioPage() {
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, index: number | 'new') => {
         const file = e.target.files?.[0];
         if (!file) return;
-        if (file.size > 5 * 1024 * 1024) {
-            showModal({ title: 'Error', message: 'Image must be under 5MB', type: 'error' });
+        if (file.size > 20 * 1024 * 1024) {
+            showModal({ title: 'Error', message: 'Image must be 20MB or smaller', type: 'error' });
             return;
         }
         setImageUploading(index === 'new' ? -1 : index);

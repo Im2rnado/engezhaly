@@ -104,8 +104,8 @@ export default function ProfileEditModal({ isOpen, onClose, onSave, profile, mai
     const handleRemoveSoftSkill = (s: string) => setFormData({ ...formData, softSkills: formData.softSkills.filter(x => x !== s) });
 
     const validatePfpFile = (file: File) => {
-        if (file.size > 5 * 1024 * 1024) {
-            setErrors(prev => ({ ...prev, profilePicture: 'Image must be under 5MB' }));
+        if (file.size > 20 * 1024 * 1024) {
+            setErrors(prev => ({ ...prev, profilePicture: 'Image must be 20MB or smaller' }));
             return false;
         }
         if (!file.type.startsWith('image/')) {
@@ -277,7 +277,7 @@ export default function ProfileEditModal({ isOpen, onClose, onSave, profile, mai
                                         </button>
                                     )}
                                 </div>
-                                <p className="text-sm text-gray-500">Crop to a square after choosing. Max 5MB.</p>
+                                <p className="text-sm text-gray-500">Crop to a square after choosing. Max 20MB.</p>
                                 {pfpUploading && <p className="text-xs text-[#09BF44] font-bold">Uploading…</p>}
                                 {errors.profilePicture && <p className="text-red-500 text-xs">{errors.profilePicture}</p>}
                             </div>

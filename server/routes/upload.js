@@ -5,7 +5,7 @@ const auth = require('../middleware/auth');
 
 const upload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+    limits: { fileSize: 20 * 1024 * 1024 }, // 20MB
     fileFilter: (_req, file, cb) => {
         const allowedExts = /\.(jpg|jpeg|png|gif|webp|pdf|doc|docx|mp3|mpeg|webm|ogg|wav|mp4)$/i;
         const hasAllowedExt = allowedExts.test(file.originalname);
@@ -24,10 +24,10 @@ const upload = multer({
     }
 });
 
-/** Chat attachments only: PDF + images, max 10MB (same limit as general upload). */
+/** Chat attachments only: PDF + images, max 20MB (same limit as general upload). */
 const chatUpload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 10 * 1024 * 1024 },
+    limits: { fileSize: 20 * 1024 * 1024 },
     fileFilter: (_req, file, cb) => {
         const allowedExts = /\.(jpg|jpeg|png|gif|webp|pdf)$/i;
         const hasAllowedExt = allowedExts.test(file.originalname);

@@ -38,8 +38,8 @@ app.use(cors({
 }));
 
 // Middleware
-// 15MB limit for JSON (registration sends base64 profile picture + certificates)
-app.use(express.json({ limit: '15mb' }));
+// Allow 20MB files plus base64 encoding overhead during registration.
+app.use(express.json({ limit: '30mb' }));
 
 const rateLimit = require('express-rate-limit');
 app.set('trust proxy', 1); // Trust first proxy (NGINX/Cloudflare)

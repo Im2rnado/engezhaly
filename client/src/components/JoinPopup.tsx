@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { X, User, Briefcase } from "lucide-react";
 import AuthModal from "@/components/AuthModal";
+import { useLanguage } from "@/context/LanguageContext";
 
 // Session key — popup only shows once per browser session (tab).
 const SESSION_KEY = "engezhaly_join_popup_dismissed";
@@ -13,6 +14,8 @@ const AUTH_OPENED_KEY = "engezhaly_auth_modal_opened";
 const POPUP_DELAY_MS = 5000;
 
 export default function JoinPopup() {
+  const { lang, isRTL } = useLanguage();
+  const ar = lang === 'ar';
   const [visible, setVisible] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authStep, setAuthStep] = useState<
@@ -75,6 +78,7 @@ export default function JoinPopup() {
       {/* Timed join popup */}
       {visible && (
         <div
+          dir={isRTL ? 'rtl' : 'ltr'}
           className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
           onClick={(e) => {
             // Close when clicking the backdrop
@@ -90,7 +94,7 @@ export default function JoinPopup() {
                 <div className="flex items-center justify-between gap-3 mb-4">
                   <div className="flex-1" />
                   <div className="flex items-center justify-center gap-3">
-                    <h2 className="text-2xl md:text-4xl font-black text-gray-900">Join</h2>
+                    <h2 className="text-2xl md:text-4xl font-black text-gray-900">{ar ? 'انضم' : 'Join'}</h2>
                     <Image
                       src="/logos/logo-green.png"
                       alt="Engezhaly"
@@ -112,12 +116,12 @@ export default function JoinPopup() {
                 </div>
 
                 <p className="text-base md:text-xl text-gray-600 mb-6 md:mb-12">
-                  How do you want to use the platform?
+                  {ar ? 'كيف تريد استخدام المنصة؟' : 'How do you want to use the platform?'}
                 </p>
 
                 {/* Role cards — matches AuthModal grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                  {/* I'm Hiring */}
+                  {/* Business owner */}
                   <button
                     type="button"
                     onClick={openClientAuth}
@@ -126,8 +130,8 @@ export default function JoinPopup() {
                     <div className="w-16 h-16 md:w-24 md:h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4 md:mb-6 group-hover:bg-[#09BF44] transition-colors">
                       <User className="w-8 h-8 md:w-12 md:h-12 text-gray-600 group-hover:text-white" />
                     </div>
-                    <h3 className="text-xl md:text-2xl font-bold text-gray-900">I&apos;m Hiring</h3>
-                    <p className="text-sm md:text-base text-gray-500 mt-2 font-medium">Find talent &amp; get work done</p>
+                    <h3 className="text-xl md:text-2xl font-bold text-gray-900">{ar ? 'أنا صاحب عمل' : 'I am a businessowner'}</h3>
+                    <p className="text-sm md:text-base text-gray-500 mt-2 font-medium">{ar ? 'اعثر على المواهب وأنجز أعمالك' : 'Find talent & get work done'}</p>
                   </button>
 
                   {/* I Want to Freelance */}
@@ -139,20 +143,20 @@ export default function JoinPopup() {
                     <div className="w-16 h-16 md:w-24 md:h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4 md:mb-6 group-hover:bg-[#09BF44] transition-colors">
                       <Briefcase className="w-8 h-8 md:w-12 md:h-12 text-gray-600 group-hover:text-white" />
                     </div>
-                    <h3 className="text-xl md:text-2xl font-bold text-gray-900">I Want to Freelance</h3>
-                    <p className="text-sm md:text-base text-gray-500 mt-2 font-medium">Sell your services &amp; earn</p>
+                    <h3 className="text-xl md:text-2xl font-bold text-gray-900">{ar ? 'أريد العمل كمستقل' : 'I Want to Freelance'}</h3>
+                    <p className="text-sm md:text-base text-gray-500 mt-2 font-medium">{ar ? 'قدّم خدماتك واكسب المال' : 'Sell your services & earn'}</p>
                   </button>
                 </div>
 
                 {/* Footer — matches AuthModal footer */}
                 <div className="mt-6 md:mt-8 space-y-3">
                   <p className="text-gray-600">
-                    Already have an account?{" "}
+                    {ar ? 'لديك حساب بالفعل؟' : 'Already have an account?'}{" "}
                     <button
                       onClick={openLogin}
                       className="text-[#09BF44] font-bold hover:underline"
                     >
-                      Log In
+                      {ar ? 'تسجيل الدخول' : 'Log In'}
                     </button>
                   </p>
                   <div>
@@ -160,7 +164,7 @@ export default function JoinPopup() {
                       onClick={dismiss}
                       className="text-gray-400 text-sm font-medium hover:text-gray-600 transition-colors"
                     >
-                      Later
+                      {ar ? 'لاحقاً' : 'Later'}
                     </button>
                   </div>
                 </div>

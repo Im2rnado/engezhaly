@@ -1,8 +1,8 @@
 const User = require('../models/User');
 
 /**
- * Requires user to have verified their email. Use after auth middleware.
- * Admins are exempt.
+ * Requires freelancers to have verified their email. Use after auth middleware.
+ * Clients and admins are exempt.
  */
 module.exports = async function (req, res, next) {
     if (!req.user || !req.user.id) {
@@ -13,7 +13,9 @@ module.exports = async function (req, res, next) {
         if (!user) {
             return res.status(401).json({ msg: 'User not found' });
         }
-        if (user.role === 'admin') {
+        // Clients can use the platform immediately. Email verification remains
+        // required for freelancers, whose accounts also go through approval.
+        if (user.role === 'admin' || user.role === 'client') {
             return next();
         }
         if (!user.emailVerified) {

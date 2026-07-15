@@ -45,7 +45,7 @@ export default function ClientProfileEditModal({ isOpen, onClose, profile, onSav
     }, [isOpen, profile]);
 
     const openCropFromFile = (file: File) => {
-        if (file.size > 5 * 1024 * 1024) return;
+        if (file.size > 20 * 1024 * 1024) return;
         if (!file.type.startsWith('image/')) return;
         setCropSrc(URL.createObjectURL(file));
         if (pfpInputRef.current) pfpInputRef.current.value = '';
@@ -160,7 +160,7 @@ export default function ClientProfileEditModal({ isOpen, onClose, profile, onSav
                                         Remove
                                     </button>
                                 )}
-                                <p className="text-xs text-gray-500">Max 5MB. Crop to a square after choosing.</p>
+                                <p className="text-xs text-gray-500">Max 20MB. Crop to a square after choosing.</p>
                             </div>
                         </div>
                     </div>

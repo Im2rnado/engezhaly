@@ -909,9 +909,9 @@ function ChatPageContent() {
                 return;
             }
 
-            const maxBytes = 10 * 1024 * 1024;
+            const maxBytes = 20 * 1024 * 1024;
             if (file.size > maxBytes) {
-                showModal({ title: 'File too large', message: 'Attachments must be 10MB or smaller.', type: 'error' });
+                showModal({ title: 'File too large', message: 'Attachments must be 20MB or smaller.', type: 'error' });
                 return;
             }
             const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
