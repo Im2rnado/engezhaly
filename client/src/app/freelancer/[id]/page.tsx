@@ -139,6 +139,16 @@ export default function FreelancerProfilePage() {
                             {profile?.bio && (
                                 <p className="text-gray-700 leading-relaxed mb-4">{profile.bio}</p>
                             )}
+                            {projects.length > 0 && (
+                                <div className="md:hidden mt-5 pt-5 border-t border-gray-100">
+                                    <h2 className="text-xl font-black text-gray-900 mb-4">Services Offered</h2>
+                                    <div className="grid grid-cols-1 gap-5">
+                                        {projects.map((project) => (
+                                            <ProjectCard key={project._id} project={project} showContactMe={true} sellerIdOverride={freelancerId} />
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                             <div className="flex flex-wrap gap-3 md:gap-4 text-sm">
                                 {freelancer.dateOfBirth && (
                                     <div className="flex items-center gap-2">
@@ -282,7 +292,7 @@ export default function FreelancerProfilePage() {
 
                 {/* Offers Section */}
                 {projects.length > 0 && (
-                    <div>
+                    <div className="hidden md:block">
                         <h2 className="text-xl md:text-2xl font-black text-gray-900 mb-5 md:mb-6">Services Offered</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {projects.map((project) => (
