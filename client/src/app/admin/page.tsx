@@ -105,8 +105,8 @@ function AdminChatMessageRow({ msg, selectedChat }: { msg: any; selectedChat: an
     const voiceSrc = isVoice ? resolveMediaUrl(content) : '';
 
     return (
-        <div className={`flex ${isCentered ? 'justify-center' : isFromParticipant1 ? 'justify-start' : 'justify-end'}`}>
-            <div className={`max-w-[70%] px-4 py-2 rounded-2xl shadow-sm ${isAdmin
+        <div className={`flex w-full min-w-0 ${isCentered ? 'justify-center' : isFromParticipant1 ? 'justify-start' : 'justify-end'}`}>
+            <div className={`min-w-0 max-w-[94%] sm:max-w-[86%] md:max-w-[70%] px-3 sm:px-4 py-2 rounded-2xl shadow-sm overflow-hidden ${isAdmin
                 ? 'bg-yellow-100 border-2 border-yellow-300 text-gray-900'
                 : isMeeting
                     ? 'bg-green-50 border-2 border-[#09BF44]/40 text-gray-900'
@@ -146,7 +146,7 @@ function AdminChatMessageRow({ msg, selectedChat }: { msg: any; selectedChat: an
                     </div>
                 )}
                 {isVoice ? (
-                    <audio controls src={voiceSrc} className="max-w-full min-w-[200px] h-10 rounded-lg" />
+                    <audio controls src={voiceSrc} className="w-[230px] max-w-full min-w-0 h-10 rounded-lg" />
                 ) : isFile && fileSrc ? (
                     <div className="space-y-2">
                         {/\.(jpe?g|png|gif|webp)(\?|$)/i.test(fileSrc) ? (
@@ -221,7 +221,7 @@ function AdminChatMergedFeed({ messages, offers, selectedChat }: { messages: any
                     const to = offer.receiverId;
                     return (
                         <div key={item.id} className="flex justify-center w-full">
-                            <div className="w-full max-w-xl p-4 rounded-2xl border-2 border-[#09BF44]/25 bg-white shadow-sm">
+                            <div className="w-full min-w-0 max-w-xl p-3 sm:p-4 rounded-2xl border-2 border-[#09BF44]/25 bg-white shadow-sm overflow-hidden">
                                 <div className="flex items-center gap-2 mb-2 w-full min-w-0">
                                     <FileText className="w-5 h-5 shrink-0 text-[#09BF44]" />
                                     <span className="font-bold text-base text-gray-900 truncate">Custom offer</span>
@@ -239,7 +239,7 @@ function AdminChatMergedFeed({ messages, offers, selectedChat }: { messages: any
                                 <div className="space-y-3 mb-2 text-gray-700 overflow-x-hidden">
                                     <div className="flex items-center justify-between rounded-xl p-3 bg-gray-50">
                                         <span className="text-sm font-bold shrink-0">Price:</span>
-                                        <span className="text-lg font-black truncate ml-2">{offer.price} EGP</span>
+                                        <span className="text-lg font-black truncate ms-2">{offer.price} EGP</span>
                                     </div>
                                     <div className="flex items-center justify-between gap-2 min-w-0">
                                         <span className="text-sm font-bold shrink-0">Delivery:</span>
@@ -3841,7 +3841,11 @@ export default function AdminDashboard() {
                 )}
 
                 {activeTab === 'chats' && (
-                    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-[calc(100vh-12rem)]">
+                    <div className={`bg-white shadow-sm overflow-hidden flex flex-col ${
+                        selectedChat
+                            ? 'fixed inset-0 z-50 h-dvh rounded-none border-0 md:static md:z-auto md:h-[calc(100vh-12rem)] md:rounded-3xl md:border md:border-gray-100'
+                            : 'h-[calc(100dvh-12rem)] min-h-[28rem] rounded-2xl border border-gray-100 md:h-[calc(100vh-12rem)] md:rounded-3xl'
+                    }`}>
                         {!selectedChat ? (
                             <>
                                 <div className="p-6 border-b border-gray-100 flex flex-wrap justify-between items-center gap-3 flex-shrink-0">
@@ -3942,19 +3946,20 @@ export default function AdminDashboard() {
                         ) : (
                             <>
                                 {/* Chat Detail View */}
-                                <div className="p-6 border-b border-gray-100 flex items-center gap-4 flex-shrink-0">
+                                <div className="p-2.5 sm:p-4 md:p-6 border-b border-gray-100 flex items-center gap-2 sm:gap-4 flex-shrink-0 min-w-0">
                                     <button
                                         onClick={() => {
                                             setSelectedChat(null);
                                             setChatMessages([]);
                                             setChatOffers([]);
                                         }}
-                                        className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+                                        className="p-2 hover:bg-gray-100 rounded-xl transition-colors shrink-0"
+                                        aria-label="Back to conversations"
                                     >
                                         <ArrowLeft className="w-5 h-5" />
                                     </button>
-                                    <div className="flex items-center gap-3 flex-1">
-                                        <div className="flex -space-x-2">
+                                    <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                                        <div className="hidden min-[360px]:flex -space-x-2 shrink-0">
                                             {selectedChat.participants?.map((p: any, idx: number) => {
                                                 const pic = p?.freelancerProfile?.profilePicture || p?.clientProfile?.profilePicture;
                                                 const pid = p?._id != null ? String(p._id) : '';
@@ -3971,14 +3976,14 @@ export default function AdminDashboard() {
                                                 );
                                             })}
                                         </div>
-                                        <div>
-                                            <h3 className="font-bold text-gray-900">
+                                        <div className="min-w-0">
+                                            <h3 className="font-bold text-gray-900 truncate">
                                                 {selectedChat.kind === 'support' && selectedChat.participants?.length >= 2
                                                     ? `Engezhaly Team & ${selectedChat.participants.find((p: any) => !(p?.firstName === 'Engezhaly' && p?.lastName === 'Team'))?.firstName || 'User'}`
                                                     : selectedChat.participants?.map((p: any) => p?.firstName).filter(Boolean).join(' & ') || 'Unknown Users'}
                                             </h3>
                                             {selectedChat.participants && selectedChat.participants.length > 0 && (
-                                                <p className="text-xs text-gray-500 mt-0.5">
+                                                <p className="hidden sm:block text-xs text-gray-500 mt-0.5 truncate">
                                                     {selectedChat.participants.map((p: any) => {
                                                         const pid = p?._id != null ? String(p._id) : '';
                                                         const on = pid ? (userPresenceById[pid] ?? !!p.isOnline) : false;
@@ -3994,16 +3999,17 @@ export default function AdminDashboard() {
                                             )}
                                         </div>
                                     </div>
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-1 sm:gap-2 shrink-0">
                                         {selectedChat.isFrozen ? (
                                             <button
                                                 onClick={async () => {
                                                     await handleUnfreeze(selectedChat._id);
                                                     setSelectedChat({ ...selectedChat, isFrozen: false });
                                                 }}
-                                                className="px-4 py-2 bg-green-100 text-green-600 rounded-lg text-sm font-bold hover:bg-green-200 transition-colors flex items-center gap-2"
+                                                className="p-2.5 sm:px-4 sm:py-2 bg-green-100 text-green-600 rounded-lg text-sm font-bold hover:bg-green-200 transition-colors flex items-center gap-2"
+                                                aria-label="Unfreeze conversation"
                                             >
-                                                <Check className="w-4 h-4" /> Unfreeze
+                                                <Check className="w-4 h-4" /> <span className="hidden sm:inline">Unfreeze</span>
                                             </button>
                                         ) : (
                                             <button
@@ -4011,16 +4017,17 @@ export default function AdminDashboard() {
                                                     await handleFreeze(selectedChat._id);
                                                     setSelectedChat({ ...selectedChat, isFrozen: true });
                                                 }}
-                                                className="px-4 py-2 bg-blue-100 text-blue-600 rounded-lg text-sm font-bold hover:bg-blue-200 transition-colors flex items-center gap-2"
+                                                className="p-2.5 sm:px-4 sm:py-2 bg-blue-100 text-blue-600 rounded-lg text-sm font-bold hover:bg-blue-200 transition-colors flex items-center gap-2"
+                                                aria-label="Freeze conversation"
                                             >
-                                                <Ban className="w-4 h-4" /> Freeze
+                                                <Ban className="w-4 h-4" /> <span className="hidden sm:inline">Freeze</span>
                                             </button>
                                         )}
                                     </div>
                                 </div>
 
                                 {/* Messages */}
-                                <div ref={adminChatMessagesScrollRef} className="flex-1 min-h-0 overflow-y-auto p-6 space-y-4 bg-gray-50">
+                                <div ref={adminChatMessagesScrollRef} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-2.5 sm:p-4 md:p-6 space-y-3 md:space-y-4 bg-gray-50 overscroll-contain">
                                     <AdminChatMergedFeed messages={chatMessages} offers={chatOffers} selectedChat={selectedChat} />
                                     {chatMessages.length === 0 && chatOffers.length === 0 && (
                                         <div className="text-center py-12 text-gray-400">
@@ -4031,21 +4038,22 @@ export default function AdminDashboard() {
                                 </div>
 
                                 {/* Admin Message Input */}
-                                <div className="p-6 border-t border-gray-200 bg-white flex-shrink-0">
-                                    <form onSubmit={handleSendAdminMessage} className="flex items-center gap-3">
+                                <div className="px-2.5 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] md:p-6 border-t border-gray-200 bg-white flex-shrink-0">
+                                    <form onSubmit={handleSendAdminMessage} className="flex items-center gap-1.5 sm:gap-3 min-w-0">
                                         <input
                                             type="text"
                                             value={adminMessageInput}
                                             onChange={(e) => setAdminMessageInput(e.target.value)}
                                             placeholder="Type a message as admin..."
-                                            className="flex-1 px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 text-sm"
+                                            className="w-0 flex-1 min-w-0 px-3 sm:px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 text-sm"
                                         />
                                         <button
                                             type="submit"
-                                            className="px-6 py-2 bg-yellow-500 text-white rounded-xl hover:bg-yellow-600 transition-colors font-bold flex items-center gap-2"
+                                            className="p-2.5 sm:px-5 sm:py-2.5 bg-yellow-500 text-white rounded-xl hover:bg-yellow-600 transition-colors font-bold flex items-center gap-2 shrink-0"
+                                            aria-label="Send as Admin"
                                         >
                                             <Send className="w-4 h-4" />
-                                            Send as Admin
+                                            <span className="hidden sm:inline">Send as Admin</span>
                                         </button>
                                     </form>
                                 </div>

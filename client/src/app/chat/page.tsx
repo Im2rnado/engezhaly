@@ -1476,11 +1476,11 @@ function ChatPageContent() {
             )}
 
             {/* Main Content Area */}
-            <div className="flex-1 md:ml-64 lg:ml-72 p-0 overflow-hidden h-dvh flex flex-col">
-                <DashboardMobileTopStrip />
+            <div className="flex-1 min-w-0 md:ml-64 lg:ml-72 p-0 overflow-hidden h-dvh flex flex-col">
+                {!activeChat && <DashboardMobileTopStrip flush />}
                 <div className="flex gap-0 flex-1 min-h-0 overflow-hidden">
                     {/* Conversations Sidebar */}
-                    <div className={`${activeChat ? 'hidden md:flex' : 'flex'} w-full md:w-80 bg-white rounded-2xl md:rounded-3xl border border-gray-200 flex-col shadow-sm overflow-hidden shrink-0 h-full`}>
+                    <div className={`${activeChat ? 'hidden md:flex' : 'flex'} w-full md:w-80 bg-white rounded-none md:rounded-3xl border-0 md:border border-gray-200 flex-col shadow-none md:shadow-sm overflow-hidden shrink-0 h-full`}>
                         <div className="p-4 md:p-6 border-b border-gray-200 bg-linear-to-r from-white to-gray-50 rounded-t-2xl md:rounded-t-3xl shrink-0">
                             <div className="flex items-center gap-3">
                                 <button
@@ -1495,7 +1495,7 @@ function ChatPageContent() {
                                 </div>
                                 <h2 className="text-xl md:text-2xl font-black text-gray-900">Messages</h2>
                                 {chats.reduce((sum, c) => sum + Number(c.unreadCount || 0), 0) > 0 && (
-                                    <span className="ml-auto rounded-full bg-[#09BF44] text-white text-xs font-bold px-2.5 py-1">
+                                    <span className="ms-auto rounded-full bg-[#09BF44] text-white text-xs font-bold px-2.5 py-1">
                                         {chats.reduce((sum, c) => sum + Number(c.unreadCount || 0), 0)}
                                     </span>
                                 )}
@@ -1528,7 +1528,7 @@ function ChatPageContent() {
                                                 );
                                             }}
                                             className={`p-4 cursor-pointer flex items-center gap-4 border-b border-gray-100 transition-all ${isActive
-                                                    ? 'bg-linear-to-r from-[#09BF44]/10 to-[#09BF44]/5 border-l-4 border-l-[#09BF44]'
+                                                    ? 'bg-linear-to-r from-[#09BF44]/10 to-[#09BF44]/5 border-s-4 border-s-[#09BF44]'
                                                     : 'hover:bg-gray-50'
                                                 }`}
                                         >
@@ -1568,13 +1568,13 @@ function ChatPageContent() {
                     </div>
 
                     {/* Chat Area */}
-                    <div className={`${activeChat ? 'flex' : 'hidden md:flex'} flex-1 bg-white rounded-2xl md:rounded-3xl border border-gray-200 flex-col shadow-sm overflow-hidden h-full relative`} style={{ minHeight: 0 }}>
+                    <div className={`${activeChat ? 'flex' : 'hidden md:flex'} min-w-0 flex-1 bg-white rounded-none md:rounded-3xl border-0 md:border border-gray-200 flex-col shadow-none md:shadow-sm overflow-hidden h-full relative`} style={{ minHeight: 0 }}>
                         {activeChat ? (
                             <>
                                 {/* Frozen Overlay */}
                                 {activeChat.isFrozen && (
-                                    <div className="absolute inset-0 bg-white/80 backdrop-blur-md z-50 flex items-center justify-center rounded-3xl">
-                                        <div className="bg-white rounded-3xl p-8 shadow-2xl border-2 border-blue-200 max-w-md w-full mx-4 text-center">
+                                    <div className="absolute inset-0 bg-white/80 backdrop-blur-md z-50 flex items-center justify-center md:rounded-3xl">
+                                        <div className="bg-white rounded-2xl md:rounded-3xl p-5 md:p-8 shadow-2xl border-2 border-blue-200 max-w-md w-full mx-4 text-center">
                                             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                                 <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -1589,20 +1589,20 @@ function ChatPageContent() {
                                 )}
                                 
                                 {/* Header */}
-                                <div className="h-16 md:h-20 border-b border-gray-200 flex items-center justify-between px-3 md:px-8 bg-white rounded-t-2xl md:rounded-t-3xl shadow-sm shrink-0">
-                                    <div className="flex items-center gap-3 md:gap-4 min-w-0">
+                                <div className="min-h-16 h-auto py-2 md:py-0 md:h-20 border-b border-gray-200 flex items-center justify-between px-2.5 md:px-8 bg-white md:rounded-t-3xl shadow-sm shrink-0">
+                                    <div className="flex flex-1 items-center gap-2 md:gap-4 min-w-0">
                                         <button
                                             onClick={() => {
                                                 setPartnerOnline(false);
                                                 setActiveChat(null);
                                             }}
-                                            className="md:hidden p-2 rounded-lg border border-gray-200 text-gray-600"
+                                            className="md:hidden p-2 rounded-lg border border-gray-200 text-gray-600 shrink-0"
                                             aria-label="Back to conversations"
                                         >
                                             <ArrowLeft className="w-4 h-4" />
                                         </button>
                                         {/* Profile Picture */}
-                                        <div className="relative">
+                                        <div className="relative shrink-0">
                                             {/* Gradient Background Blur */}
                                             <div className="absolute inset-0 flex items-center justify-center -z-10">
                                                 <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-indigo-100 to-purple-100 flex items-center justify-center shrink-0 shadow-sm border border-white/50 group-hover:scale-105 transition-transform duration-300"></div>
@@ -1611,8 +1611,8 @@ function ChatPageContent() {
                                             <Avatar
                                                 src={activeChat.profilePicture}
                                                 name={activeChat.name}
-                                                size={48}
-                                                className="relative z-10 border-2 border-white shadow-md"
+                                                size={42}
+                                                className="relative z-10 border-2 border-white shadow-md md:w-12! md:h-12!"
                                             />
                                             {partnerOnline && (
                                                 <div className="absolute bottom-0 right-0 z-20 w-3 h-3 bg-[#09BF44] border-2 border-white rounded-full"></div>
@@ -1626,26 +1626,29 @@ function ChatPageContent() {
                                             </span>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-2 md:gap-4">
+                                    <div className="flex items-center gap-0.5 md:gap-4 shrink-0">
                                         <button
                                             onClick={() => setShowRulesModal(true)}
                                             className="flex flex-col items-center gap-0.5 p-2 text-red-500 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors"
                                             title="Chat Rules"
+                                            aria-label="Chat Rules"
                                         >
                                             <ScrollText className="w-5 h-5" />
-                                            <span className="text-[10px] font-bold leading-none">Rules</span>
+                                            <span className="hidden sm:block text-[10px] font-bold leading-none">Rules</span>
                                         </button>
                                         <button
                                             onClick={handleBookConsultation}
                                             className="flex flex-col items-center gap-0.5 p-2 text-[#09BF44] hover:bg-[#09BF44]/10 hover:text-[#07a63a] rounded-xl transition-colors"
                                             title="Book Consultation"
+                                            aria-label="Book Consultation"
                                         >
                                             <Video className="w-5 h-5" />
-                                            <span className="text-[10px] font-bold leading-none">Call</span>
+                                            <span className="hidden sm:block text-[10px] font-bold leading-none">Call</span>
                                         </button>
                                     </div>
                                 </div>
 
+                                <div className="shrink-0 max-h-[34dvh] overflow-y-auto overscroll-contain md:max-h-none md:overflow-visible">
                                 {/* Client: Awaiting Approval from Freelancer (after order placed) */}
                                 {pendingApprovalOrder && currentUser?.role === 'client' && (
                                     <div className="mx-3 md:mx-6 mt-3 p-4 rounded-xl bg-blue-50 border-2 border-slate-200 shadow-sm animate-pulse">
@@ -1930,8 +1933,10 @@ function ChatPageContent() {
                                     </div>
                                 )}
 
+                                </div>
+
                                 {/* Messages and offers (merged by timestamp) */}
-                                <div ref={messagesScrollRef} style={{ overflowY: 'auto', overflowX: 'hidden' }} className="flex-1 p-3 md:p-6 space-y-4 bg-linear-to-b from-gray-50 to-white rounded-b-2xl md:rounded-b-3xl min-h-0">
+                                <div ref={messagesScrollRef} style={{ overflowY: 'auto', overflowX: 'hidden' }} className="flex-1 p-2.5 sm:p-3 md:p-6 space-y-3 md:space-y-4 bg-linear-to-b from-gray-50 to-white md:rounded-b-3xl min-h-0 overscroll-contain">
                                     {mergedFeed.map((item) => {
                                         if (item.type === 'offer') {
                                             const offer = item.data;
@@ -1946,7 +1951,7 @@ function ChatPageContent() {
 
                                         return (
                                                 <div key={item.id} className={`flex w-full min-w-0 ${isMyOffer ? 'justify-end' : 'justify-start'}`}>
-                                                    <div className={`min-w-0 p-4 rounded-2xl md:rounded-3xl shadow-md relative w-full max-w-lg md:max-w-xl border-2 overflow-x-hidden ${isMyOffer
+                                                    <div className={`min-w-0 p-3 sm:p-4 rounded-2xl md:rounded-3xl shadow-md relative w-full max-w-lg md:max-w-xl border-2 overflow-x-hidden ${isMyOffer
                                                         ? 'bg-emerald-700 text-white border-emerald-800'
                                                         : 'bg-emerald-50/95 border-[#09BF44]/50 text-gray-900'
                                                     }`}>
@@ -1955,7 +1960,7 @@ function ChatPageContent() {
                                                         <span className={`font-bold text-base truncate ${isMyOffer ? 'text-white' : 'text-gray-900'}`}>
                                                             Custom Offer
                                                         </span>
-                                                        <div className="ml-auto flex items-center gap-1 shrink-0">
+                                                        <div className="ms-auto flex items-center gap-1 shrink-0">
                                                             {isMyOffer && offer.status === 'pending' && (
                                                                 <button
                                                                     type="button"
@@ -1979,7 +1984,7 @@ function ChatPageContent() {
                                                     <div className={`space-y-3 mb-4 min-w-0 ${isMyOffer ? 'text-white/95' : 'text-gray-700'}`}>
                                                         <div className={`flex items-center justify-between rounded-xl p-3 ${isMyOffer ? 'bg-white/10' : 'bg-gray-50'}`}>
                                                             <span className="text-sm font-bold shrink-0">Price:</span>
-                                                            <span className="text-lg font-black truncate ml-2">{offer.price} EGP</span>
+                                                            <span className="text-lg font-black truncate ms-2">{offer.price} EGP</span>
                                                         </div>
                                                         <div className="flex items-center justify-between gap-2 min-w-0">
                                                             <span className="text-sm font-bold shrink-0">Delivery:</span>
@@ -2095,8 +2100,8 @@ function ChatPageContent() {
                                         const meetingLink = linkMatch ? linkMatch[1] : null;
                                         
                                         return (
-                                            <div key={item.id} className={`flex w-full ${isCentered ? 'justify-center' : msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
-                                                <div className={`max-w-[88%] md:max-w-[70%] px-4 py-2 rounded-2xl shadow-sm ${isAdmin
+                                            <div key={item.id} className={`flex w-full min-w-0 ${isCentered ? 'justify-center' : msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
+                                                <div className={`min-w-0 max-w-[94%] sm:max-w-[88%] md:max-w-[70%] px-3 sm:px-4 py-2 rounded-2xl shadow-sm overflow-hidden ${isAdmin
                                                         ? 'bg-yellow-100 border-2 border-yellow-300 text-gray-900'
                                                         : isMeeting
                                                             ? 'bg-green-50 border-2 border-[#09BF44]/40 text-gray-900'
@@ -2124,7 +2129,7 @@ function ChatPageContent() {
                                                         </div>
                                                     )}
                                                     {isVoice ? (
-                                                        <audio controls src={resolveChatMediaUrl(msg.text || '')} className="max-w-full min-w-[200px] h-10 rounded-lg" />
+                                                        <audio controls src={resolveChatMediaUrl(msg.text || '')} className="w-[230px] max-w-full min-w-0 h-10 rounded-lg" />
                                                     ) : isFile && fileSrc ? (
                                                         <div className="space-y-2">
                                                             {chatAttachmentIsImageUrl(fileSrc) ? (
@@ -2179,7 +2184,7 @@ function ChatPageContent() {
                                                             {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                         </span>
                                                         {!isCentered && msg.sender === 'me' && (
-                                                            <span className="text-[10px] ml-2 opacity-90">
+                                                            <span className="text-[10px] ms-2 opacity-90">
                                                                 {msg.isRead ? 'Read' : 'Unread'}
                                                             </span>
                                                         )}
@@ -2192,22 +2197,23 @@ function ChatPageContent() {
                                 </div>
 
                                 {/* Input */}
-                                <div className={`p-3 md:p-6 bg-white border-t border-gray-200 shadow-lg shrink-0 ${activeChat.isFrozen ? 'opacity-50 pointer-events-none' : ''}`}>
-                                    <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 md:gap-3">
+                                <div className={`px-2.5 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] md:p-6 bg-white border-t border-gray-200 shadow-lg shrink-0 ${activeChat.isFrozen ? 'opacity-50 pointer-events-none' : ''}`}>
+                                    <div className="flex items-center gap-1.5 md:gap-3 min-w-0">
                                         {/* Create Offer Button - freelancers only */}
                                         {currentUser?.role === 'freelancer' && (
                                         <button
                                             type="button"
                                             onClick={() => setShowOfferModal(true)}
                                             disabled={activeChat.isFrozen || (activeChat.partnerIsBusy && currentUser?.role === 'client')}
-                                                className="flex items-center justify-center gap-2 px-3 md:px-4 py-2.5 bg-linear-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200 rounded-xl font-bold text-emerald-600 transition-all text-sm whitespace-nowrap shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                className="flex items-center justify-center gap-2 p-2.5 md:px-4 md:py-2.5 bg-linear-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200 rounded-xl font-bold text-emerald-600 transition-all text-sm whitespace-nowrap shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                aria-label="Create custom offer"
                                         >
-                                                <FileText className="w-4 h-5" />
-                                            Custom Offer
+                                                <FileText className="w-5 h-5 md:w-4" />
+                                                <span className="hidden md:inline">Custom Offer</span>
                                         </button>
                                         )}
                                         {isRecording ? (
-                                            <div className="flex items-center gap-2 md:gap-3 bg-red-50 p-3 rounded-2xl border-2 border-red-200 flex-1 min-w-0">
+                                            <div className="flex items-center gap-1.5 md:gap-3 bg-red-50 p-2 md:p-3 rounded-2xl border-2 border-red-200 flex-1 min-w-0">
                                                 <div className="w-2 h-2 md:w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shrink-0" />
                                                 <span className="text-sm font-bold text-red-700 flex-1">
                                                     Recording… {Math.floor(recordingSeconds / 60)}:{(recordingSeconds % 60).toString().padStart(2, '0')} / 2:00
@@ -2215,22 +2221,22 @@ function ChatPageContent() {
                                                 <button
                                                     type="button"
                                                     onClick={stopVoiceRecording}
-                                                    className="p-2.5 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all shrink-0"
+                                                    className="p-2 md:p-2.5 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all shrink-0"
                                                     aria-label="Stop recording"
                                                 >
                                                     <Square className="w-4 h-4 fill-current" />
                                                 </button>
                                             </div>
                                         ) : pendingVoiceRecording ? (
-                                            <div className="flex items-center gap-2 md:gap-3 bg-gray-50 p-3 rounded-2xl border-2 border-gray-200 flex-1 min-w-0">
+                                            <div className="flex items-center gap-1 md:gap-3 bg-gray-50 p-1.5 md:p-3 rounded-2xl border-2 border-gray-200 flex-1 min-w-0">
                                                 <audio controls src={pendingVoiceRecording.objectUrl} className="flex-1 min-w-0 h-10 max-h-10" />
-                                                <span className="text-xs text-gray-500 shrink-0">
+                                                <span className="hidden sm:inline text-xs text-gray-500 shrink-0">
                                                     {Math.floor(pendingVoiceRecording.durationSeconds / 60)}:{(pendingVoiceRecording.durationSeconds % 60).toString().padStart(2, '0')}
                                                 </span>
                                                 <button
                                                     type="button"
                                                     onClick={discardVoiceRecording}
-                                                    className="p-2.5 text-red-600 hover:bg-red-50 rounded-xl transition-all shrink-0"
+                                                    className="p-2 md:p-2.5 text-red-600 hover:bg-red-50 rounded-xl transition-all shrink-0"
                                                     aria-label="Delete recording"
                                                 >
                                                     <Trash2 className="w-5 h-5" />
@@ -2239,14 +2245,14 @@ function ChatPageContent() {
                                                     type="button"
                                                     onClick={sendVoiceMessage}
                                                     disabled={sendingVoice}
-                                                    className="p-2.5 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-all shrink-0 disabled:opacity-70 flex items-center justify-center"
+                                                    className="p-2 md:p-2.5 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-all shrink-0 disabled:opacity-70 flex items-center justify-center"
                                                     aria-label="Send voice message"
                                                 >
                                                     {sendingVoice ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                                                 </button>
                                             </div>
                                         ) : (
-                                            <form onSubmit={sendMessage} className="flex items-center gap-2 md:gap-3 bg-gray-50 p-2 rounded-2xl border-2 border-gray-200 focus-within:border-[#09BF44] focus-within:ring-2 focus-within:ring-[#09BF44]/20 transition-all flex-1 min-w-0">
+                                            <form onSubmit={sendMessage} className="flex items-center gap-0.5 sm:gap-1 md:gap-3 bg-gray-50 p-1.5 md:p-2 rounded-2xl border-2 border-gray-200 focus-within:border-[#09BF44] focus-within:ring-2 focus-within:ring-[#09BF44]/20 transition-all flex-1 min-w-0">
                                             <input
                                                 ref={chatFileInputRef}
                                                 type="file"
@@ -2262,7 +2268,7 @@ function ChatPageContent() {
                                                     activeChat.isFrozen ||
                                                     (activeChat.partnerIsBusy && currentUser?.role === 'client')
                                                 }
-                                                className="p-2.5 text-gray-400 hover:text-[#09BF44] hover:bg-white rounded-xl transition-all shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                className="p-2 md:p-2.5 text-gray-400 hover:text-[#09BF44] hover:bg-white rounded-xl transition-all shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                                 aria-label="Attach PDF or image"
                                             >
                                                 {sendingChatFile ? <Loader2 className="w-5 h-5 animate-spin" /> : <Paperclip className="w-5 h-5" />}
@@ -2273,18 +2279,18 @@ function ChatPageContent() {
                                                 onChange={(e) => setInput(e.target.value)}
                                                 placeholder={activeChat.isFrozen ? "Conversation is frozen..." : (activeChat.partnerIsBusy && currentUser?.role === 'client') ? "Freelancer is busy..." : "Type a message..."}
                                                 disabled={activeChat.isFrozen || (activeChat.partnerIsBusy && currentUser?.role === 'client')}
-                                                className="flex-1 bg-transparent border-none outline-none text-gray-700 placeholder-gray-400 text-sm min-w-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                className="w-0 flex-1 bg-transparent border-none outline-none text-gray-700 placeholder-gray-400 text-sm min-w-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                             />
                                                 <button
                                                     type="button"
                                                     onClick={startVoiceRecording}
                                                     disabled={activeChat.isFrozen || (activeChat.partnerIsBusy && currentUser?.role === 'client')}
-                                                    className="p-2.5 text-gray-400 hover:text-[#09BF44] hover:bg-white rounded-xl transition-all shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    className="p-2 md:p-2.5 text-gray-400 hover:text-[#09BF44] hover:bg-white rounded-xl transition-all shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                                     aria-label="Record voice message"
                                                 >
                                                     <Mic className="w-5 h-5" />
                                                 </button>
-                                            <button type="submit" disabled={activeChat.isFrozen || (activeChat.partnerIsBusy && currentUser?.role === 'client')} className="p-3 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-all shadow-md shadow-emerald-100/50 hover:shadow-lg hover:shadow-emerald-200/50 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed">
+                                            <button type="submit" disabled={activeChat.isFrozen || (activeChat.partnerIsBusy && currentUser?.role === 'client')} className="p-2.5 md:p-3 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-all shadow-md shadow-emerald-100/50 hover:shadow-lg hover:shadow-emerald-200/50 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed">
                                                 <Send className="w-4 h-4" />
                                             </button>
                                         </form>
