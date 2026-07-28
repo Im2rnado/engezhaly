@@ -431,7 +431,7 @@ export default function Home() {
         <div className="max-w-[95%] md:max-w-[90%] mx-auto px-4 md:px-6">
           <motion.div
             initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={fadeIn}
-            className="text-center md:text-left mb-12"
+            className="text-center md:text-start mb-12"
           >
             <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">{t.services.heading}</h2>
             <p className="text-gray-500 mt-3 text-lg font-medium">{t.services.subtext}</p>
@@ -708,7 +708,7 @@ export default function Home() {
                   <motion.div
                     variants={fadeIn}
                     key={job._id}
-                    className="bg-white border text-left border-gray-200 shadow-sm rounded-3xl p-8 hover:border-[#09BF44] transition-colors focus-within:ring-4 focus-within:ring-[#09BF44]/10 group"
+                    className="bg-white border text-start border-gray-200 shadow-sm rounded-3xl p-8 hover:border-[#09BF44] transition-colors focus-within:ring-4 focus-within:ring-[#09BF44]/10 group"
                   >
                     <div className="flex flex-col h-full min-w-0">
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-5 gap-4 min-w-0">

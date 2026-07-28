@@ -284,7 +284,7 @@ export default function DatePicker({
                 type="button"
                 disabled={disabled}
                 onClick={() => { if (!disabled) setOpen(!open); }}
-                className={`w-full p-4 bg-gray-50 rounded-xl border-2 text-left flex items-center justify-between transition-all outline-none font-medium
+                className={`w-full p-4 bg-gray-50 rounded-xl border-2 text-start flex items-center justify-between transition-all outline-none font-medium
                     ${open ? 'border-[#09BF44] bg-white' : 'border-transparent'}
                     ${disabled ? 'opacity-60 cursor-not-allowed' : 'hover:border-gray-200 cursor-pointer'}
                     ${value ? 'text-gray-900' : 'text-gray-400'}`}

@@ -370,9 +370,9 @@ export default function FreelancerWalletPage() {
                                 <table className="w-full">
                                     <thead className="bg-gray-50">
                                         <tr>
-                                            <th className="text-left p-4 text-xs font-bold text-gray-500 uppercase">Type</th>
-                                            <th className="text-left p-4 text-xs font-bold text-gray-500 uppercase">Amount</th>
-                                            <th className="text-left p-4 text-xs font-bold text-gray-500 uppercase">Date</th>
+                                            <th className="text-start p-4 text-xs font-bold text-gray-500 uppercase">Type</th>
+                                            <th className="text-start p-4 text-xs font-bold text-gray-500 uppercase">Amount</th>
+                                            <th className="text-start p-4 text-xs font-bold text-gray-500 uppercase">Date</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -408,10 +408,10 @@ export default function FreelancerWalletPage() {
                                 <table className="w-full">
                                     <thead className="bg-gray-50">
                                         <tr>
-                                            <th className="text-left p-4 text-xs font-bold text-gray-500 uppercase">Amount</th>
-                                            <th className="text-left p-4 text-xs font-bold text-gray-500 uppercase">Method</th>
-                                            <th className="text-left p-4 text-xs font-bold text-gray-500 uppercase">Status</th>
-                                            <th className="text-left p-4 text-xs font-bold text-gray-500 uppercase">Date</th>
+                                            <th className="text-start p-4 text-xs font-bold text-gray-500 uppercase">Amount</th>
+                                            <th className="text-start p-4 text-xs font-bold text-gray-500 uppercase">Method</th>
+                                            <th className="text-start p-4 text-xs font-bold text-gray-500 uppercase">Status</th>
+                                            <th className="text-start p-4 text-xs font-bold text-gray-500 uppercase">Date</th>
                                         </tr>
                                     </thead>
                                     <tbody>

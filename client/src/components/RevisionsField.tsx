@@ -129,7 +129,7 @@ export default function RevisionsField({
                                 <button
                                     type="button"
                                     role="option"
-                                    className="w-full text-left px-4 py-2.5 text-sm font-bold text-gray-900 hover:bg-gray-50"
+                                    className="w-full text-start px-4 py-2.5 text-sm font-bold text-gray-900 hover:bg-gray-50"
                                     onClick={pickUnlimited}
                                 >
                                     Unlimited
@@ -141,7 +141,7 @@ export default function RevisionsField({
                                 <button
                                     type="button"
                                     role="option"
-                                    className="w-full text-left px-4 py-2.5 text-sm font-bold text-gray-900 hover:bg-gray-50"
+                                    className="w-full text-start px-4 py-2.5 text-sm font-bold text-gray-900 hover:bg-gray-50"
                                     onClick={pickFixed}
                                 >
                                     Fixed number…

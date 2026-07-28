@@ -161,7 +161,7 @@ export default function HelpAndRulesPage() {
                             <div key={idx} className="border-b border-gray-100 last:border-0">
                                 <button
                                     onClick={() => setOpenFaqIdx(openFaqIdx === idx ? null : idx)}
-                                    className="w-full flex items-center justify-between p-4 md:p-6 text-left hover:bg-gray-50 transition-colors"
+                                    className="w-full flex items-center justify-between p-4 md:p-6 text-start hover:bg-gray-50 transition-colors"
                                 >
                                     <span className="font-bold text-gray-900 pr-4">{item.q}</span>
                                     <ChevronDown

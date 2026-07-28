@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
 import { useModal } from '@/context/ModalContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface FreelancerSidebarProps {
     user?: any;
@@ -21,6 +22,7 @@ interface FreelancerSidebarProps {
 export default function FreelancerSidebar({ user, profile, onToggleBusy, toggleBusyDisabled, activeTab, mobileOpen = false, onCloseMobile }: FreelancerSidebarProps) {
     const router = useRouter();
     const { showModal } = useModal();
+    const { lang, toggleLang } = useLanguage();
     const pathname = usePathname();
     const [orders, setOrders] = useState<any[]>([]);
     const [myJobs, setMyJobs] = useState<any[]>([]);
@@ -59,7 +61,7 @@ export default function FreelancerSidebar({ user, profile, onToggleBusy, toggleB
     }).length;
 
     return (
-        <div className={`w-72 bg-white border-r border-gray-200 flex flex-col fixed h-full z-40 shadow-sm transition-transform duration-300 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
+        <div className={`left-0 w-72 bg-white border-r border-gray-200 flex flex-col fixed h-full z-40 shadow-sm transition-transform duration-300 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
             <div className="px-8 py-4 border-b border-gray-100">
                 <div className="flex items-start justify-between">
                     <button
@@ -74,17 +76,27 @@ export default function FreelancerSidebar({ user, profile, onToggleBusy, toggleB
                             alt="Engezhaly"
                             width={300}
                             height={40}
-                            className="h-14 w-auto -ml-1"
+                            className="h-14 w-auto -ms-1"
                             priority
                         />
                     </button>
-                    <button
-                        onClick={onCloseMobile}
-                        className="md:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100"
-                        aria-label="Close sidebar"
-                    >
-                        <X className="w-5 h-5" />
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                        <button
+                            type="button"
+                            onClick={toggleLang}
+                            className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-black text-gray-600 hover:border-[#09BF44] hover:text-[#09BF44]"
+                            aria-label="Toggle language"
+                        >
+                            {lang === 'ar' ? 'EN' : 'AR'}
+                        </button>
+                        <button
+                            onClick={onCloseMobile}
+                            className="md:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100"
+                            aria-label="Close sidebar"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
                 </div>
                 <span className="text-xs font-bold text-gray-400 tracking-widest uppercase -mt-2 block">Freelancer Dashboard</span>
             </div>
@@ -113,7 +125,7 @@ export default function FreelancerSidebar({ user, profile, onToggleBusy, toggleB
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${isActive('/dashboard/freelancer/jobs') ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
                 >
                     <Briefcase className="w-5 h-5" /> Jobs Applied
-                    {activeJobsCount > 0 && <span className="ml-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{activeJobsCount}</span>}
+                    {activeJobsCount > 0 && <span className="ms-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{activeJobsCount}</span>}
                 </button>
                 <button
                     onClick={() => {
@@ -122,7 +134,7 @@ export default function FreelancerSidebar({ user, profile, onToggleBusy, toggleB
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'orders' || pathname?.startsWith('/dashboard/freelancer/orders') ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
                 >
                     <ShoppingBag className="w-5 h-5" /> Orders Received
-                    {activeOrdersCount > 0 && <span className="ml-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{activeOrdersCount}</span>}
+                    {activeOrdersCount > 0 && <span className="ms-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{activeOrdersCount}</span>}
                 </button>
                 <button
                     onClick={() => router.push('/dashboard/freelancer/wallet')}
@@ -139,7 +151,7 @@ export default function FreelancerSidebar({ user, profile, onToggleBusy, toggleB
                 >
                     <Megaphone className="w-5 h-5" /> Announcements
                     {unreadAnnouncements > 0 && (
-                        <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                        <span className="ms-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
                             {unreadAnnouncements > 99 ? '99+' : unreadAnnouncements}
                         </span>
                     )}
@@ -160,7 +172,7 @@ export default function FreelancerSidebar({ user, profile, onToggleBusy, toggleB
                 >
                     <MessageSquare className="w-5 h-5" /> Chats
                     {unreadChats > 0 && (
-                        <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">
+                        <span className="ms-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">
                             {unreadChats > 99 ? '99+' : unreadChats}
                         </span>
                     )}

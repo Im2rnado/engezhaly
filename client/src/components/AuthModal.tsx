@@ -7,7 +7,7 @@ import { X, User, Briefcase, ChevronRight, Loader2, Eye, EyeOff, Upload, X as XI
 import { api } from '@/lib/api';
 import { useModal } from '@/context/ModalContext';
 import { MAIN_CATEGORIES, CATEGORIES } from '@/lib/categories';
-import { PHONE_COUNTRIES, validatePhone, formatPhoneE164, getFlagEmoji } from '@/lib/phoneUtils';
+import { PHONE_COUNTRIES, validatePhone, formatPhoneE164, getFlagEmoji, getCountryDisplayName } from '@/lib/phoneUtils';
 import DatePicker from '@/components/DatePicker';
 import ImageCropModal from '@/components/ImageCropModal';
 import VimeoStarterOfferEmbed from '@/components/VimeoStarterOfferEmbed';
@@ -952,7 +952,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                     <div className="flex gap-2">
                                         <select name="phoneCountryCode" onChange={handleChange} value={formData.phoneCountryCode} className="w-48 shrink-0 p-2 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 text-sm">
                                             {PHONE_COUNTRIES.map((c) => (
-                                                <option key={c.code} value={c.code}>{getFlagEmoji(c.code)} {c.name} (+{c.callingCode})</option>
+                                                <option key={c.code} value={c.code}>{getFlagEmoji(c.code)} {getCountryDisplayName(c.code, lang)} (+{c.callingCode})</option>
                                             ))}
                                         </select>
                                         <input name="phoneNumber" type="tel" inputMode="numeric" autoComplete="tel-national" placeholder={formData.phoneCountryCode === 'EG' ? '01XXXXXXXXX' : copy.phone} required onChange={handleChange} value={formData.phoneNumber} className="flex-1 min-w-0 p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
@@ -1068,7 +1068,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                                     <div className="flex gap-2">
                                         <select name="phoneCountryCode" onChange={handleChange} value={formData.phoneCountryCode} className="w-48 shrink-0 p-2 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 text-sm">
                                             {PHONE_COUNTRIES.map((c) => (
-                                                <option key={c.code} value={c.code}>{getFlagEmoji(c.code)} {c.name} (+{c.callingCode})</option>
+                                                <option key={c.code} value={c.code}>{getFlagEmoji(c.code)} {getCountryDisplayName(c.code, lang)} (+{c.callingCode})</option>
                                             ))}
                                         </select>
                                         <input name="phoneNumber" type="tel" inputMode="numeric" autoComplete="tel-national" placeholder={formData.phoneCountryCode === 'EG' ? '01XXXXXXXXX' : 'Phone number'} required onChange={handleChange} value={formData.phoneNumber} className="flex-1 min-w-0 p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-[#09BF44] focus:bg-white outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400" />
@@ -1169,7 +1169,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                             <div className="py-3 md:py-4">
                                 <div className="flex items-center justify-between gap-3 mb-4">
                                     <Image src="/logos/logo-green.png" alt="Engezhaly" width={120} height={33} className="h-8 w-auto" priority />
-                                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors shrink-0 -m-2 ml-auto">
+                                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors shrink-0 -m-2 ms-auto">
                                         <X className="w-5 h-5 text-gray-500" />
                                     </button>
                                 </div>
@@ -1617,7 +1617,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                             <div className="py-3 md:py-4">
                                 <div className="flex items-center justify-between gap-3 mb-4">
                                     <Image src="/logos/logo-green.png" alt="Engezhaly" width={120} height={33} className="h-8 w-auto" priority />
-                                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors shrink-0 -m-2 ml-auto">
+                                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors shrink-0 -m-2 ms-auto">
                                         <X className="w-5 h-5 text-gray-500" />
                                     </button>
                                 </div>
@@ -1791,7 +1791,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                             <div className="py-3 md:py-4">
                                 <div className="flex items-center justify-between gap-3 mb-4">
                                     <Image src="/logos/logo-green.png" alt="Engezhaly" width={120} height={33} className="h-8 w-auto" priority />
-                                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors shrink-0 -m-2 ml-auto">
+                                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors shrink-0 -m-2 ms-auto">
                                         <X className="w-5 h-5 text-gray-500" />
                                     </button>
                                 </div>
@@ -1889,7 +1889,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                             <div className="py-3 md:py-4">
                                 <div className="flex items-center justify-between gap-3 mb-4">
                                     <Image src="/logos/logo-green.png" alt="Engezhaly" width={120} height={33} className="h-8 w-auto" priority />
-                                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors shrink-0 -m-2 ml-auto">
+                                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors shrink-0 -m-2 ms-auto">
                                         <X className="w-5 h-5 text-gray-500" />
                                     </button>
                                 </div>
@@ -1984,7 +1984,7 @@ export default function AuthModal({ isOpen, onClose, initialStep = 'role-selecti
                             <div className="py-3 md:py-4">
                                 <div className="flex items-center justify-between gap-3 mb-4">
                                     <Image src="/logos/logo-green.png" alt="Engezhaly" width={120} height={33} className="h-8 w-auto" priority />
-                                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors shrink-0 -m-2 ml-auto">
+                                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors shrink-0 -m-2 ms-auto">
                                         <X className="w-5 h-5 text-gray-500" />
                                     </button>
                                 </div>

@@ -584,7 +584,7 @@ export default function ProjectCard({ project, onEdit, showContactMe = false, ac
                                         >
                                             <button
                                                 onClick={() => handleOpenChat(project._id)}
-                                                className="w-full px-4 py-3 text-left hover:bg-[#09BF44]/5 flex items-center gap-3 transition-colors"
+                                                className="w-full px-4 py-3 text-start hover:bg-[#09BF44]/5 flex items-center gap-3 transition-colors"
                                             >
                                                 <MessageSquare className="w-5 h-5 text-[#09BF44]" />
                                                 <div>

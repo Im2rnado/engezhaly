@@ -166,7 +166,7 @@ export default function ClientJobViewForAdmin({ job, jobDeadline, router }: Prop
                                             )}
                                         </div>
                                     </div>
-                                    <div className="sm:text-right shrink-0">
+                                    <div className="sm:text-end shrink-0">
                                         <p className="text-xl md:text-2xl font-black text-[#09BF44] mb-1">{proposal.price} EGP</p>
                                         <p className="text-sm text-gray-500">{proposal.deliveryDays} days delivery</p>
                                         <p className="text-sm text-gray-500">

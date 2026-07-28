@@ -2,6 +2,8 @@
 
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { CheckCircle, AlertCircle, Info, Loader2 } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
+import { translateUiText } from '@/lib/arabicUi';
 
 type ModalType = 'success' | 'error' | 'info' | 'confirm';
 
@@ -24,6 +26,7 @@ interface ModalContextType {
 const ModalContext = createContext<ModalContextType | undefined>(undefined);
 
 export function ModalProvider({ children }: { children: ReactNode }) {
+    const { lang, isRTL } = useLanguage();
     const [isOpen, setIsOpen] = useState(false);
     const [redirectLoader, setRedirectLoader] = useState<string | null>(null);
     const [modalConfig, setModalConfig] = useState<ModalOptions>({ title: '', message: '' });
@@ -60,13 +63,13 @@ export function ModalProvider({ children }: { children: ReactNode }) {
         <ModalContext.Provider value={{ showModal, showRedirectLoader, hideModal }}>
             {children}
             {redirectLoader && (
-                <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-white/95 backdrop-blur-sm">
+                <div dir={isRTL ? 'rtl' : 'ltr'} className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-white/95 backdrop-blur-sm">
                     <Loader2 className="w-12 h-12 animate-spin text-[#09BF44] mb-4" />
-                    <p className="text-lg font-bold text-gray-900">{redirectLoader}</p>
+                    <p className="text-lg font-bold text-gray-900">{translateUiText(redirectLoader, lang)}</p>
                 </div>
             )}
             {isOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                <div dir={isRTL ? 'rtl' : 'ltr'} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full mx-4 transform transition-all scale-100 animate-in zoom-in-95 duration-200">
                         <div className="flex flex-col items-center text-center">
                             {modalConfig.type === 'success' && (
@@ -85,8 +88,8 @@ export function ModalProvider({ children }: { children: ReactNode }) {
                                 </div>
                             )}
 
-                            <h3 className="text-xl font-bold text-gray-900 mb-2">{modalConfig.title}</h3>
-                            <p className="text-gray-600 mb-6">{modalConfig.message}</p>
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">{translateUiText(modalConfig.title, lang)}</h3>
+                            <p className="text-gray-600 mb-6">{translateUiText(modalConfig.message, lang)}</p>
 
                             <div className="w-full flex gap-3">
                                 {modalConfig.type === 'confirm' ? (
@@ -95,13 +98,13 @@ export function ModalProvider({ children }: { children: ReactNode }) {
                                             onClick={handleCancel}
                                             className="flex-1 border-2 border-gray-200 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-50 transition-colors"
                                         >
-                                            {modalConfig.cancelText || 'Cancel'}
+                                            {translateUiText(modalConfig.cancelText || 'Cancel', lang)}
                                         </button>
                                         <button
                                             onClick={handleConfirm}
                                             className="flex-1 bg-[#09BF44] text-white font-bold py-3 rounded-xl hover:bg-[#07a63a] transition-colors"
                                         >
-                                            {modalConfig.confirmText || 'Confirm'}
+                                            {translateUiText(modalConfig.confirmText || 'Confirm', lang)}
                                         </button>
                                     </>
                                 ) : (
@@ -109,7 +112,7 @@ export function ModalProvider({ children }: { children: ReactNode }) {
                                         onClick={handleConfirm}
                                         className="w-full bg-[#09BF44] text-white font-bold py-3 rounded-xl hover:bg-[#07a63a] transition-colors"
                                     >
-                                        OK
+                                        {lang === 'ar' ? 'حسناً' : 'OK'}
                                     </button>
                                 )}
                             </div>

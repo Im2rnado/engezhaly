@@ -9,6 +9,7 @@ import { formatStatus, formatDateDDMMYYYY, formatRevisionsLabel, getOrderDeliver
 import { Check, X, Ban, User, Flag, MessageSquare, Award, BarChart3, TrendingUp, Search, Loader2, Briefcase, FileText, ShoppingBag, CreditCard, Trash2, Star, Edit, LogOut, ArrowLeft, Send, Shield, PanelLeft, Mail, Video, ArrowDownToLine, Smartphone, Megaphone, ImagePlus, AlertTriangle, UserPlus, CheckCircle, XCircle, ExternalLink } from 'lucide-react';
 import { MAIN_CATEGORIES } from '@/lib/categories';
 import { useModal } from '@/context/ModalContext';
+import { useLanguage } from '@/context/LanguageContext';
 import EditModal from '@/components/EditModal';
 import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 import CountdownTimer from '@/components/CountdownTimer';
@@ -224,7 +225,7 @@ function AdminChatMergedFeed({ messages, offers, selectedChat }: { messages: any
                                 <div className="flex items-center gap-2 mb-2 w-full min-w-0">
                                     <FileText className="w-5 h-5 shrink-0 text-[#09BF44]" />
                                     <span className="font-bold text-base text-gray-900 truncate">Custom offer</span>
-                                    <div className="ml-auto flex items-center gap-1 shrink-0">
+                                    <div className="ms-auto flex items-center gap-1 shrink-0">
                                         {offer.status === 'accepted' && <CheckCircle className="w-5 h-5 text-green-600" />}
                                         {offer.status === 'rejected' && <XCircle className="w-5 h-5 text-red-600" />}
                                         {offer.status === 'pending' && (
@@ -242,7 +243,7 @@ function AdminChatMergedFeed({ messages, offers, selectedChat }: { messages: any
                                     </div>
                                     <div className="flex items-center justify-between gap-2 min-w-0">
                                         <span className="text-sm font-bold shrink-0">Delivery:</span>
-                                        <span className="text-sm font-medium text-right break-words [overflow-wrap:anywhere]">
+                                        <span className="text-sm font-medium text-end break-words [overflow-wrap:anywhere]">
                                             {offer.deliveryDate ? formatDateDDMMYYYY(offer.deliveryDate) : (offer.deliveryDays ? `${offer.deliveryDays} days` : '—')}
                                         </span>
                                     </div>
@@ -654,6 +655,7 @@ function UserDetailPanel({ user, onBack, onEdit, onDelete, onRefresh }: { user: 
 
 export default function AdminDashboard() {
     const { showModal, hideModal } = useModal();
+    const { lang, toggleLang } = useLanguage();
     const router = useRouter();
     const [activeTab, setActiveTab] = useState<'dashboard' | 'approvals' | 'users' | 'projects' | 'jobs' | 'orders' | 'disputes' | 'finance' | 'withdrawals' | 'instapay' | 'chats' | 'strikes' | 'rewards' | 'emails' | 'announcements'>('dashboard');
 
@@ -1690,7 +1692,7 @@ export default function AdminDashboard() {
     return (
         <div className="min-h-screen bg-gray-50 flex font-sans text-gray-900">
             {/* Sidebar */}
-            <div className={`w-72 bg-white border-r border-gray-200 flex flex-col fixed h-full z-40 shadow-sm transition-transform duration-300 ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
+            <div className={`left-0 w-72 bg-white border-r border-gray-200 flex flex-col fixed h-full z-40 shadow-sm transition-transform duration-300 ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
                 <div className="px-8 py-4 border-b border-gray-100">
                     <div className="flex items-start justify-between">
                         <button
@@ -1702,17 +1704,27 @@ export default function AdminDashboard() {
                                 alt="Engezhaly"
                                 width={200}
                                 height={55}
-                                className="h-14 -ml-1 w-auto"
+                                className="h-14 -ms-1 w-auto"
                                 priority
                             />
                         </button>
-                        <button
-                            onClick={() => setMobileSidebarOpen(false)}
-                            className="md:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100"
-                            aria-label="Close sidebar"
-                        >
-                            <X className="w-5 h-5" />
-                        </button>
+                        <div className="flex items-center gap-1">
+                            <button
+                                type="button"
+                                onClick={toggleLang}
+                                className="rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-black text-gray-600 transition-colors hover:border-[#09BF44] hover:text-[#09BF44]"
+                                aria-label={lang === 'ar' ? 'Switch to English' : 'التبديل إلى العربية'}
+                            >
+                                {lang === 'ar' ? 'EN' : 'AR'}
+                            </button>
+                            <button
+                                onClick={() => setMobileSidebarOpen(false)}
+                                className="md:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100"
+                                aria-label="Close sidebar"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
                     </div>
                     <span className="text-xs font-bold text-gray-400 tracking-widest uppercase -mt-2 block">Admin Dashboard</span>
                 </div>
@@ -1723,45 +1735,45 @@ export default function AdminDashboard() {
                     </button>
                     <button onClick={() => setActiveTab('users')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'users' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <User className="w-5 h-5" /> Users
-                        {newUsersCount > 0 && <span className="ml-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{newUsersCount}</span>}
+                        {newUsersCount > 0 && <span className="ms-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{newUsersCount}</span>}
                     </button>
                     <button onClick={() => setActiveTab('projects')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'projects' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <Briefcase className="w-5 h-5" /> Offers
-                        {newProjectsCount > 0 && <span className="ml-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{newProjectsCount}</span>}
+                        {newProjectsCount > 0 && <span className="ms-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{newProjectsCount}</span>}
                     </button>
                     <button onClick={() => setActiveTab('jobs')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'jobs' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <FileText className="w-5 h-5" /> Posted jobs
-                        {activePostedJobsCount > 0 && <span className="ml-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{activePostedJobsCount}</span>}
+                        {activePostedJobsCount > 0 && <span className="ms-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{activePostedJobsCount}</span>}
                     </button>
                     <button onClick={() => setActiveTab('orders')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'orders' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <ShoppingBag className="w-5 h-5" /> Orders
-                        {activeAdminOrdersCount > 0 && <span className="ml-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{activeAdminOrdersCount}</span>}
+                        {activeAdminOrdersCount > 0 && <span className="ms-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{activeAdminOrdersCount}</span>}
                     </button>
                     <button onClick={() => setActiveTab('disputes')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'disputes' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <AlertTriangle className="w-5 h-5" /> Disputes
-                        {newDisputesCount > 0 && <span className="ml-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{newDisputesCount}</span>}
+                        {newDisputesCount > 0 && <span className="ms-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{newDisputesCount}</span>}
                     </button>
                     <button onClick={() => setActiveTab('finance')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'finance' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <CreditCard className="w-5 h-5" /> Finance
-                        {newFinanceCount > 0 && <span className="ml-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{newFinanceCount}</span>}
+                        {newFinanceCount > 0 && <span className="ms-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{newFinanceCount}</span>}
                     </button>
                     <button onClick={() => setActiveTab('withdrawals')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'withdrawals' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <ArrowDownToLine className="w-5 h-5" /> Withdrawals
-                        {newWithdrawalsCount > 0 && <span className="ml-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{newWithdrawalsCount}</span>}
+                        {newWithdrawalsCount > 0 && <span className="ms-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{newWithdrawalsCount}</span>}
                     </button>
                     <button onClick={() => setActiveTab('instapay')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'instapay' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <Smartphone className="w-5 h-5" /> InstaPay Pending
-                        {newInstapayCount > 0 && <span className="ml-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{newInstapayCount}</span>}
+                        {newInstapayCount > 0 && <span className="ms-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{newInstapayCount}</span>}
                     </button>
                     <div className="h-px bg-gray-100 my-2"></div>
                     <button onClick={() => setActiveTab('approvals')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'approvals' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <Check className="w-5 h-5" /> Approvals
-                        {pendingFreelancers.length > 0 && <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{pendingFreelancers.length}</span>}
+                        {pendingFreelancers.length > 0 && <span className="ms-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{pendingFreelancers.length}</span>}
                     </button>
                     <button onClick={() => setActiveTab('chats')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'chats' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <MessageSquare className="w-5 h-5" /> Chats
                         {adminChatsUnreadCount > 0 ? (
-                            <span className="ml-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{adminChatsUnreadCount}</span>
+                            <span className="ms-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{adminChatsUnreadCount}</span>
                         ) : null}
                     </button>
                     <button onClick={() => setActiveTab('announcements')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'announcements' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
@@ -1775,7 +1787,7 @@ export default function AdminDashboard() {
                     </button>
                     <button onClick={() => setActiveTab('emails')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'emails' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <Mail className="w-5 h-5" /> Email Logs
-                        {newEmailLogsCount > 0 && <span className="ml-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{newEmailLogsCount}</span>}
+                        {newEmailLogsCount > 0 && <span className="ms-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{newEmailLogsCount}</span>}
                     </button>
                 </nav>
 
@@ -1900,7 +1912,7 @@ export default function AdminDashboard() {
                                                     <div
                                                         key={user._id}
                                                         onClick={() => handleSelectUser(user)}
-                                                        className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${selectedUser?._id === user._id ? 'bg-[#09BF44]/10 border-l-4 border-[#09BF44]' : ''}`}
+                                                        className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${selectedUser?._id === user._id ? 'bg-[#09BF44]/10 border-s-4 border-[#09BF44]' : ''}`}
                                                     >
                                                         <div className="flex items-start gap-3">
                                                             <AdminAvatarWithPresence
@@ -1947,7 +1959,7 @@ export default function AdminDashboard() {
                                                     <div
                                                         key={user._id}
                                                         onClick={() => handleSelectUser(user)}
-                                                        className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${selectedUser?._id === user._id ? 'bg-[#09BF44]/10 border-l-4 border-[#09BF44]' : ''}`}
+                                                        className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${selectedUser?._id === user._id ? 'bg-[#09BF44]/10 border-s-4 border-[#09BF44]' : ''}`}
                                                     >
                                                         <div className="flex items-start gap-3">
                                                             <AdminAvatarWithPresence
@@ -2003,7 +2015,7 @@ export default function AdminDashboard() {
                             </label>
                         </div>
                         <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
+                            <table className="w-full text-sm text-start">
                                 <thead className="bg-gray-50 text-gray-500 font-bold uppercase">
                                     <tr>
                                         <th className="p-4">Type</th>
@@ -2057,7 +2069,7 @@ export default function AdminDashboard() {
                                         key={project._id}
                                         type="button"
                                         onClick={() => setManagementDetail({ kind: 'project', item: project })}
-                                        className="text-left bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:border-[#09BF44]/50 hover:shadow-md transition-all"
+                                        className="text-start bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:border-[#09BF44]/50 hover:shadow-md transition-all"
                                     >
                                         <h3 className="font-black text-gray-900 mb-2 line-clamp-2">{project.title}</h3>
                                         <p className="text-sm text-gray-600">{project.sellerId?.firstName} {project.sellerId?.lastName}</p>
@@ -2200,7 +2212,7 @@ export default function AdminDashboard() {
                                         key={job._id}
                                         type="button"
                                         onClick={() => setManagementDetail({ kind: 'job', item: job })}
-                                        className="text-left bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:border-[#09BF44]/50 hover:shadow-md transition-all w-full"
+                                        className="text-start bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:border-[#09BF44]/50 hover:shadow-md transition-all w-full"
                                     >
                                         <span
                                             className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${job.status === 'open'
@@ -2329,7 +2341,7 @@ export default function AdminDashboard() {
                                         key={order._id}
                                         type="button"
                                         onClick={() => setManagementDetail({ kind: 'order', item: order })}
-                                        className="text-left bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:border-[#09BF44]/50 hover:shadow-md transition-all"
+                                        className="text-start bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:border-[#09BF44]/50 hover:shadow-md transition-all"
                                     >
                                         <p className="text-xs text-gray-400 font-mono">#{order.orderNumber ?? String(order._id || '').slice(-6)}</p>
                                         <h3 className="font-black text-gray-900 mt-1 line-clamp-2">
@@ -2578,7 +2590,7 @@ export default function AdminDashboard() {
                                                 </div>
                                                 <div className="bg-gray-50 rounded-xl p-4">
                                                     <p className="text-xs font-bold text-gray-400 uppercase">Freelancer</p>
-                                                    <button type="button" onClick={() => router.push(`/freelancer/${order.sellerId?._id || order.sellerId}`)} className="flex items-center gap-3 mt-1 text-left w-full hover:opacity-90">
+                                                    <button type="button" onClick={() => router.push(`/freelancer/${order.sellerId?._id || order.sellerId}`)} className="flex items-center gap-3 mt-1 text-start w-full hover:opacity-90">
                                                         {order.sellerId?.freelancerProfile?.profilePicture ? (
                                                             <Image src={resolveMediaUrl(order.sellerId.freelancerProfile.profilePicture)} alt="" width={40} height={40} className="rounded-full object-cover" unoptimized />
                                                         ) : (
@@ -2705,7 +2717,7 @@ export default function AdminDashboard() {
                                         key={d._id}
                                         type="button"
                                         onClick={() => setSelectedDispute(d)}
-                                        className="text-left bg-white rounded-2xl border border-amber-200 shadow-sm p-5 hover:border-amber-400 hover:shadow-md transition-all"
+                                        className="text-start bg-white rounded-2xl border border-amber-200 shadow-sm p-5 hover:border-amber-400 hover:shadow-md transition-all"
                                     >
                                         <div className="flex items-center gap-2 text-amber-700 font-bold text-sm mb-2">
                                             <AlertTriangle className="w-4 h-4" /> Disputed order
@@ -2750,7 +2762,7 @@ export default function AdminDashboard() {
                                         <button
                                             type="button"
                                             onClick={() => openBuyerFromDisputeInUsersTab(selectedDispute.buyerId)}
-                                            className="mt-1 flex items-center gap-3 text-left w-full rounded-xl hover:bg-gray-100/80 p-2 -m-2 transition-colors"
+                                            className="mt-1 flex items-center gap-3 text-start w-full rounded-xl hover:bg-gray-100/80 p-2 -m-2 transition-colors"
                                         >
                                             {selectedDispute.buyerId?.clientProfile?.profilePicture ? (
                                                 <Image
@@ -2780,7 +2792,7 @@ export default function AdminDashboard() {
                                     </div>
                                     <div className="bg-gray-50 rounded-xl p-4">
                                         <p className="text-xs font-bold text-gray-400 uppercase">Freelancer</p>
-                                        <button type="button" onClick={() => router.push(`/freelancer/${selectedDispute.sellerId?._id || selectedDispute.sellerId}`)} className="flex items-center gap-3 mt-1 text-left w-full hover:opacity-90">
+                                        <button type="button" onClick={() => router.push(`/freelancer/${selectedDispute.sellerId?._id || selectedDispute.sellerId}`)} className="flex items-center gap-3 mt-1 text-start w-full hover:opacity-90">
                                             {selectedDispute.sellerId?.freelancerProfile?.profilePicture ? (
                                                 <Image src={resolveMediaUrl(selectedDispute.sellerId.freelancerProfile.profilePicture)} alt="" width={44} height={44} className="rounded-full object-cover" unoptimized />
                                             ) : (
@@ -2893,7 +2905,7 @@ export default function AdminDashboard() {
                             <p className="text-sm text-gray-500 mt-1">Complete or reject pending withdrawals. Rejected requests refund the freelancer.</p>
                         </div>
                         <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
+                            <table className="w-full text-sm text-start">
                                 <thead className="bg-gray-50 text-gray-500 font-bold uppercase">
                                     <tr>
                                         <th className="p-4">Freelancer</th>
@@ -2989,7 +3001,7 @@ export default function AdminDashboard() {
                             <p className="text-sm text-gray-500 mt-1">Review and approve/deny InstaPay payment screenshots.</p>
                         </div>
                         <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
+                            <table className="w-full text-sm text-start">
                                 <thead className="bg-gray-50 text-gray-500 font-bold uppercase">
                                     <tr>
                                         <th className="p-4">User</th>
@@ -3087,7 +3099,7 @@ export default function AdminDashboard() {
                 {activeTab === 'emails' && (
                     <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
                         <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
+                            <table className="w-full text-sm text-start">
                                 <thead className="bg-gray-50 text-gray-500 font-bold uppercase">
                                     <tr>
                                         <th className="p-4">Recipient</th>
@@ -3336,7 +3348,7 @@ export default function AdminDashboard() {
                                                             {f.freelancerProfile?.isStudent && (
                                                                 <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">STUDENT</span>
                                                             )}
-                                                            <span className="text-xs font-bold text-gray-400 ml-auto">Click to review →</span>
+                                                            <span className="text-xs font-bold text-gray-400 ms-auto">Click to review →</span>
                                                         </div>
                                                     </div>
                                                 ))}
@@ -4084,7 +4096,7 @@ export default function AdminDashboard() {
                                                     setSearchResult(u);
                                                     setStrikeSearchMatches([]);
                                                 }}
-                                                className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors"
+                                                className="w-full text-start px-4 py-3 hover:bg-gray-50 transition-colors"
                                             >
                                                 <p className="font-bold text-gray-900">
                                                     {u.firstName} {u.lastName}

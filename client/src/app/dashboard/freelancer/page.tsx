@@ -358,7 +358,7 @@ function FreelancerDashboardContent() {
                                                             </div>
                                                         )}
                                                     </div>
-                                                    <div className="text-right">
+                                                    <div className="text-end">
                                                         <p className="font-black text-gray-900">{order.amount} EGP</p>
                                                         <span className={`px-2 py-1 rounded text-xs font-bold ${order.status === 'completed' ? 'bg-green-100 text-green-700' : order.status === 'active' ? 'bg-blue-100 text-blue-700' : order.status === 'pending_approval' || order.status === 'pending_payment' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
                                                             {formatStatus(order.status)}
@@ -469,7 +469,7 @@ function FreelancerDashboardContent() {
                         <button
                             type="button"
                             onClick={() => router.push(`/dashboard/freelancer/orders/${order._id}`)}
-                            className="w-full text-left bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:border-[#09BF44]/40 hover:shadow-md transition-all"
+                            className="w-full text-start bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:border-[#09BF44]/40 hover:shadow-md transition-all"
                         >
                             <div className="flex items-start justify-between gap-3 mb-2">
                                 <div className="min-w-0">
@@ -483,7 +483,7 @@ function FreelancerDashboardContent() {
                                         </div>
                                     )}
                                 </div>
-                                <div className="text-right shrink-0">
+                                <div className="text-end shrink-0">
                                     <p className="text-lg font-black text-gray-900">{order.amount} EGP</p>
                                     <span className={`inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${orderStatusBadgeClassForParty(order.status)}`}>
                                         {formatOrderStatusForParty(order.status)}

@@ -256,7 +256,7 @@ export default function FreelancerOrderDetailPage() {
                                     Client: {order.buyerId?.firstName} {order.buyerId?.lastName}
                                 </p>
                             </div>
-                            <div className="text-right">
+                            <div className="text-end">
                                 <p className="text-2xl font-black text-gray-900">{order.amount} EGP</p>
                                 <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-bold ${orderStatusBadgeClassForParty(order.status)}`}>
                                     {formatOrderStatusForParty(order.status)}

@@ -43,7 +43,7 @@ function LinkPreviewCard({ url, isMyMsg }: { url: string; isMyMsg: boolean }) {
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className={`flex flex-col gap-1 mt-2 p-3 rounded-xl border transition-all duration-200 hover:scale-[1.01] text-left block no-underline ${
+            className={`flex flex-col gap-1 mt-2 p-3 rounded-xl border transition-all duration-200 hover:scale-[1.01] text-start block no-underline ${
                 isMyMsg
                     ? 'bg-emerald-900/45 border-emerald-600/30 text-white hover:bg-emerald-900/60'
                     : 'bg-white border-gray-200/80 text-gray-900 hover:bg-gray-50'
@@ -1983,7 +1983,7 @@ function ChatPageContent() {
                                                         </div>
                                                         <div className="flex items-center justify-between gap-2 min-w-0">
                                                             <span className="text-sm font-bold shrink-0">Delivery:</span>
-                                                                <span className="text-sm font-medium text-right break-words [overflow-wrap:anywhere]">
+                                                                <span className="text-sm font-medium text-end break-words [overflow-wrap:anywhere]">
                                                                     {offer.deliveryDate ? formatDateDDMMYYYY(offer.deliveryDate) : (offer.deliveryDays ? `${offer.deliveryDays} days` : '—')}
                                                                 </span>
                                                         </div>

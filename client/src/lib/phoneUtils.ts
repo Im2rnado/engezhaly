@@ -12,6 +12,18 @@ function getCountryName(code: string): string {
   }
 }
 
+/** Localized country label for language-aware selectors. */
+export function getCountryDisplayName(code: string, locale: 'en' | 'ar' = 'en'): string {
+  try {
+    if (typeof Intl !== 'undefined' && Intl.DisplayNames) {
+      return new Intl.DisplayNames([locale], { type: 'region' }).of(code) || getCountryName(code);
+    }
+  } catch {
+    // Fall back to the stable English country name when locale data is unavailable.
+  }
+  return getCountryName(code);
+}
+
 /** Returns flag emoji from ISO country code (e.g. EG -> 🇪🇬) */
 export function getFlagEmoji(countryCode: string): string {
   if (!countryCode || countryCode.length !== 2) return '';

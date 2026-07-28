@@ -119,7 +119,7 @@ export default function ProjectCardCompact({ project }: ProjectCardCompactProps)
                             {project.title}
                         </h3>
                         <div className="flex items-center justify-between gap-2 mt-0.5 min-w-0 w-full">
-                            <span className="text-xs text-gray-500 truncate min-w-0 flex-1 text-left">{freelancerName}</span>
+                            <span className="text-xs text-gray-500 truncate min-w-0 flex-1 text-start">{freelancerName}</span>
                             {languageTags.length > 0 && (
                                 <div className="flex flex-wrap justify-end gap-1 shrink-0">
                                     {Array.from(new Set(languageTags)).map((tag) => (
@@ -166,7 +166,7 @@ export default function ProjectCardCompact({ project }: ProjectCardCompactProps)
                                 : 'New'}
                         </span>
                     </div>
-                    <div className="text-right">
+                    <div className="text-end">
                         <p className="text-xs text-gray-500">Starts From</p>
                         <p className="text-lg font-black text-[#09BF44]">{lowestPrice} EGP</p>
                     </div>

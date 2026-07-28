@@ -197,7 +197,7 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder, showCategories =
                         >
                             <Image src="/logos/logo-green.png" alt="Engezhaly" width={170} height={42} className="w-24 sm:w-28 h-auto" priority />
                         </button>
-                        <div className="ml-auto flex justify-end items-center gap-1.5">
+                        <div className="ms-auto flex justify-end items-center gap-1.5">
                             {user ? (
                                 <button
                                     onClick={() => router.push(getDashboardPath())}
@@ -243,7 +243,7 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder, showCategories =
                                                     setShowAutofill(false);
                                                     performSearch(suggestion);
                                                 }}
-                                                className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-[#09BF44]/10 hover:text-[#09BF44] transition-colors first:rounded-t-lg last:rounded-b-lg"
+                                                className="w-full text-start px-4 py-2.5 text-sm text-gray-700 hover:bg-[#09BF44]/10 hover:text-[#09BF44] transition-colors first:rounded-t-lg last:rounded-b-lg"
                                             >
                                                 {suggestion}
                                             </button>
@@ -294,7 +294,7 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder, showCategories =
                                                     setSearchType('projects');
                                                     setShowSearchDropdown(false);
                                                 }}
-                                                className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${searchType === 'projects' ? 'bg-[#09BF44]/10 text-[#09BF44]' : 'text-gray-700 hover:bg-[#09BF44]/5'}`}
+                                                className={`w-full text-start px-4 py-2 text-sm font-medium transition-colors ${searchType === 'projects' ? 'bg-[#09BF44]/10 text-[#09BF44]' : 'text-gray-700 hover:bg-[#09BF44]/5'}`}
                                             >
                                                 {t.search.findFreelancer}
                                             </button>
@@ -304,7 +304,7 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder, showCategories =
                                                     setSearchType('jobs');
                                                     setShowSearchDropdown(false);
                                                 }}
-                                                className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors border-t border-gray-100 ${searchType === 'jobs' ? 'bg-[#09BF44]/10 text-[#09BF44]' : 'text-gray-700 hover:bg-[#09BF44]/5'}`}
+                                                className={`w-full text-start px-4 py-2 text-sm font-medium transition-colors border-t border-gray-100 ${searchType === 'jobs' ? 'bg-[#09BF44]/10 text-[#09BF44]' : 'text-gray-700 hover:bg-[#09BF44]/5'}`}
                                             >
                                                 {t.search.searchJobs2}
                                             </button>
@@ -343,7 +343,7 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder, showCategories =
                                                     setShowAutofill(false);
                                                     performSearch(suggestion);
                                                 }}
-                                                className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-[#09BF44]/10 hover:text-[#09BF44] transition-colors first:rounded-t-lg last:rounded-b-lg"
+                                                className="w-full text-start px-4 py-2.5 text-sm text-gray-700 hover:bg-[#09BF44]/10 hover:text-[#09BF44] transition-colors first:rounded-t-lg last:rounded-b-lg"
                                             >
                                                 {suggestion}
                                             </button>
@@ -448,14 +448,14 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder, showCategories =
                 {mobileMenuOpen && (
                     <div className="md:hidden border-t border-gray-100 bg-white">
                         <div className="max-w-[95%] mx-auto px-3 py-3 space-y-2">
-                            <button onClick={() => { router.push('/offers'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-[#09BF44]/5">{t.nav.findFreelancer}</button>
-                            <button onClick={() => { router.push('/jobs'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-[#09BF44]/5">{t.nav.browseJobs}</button>
-                            <button onClick={() => { router.push('/help-and-rules'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-[#09BF44]/5">{t.nav.howItWorks}</button>
+                            <button onClick={() => { router.push('/offers'); setMobileMenuOpen(false); }} className="w-full text-start px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-[#09BF44]/5">{t.nav.findFreelancer}</button>
+                            <button onClick={() => { router.push('/jobs'); setMobileMenuOpen(false); }} className="w-full text-start px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-[#09BF44]/5">{t.nav.browseJobs}</button>
+                            <button onClick={() => { router.push('/help-and-rules'); setMobileMenuOpen(false); }} className="w-full text-start px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-[#09BF44]/5">{t.nav.howItWorks}</button>
                             {user?.role === 'client' && (
-                                <button onClick={() => { router.push('/dashboard/client/jobs/create'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-[#09BF44]/5">{t.nav.postJob}</button>
+                                <button onClick={() => { router.push('/dashboard/client/jobs/create'); setMobileMenuOpen(false); }} className="w-full text-start px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-[#09BF44]/5">{t.nav.postJob}</button>
                             )}
                             {user?.role === 'freelancer' && (
-                                <button onClick={() => { router.push('/dashboard/freelancer/offers/create'); setMobileMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-[#09BF44]/5">{t.nav.createOffer}</button>
+                                <button onClick={() => { router.push('/dashboard/freelancer/offers/create'); setMobileMenuOpen(false); }} className="w-full text-start px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-[#09BF44]/5">{t.nav.createOffer}</button>
                             )}
                             {!user && (
                                 <div className="flex gap-2 pt-1">
@@ -519,7 +519,7 @@ function MainHeaderContent({ user, onSearch, searchPlaceholder, showCategories =
                                                     <button
                                                         key={subCategory}
                                                         onClick={() => handleSubCategoryClick(subCategory)}
-                                                        className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${selectedSubCategory === subCategory
+                                                        className={`w-full text-start px-4 py-2 text-sm font-medium transition-colors ${selectedSubCategory === subCategory
                                                             ? 'bg-[#09BF44]/10 text-[#09BF44]'
                                                             : 'text-gray-700 hover:bg-[#09BF44]/5'
                                                             }`}

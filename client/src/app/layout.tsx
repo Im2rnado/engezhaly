@@ -6,6 +6,7 @@ import LandingFooterWrapper from "@/components/LandingFooterWrapper";
 import { ModalProvider } from "@/context/ModalContext";
 import { LanguageProvider } from "@/context/LanguageContext";
 import Script from "next/script";
+import ArabicUiTranslator from "@/components/ArabicUiTranslator";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -56,6 +57,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased text-[#333333] bg-white`}>
         <LanguageProvider>
+          <ArabicUiTranslator />
           <ModalProvider>
             {/* <PasswordGate> */}
               {children}

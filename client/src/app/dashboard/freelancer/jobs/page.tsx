@@ -271,7 +271,7 @@ export default function MyJobsPage() {
                                                 </p>
                                                 <p className="text-gray-600 mt-2 line-clamp-2">{job.description}</p>
                                             </div>
-                                            <div className="text-right shrink-0">
+                                            <div className="text-end shrink-0">
                                                 <span
                                                     className={`text-xs font-bold px-3 py-1 rounded-full ${
                                                         myProposal?.status === 'accepted'
@@ -376,7 +376,7 @@ export default function MyJobsPage() {
                                             <button
                                                 type="button"
                                                 onClick={() => router.push(`/dashboard/freelancer/jobs/${job._id}`)}
-                                                className="w-full sm:w-auto text-left sm:text-center bg-white border-2 border-[#09BF44]/30 text-[#09BF44] font-bold px-4 py-2.5 rounded-xl hover:bg-[#09BF44]/5 transition-colors flex items-center justify-center gap-2"
+                                                className="w-full sm:w-auto text-start sm:text-center bg-white border-2 border-[#09BF44]/30 text-[#09BF44] font-bold px-4 py-2.5 rounded-xl hover:bg-[#09BF44]/5 transition-colors flex items-center justify-center gap-2"
                                             >
                                                 View details <ArrowRight className="w-4 h-4" />
                                             </button>

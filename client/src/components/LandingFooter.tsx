@@ -49,14 +49,14 @@ export default function LandingFooter() {
                         </a>
                     </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-0 items-center text-center md:text-left pt-4">
-                    <div className="md:text-left">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-0 items-center text-center md:text-start pt-4">
+                    <div className="md:text-start">
                         <p className="text-sm text-gray-600">
                             © {year} Engezhaly.
                         </p>
                     </div>
                     <div className="hidden md:block" />
-                    <div className="md:text-right">
+                    <div className="md:text-end">
                         <a
                             href="https://www.webicco.studio"
                             target="_blank"

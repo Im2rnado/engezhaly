@@ -147,16 +147,16 @@ export default function ClientProfileEditModal({ isOpen, onClose, profile, onSav
                                 )}
                             </button>
                             <div className="flex flex-col gap-2 text-sm">
-                                <button type="button" onClick={() => pfpInputRef.current?.click()} className="font-bold text-[#09BF44] hover:underline text-left">
+                                <button type="button" onClick={() => pfpInputRef.current?.click()} className="font-bold text-[#09BF44] hover:underline text-start">
                                     {formData.profilePicture ? 'Change photo' : 'Upload photo'}
                                 </button>
                                 {formData.profilePicture && (
-                                    <button type="button" onClick={openAdjustExistingPhoto} className="font-bold text-gray-600 hover:underline text-left">
+                                    <button type="button" onClick={openAdjustExistingPhoto} className="font-bold text-gray-600 hover:underline text-start">
                                         Resize / crop
                                     </button>
                                 )}
                                 {formData.profilePicture && !pfpUploading && (
-                                    <button type="button" onClick={() => setFormData((p) => ({ ...p, profilePicture: '' }))} className="text-red-600 font-bold hover:underline text-left">
+                                    <button type="button" onClick={() => setFormData((p) => ({ ...p, profilePicture: '' }))} className="text-red-600 font-bold hover:underline text-start">
                                         Remove
                                     </button>
                                 )}

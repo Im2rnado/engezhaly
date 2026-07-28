@@ -355,7 +355,7 @@ function ClientDashboardContent() {
                                                             </div>
                                                         )}
                                                     </div>
-                                                    <div className="text-right">
+                                                    <div className="text-end">
                                                         <p className="font-black text-gray-900">{order.amount} EGP</p>
                                                         <span className={`inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${orderStatusBadgeClassForParty(order.status)}`}>
                                                             {formatOrderStatusForParty(order.status)}
@@ -394,7 +394,7 @@ function ClientDashboardContent() {
                                     <button
                                         type="button"
                                         onClick={() => router.push(`/dashboard/client/jobs/${job._id}`)}
-                                        className="w-full text-left text-xl font-bold text-gray-900 hover:text-[#09BF44] transition-colors break-words [overflow-wrap:anywhere]"
+                                        className="w-full text-start text-xl font-bold text-gray-900 hover:text-[#09BF44] transition-colors break-words [overflow-wrap:anywhere]"
                                     >
                                         {job.title}
                                     </button>
@@ -531,7 +531,7 @@ function ClientDashboardContent() {
                                     router.push(`/dashboard/client/orders/${order._id}`);
                                 }
                             }}
-                            className="w-full bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:border-[#09BF44]/40 hover:shadow-md transition-all min-w-0 max-w-full text-left cursor-pointer"
+                            className="w-full bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:border-[#09BF44]/40 hover:shadow-md transition-all min-w-0 max-w-full text-start cursor-pointer"
                         >
                             <div className="flex items-start justify-between gap-3 mb-2">
                                 <div className="min-w-0 flex-1">
@@ -551,7 +551,7 @@ function ClientDashboardContent() {
                                         </div>
                                     )}
                                 </div>
-                                <div className="text-right shrink-0">
+                                <div className="text-end shrink-0">
                                     <p className="text-lg font-black text-gray-900">{order.amount} EGP</p>
                                     <span className={`inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${orderStatusBadgeClassForParty(order.status)}`}>
                                         {formatOrderStatusForParty(order.status)}

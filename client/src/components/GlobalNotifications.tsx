@@ -77,7 +77,7 @@ export default function GlobalNotifications() {
     if (toasts.length === 0) return null;
 
     return (
-        <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 items-end pointer-events-none max-w-[calc(100vw-2rem)]">
+        <div className="fixed bottom-4 end-4 z-50 flex flex-col gap-2 items-end pointer-events-none max-w-[calc(100vw-2rem)]">
             {toasts.map(toast => (
                 <div
                     key={toast.id}
@@ -85,7 +85,7 @@ export default function GlobalNotifications() {
                     tabIndex={0}
                     onClick={() => handleToastClick(toast)}
                     onKeyDown={(e) => e.key === 'Enter' && handleToastClick(toast)}
-                    className="bg-white border-l-4 border-[#09BF44] shadow-lg p-4 rounded-r-lg w-[calc(100vw-2rem)] sm:w-80 sm:max-w-sm max-w-sm animate-in slide-in-from-right duration-300 pointer-events-auto flex items-start gap-3 cursor-pointer hover:shadow-xl transition-shadow"
+                    className="bg-white border-s-4 border-[#09BF44] shadow-lg p-4 rounded-e-lg w-[calc(100vw-2rem)] sm:w-80 sm:max-w-sm max-w-sm animate-in slide-in-from-right duration-300 pointer-events-auto flex items-start gap-3 cursor-pointer hover:shadow-xl transition-shadow"
                 >
                     <div className="flex-1 min-w-0">
                         <h4 className="font-bold text-gray-900 text-sm leading-snug">{toast.title}</h4>

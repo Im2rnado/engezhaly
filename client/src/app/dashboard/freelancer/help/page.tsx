@@ -256,7 +256,7 @@ export default function FreelancerHelpPage() {
                                 <div key={idx} className="border-b border-gray-100 last:border-0">
                                     <button
                                         onClick={() => setOpenFaqIdx(openFaqIdx === idx ? null : idx)}
-                                        className="w-full flex items-center justify-between p-4 md:p-6 text-left hover:bg-gray-50 transition-colors"
+                                        className="w-full flex items-center justify-between p-4 md:p-6 text-start hover:bg-gray-50 transition-colors"
                                     >
                                         <span className="font-bold text-gray-900 pr-4">{item.q}</span>
                                         <ChevronDown
@@ -273,7 +273,7 @@ export default function FreelancerHelpPage() {
                         </div>
                     </section>
 
-                    <div className="mt-8 text-center md:text-left">
+                    <div className="mt-8 text-center md:text-start">
                         <p className="text-gray-500 text-sm">
                             Need more help?{" "}
                             <Link href="/contact" className="text-[#09BF44] font-bold hover:underline">

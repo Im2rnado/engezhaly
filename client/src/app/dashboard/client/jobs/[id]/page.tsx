@@ -374,7 +374,7 @@ function JobDetailPageContent() {
                                                 )}
                                             </div>
                                         </div>
-                                        <div className="sm:text-right">
+                                        <div className="sm:text-end">
                                             <p className="text-xl md:text-2xl font-black text-[#09BF44] mb-1">
                                                 {proposal.price} EGP
                                             </p>
