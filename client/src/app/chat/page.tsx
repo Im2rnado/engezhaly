@@ -174,6 +174,7 @@ function ChatPageContent() {
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const recordingChunksRef = useRef<Blob[]>([]);
     const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const recordingStartedAtRef = useRef<number | null>(null);
     const stopVoiceRecordingRef = useRef<() => void | Promise<void>>(() => {});
     const pendingVoiceUrlRef = useRef<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -753,18 +754,31 @@ function ChatPageContent() {
 
     const startVoiceRecording = useCallback(async () => {
         if (!activeChat || activeChat.isFrozen) return;
+        let stream: MediaStream | null = null;
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
-            const recorder = new MediaRecorder(stream, { mimeType });
+            stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const mimeType = [
+                'audio/mp4;codecs=mp4a.40.2',
+                'audio/mp4',
+                'audio/webm;codecs=opus',
+                'audio/webm',
+                'audio/ogg;codecs=opus'
+            ].find((type) => MediaRecorder.isTypeSupported(type));
+            const recorder = mimeType
+                ? new MediaRecorder(stream, { mimeType, audioBitsPerSecond: 64_000 })
+                : new MediaRecorder(stream);
+            const activeStream = stream;
             recordingChunksRef.current = [];
             recorder.ondataavailable = (e) => { if (e.data.size) recordingChunksRef.current.push(e.data); };
-            recorder.onstop = () => stream.getTracks().forEach((t) => t.stop());
-            recorder.start(500);
+            recorder.onstop = () => activeStream.getTracks().forEach((t) => t.stop());
+            // A single finalized container avoids invalid WebM cluster timestamps produced
+            // when long-lived browser tabs concatenate periodic MediaRecorder fragments.
+            recorder.start();
             mediaRecorderRef.current = recorder;
             setIsRecording(true);
             setRecordingSeconds(0);
             const startAt = Date.now();
+            recordingStartedAtRef.current = startAt;
             const timer = setInterval(() => {
                 const elapsed = Math.floor((Date.now() - startAt) / 1000);
                 setRecordingSeconds(elapsed);
@@ -776,6 +790,7 @@ function ChatPageContent() {
             }, 1000);
             recordingTimerRef.current = timer;
         } catch (err: any) {
+            stream?.getTracks().forEach((track) => track.stop());
             showModal({ title: 'Microphone Error', message: err.message || 'Could not access microphone.', type: 'error' });
         }
     }, [activeChat, showModal]);
@@ -783,25 +798,38 @@ function ChatPageContent() {
     const stopVoiceRecording = useCallback(() => {
         const recorder = mediaRecorderRef.current;
         if (!recorder || recorder.state === 'inactive') return;
-        recorder.stop();
         mediaRecorderRef.current = null;
         if (recordingTimerRef.current) {
             clearInterval(recordingTimerRef.current);
             recordingTimerRef.current = null;
         }
-        const duration = recordingSeconds;
+        const startedAt = recordingStartedAtRef.current;
+        const duration = Math.max(
+            1,
+            Math.min(
+                VOICE_MAX_DURATION_SEC,
+                startedAt ? Math.round((Date.now() - startedAt) / 1000) : recordingSeconds
+            )
+        );
         setIsRecording(false);
         setRecordingSeconds(0);
 
-        const chunks = recordingChunksRef.current;
-        if (chunks.length === 0) return;
+        recorder.onstop = () => {
+            recorder.stream.getTracks().forEach((track) => track.stop());
+            recordingStartedAtRef.current = null;
+            const chunks = recordingChunksRef.current;
+            recordingChunksRef.current = [];
+            if (chunks.length === 0) return;
 
-        const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
-        const ext = (recorder.mimeType || '').includes('webm') ? 'webm' : 'mp4';
-        const file = new File([blob], `voice-${Date.now()}.${ext}`, { type: blob.type });
-        const objectUrl = URL.createObjectURL(blob);
-        pendingVoiceUrlRef.current = objectUrl;
-        setPendingVoiceRecording({ blob, file, durationSeconds: duration, objectUrl });
+            const type = recorder.mimeType || chunks[0]?.type || 'audio/webm';
+            const blob = new Blob(chunks, { type });
+            const ext = type.includes('mp4') ? 'mp4' : type.includes('ogg') ? 'ogg' : 'webm';
+            const file = new File([blob], `voice-${Date.now()}.${ext}`, { type: blob.type });
+            const objectUrl = URL.createObjectURL(blob);
+            pendingVoiceUrlRef.current = objectUrl;
+            setPendingVoiceRecording({ blob, file, durationSeconds: duration, objectUrl });
+        };
+        recorder.stop();
     }, [recordingSeconds]);
 
     const discardVoiceRecording = useCallback(() => {
@@ -2129,7 +2157,7 @@ function ChatPageContent() {
                                                         </div>
                                                     )}
                                                     {isVoice ? (
-                                                        <audio controls src={resolveChatMediaUrl(msg.text || '')} className="w-[230px] max-w-full min-w-0 h-10 rounded-lg" />
+                                                        <audio controls preload="metadata" src={resolveChatMediaUrl(msg.text || '')} className="w-[230px] max-w-full min-w-0 h-10 rounded-lg" />
                                                     ) : isFile && fileSrc ? (
                                                         <div className="space-y-2">
                                                             {chatAttachmentIsImageUrl(fileSrc) ? (
@@ -2229,7 +2257,7 @@ function ChatPageContent() {
                                             </div>
                                         ) : pendingVoiceRecording ? (
                                             <div className="flex items-center gap-1 md:gap-3 bg-gray-50 p-1.5 md:p-3 rounded-2xl border-2 border-gray-200 flex-1 min-w-0">
-                                                <audio controls src={pendingVoiceRecording.objectUrl} className="flex-1 min-w-0 h-10 max-h-10" />
+                                                <audio controls preload="metadata" src={pendingVoiceRecording.objectUrl} className="flex-1 min-w-0 h-10 max-h-10" />
                                                 <span className="hidden sm:inline text-xs text-gray-500 shrink-0">
                                                     {Math.floor(pendingVoiceRecording.durationSeconds / 60)}:{(pendingVoiceRecording.durationSeconds % 60).toString().padStart(2, '0')}
                                                 </span>

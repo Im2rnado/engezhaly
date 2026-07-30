@@ -146,7 +146,7 @@ function AdminChatMessageRow({ msg, selectedChat }: { msg: any; selectedChat: an
                     </div>
                 )}
                 {isVoice ? (
-                    <audio controls src={voiceSrc} className="w-[230px] max-w-full min-w-0 h-10 rounded-lg" />
+                    <audio controls preload="metadata" src={voiceSrc} className="w-[230px] max-w-full min-w-0 h-10 rounded-lg" />
                 ) : isFile && fileSrc ? (
                     <div className="space-y-2">
                         {/\.(jpe?g|png|gif|webp)(\?|$)/i.test(fileSrc) ? (
