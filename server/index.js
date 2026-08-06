@@ -21,6 +21,7 @@ require('./models/Transaction');
 require('./models/EmailLog');
 require('./models/Announcement');
 require('./models/AnnouncementRead');
+require('./models/ErrorLog');
 
 const io = new Server(server, {
     cors: {
@@ -61,6 +62,26 @@ const authLimiter = rateLimit({
 
 // Apply general rate limiter to all requests
 app.use(limiter);
+
+// Controllers sometimes return a 500 response after handling an exception. Capture those too.
+app.use((req, res, next) => {
+    res.on('finish', () => {
+        if (res.statusCode < 500 || res.locals.errorAlreadyLogged || req.originalUrl.startsWith('/api/errors/report')) return;
+        const { recordError } = require('./services/errorLogService');
+        recordError({
+            source: 'server',
+            severity: res.statusCode >= 503 ? 'critical' : 'error',
+            name: 'HttpError',
+            message: `HTTP ${res.statusCode} ${req.method} ${req.path}`,
+            endpoint: req.originalUrl,
+            method: req.method,
+            statusCode: res.statusCode,
+            userId: req.user?.id,
+            userAgent: req.get('user-agent')
+        });
+    });
+    next();
+});
 
 const auth = require('./middleware/auth');
 const adminAuth = require('./middleware/adminAuth');
@@ -117,9 +138,30 @@ app.use('/api/withdrawal-methods', require('./routes/withdrawalMethods'));
 app.use('/api/upload', require('./routes/upload'));
 app.use('/api/announcements', require('./routes/announcements'));
 app.use('/api/contact', require('./routes/contact'));
+app.use('/api/errors', require('./routes/errors'));
 
 app.get('/', (req, res) => {
     res.send('Engezhaly API is running');
+});
+
+// Keep unexpected server failures visible to admins without exposing internals to visitors.
+app.use((err, req, res, next) => {
+    const { recordError } = require('./services/errorLogService');
+    res.locals.errorAlreadyLogged = true;
+    recordError({
+        source: 'server',
+        severity: 'critical',
+        name: err.name,
+        message: err.message,
+        stack: err.stack,
+        endpoint: req.originalUrl,
+        method: req.method,
+        statusCode: err.status || 500,
+        userId: req.user?.id,
+        userAgent: req.get('user-agent')
+    });
+    if (res.headersSent) return next(err);
+    res.status(err.status || 500).json({ msg: 'Server Error' });
 });
 
 // Socket.io - make io available to routes (e.g. chatController)

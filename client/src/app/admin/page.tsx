@@ -15,6 +15,7 @@ import DashboardMobileTopStrip from '@/components/DashboardMobileTopStrip';
 import CountdownTimer from '@/components/CountdownTimer';
 import AnnouncementContent from '@/components/AnnouncementContent';
 import ClientJobViewForAdmin from '@/components/ClientJobViewForAdmin';
+import AdminErrorLogs from '@/components/AdminErrorLogs';
 
 const SOCKET_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.engezhaly.com/api').replace(/\/api$/, '');
 const API_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/api$/, '');
@@ -657,7 +658,7 @@ export default function AdminDashboard() {
     const { showModal, hideModal } = useModal();
     const { lang, toggleLang } = useLanguage();
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'approvals' | 'users' | 'projects' | 'jobs' | 'orders' | 'disputes' | 'finance' | 'withdrawals' | 'instapay' | 'chats' | 'strikes' | 'rewards' | 'emails' | 'announcements'>('dashboard');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'approvals' | 'users' | 'projects' | 'jobs' | 'orders' | 'disputes' | 'finance' | 'withdrawals' | 'instapay' | 'chats' | 'strikes' | 'rewards' | 'emails' | 'errors' | 'announcements'>('dashboard');
 
     // Data States
     const [pendingFreelancers, setPendingFreelancers] = useState<any[]>([]);
@@ -676,6 +677,7 @@ export default function AdminDashboard() {
     const [withdrawals, setWithdrawals] = useState<any[]>([]);
     const [instaPayPending, setInstaPayPending] = useState<any[]>([]);
     const [announcements, setAnnouncements] = useState<any[]>([]);
+    const [errorStats, setErrorStats] = useState({ total: 0, unresolved: 0, critical: 0, last24Hours: 0 });
 
     // Search & UI States
     const [searchQuery, setSearchQuery] = useState('');
@@ -1060,6 +1062,7 @@ export default function AdminDashboard() {
         fetchEmailLogs();
         fetchDisputes();
         fetchInstaPayPending({ silent: true });
+        api.admin.getErrorStats().then(setErrorStats).catch(() => undefined);
     }, []);
 
     useEffect(() => {
@@ -1788,6 +1791,10 @@ export default function AdminDashboard() {
                     <button onClick={() => setActiveTab('emails')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'emails' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
                         <Mail className="w-5 h-5" /> Email Logs
                         {newEmailLogsCount > 0 && <span className="ms-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{newEmailLogsCount}</span>}
+                    </button>
+                    <button onClick={() => setActiveTab('errors')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'errors' ? 'bg-[#09BF44] text-white shadow-lg shadow-green-200' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
+                        <AlertTriangle className="w-5 h-5" /> Error Logs
+                        {errorStats.unresolved > 0 && <span className="ms-auto bg-red-600 text-white text-xs min-w-[1.25rem] h-5 px-1.5 inline-flex items-center justify-center rounded-full font-black">{errorStats.unresolved}</span>}
                     </button>
                 </nav>
 
@@ -3140,6 +3147,8 @@ export default function AdminDashboard() {
                         </div>
                     </div>
                 )}
+
+                {activeTab === 'errors' && <AdminErrorLogs onStatsChange={setErrorStats} />}
 
                 {activeTab === 'announcements' && (
                     <div className="space-y-6">

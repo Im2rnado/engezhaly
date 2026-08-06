@@ -1105,6 +1105,35 @@ export const api = {
             }
             return res.json();
         },
+        getErrorLogs: async (params?: { page?: number; status?: string; source?: string; severity?: string; search?: string }) => {
+            const query = new URLSearchParams();
+            Object.entries(params || {}).forEach(([key, value]) => {
+                if (value !== undefined && value !== '') query.set(key, String(value));
+            });
+            const res = await fetch(`${API_URL}/admin/error-logs${query.size ? `?${query}` : ''}`, {
+                method: 'GET',
+                headers: getHeaders()
+            });
+            const result = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(result.msg || 'Failed to fetch error logs');
+            return result;
+        },
+        getErrorStats: async () => {
+            const res = await fetch(`${API_URL}/admin/error-logs/stats`, { method: 'GET', headers: getHeaders() });
+            const result = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(result.msg || 'Failed to fetch error statistics');
+            return result;
+        },
+        updateErrorStatus: async (id: string, status: 'unresolved' | 'resolved' | 'ignored') => {
+            const res = await fetch(`${API_URL}/admin/error-logs/${id}/status`, {
+                method: 'PATCH',
+                headers: getHeaders(),
+                body: JSON.stringify({ status })
+            });
+            const result = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(result.msg || 'Failed to update error status');
+            return result;
+        },
         getWithdrawals: async () => {
             const res = await fetch(`${API_URL}/admin/withdrawals`, { method: 'GET', headers: getHeaders() });
             if (!res.ok) throw new Error('Failed to fetch withdrawals');

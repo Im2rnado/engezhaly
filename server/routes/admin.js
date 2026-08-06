@@ -46,6 +46,7 @@ const {
     rejectWithdrawal
 } = require('../controllers/adminController');
 const { getPendingInstaPay, approveInstaPay, denyInstaPay } = require('../controllers/instaPayController');
+const { getErrorLogs, getErrorStats, updateErrorStatus } = require('../controllers/errorLogController');
 
 router.get('/freelancers/pending', [authVerified, adminAuth], getPendingFreelancers);
 router.put('/freelancers/:id/approve', [authVerified, adminAuth], approveFreelancer);
@@ -97,6 +98,9 @@ router.patch('/withdrawals/:id/complete', [authVerified, adminAuth], completeWit
 router.patch('/withdrawals/:id/reject', [authVerified, adminAuth], rejectWithdrawal);
 router.get('/top-freelancers', [authVerified, adminAuth], getTopFreelancers);
 router.get('/email-logs', [authVerified, adminAuth], getEmailLogs);
+router.get('/error-logs', [authVerified, adminAuth], getErrorLogs);
+router.get('/error-logs/stats', [authVerified, adminAuth], getErrorStats);
+router.patch('/error-logs/:id/status', [authVerified, adminAuth], updateErrorStatus);
 
 // InstaPay pending payments
 router.get('/instapay-pending', [authVerified, adminAuth], getPendingInstaPay);
