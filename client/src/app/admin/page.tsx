@@ -681,6 +681,7 @@ export default function AdminDashboard() {
 
     // Search & UI States
     const [searchQuery, setSearchQuery] = useState('');
+    const [userSearchQuery, setUserSearchQuery] = useState('');
     const [searchResult, setSearchResult] = useState<any>(null);
     const [strikeSearchMatches, setStrikeSearchMatches] = useState<any[]>([]);
     const strikeSearchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -718,6 +719,30 @@ export default function AdminDashboard() {
     selectedConversationIdRef.current = selectedChat?._id ?? null;
     const adminChatMessagesScrollRef = useRef<HTMLDivElement | null>(null);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+    const normalizedUserSearch = userSearchQuery.trim().toLocaleLowerCase();
+    const userMatchesSearch = useCallback((user: any) => {
+        if (!normalizedUserSearch) return true;
+        const searchableText = [
+            user._id,
+            user.firstName,
+            user.lastName,
+            `${user.firstName || ''} ${user.lastName || ''}`,
+            user.email,
+            user.phoneNumber,
+            user.username,
+            user.role
+        ]
+            .filter(Boolean)
+            .join(' ')
+            .toLocaleLowerCase();
+        return searchableText.includes(normalizedUserSearch);
+    }, [normalizedUserSearch]);
+    const filteredUsers = useMemo(() => users.filter(userMatchesSearch), [users, userMatchesSearch]);
+    const filteredUnverifiedUsers = useMemo(
+        () => unverifiedUsers.filter(userMatchesSearch),
+        [unverifiedUsers, userMatchesSearch]
+    );
 
     const [financeHideManualTopUp, setFinanceHideManualTopUp] = useState(false);
 
@@ -1897,20 +1922,45 @@ export default function AdminDashboard() {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         {/* Left Column: Lists */}
                         <div className={`lg:col-span-1 flex flex-col gap-6 overflow-y-auto h-[calc(100vh)] pr-2 ${selectedUser ? "hidden lg:flex" : "flex"}`}>
+                            <div className="relative shrink-0">
+                                <Search className="absolute start-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                <input
+                                    type="search"
+                                    value={userSearchQuery}
+                                    onChange={(event) => setUserSearchQuery(event.target.value)}
+                                    placeholder="Search clients by name, email, phone, username, role, or ID"
+                                    aria-label="Search users"
+                                    className="w-full rounded-2xl border border-gray-200 bg-white py-3 ps-12 pe-11 text-sm text-gray-900 shadow-sm outline-none transition focus:border-[#09BF44] focus:ring-4 focus:ring-[#09BF44]/10"
+                                />
+                                {userSearchQuery && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setUserSearchQuery('')}
+                                        aria-label="Clear user search"
+                                        className="absolute end-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </button>
+                                )}
+                            </div>
                             {/* User list */}
                             <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden shrink-0">
                                 <div className="p-4 border-b border-gray-100 sticky top-0 bg-white z-10">
                                     <h3 className="font-bold text-gray-900">Verified Users</h3>
-                                    <p className="text-sm text-gray-500">{users.length} total</p>
+                                    <p className="text-sm text-gray-500">
+                                        {normalizedUserSearch ? `${filteredUsers.length} of ${users.length}` : `${users.length} total`}
+                                    </p>
                                 </div>
                                 <div>
                                     {usersLoading ? (
                                         <div className="p-8 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44]" /></div>
-                                    ) : users.length === 0 ? (
-                                        <div className="p-8 text-center text-gray-500">No users yet.</div>
+                                    ) : filteredUsers.length === 0 ? (
+                                        <div className="p-8 text-center text-gray-500">
+                                            {normalizedUserSearch ? 'No verified users match your search.' : 'No users yet.'}
+                                        </div>
                                     ) : (
                                         <div className="divide-y divide-gray-100">
-                                            {users.map(user => {
+                                            {filteredUsers.map(user => {
                                                 const uid = user._id != null ? String(user._id) : '';
                                                 const listPic = user.freelancerProfile?.profilePicture || user.clientProfile?.profilePicture;
                                                 const listInitial = (user.firstName?.[0] || user.email?.[0] || '?').toUpperCase();
@@ -1948,16 +1998,20 @@ export default function AdminDashboard() {
                             <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden shrink-0 mb-4">
                                 <div className="p-4 border-b border-gray-100 sticky top-0 bg-white z-10">
                                     <h3 className="font-bold text-gray-900">Unverified Users</h3>
-                                    <p className="text-sm text-gray-500">{unverifiedUsers.length} total</p>
+                                    <p className="text-sm text-gray-500">
+                                        {normalizedUserSearch ? `${filteredUnverifiedUsers.length} of ${unverifiedUsers.length}` : `${unverifiedUsers.length} total`}
+                                    </p>
                                 </div>
                                 <div>
                                     {usersLoading ? (
                                         <div className="p-8 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#09BF44]" /></div>
-                                    ) : unverifiedUsers.length === 0 ? (
-                                        <div className="p-8 text-center text-gray-500">No unverified users.</div>
+                                    ) : filteredUnverifiedUsers.length === 0 ? (
+                                        <div className="p-8 text-center text-gray-500">
+                                            {normalizedUserSearch ? 'No unverified users match your search.' : 'No unverified users.'}
+                                        </div>
                                     ) : (
                                         <div className="divide-y divide-gray-100">
-                                            {unverifiedUsers.map(user => {
+                                            {filteredUnverifiedUsers.map(user => {
                                                 const uid = user._id != null ? String(user._id) : '';
                                                 const listPic = user.freelancerProfile?.profilePicture || user.clientProfile?.profilePicture;
                                                 const listInitial = (user.firstName?.[0] || user.email?.[0] || '?').toUpperCase();
