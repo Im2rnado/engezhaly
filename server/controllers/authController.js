@@ -216,7 +216,7 @@ const register = async (req, res) => {
         const payload = { user: { id: user.id, role: user.role } };
         jwt.sign(
             payload,
-            process.env.JWT_SECRET || 'secret',
+            process.env.JWT_SECRET,
             { expiresIn: '30d' },
             (err, authToken) => {
                 if (err) throw err;
@@ -318,7 +318,7 @@ const login = async (req, res) => {
         const payload = { user: { id: user.id, role: user.role } };
         jwt.sign(
             payload,
-            process.env.JWT_SECRET || 'secret',
+            process.env.JWT_SECRET,
             { expiresIn: '30d' },
             (err, token) => {
                 if (err) throw err;

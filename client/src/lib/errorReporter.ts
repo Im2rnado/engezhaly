@@ -13,6 +13,17 @@ export type ClientErrorReport = {
   statusCode?: number;
 };
 
+const SENSITIVE_VALUE = /((?:token|authorization|password|secret|api[-_]?key)\s*[=:]\s*)([^\s&]+)/gi;
+const EMAIL_VALUE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
+
+function sanitizeDiagnostic(value?: string, max = 15_000) {
+  if (!value) return undefined;
+  return value
+    .replace(SENSITIVE_VALUE, '$1[redacted]')
+    .replace(EMAIL_VALUE, '[redacted-email]')
+    .slice(0, max);
+}
+
 let originalFetch: typeof window.fetch | null = null;
 const recentReports = new Map<string, number>();
 
@@ -51,6 +62,9 @@ export function reportClientError(report: ClientErrorReport) {
     },
     body: JSON.stringify({
       ...report,
+      message: sanitizeDiagnostic(report.message, 3_000),
+      stack: sanitizeDiagnostic(report.stack),
+      componentStack: sanitizeDiagnostic(report.componentStack, 10_000),
       page: `${window.location.pathname}${window.location.hash}`,
       sessionId: getSessionId(),
       viewport: { width: window.innerWidth, height: window.innerHeight },

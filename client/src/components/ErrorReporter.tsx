@@ -9,9 +9,11 @@ export default function ErrorReporter() {
     setErrorReporterFetch(nativeFetch);
 
     const handleWindowError = (event: ErrorEvent) => {
+      const isExternalDomMutation = event.error?.name === 'NotFoundError'
+        && /(?:insertBefore|removeChild).*not (?:a child|a child of)/i.test(event.message || event.error?.message || '');
       reportClientError({
         source: 'frontend',
-        severity: 'error',
+        severity: isExternalDomMutation ? 'warning' : 'error',
         name: event.error?.name || 'WindowError',
         message: event.message || event.error?.message || 'Unknown browser error',
         stack: event.error?.stack
@@ -51,7 +53,9 @@ export default function ErrorReporter() {
         if (shouldMonitor && err?.name !== 'AbortError') {
           reportClientError({
             source: 'api',
-            severity: 'critical',
+            // A rejected fetch means the browser could not establish/complete a
+            // connection. It is not evidence that the API itself crashed.
+            severity: 'warning',
             name: err?.name || 'NetworkError',
             message: err?.message || 'API request failed',
             stack: err?.stack,

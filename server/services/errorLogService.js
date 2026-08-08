@@ -4,11 +4,20 @@ const User = require('../models/User');
 
 const limitText = (value, max) => typeof value === 'string' ? value.slice(0, max) : undefined;
 
+const redactSensitiveText = (value, max) => {
+    if (typeof value !== 'string') return undefined;
+    return value
+        .replace(/((?:token|authorization|password|secret|api[-_]?key)\s*[=:]\s*)([^\s&]+)/gi, '$1[redacted]')
+        .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[redacted-email]')
+        .slice(0, max);
+};
+
 const cleanPath = (value, max = 500) => {
     if (typeof value !== 'string') return undefined;
     try {
         const parsed = new URL(value, 'https://engezhaly.local');
-        return `${parsed.pathname}${parsed.hash || ''}`.slice(0, max);
+        // Fragments and queries may contain password-reset or verification tokens.
+        return parsed.pathname.slice(0, max);
     } catch {
         return value.split('?')[0].slice(0, max);
     }
@@ -33,12 +42,15 @@ function detectClient(userAgent = '') {
 }
 
 function makeFingerprint(data) {
+    const isNetworkFailure = data.source === 'api'
+        && /^(Load failed|Failed to fetch|Network request failed)$/i.test(data.message || '');
     return crypto.createHash('sha256').update([
         data.source,
         data.name,
         data.message,
         data.page,
-        data.endpoint,
+        // A single connectivity incident can make many endpoints fail at once.
+        isNetworkFailure ? '' : data.endpoint,
         data.method,
         data.statusCode
     ].map((value) => value || '').join('|')).digest('hex');
@@ -61,10 +73,10 @@ async function recordError(input = {}) {
         const data = {
             source: ['frontend', 'api', 'server'].includes(input.source) ? input.source : 'server',
             severity: ['warning', 'error', 'critical'].includes(input.severity) ? input.severity : 'error',
-            name: limitText(input.name, 150),
-            message: limitText(input.message || 'Unknown error', 3000),
-            stack: limitText(input.stack, 15000),
-            componentStack: limitText(input.componentStack, 10000),
+            name: redactSensitiveText(input.name, 150),
+            message: redactSensitiveText(input.message || 'Unknown error', 3000),
+            stack: redactSensitiveText(input.stack, 15000),
+            componentStack: redactSensitiveText(input.componentStack, 10000),
             page: cleanPath(input.page),
             endpoint: cleanPath(input.endpoint),
             method: limitText(input.method, 12),

@@ -21,7 +21,7 @@ module.exports = (io) => {
         try {
             const token = socket.handshake.auth?.token || socket.handshake.headers?.['x-auth-token'];
             if (token) {
-                const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+                const decoded = jwt.verify(token, process.env.JWT_SECRET);
                 userId = decoded.user?.id || decoded.user?._id;
                 userRole = decoded.user?.role || null;
             }

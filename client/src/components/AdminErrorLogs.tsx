@@ -117,7 +117,7 @@ export default function AdminErrorLogs({ onStatsChange }: { onStatsChange?: (sta
                     </div>
                     <p className="mt-2 font-bold text-gray-900 break-words line-clamp-2">{log.message}</p>
                     <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-                      <span>{log.userSnapshot?.name || 'Anonymous'}{log.userSnapshot?.role ? ` · ${log.userSnapshot.role}` : ''}</span>
+                      <span>{log.userSnapshot?.name || 'Unauthenticated session'}{log.userSnapshot?.role ? ` · ${log.userSnapshot.role}` : ''}</span>
                       <span>{log.page || log.endpoint || 'Unknown page'}</span>
                       <span>{new Date(log.lastSeenAt).toLocaleString()}</span>
                     </div>
@@ -148,7 +148,7 @@ export default function AdminErrorLogs({ onStatsChange }: { onStatsChange?: (sta
               <div className="rounded-2xl bg-red-50 border border-red-100 p-4"><p className="font-bold text-red-800 break-words">{selected.message}</p></div>
               <div className="grid sm:grid-cols-2 gap-3 text-sm">
                 {[
-                  ['User', selected.userSnapshot?.name || 'Anonymous'],
+                  ['User', selected.userSnapshot?.name || 'Unauthenticated session'],
                   ['Email', selected.userSnapshot?.email || '-'],
                   ['Role', selected.userSnapshot?.role || '-'],
                   ['Time', new Date(selected.lastSeenAt).toLocaleString()],
@@ -159,7 +159,7 @@ export default function AdminErrorLogs({ onStatsChange }: { onStatsChange?: (sta
                   ['Request', [selected.method, selected.statusCode].filter(Boolean).join(' · ') || '-'],
                   ['Device', [selected.deviceType, selected.browser, selected.os].filter(Boolean).join(' · ')],
                   ['Viewport', selected.viewport?.width ? `${selected.viewport.width} × ${selected.viewport.height}` : '-'],
-                  ['Session', selected.sessionId || '-']
+                  ['Session', selected.sessionId ? `${selected.sessionId.slice(0, 8)}…` : '-']
                 ].map(([label, value]) => <div key={String(label)} className="rounded-xl bg-gray-50 p-3 min-w-0"><p className="text-xs font-bold text-gray-400 uppercase">{label}</p><p className="mt-1 font-semibold text-gray-800 break-words">{value}</p></div>)}
               </div>
               {(selected.stack || selected.componentStack) && <div><p className="text-sm font-black mb-2">Technical stack</p><pre className="max-h-72 overflow-auto rounded-xl bg-gray-950 p-4 text-xs text-gray-100 whitespace-pre-wrap break-words" dir="ltr">{selected.stack || selected.componentStack}</pre></div>}

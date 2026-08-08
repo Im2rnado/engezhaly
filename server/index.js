@@ -6,6 +6,10 @@ const http = require('http');
 const { Server } = require('socket.io');
 require('dotenv').config();
 
+if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET is required; refusing to start with an insecure signing key');
+}
+
 const app = express();
 const server = http.createServer(app);
 // Sync Models at startup (registers with mongoose global instance)
@@ -30,13 +34,30 @@ const io = new Server(server, {
     }
 });
 
+const allowedOrigins = new Set([
+    'https://engezhaly.com',
+    'https://www.engezhaly.com',
+    'http://localhost:3000',
+    'http://localhost:3001',
+    ...(process.env.CORS_ORIGINS || '').split(',').map((origin) => origin.trim()).filter(Boolean)
+]);
+
 // CORS Middleware (Global - absolute top)
 app.use(cors({
-    origin: true, // Allow any origin temporarily to debug, or provide your array
+    origin(origin, callback) {
+        // Requests without Origin include same-origin/server-to-server clients.
+        if (!origin || allowedOrigins.has(origin)) return callback(null, true);
+        return callback(null, false);
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "x-auth-token", "Authorization"]
 }));
+
+// Error reports have a deliberately small parser limit. Mount this before the
+// larger upload-compatible JSON parser so anonymous clients cannot send 30 MB
+// diagnostic bodies before rate limiting is applied.
+app.use('/api/errors', require('./routes/errors'));
 
 // Middleware
 // Allow 20MB files plus base64 encoding overhead during registration.
@@ -138,7 +159,6 @@ app.use('/api/withdrawal-methods', require('./routes/withdrawalMethods'));
 app.use('/api/upload', require('./routes/upload'));
 app.use('/api/announcements', require('./routes/announcements'));
 app.use('/api/contact', require('./routes/contact'));
-app.use('/api/errors', require('./routes/errors'));
 
 app.get('/', (req, res) => {
     res.send('Engezhaly API is running');

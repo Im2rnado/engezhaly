@@ -41,6 +41,31 @@ function resolveMediaUrl(url: string) {
     return `${base}${u.startsWith('/') ? '' : '/'}${u}`;
 }
 
+function ProtectedAdminFileLink({ url, children, className }: { url: string; children: React.ReactNode; className?: string }) {
+    const openFile = async () => {
+        const resolved = resolveMediaUrl(url);
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        try {
+            const target = new URL(resolved, window.location.origin);
+            const trustedOrigins = new Set([window.location.origin, API_ORIGIN].filter(Boolean));
+            if (!trustedOrigins.has(target.origin)) {
+                window.open(target.href, '_blank', 'noopener,noreferrer');
+                return;
+            }
+            const response = await fetch(target.href, { headers: { 'x-auth-token': token } });
+            if (!response.ok) throw new Error('Unable to open protected file');
+            const objectUrl = URL.createObjectURL(await response.blob());
+            window.open(objectUrl, '_blank', 'noopener,noreferrer');
+            window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+        } catch (error) {
+            console.error('Failed to open protected file', error);
+        }
+    };
+
+    return <button type="button" onClick={openFile} className={className}>{children}</button>;
+}
+
 function AdminAvatarWithPresence({
     src,
     initial,
@@ -508,9 +533,9 @@ function UserDetailPanel({ user, onBack, onEdit, onDelete, onRefresh }: { user: 
                                     {fp?.cvUrl && (
                                         <div className="bg-gray-50 p-4 rounded-xl md:col-span-2">
                                             <p className="text-xs font-bold text-gray-400 mb-1">CV (admin only, not public)</p>
-                                            <a href={`${fp.cvUrl}?token=${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`} target="_blank" rel="noopener noreferrer" className="text-[#09BF44] hover:underline font-medium flex items-center gap-1">
+                                            <ProtectedAdminFileLink url={fp.cvUrl} className="text-[#09BF44] hover:underline font-medium flex items-center gap-1">
                                                 <FileText className="w-4 h-4" /> View CV
-                                            </a>
+                                            </ProtectedAdminFileLink>
                                         </div>
                                     )}
                                 </div>
@@ -626,12 +651,12 @@ function UserDetailPanel({ user, onBack, onEdit, onDelete, onRefresh }: { user: 
                                 <div className="space-y-4">
                                     <div className="bg-gray-50 p-4 rounded-xl">
                                         <p className="text-xs font-bold text-gray-400 mb-2">Government ID</p>
-                                        {fp?.idDocument ? <a href={`${fp.idDocument}?token=${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline"><FileText className="w-4 h-4" /> View</a> : <p className="text-sm text-gray-400">None</p>}
+                                        {fp?.idDocument ? <ProtectedAdminFileLink url={fp.idDocument} className="flex items-center gap-2 text-sm text-blue-600 hover:underline"><FileText className="w-4 h-4" /> View</ProtectedAdminFileLink> : <p className="text-sm text-gray-400">None</p>}
                                     </div>
                                     {fp?.isStudent && fp?.universityId && (
                                         <div className="bg-gray-50 p-4 rounded-xl">
                                             <p className="text-xs font-bold text-gray-400 mb-2">University ID</p>
-                                            <a href={`${fp.universityId}?token=${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline"><FileText className="w-4 h-4" /> View</a>
+                                            <ProtectedAdminFileLink url={fp.universityId} className="flex items-center gap-2 text-sm text-blue-600 hover:underline"><FileText className="w-4 h-4" /> View</ProtectedAdminFileLink>
                                         </div>
                                     )}
                                     {fp?.certifications?.length > 0 && (
@@ -738,9 +763,12 @@ export default function AdminDashboard() {
             .toLocaleLowerCase();
         return searchableText.includes(normalizedUserSearch);
     }, [normalizedUserSearch]);
-    const filteredUsers = useMemo(() => users.filter(userMatchesSearch), [users, userMatchesSearch]);
+    const filteredUsers = useMemo(
+        () => (Array.isArray(users) ? users : []).filter(userMatchesSearch),
+        [users, userMatchesSearch]
+    );
     const filteredUnverifiedUsers = useMemo(
-        () => unverifiedUsers.filter(userMatchesSearch),
+        () => (Array.isArray(unverifiedUsers) ? unverifiedUsers : []).filter(userMatchesSearch),
         [unverifiedUsers, userMatchesSearch]
     );
 
@@ -940,9 +968,9 @@ export default function AdminDashboard() {
         setUsersLoading(true);
         try {
             const data = await api.admin.getAllUsers();
-            setUsers(data);
+            setUsers(Array.isArray(data) ? data : []);
             const unverifiedData = await api.admin.getUnverifiedUsers();
-            setUnverifiedUsers(unverifiedData);
+            setUnverifiedUsers(Array.isArray(unverifiedData) ? unverifiedData : []);
         } catch (err) {
             console.error('Failed to fetch users', err);
         } finally {
@@ -3516,9 +3544,9 @@ export default function AdminDashboard() {
                                             {selectedFreelancer.freelancerProfile?.cvUrl && (
                                                 <div className="bg-gray-50 p-4 rounded-xl md:col-span-2">
                                                     <p className="text-xs font-bold text-gray-400 mb-1">CV (admin only, not public)</p>
-                                                    <a href={`${selectedFreelancer.freelancerProfile.cvUrl}?token=${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`} target="_blank" rel="noopener noreferrer" className="text-[#09BF44] hover:underline font-medium flex items-center gap-1">
+                                                    <ProtectedAdminFileLink url={selectedFreelancer.freelancerProfile.cvUrl} className="text-[#09BF44] hover:underline font-medium flex items-center gap-1">
                                                         <FileText className="w-4 h-4" /> View CV
-                                                    </a>
+                                                    </ProtectedAdminFileLink>
                                                 </div>
                                             )}
                                             {(selectedFreelancer.freelancerProfile?.extraLanguages?.length > 0) && (
@@ -3707,9 +3735,9 @@ export default function AdminDashboard() {
                                             <div className="bg-gray-50 p-4 rounded-xl">
                                                 <p className="text-xs font-bold text-gray-400 mb-2">Government ID</p>
                                                 {selectedFreelancer.freelancerProfile?.idDocument ? (
-                                                    <a href={`${selectedFreelancer.freelancerProfile.idDocument}?token=${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline font-medium">
+                                                    <ProtectedAdminFileLink url={selectedFreelancer.freelancerProfile.idDocument} className="flex items-center gap-2 text-sm text-blue-600 hover:underline font-medium">
                                                         <FileText className="w-4 h-4" /> View Document
-                                                    </a>
+                                                    </ProtectedAdminFileLink>
                                                 ) : (
                                                     <p className="text-sm text-gray-400">None uploaded</p>
                                                 )}
@@ -3719,9 +3747,9 @@ export default function AdminDashboard() {
                                                 <div className="bg-gray-50 p-4 rounded-xl">
                                                     <p className="text-xs font-bold text-gray-400 mb-2">University ID</p>
                                                     {selectedFreelancer.freelancerProfile?.universityId ? (
-                                                        <a href={`${selectedFreelancer.freelancerProfile.universityId}?token=${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline font-medium">
+                                                        <ProtectedAdminFileLink url={selectedFreelancer.freelancerProfile.universityId} className="flex items-center gap-2 text-sm text-blue-600 hover:underline font-medium">
                                                             <FileText className="w-4 h-4" /> View University ID
-                                                        </a>
+                                                        </ProtectedAdminFileLink>
                                                     ) : (
                                                         <p className="text-sm text-gray-400">None uploaded</p>
                                                     )}

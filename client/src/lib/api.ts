@@ -927,8 +927,13 @@ export const api = {
             const res = await fetch(`${API_URL}/admin/users/unverified`, {
                 headers: getHeaders()
             });
-            if (!res.ok) throw new Error(await res.text());
-            return res.json();
+            if (!res.ok) {
+                if (isUnauthorized(res)) throw new Error('Session expired. Please log in again.');
+                throw new Error(await res.text());
+            }
+            const result = await res.json();
+            if (!Array.isArray(result)) throw new Error('Invalid users response');
+            return result;
         },
         resendVerificationEmail: async (userId: string) => {
             const res = await fetch(`${API_URL}/admin/users/${userId}/resend-verification`, {
@@ -946,8 +951,13 @@ export const api = {
                 method: 'GET',
                 headers: getHeaders()
             });
-            if (!res.ok && isUnauthorized(res)) throw new Error('Session expired. Please log in again.');
-            return res.json();
+            if (!res.ok) {
+                if (isUnauthorized(res)) throw new Error('Session expired. Please log in again.');
+                throw new Error('Failed to fetch users');
+            }
+            const result = await res.json();
+            if (!Array.isArray(result)) throw new Error('Invalid users response');
+            return result;
         },
         getUserById: async (id: string) => {
             const res = await fetch(`${API_URL}/admin/users/${id}`, {
